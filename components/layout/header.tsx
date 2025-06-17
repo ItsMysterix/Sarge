@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { UserProfile } from "./user-profile"
 
 export function Header() {
   const [time, setTime] = useState("")
@@ -32,9 +33,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center space-x-6">
-          <div className="text-sm text-gray-300">
-            Welcome, <span className="text-accent">Alex Chen</span>
-          </div>
+          <UserProfile />
           <div className="terminal-text text-accent text-lg font-mono">{time}</div>
           <div className="w-3 h-3 bg-accent rounded-full animate-pulse-glow"></div>
         </div>

@@ -3,6 +3,9 @@
 import { io, type Socket } from "socket.io-client"
 
 class SocketManager {
+  onLogsUpdate(arg0: (newData: any) => void): (() => void) | undefined {
+    throw new Error("Method not implemented.")
+  }
   private socket: Socket | null = null
   private url: string
 

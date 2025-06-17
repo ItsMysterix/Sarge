@@ -19,6 +19,8 @@ import { useToast } from "@/components/ui/toast"
 import { useDeployments } from "@/hooks/useApi"
 import { useAppStore } from "@/lib/store"
 import { formatDistanceToNow } from "date-fns"
+import { useEffect } from "react"
+import { socketManager } from "@/lib/socket"
 
 export default function Deployments() {
   const { data: deployments, loading, triggerDeployment } = useDeployments()
@@ -28,11 +30,13 @@ export default function Deployments() {
   const handleDeploy = async () => {
     setDeploying(true)
     try {
-      const deployment = await triggerDeployment("main")
+      // Use WebSocket for real-time deployment
+      socketManager.triggerDeployment("main")
+
       addToast({
         type: "success",
         title: "Deployment Started",
-        description: `Deployment ${deployment.id} is now pending`,
+        description: "Deployment has been triggered via WebSocket",
       })
     } catch (error) {
       addToast({
@@ -44,6 +48,19 @@ export default function Deployments() {
       setDeploying(false)
     }
   }
+
+  // Add real-time deployment progress tracking
+  useEffect(() => {
+    const cleanupProgress = socketManager.onDeploymentProgress((progress) => {
+      addToast({
+        type: "info",
+        title: "Deployment Progress",
+        description: progress.message,
+      })
+    })
+
+    return cleanupProgress
+  }, [addToast])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -172,7 +189,7 @@ export default function Deployments() {
                         {getStatusIcon(deploy.status)}
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
-                            <span className="terminal-text text-accent font-medium">#{typeof deploy.id === 'string' ? deploy.id.slice(-6) : String(deploy.id).slice(-6)}</span>
+                            <span className="terminal-text text-accent font-medium">#{deploy.id.slice(-6)}</span>
                             <div
                               className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(deploy.status)} bg-opacity-10`}
                             >
