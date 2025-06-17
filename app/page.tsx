@@ -1,28 +1,65 @@
 "use client"
 
+import { useUser } from "@clerk/nextjs"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { Brain, Lightbulb, Target, Play } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { useToast } from "@/components/ui/toast"
-import { useInsights, useMetrics, useDeployments } from "@/hooks/useApi"
+import { useInsights, useMetrics } from "@/hooks/useApi"
 import { useAppStore } from "@/lib/store"
+import { socketManager } from "@/lib/socket"
+import { AuthLoading } from "@/components/auth/loading"
 
 export default function Overview() {
+  const { isLoaded, isSignedIn, user } = useUser()
+  const router = useRouter()
   const { data: insights, loading: insightsLoading } = useInsights()
   const { data: metrics, loading: metricsLoading } = useMetrics()
-  const { triggerDeployment } = useDeployments()
   const { isDeploying, setDeploying } = useAppStore()
   const { addToast, ToastContainer } = useToast()
+
+  // Handle authentication redirect
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.replace("/landing")
+      return
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  // Initialize socket connection for authenticated users
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      socketManager.connect()
+    }
+
+    return () => {
+      // Don't disconnect on unmount as other components might be using it
+    }
+  }, [isLoaded, isSignedIn])
+
+  // Show loading while checking authentication
+  if (!isLoaded) {
+    return <AuthLoading />
+  }
+
+  // Redirect to landing if not signed in
+  if (!isSignedIn) {
+    return <AuthLoading />
+  }
 
   const handleQuickDeploy = async () => {
     setDeploying(true)
     try {
-      const deployment = await triggerDeployment("main")
+      // Use WebSocket for real-time deployment
+      socketManager.triggerDeployment("main")
+
       addToast({
         type: "success",
         title: "Deployment Started",
-        description: `Deployment ${deployment.id} is now pending`,
+        description: "Deployment has been triggered and is now in progress",
       })
     } catch (error) {
       addToast({
@@ -35,6 +72,7 @@ export default function Overview() {
     }
   }
 
+  // Show loading while fetching data
   if (insightsLoading || metricsLoading) {
     return (
       <div className="flex h-screen bg-[#0f0f0f]">
@@ -61,6 +99,19 @@ export default function Overview() {
         <Header />
 
         <main className="flex-1 p-6 overflow-auto">
+          {/* Welcome Message for New Users */}
+          {user && (
+            <div className="glass-card p-4 mb-6 border-l-4 border-l-accent">
+              <div className="flex items-center space-x-3">
+                <Brain className="w-5 h-5 text-accent" />
+                <div>
+                  <div className="font-medium">Welcome back, {user.firstName || user.username || "Commander"}!</div>
+                  <div className="text-sm text-gray-400">Your DevOps command center is ready.</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* AI Insight Header */}
           <div className="flex items-center justify-between mb-8">
             <div>

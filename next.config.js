@@ -9,8 +9,17 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    serverExternalPackages: ["@neondatabase/serverless"],
+  async rewrites() {
+    return [
+      {
+        source: '/sign-in',
+        destination: '/sign-in/[[...index]]',
+      },
+      {
+        source: '/sign-up',
+        destination: '/sign-up/[[...index]]',
+      },
+    ]
   },
 }
 
