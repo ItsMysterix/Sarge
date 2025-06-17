@@ -10,7 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ["@neondatabase/serverless"],
+    serverExternalPackages: ["@neondatabase/serverless"],
   },
 }
 
