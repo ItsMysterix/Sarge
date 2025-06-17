@@ -1,7 +1,7 @@
 {
   "name": "sarge-backend-api",
   "version": "1.0.0",
-  "description": "Express API backend for Sarge DevOps Dashboard using Neon PostgreSQL",
+  "description": "Express API backend for Sarge DevOps Dashboard with Socket.IO WebSockets",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "express": "^4.18.2",
+    "socket.io": "^4.7.2",
     "pg": "^8.11.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1"
