@@ -172,7 +172,7 @@ export default function Deployments() {
                         {getStatusIcon(deploy.status)}
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
-                            <span className="terminal-text text-accent font-medium">#{deploy.id.slice(-6)}</span>
+                            <span className="terminal-text text-accent font-medium">#{typeof deploy.id === 'string' ? deploy.id.slice(-6) : String(deploy.id).slice(-6)}</span>
                             <div
                               className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(deploy.status)} bg-opacity-10`}
                             >
