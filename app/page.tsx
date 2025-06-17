@@ -5,24 +5,27 @@ import { Header } from "@/components/layout/header"
 import { Brain, Lightbulb, Target, Play } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { useToast } from "@/components/ui/toast"
-import { useInsights, useMetrics, useDeployments } from "@/hooks/useApi"
+import { useInsights, useMetrics } from "@/hooks/useApi"
 import { useAppStore } from "@/lib/store"
+import { socketManager } from "@/lib/socket"
+import { useEffect } from "react"
 
 export default function Overview() {
   const { data: insights, loading: insightsLoading } = useInsights()
   const { data: metrics, loading: metricsLoading } = useMetrics()
-  const { triggerDeployment } = useDeployments()
   const { isDeploying, setDeploying } = useAppStore()
   const { addToast, ToastContainer } = useToast()
 
   const handleQuickDeploy = async () => {
     setDeploying(true)
     try {
-      const deployment = await triggerDeployment("main")
+      // Use WebSocket for real-time deployment
+      socketManager.triggerDeployment("main")
+
       addToast({
         type: "success",
         title: "Deployment Started",
-        description: `Deployment ${deployment.id} is now pending`,
+        description: "Deployment has been triggered and is now in progress",
       })
     } catch (error) {
       addToast({
@@ -34,6 +37,14 @@ export default function Overview() {
       setDeploying(false)
     }
   }
+
+  useEffect(() => {
+    socketManager.connect()
+
+    return () => {
+      // Don't disconnect on unmount as other components might be using it
+    }
+  }, [])
 
   if (insightsLoading || metricsLoading) {
     return (
