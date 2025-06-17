@@ -50,7 +50,7 @@ function useApiWithSocket<T>(apiCall: () => Promise<T>, socketEvent?: string, de
     return cleanup
   }, dependencies)
 
-  return { data, loading, error, refetch: fetchData }
+  return { data, loading, error, refetch: apiCall }
 }
 
 export function useInsights() {
