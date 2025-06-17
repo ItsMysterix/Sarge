@@ -40,6 +40,10 @@
     color: #ffffff;
     font-family: var(--font-inter), sans-serif;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {
@@ -128,6 +132,35 @@
   .recommendation-item:hover {
     background-color: rgba(255, 255, 255, 0.05);
   }
+
+  .hero-gradient {
+    background: linear-gradient(
+      135deg,
+      rgba(6, 214, 160, 0.1) 0%,
+      rgba(255, 166, 0, 0.1) 50%,
+      rgba(6, 214, 160, 0.1) 100%
+    );
+    animation: gradient-shift 8s ease-in-out infinite;
+  }
+
+  @keyframes gradient-shift {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .feature-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .feature-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(6, 214, 160, 0.1);
+  }
 }
 
 @keyframes pulse-glow {
@@ -142,4 +175,20 @@
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
 }

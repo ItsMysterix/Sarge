@@ -2,6 +2,8 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
+import { ClerkProvider } from "@clerk/nextjs"
+import { AuthDebug } from "@/components/debug/auth-debug"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,7 +20,6 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Sarge - DevOps Command Center",
   description: "Cyberpunk-inspired DevOps dashboard",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -27,8 +28,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
-    </html>
+    <ClerkProvider
+    publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/"
+      afterSignUpUrl="/"
+    >
+      <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+        <body className="font-sans antialiased">
+          {children}
+          <AuthDebug />
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }
