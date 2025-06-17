@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "timestamp": "2024-01-15T14:32:15.234Z",
+    "level": "ERROR",
+    "service": "api-gateway",
+    "message": "Authentication failed for user ID 12345",
+    "category": "Authentication Errors",
+    "severity": "high"
+  },
+  {
+    "id": "2",
+    "timestamp": "2024-01-15T14:32:14.891Z",
+    "level": "WARN",
+    "service": "worker-queue",
+    "message": "High memory usage detected: 85% of allocated memory in use",
+    "category": "Memory Warnings",
+    "severity": "medium"
+  },
+  {
+    "id": "3",
+    "timestamp": "2024-01-15T14:32:13.567Z",
+    "level": "ERROR",
+    "service": "database",
+    "message": "Connection timeout after 30s - retrying connection",
+    "category": "Database Slow Queries",
+    "severity": "medium"
+  }
+]

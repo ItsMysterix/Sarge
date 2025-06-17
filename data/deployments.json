@@ -1,0 +1,44 @@
+[
+  {
+    "id": "#1247",
+    "date": "2024-01-15",
+    "time": "14:32",
+    "branch": "main",
+    "commit": "a7f3c2d",
+    "status": "success",
+    "duration": "2m 15s",
+    "risk": "low",
+    "riskReason": "Standard deployment pattern",
+    "author": "Alex Chen",
+    "changes": 12,
+    "timestamp": "2024-01-15T14:32:00Z"
+  },
+  {
+    "id": "#1246",
+    "date": "2024-01-15",
+    "time": "13:45",
+    "branch": "feature/auth",
+    "commit": "b8e4d3f",
+    "status": "failed",
+    "duration": "1m 32s",
+    "risk": "high",
+    "riskReason": "Failed due to database migration timeout",
+    "author": "Sarah Kim",
+    "changes": 45,
+    "timestamp": "2024-01-15T13:45:00Z"
+  },
+  {
+    "id": "#1245",
+    "date": "2024-01-15",
+    "time": "12:20",
+    "branch": "main",
+    "commit": "c9f5e4a",
+    "status": "success",
+    "duration": "2m 45s",
+    "risk": "medium",
+    "riskReason": "Large changeset (67 files modified)",
+    "author": "Mike Johnson",
+    "changes": 67,
+    "timestamp": "2024-01-15T12:20:00Z"
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "id": "1",
+    "type": "anomaly",
+    "severity": "high",
+    "title": "Spike in 500 errors on /api/auth",
+    "description": "Error rate increased 340% in the last 2 hours",
+    "impact": "User login failures",
+    "suggestion": "Check auth service memory usage",
+    "confidence": 94,
+    "timestamp": "2024-01-15T14:32:00Z"
+  },
+  {
+    "id": "2",
+    "type": "pattern",
+    "severity": "medium",
+    "title": "Database query slowdown detected",
+    "description": "Average response time up 45% since 14:00",
+    "impact": "Page load delays",
+    "suggestion": "Consider query optimization",
+    "confidence": 87,
+    "timestamp": "2024-01-15T14:00:00Z"
+  },
+  {
+    "id": "3",
+    "type": "optimization",
+    "severity": "low",
+    "title": "CDN cache hit ratio declining",
+    "description": "Cache efficiency dropped from 94% to 87%",
+    "impact": "Increased bandwidth costs",
+    "suggestion": "Review cache invalidation rules",
+    "confidence": 92,
+    "timestamp": "2024-01-15T13:45:00Z"
+  }
+]
