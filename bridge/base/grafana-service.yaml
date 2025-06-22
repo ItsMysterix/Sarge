@@ -1,0 +1,23 @@
+# check if there is at least one published port
+
+#! grafana-service.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: Service
+metadata:
+    name: grafana-published
+    namespace: sarge
+    labels:
+        com.docker.compose.project: sarge
+        com.docker.compose.service: grafana
+spec:
+    selector:
+        com.docker.compose.project: sarge
+        com.docker.compose.service: grafana
+    ports:
+        - name: grafana-4000
+          port: 4000
+          protocol: TCP
+          targetPort: grafana-3000
+
+# check if there is at least one published port

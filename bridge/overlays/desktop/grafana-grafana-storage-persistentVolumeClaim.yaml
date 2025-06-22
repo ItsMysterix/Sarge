@@ -1,0 +1,9 @@
+#! grafana-grafana-storage-persistentVolumeClaim.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: grafana-grafana-storage
+    namespace: sarge
+spec:
+    storageClassName: "hostpath" # see docker/desktop-storage-provisioner

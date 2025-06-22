@@ -1,0 +1,19 @@
+#! kustomization.yaml
+# Generated code, do not edit
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+    - 0-sarge-namespace.yaml
+    - default-network-policy.yaml
+    - grafana-deployment.yaml
+    - grafana-expose.yaml
+    - grafana-grafana-storage-persistentVolumeClaim.yaml
+    - grafana-service.yaml
+    - prometheus-W:\Projects\Sarge\prometheus\prometheus.yml-persistentVolumeClaim.yaml
+    - prometheus-deployment.yaml
+    - prometheus-expose.yaml
+    - prometheus-service.yaml
+    - sarge-app-W:\Projects\Sarge-persistentVolumeClaim.yaml
+    - sarge-app-deployment.yaml
+    - sarge-app-expose.yaml
+    - sarge-app-service.yaml
