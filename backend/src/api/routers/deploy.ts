@@ -24,6 +24,13 @@ export const deployRouter = t.router({
       ee.emit("deployment", { ...deployment, status: "started" })
       return deployment
     }),
+  
+    getDeployments: t.procedure.query(async () => {
+  const result = await pool.query(
+    `SELECT * FROM deployments ORDER BY created_at DESC LIMIT 50`
+  )
+  return result.rows
+}),
 
   subscribe: t.procedure.subscription(() => {
     return observable<any>((emit) => {

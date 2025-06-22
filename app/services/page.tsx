@@ -3,15 +3,15 @@
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { Server, Database, Cpu, Globe, Zap, Brain } from "lucide-react"
-import { useServices, useServiceUptime } from "@/hooks/useApi"
+import { trpc } from "@/lib/trpc"
+import { formatDistanceToNow } from "date-fns"
 
 function ServiceCard({ service }: { service: any }) {
-  const { data: uptimeData } = useServiceUptime(service.id)
+  const { data: uptimeData = [] } = trpc.services.uptime.useQuery({ id: service.id }, { refetchOnWindowFocus: false })
 
   const getGradeFromUptime = (uptime: number) => {
-    const uptimeNum = Number(uptime)
-    if (uptimeNum >= 99.5) return { grade: "A", color: "text-success bg-success/20 border-success/30" }
-    if (uptimeNum >= 98) return { grade: "B", color: "text-warning bg-warning/20 border-warning/30" }
+    if (uptime >= 99.5) return { grade: "A", color: "text-success bg-success/20 border-success/30" }
+    if (uptime >= 98) return { grade: "B", color: "text-warning bg-warning/20 border-warning/30" }
     return { grade: "C", color: "text-error bg-error/20 border-error/30" }
   }
 
@@ -27,7 +27,6 @@ function ServiceCard({ service }: { service: any }) {
 
   return (
     <div className="glass-card p-6 hover:bg-white/10 transition-all duration-300">
-      {/* Service Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <Icon className="w-8 h-8 text-accent" />
@@ -47,7 +46,6 @@ function ServiceCard({ service }: { service: any }) {
         </div>
       </div>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div>
           <div className="text-xs text-gray-400 mb-1">Uptime</div>
@@ -69,7 +67,6 @@ function ServiceCard({ service }: { service: any }) {
         </div>
       </div>
 
-      {/* Uptime Sparkline */}
       <div className="mb-4">
         <div className="text-xs text-gray-400 mb-2">24h Uptime Trend</div>
         <div className="flex items-end space-x-1 h-12">
@@ -88,7 +85,6 @@ function ServiceCard({ service }: { service: any }) {
         </div>
       </div>
 
-      {/* Service Actions */}
       <div className="flex justify-between items-center text-xs pt-3 border-t border-white/10">
         <span className="text-gray-400">Last 24h average</span>
         <button className="text-accent hover:text-accent/80 transition-colors">View Details →</button>
@@ -98,7 +94,9 @@ function ServiceCard({ service }: { service: any }) {
 }
 
 export default function Services() {
-  const { data: services, loading } = useServices()
+  const { data: services = [], isLoading: loading } = trpc.services.all.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  })
 
   if (loading) {
     return (
@@ -120,12 +118,10 @@ export default function Services() {
   return (
     <div className="flex h-screen bg-[#0f0f0f]">
       <Sidebar />
-
       <div className="flex-1 flex flex-col lg:ml-0">
         <Header />
 
         <main className="flex-1 p-6 overflow-auto">
-          {/* Header */}
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-2">
               <Zap className="w-8 h-8 text-accent" />
@@ -134,7 +130,6 @@ export default function Services() {
             <p className="text-gray-400">Real-time service monitoring with Supabase data</p>
           </div>
 
-          {/* Health Overview */}
           <div className="glass-card p-6 mb-8 border-l-4 border-l-accent">
             <div className="flex items-center space-x-3 mb-4">
               <Brain className="w-6 h-6 text-accent" />
@@ -179,7 +174,6 @@ export default function Services() {
             </div>
           </div>
 
-          {/* Services Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {services.length === 0 ? (
               <div className="col-span-2 text-center text-gray-400 py-8">

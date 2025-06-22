@@ -20,24 +20,31 @@ export default function Overview() {
 
   const [metrics, setMetrics] = useState<any>(null)
   const [logs, setLogs] = useState<any[]>([])
-  const [insightsLoading, setInsightsLoading] = useState(false)
   const [metricsLoading, setMetricsLoading] = useState(true)
 
-  const { mutate: triggerDeployment } = trpc.triggerDeployment.useMutation()
-  const { mutate: refreshMetrics } = trpc.refreshMetrics.useMutation({
-    onSuccess(data) {
-      setMetrics(data)
-    },
-  })
+  const triggerDeployment = trpc.deploy.create.useMutation()
+  const fetchMetrics = trpc.metrics.latest.useQuery()
+  const { data: metricsData, isLoading, isError } = trpc.metrics.latest.useQuery()
 
-  trpc.liveMetrics.useSubscription(undefined, {
+  useEffect(() => {
+    if (!isLoading && metricsData) {
+      setMetrics(metricsData)
+      setMetricsLoading(false)
+  }
+
+  if (!fetchMetrics.isLoading && fetchMetrics.isError) {
+    setMetricsLoading(false)
+  }
+}, [fetchMetrics.data, fetchMetrics.isLoading, fetchMetrics.isError])
+
+  trpc.metrics.live.useSubscription(undefined, {
     onData(data) {
       setMetrics(data)
       setMetricsLoading(false)
     },
   })
 
-  trpc.logs.useSubscription(undefined, {
+  trpc.logs.stream.useSubscription(undefined, {
     onData(log) {
       setLogs((prev) => [log, ...prev.slice(0, 49)])
     },
@@ -51,7 +58,7 @@ export default function Overview() {
 
   const handleQuickDeploy = () => {
     setDeploying(true)
-    triggerDeployment({ branch: "main" })
+    triggerDeployment.mutate({ branch: "main" })
     addToast({
       type: "success",
       title: "Deployment Started",
@@ -64,7 +71,6 @@ export default function Overview() {
     <div className="flex h-screen bg-[#0f0f0f]">
       <Sidebar />
       <ToastContainer />
-
       <div className="flex-1 flex flex-col">
         <Header />
         <main className="flex-1 p-6 overflow-auto">
@@ -80,7 +86,7 @@ export default function Overview() {
             </div>
 
             <div className="flex items-center gap-4">
-              <button onClick={() => refreshMetrics()} title="Refresh Metrics">
+              <button onClick={() => fetchMetrics.refetch()} title="Refresh Metrics">
                 <RefreshCcw className="w-5 h-5 text-gray-400 hover:text-white" />
               </button>
               <LoadingButton
@@ -89,7 +95,7 @@ export default function Overview() {
                 onClick={handleQuickDeploy}
                 className="glass-card px-6 py-3 text-accent hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30"
               >
-                <Play className="w-5 h-5 mr-2" />
+                <Play className="w-5 h-5 mr-2 text-black" />
                 Quick Deploy
               </LoadingButton>
             </div>
@@ -103,8 +109,6 @@ export default function Overview() {
     </div>
   )
 }
-
-// Separated Components for Cleanliness
 
 function WelcomeCard({ user }: { user: any }) {
   return (

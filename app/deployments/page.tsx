@@ -24,31 +24,25 @@ import { trpc } from "@/lib/trpc"
 export default function Deployments() {
   const { isDeploying, setDeploying } = useAppStore()
   const { addToast, ToastContainer } = useToast()
+
   const [deployments, setDeployments] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const deploymentsQuery = trpc.deploy.getDeployments.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  })
 
-  // Get initial deployments (optional - depends on if you expose an endpoint for it)
-  useEffect(() => {
-    trpc.getDeployments
-      ?.useQuery(undefined, {
-        onSuccess(data) {
-          setDeployments(data || [])
-          setLoading(false)
-        },
-        onError() {
-          setLoading(false)
-        },
-      })
-  }, [])
+  const { mutate: triggerDeployment } = trpc.deploy.create.useMutation()
 
-  // Listen to real-time deployment status updates
-  trpc.deploymentStatus.useSubscription(undefined, {
+  const deploymentSub = trpc.deploy.subscribe.useSubscription(undefined, {
     onData(data) {
       setDeployments((prev) => [data, ...prev.slice(0, 49)])
     },
   })
 
-  const { mutate: triggerDeployment } = trpc.triggerDeployment.useMutation()
+  useEffect(() => {
+    if (deploymentsQuery.data) {
+      setDeployments(deploymentsQuery.data)
+    }
+  }, [deploymentsQuery.data])
 
   const handleDeploy = async () => {
     setDeploying(true)
@@ -87,7 +81,7 @@ export default function Deployments() {
     }
   }
 
-  if (loading) {
+  if (deploymentsQuery.isLoading) {
     return (
       <div className="flex h-screen bg-[#0f0f0f]">
         <Sidebar />
@@ -110,9 +104,7 @@ export default function Deployments() {
       <ToastContainer />
       <div className="flex-1 flex flex-col lg:ml-0">
         <Header />
-
         <main className="flex-1 p-6 overflow-auto">
-          {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <div className="flex items-center space-x-3 mb-2">
@@ -132,7 +124,6 @@ export default function Deployments() {
             </LoadingButton>
           </div>
 
-          {/* Summary */}
           <div className="glass-card p-6 mb-8 border-l-4 border-l-accent">
             <div className="flex items-center space-x-3 mb-4">
               <Brain className="w-6 h-6 text-accent" />
@@ -147,7 +138,6 @@ export default function Deployments() {
             </div>
           </div>
 
-          {/* Deployment Timeline */}
           <div className="glass-card overflow-hidden">
             <div className="p-6 border-b border-white/10">
               <h2 className="text-xl font-semibold">Recent Deployments</h2>
@@ -169,11 +159,7 @@ export default function Deployments() {
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
                             <span className="terminal-text text-accent font-medium">#{deploy.id.slice(-6)}</span>
-                            <div
-                              className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(
-                                deploy.status
-                              )} bg-opacity-10`}
-                            >
+                            <div className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(deploy.status)} bg-opacity-10`}>
                               {deploy.status}
                             </div>
                           </div>
@@ -215,8 +201,7 @@ export default function Deployments() {
   )
 }
 
-// 🧩 Support Components
-
+// Summary UI helpers
 function SummaryCard({ label, value, tone }: { label: string; value: any; tone: string }) {
   return (
     <div className="text-center p-4 glass-card rounded-lg">
