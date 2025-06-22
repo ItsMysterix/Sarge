@@ -1,40 +1,48 @@
-import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { NextResponse } from "next/server";
+import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET() {
   try {
-    const metrics = await sql`
-      SELECT * FROM metrics 
-      ORDER BY timestamp DESC 
-      LIMIT 1
-    `
+    const [latest] = await sql`
+      SELECT * FROM metrics ORDER BY timestamp DESC LIMIT 1
+    `;
 
-    if (metrics.length === 0) {
-      // Return mock data if no metrics found
-      return NextResponse.json({
-        id: "1",
-        cpu: 68 + Math.floor(Math.random() * 20) - 10,
-        memory: 83 + Math.floor(Math.random() * 10) - 5,
-        latency: 45 + Math.floor(Math.random() * 20) - 10,
-        cost: 91.4 + Math.random() * 10 - 5,
-        timestamp: new Date().toISOString(),
-      })
+    if (!latest) {
+      return new Response(
+        `# HELP node_cpu_usage CPU usage percentage
+# TYPE node_cpu_usage gauge
+node_cpu_usage 60.2
+
+# HELP node_memory_usage Memory usage percentage
+# TYPE node_memory_usage gauge
+node_memory_usage 78.1`,
+        { headers: { "Content-Type": "text/plain" } }
+      );
     }
 
-    return NextResponse.json(metrics[0])
-  } catch (error) {
-    console.error("Failed to fetch metrics:", error)
+    return new Response(
+      `# HELP node_cpu_usage CPU usage percentage
+# TYPE node_cpu_usage gauge
+node_cpu_usage ${latest.cpu}
 
-    // Return mock data if database error (table doesn't exist, etc.)
-    return NextResponse.json({
-      id: "1",
-      cpu: 68 + Math.floor(Math.random() * 20) - 10,
-      memory: 83 + Math.floor(Math.random() * 10) - 5,
-      latency: 45 + Math.floor(Math.random() * 20) - 10,
-      cost: 91.4 + Math.random() * 10 - 5,
-      timestamp: new Date().toISOString(),
-    })
+# HELP node_memory_usage Memory usage percentage
+# TYPE node_memory_usage gauge
+node_memory_usage ${latest.memory}`,
+      { headers: { "Content-Type": "text/plain" } }
+    );
+  } catch (err) {
+    console.error(err);
+    return new Response(
+      `# HELP node_cpu_usage CPU usage percentage
+# TYPE node_cpu_usage gauge
+node_cpu_usage 61.3
+
+# HELP node_memory_usage Memory usage percentage
+# TYPE node_memory_usage gauge
+node_memory_usage 79.4`,
+      { headers: { "Content-Type": "text/plain" } }
+    );
   }
 }

@@ -1,0 +1,9 @@
+#! prometheus-W:\Projects\Sarge\prometheus\prometheus.yml-persistentVolumeClaim.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: prometheus-w--projects-sarge-prometheus-prometheus-yml
+    namespace: sarge
+spec:
+    storageClassName: "hostpath" # see docker/desktop-storage-provisioner

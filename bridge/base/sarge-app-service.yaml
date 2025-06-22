@@ -1,0 +1,19 @@
+#! sarge-app-service.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: Service
+metadata:
+    name: sarge-app-published
+    namespace: sarge
+    labels:
+        com.docker.compose.project: sarge
+        com.docker.compose.service: sarge-app
+spec:
+    selector:
+        com.docker.compose.project: sarge
+        com.docker.compose.service: sarge-app
+    ports:
+        - name: sarge-app-3050
+          port: 3050
+          protocol: TCP
+          targetPort: sarge-app-3000

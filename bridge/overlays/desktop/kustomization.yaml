@@ -1,0 +1,13 @@
+#! kustomization.yaml
+# Generated code, do not edit
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+    - ../../base
+patches:
+    - path: grafana-grafana-storage-persistentVolumeClaim.yaml
+    - path: grafana-service.yaml
+    - path: prometheus-W:\Projects\Sarge\prometheus\prometheus.yml-persistentVolumeClaim.yaml
+    - path: prometheus-service.yaml
+    - path: sarge-app-W:\Projects\Sarge-persistentVolumeClaim.yaml
+    - path: sarge-app-service.yaml

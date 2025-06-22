@@ -1,0 +1,18 @@
+#! prometheus-W:\Projects\Sarge\prometheus\prometheus.yml-persistentVolumeClaim.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: prometheus-w--projects-sarge-prometheus-prometheus-yml
+    namespace: sarge
+    labels:
+        com.docker.compose.service: prometheus
+        com.docker.compose.volume: W:\Projects\Sarge\prometheus\prometheus.yml
+spec:
+    accessModes:
+        # TODO would need to check which services use this volume
+        - ReadWriteOnce
+    volumeMode: Filesystem
+    resources:
+        requests:
+            storage: 100Mi
