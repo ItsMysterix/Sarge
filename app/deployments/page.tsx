@@ -16,51 +16,50 @@ import {
 } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { useToast } from "@/components/ui/toast"
-import { useDeployments } from "@/hooks/useApi"
 import { useAppStore } from "@/lib/store"
 import { formatDistanceToNow } from "date-fns"
-import { useEffect } from "react"
-import { socketManager } from "@/lib/socket"
+import { useEffect, useState } from "react"
+import { trpc } from "@/lib/trpc"
 
 export default function Deployments() {
-  const { data: deployments, loading, triggerDeployment } = useDeployments()
   const { isDeploying, setDeploying } = useAppStore()
   const { addToast, ToastContainer } = useToast()
+  const [deployments, setDeployments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Get initial deployments (optional - depends on if you expose an endpoint for it)
+  useEffect(() => {
+    trpc.getDeployments
+      ?.useQuery(undefined, {
+        onSuccess(data) {
+          setDeployments(data || [])
+          setLoading(false)
+        },
+        onError() {
+          setLoading(false)
+        },
+      })
+  }, [])
+
+  // Listen to real-time deployment status updates
+  trpc.deploymentStatus.useSubscription(undefined, {
+    onData(data) {
+      setDeployments((prev) => [data, ...prev.slice(0, 49)])
+    },
+  })
+
+  const { mutate: triggerDeployment } = trpc.triggerDeployment.useMutation()
 
   const handleDeploy = async () => {
     setDeploying(true)
-    try {
-      // Use WebSocket for real-time deployment
-      socketManager.triggerDeployment("main")
-
-      addToast({
-        type: "success",
-        title: "Deployment Started",
-        description: "Deployment has been triggered via WebSocket",
-      })
-    } catch (error) {
-      addToast({
-        type: "error",
-        title: "Deployment Failed",
-        description: error instanceof Error ? error.message : "Failed to start deployment",
-      })
-    } finally {
-      setDeploying(false)
-    }
-  }
-
-  // Add real-time deployment progress tracking
-  useEffect(() => {
-    const cleanupProgress = socketManager.onDeploymentProgress((progress) => {
-      addToast({
-        type: "info",
-        title: "Deployment Progress",
-        description: progress.message,
-      })
+    triggerDeployment({ branch: "main" })
+    addToast({
+      type: "success",
+      title: "Deployment Started",
+      description: "Deployment triggered successfully",
     })
-
-    return cleanupProgress
-  }, [addToast])
+    setTimeout(() => setDeploying(false), 1000)
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -109,19 +108,18 @@ export default function Deployments() {
     <div className="flex h-screen bg-[#0f0f0f]">
       <Sidebar />
       <ToastContainer />
-
       <div className="flex-1 flex flex-col lg:ml-0">
         <Header />
 
         <main className="flex-1 p-6 overflow-auto">
-          {/* Header Section */}
+          {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <div className="flex items-center space-x-3 mb-2">
                 <Rocket className="w-8 h-8 text-accent" />
                 <h1 className="text-3xl font-bold">Smart Deployments</h1>
               </div>
-              <p className="text-gray-400">Real-time deployment tracking with Supabase</p>
+              <p className="text-gray-400">Real-time deployment tracking with tRPC</p>
             </div>
             <LoadingButton
               loading={isDeploying}
@@ -134,7 +132,7 @@ export default function Deployments() {
             </LoadingButton>
           </div>
 
-          {/* Intelligence Summary */}
+          {/* Summary */}
           <div className="glass-card p-6 mb-8 border-l-4 border-l-accent">
             <div className="flex items-center space-x-3 mb-4">
               <Brain className="w-6 h-6 text-accent" />
@@ -142,29 +140,10 @@ export default function Deployments() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 glass-card rounded-lg">
-                <div className="text-2xl font-bold text-success mb-1">
-                  {deployments.length > 0
-                    ? Math.round((deployments.filter((d) => d.status === "success").length / deployments.length) * 100)
-                    : 0}
-                  %
-                </div>
-                <div className="text-sm text-gray-400">Success Rate</div>
-              </div>
-              <div className="text-center p-4 glass-card rounded-lg">
-                <div className="text-2xl font-bold text-warning mb-1">2.1m</div>
-                <div className="text-sm text-gray-400">Avg Duration</div>
-              </div>
-              <div className="text-center p-4 glass-card rounded-lg">
-                <div className="text-2xl font-bold text-error mb-1">
-                  {deployments.filter((d) => d.status === "failed").length}
-                </div>
-                <div className="text-sm text-gray-400">Failed Deploys</div>
-              </div>
-              <div className="text-center p-4 glass-card rounded-lg">
-                <div className="text-2xl font-bold text-accent mb-1">{deployments.length}</div>
-                <div className="text-sm text-gray-400">Total Deploys</div>
-              </div>
+              <SummaryCard label="Success Rate" tone="success" value={`${getSuccessRate(deployments)}%`} />
+              <SummaryCard label="Avg Duration" tone="warning" value="2.1m" />
+              <SummaryCard label="Failed Deploys" tone="error" value={countFailed(deployments)} />
+              <SummaryCard label="Total Deploys" tone="accent" value={deployments.length} />
             </div>
           </div>
 
@@ -182,7 +161,7 @@ export default function Deployments() {
                   <p>No deployments found</p>
                 </div>
               ) : (
-                deployments.map((deploy, i) => (
+                deployments.map((deploy) => (
                   <div key={deploy.id} className="p-6 hover:bg-white/5 transition-colors">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-4">
@@ -191,7 +170,9 @@ export default function Deployments() {
                           <div className="flex items-center space-x-2 mb-1">
                             <span className="terminal-text text-accent font-medium">#{deploy.id.slice(-6)}</span>
                             <div
-                              className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(deploy.status)} bg-opacity-10`}
+                              className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(
+                                deploy.status
+                              )} bg-opacity-10`}
                             >
                               {deploy.status}
                             </div>
@@ -232,4 +213,25 @@ export default function Deployments() {
       </div>
     </div>
   )
+}
+
+// 🧩 Support Components
+
+function SummaryCard({ label, value, tone }: { label: string; value: any; tone: string }) {
+  return (
+    <div className="text-center p-4 glass-card rounded-lg">
+      <div className={`text-2xl font-bold text-${tone} mb-1`}>{value}</div>
+      <div className="text-sm text-gray-400">{label}</div>
+    </div>
+  )
+}
+
+function getSuccessRate(deployments: any[]) {
+  if (!deployments.length) return 0
+  const successful = deployments.filter((d) => d.status === "success").length
+  return Math.round((successful / deployments.length) * 100)
+}
+
+function countFailed(deployments: any[]) {
+  return deployments.filter((d) => d.status === "failed").length
 }

@@ -1,0 +1,44 @@
+#! grafana-deployment.yaml
+# Generated code, do not edit
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: grafana
+    namespace: sarge
+    labels:
+        com.docker.compose.project: sarge
+        com.docker.compose.service: grafana
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            com.docker.compose.project: sarge
+            com.docker.compose.service: grafana
+    strategy:
+        type: Recreate
+    template:
+        metadata:
+            labels:
+                com.docker.compose.project: sarge
+                com.docker.compose.service: grafana
+                com.docker.compose.network.default: "true"
+        spec:
+            containers:
+                - name: grafana
+                  image: grafana/grafana
+                  imagePullPolicy: IfNotPresent
+                  env:
+                    - name: GF_SECURITY_ADMIN_PASSWORD
+                      value: "admin"
+                    - name: GF_SECURITY_ADMIN_USER
+                      value: "admin"
+                  ports:
+                    - name: grafana-3000
+                      containerPort: 3000
+                  volumeMounts:
+                    - name: var-lib-grafana
+                      mountPath: /var/lib/grafana
+            volumes:
+                - name: var-lib-grafana
+                  persistentVolumeClaim:
+                    claimName: grafana-grafana-storage
