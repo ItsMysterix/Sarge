@@ -6,7 +6,7 @@ import superjson from 'superjson';
 import { QueryClient } from '@tanstack/react-query';
 
 const wsClient = createWSClient({
-  url: 'ws://localhost:3200', // match your tRPC WebSocket server port
+  url: 'ws://localhost:3200', 
 });
 
 export const TrpcProvider = trpc.Provider;

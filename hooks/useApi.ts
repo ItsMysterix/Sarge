@@ -1,33 +1,33 @@
 'use client'
-
-import { trpc } from "@/utils/trpc"
+import { trpc } from "@/lib/trpc"
 
 export const useMetrics = () => {
-  const { data, isLoading } = trpc.refreshMetrics.useMutation()
-  return { data, loading: isLoading }
+  const { isLoading, data } = trpc.metrics.latest.useQuery() 
+  const { data: metrics, isLoading: loading } = trpc.metrics.latest.useQuery()
+  return { metrics, loading }
 }
 
 export const useLiveMetrics = () => {
-  const { data } = trpc.liveMetrics.useSubscription(undefined, {
+  const { data } = trpc.metrics.live.useSubscription(undefined, {
     enabled: true,
   })
   return { data }
 }
 
 export const useLiveLogs = () => {
-  const { data } = trpc.logs.useSubscription(undefined, {
+  const { data } = trpc.logs.stream.useSubscription(undefined, {
     enabled: true,
   })
   return { data }
 }
 
 export const useDeploymentStatus = () => {
-  const { data } = trpc.deploymentStatus.useSubscription(undefined, {
+  const { data } = trpc.deploy.subscribe.useSubscription(undefined, {
     enabled: true,
   })
   return { data }
 }
 
 export const useTriggerDeployment = () => {
-  return trpc.triggerDeployment.useMutation()
+  return trpc.deploy.create.useMutation()
 }
