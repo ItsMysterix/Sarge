@@ -1,6 +1,6 @@
 "use client"
 
-import { useUser, useAuth } from "@clerk/nextjs"
+import { useUser, useAuth } from "@/lib/clerk-safe"
 import { useState } from "react"
 import { Bug } from "lucide-react"
 

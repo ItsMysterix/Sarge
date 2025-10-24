@@ -1,7 +1,8 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as any
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +16,9 @@ export async function POST(request: Request) {
 
     try {
       // Try to insert deployment record
+      if (!sql) {
+        throw new Error('db-disabled')
+      }
       const deployment = await sql`
         INSERT INTO deployments (branch, commit, status, summary, created_at)
         VALUES (${branch}, ${commit}, ${status}, ${`Deployment triggered from ${branch} branch`}, ${new Date().toISOString()})

@@ -1,0 +1,95 @@
+version: '3.9'
+services:
+  nginx:
+    build: ./ops/nginx
+    image: sarge-nginx:local
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/sarge/tls:/etc/nginx/tls:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/${REPO}/sarge-backend:${GIT_SHA}
+    env_file: /opt/sarge/env/backend.env
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://127.0.0.1:3000/metrics"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /sarge/backend
+        awslogs-stream: ec2-${HOSTNAME}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    restart: unless-stopped
+
+  app:
+    image: ghcr.io/${REPO}/sarge-app:${GIT_SHA}
+    env_file: /opt/sarge/env/app.env
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://127.0.0.1:3001/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /sarge/app
+        awslogs-stream: ec2-${HOSTNAME}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - /opt/sarge/prometheus:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+    depends_on:
+      - backend
+      - app
+      - nginx
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    env_file:
+      - /opt/sarge/env/alertmanager.env
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--config.expand-env=true"
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge

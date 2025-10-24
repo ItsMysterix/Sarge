@@ -1,11 +1,21 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+// Lazily and safely create a SQL client; in dev or during builds without env, fall back to mock responses
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as any
 const DEV_USER_ID = "dev-mode"
 
 export async function GET() {
   try {
+    if (!sql) {
+      return NextResponse.json({
+        id: "1",
+        user_id: DEV_USER_ID,
+        slack_alerts: true,
+        auto_rebuild: false,
+      })
+    }
     const settings = await sql`
       SELECT * FROM settings 
       WHERE user_id = ${DEV_USER_ID}
@@ -37,9 +47,17 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const updates = await request.json() // Declare the updates variable here
+  const updates = await request.json()
 
   try {
+    if (!sql) {
+      return NextResponse.json({
+        id: "1",
+        user_id: DEV_USER_ID,
+        slack_alerts: updates.slack_alerts || false,
+        auto_rebuild: updates.auto_rebuild || false,
+      })
+    }
     const settings = await sql`
       INSERT INTO settings (user_id, slack_alerts, auto_rebuild)
       VALUES (${DEV_USER_ID}, ${updates.slack_alerts || false}, ${updates.auto_rebuild || false})

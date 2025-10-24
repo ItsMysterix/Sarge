@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = 'force-dynamic'
 
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
@@ -7,7 +8,8 @@ import { trpc } from "@/lib/trpc"
 import { formatDistanceToNow } from "date-fns"
 
 function ServiceCard({ service }: { service: any }) {
-  const { data: uptimeData = [] } = trpc.services.uptime.useQuery({ id: service.id }, { refetchOnWindowFocus: false })
+  const t = trpc as any
+  const { data: uptimeData = [] } = t.services.uptime.useQuery({ id: service.id }, { refetchOnWindowFocus: false })
 
   const getGradeFromUptime = (uptime: number) => {
     if (uptime >= 99.5) return { grade: "A", color: "text-success bg-success/20 border-success/30" }
@@ -73,7 +75,7 @@ function ServiceCard({ service }: { service: any }) {
           {uptimeData
             .slice(0, 24)
             .reverse()
-            .map((point, idx) => (
+            .map((point: any, idx: number) => (
               <div
                 key={idx}
                 className={`flex-1 rounded-t transition-all duration-300 ${
@@ -94,7 +96,8 @@ function ServiceCard({ service }: { service: any }) {
 }
 
 export default function Services() {
-  const { data: services = [], isLoading: loading } = trpc.services.all.useQuery(undefined, {
+  const t = trpc as any
+  const { data: services = [], isLoading: loading } = t.services.all.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
 
@@ -140,7 +143,7 @@ export default function Services() {
               <div className="text-center p-4 glass-card rounded-lg">
                 <div className="text-2xl font-bold text-success mb-1">
                   {services.length > 0
-                    ? services.filter((s) => s.status === "up").length === services.length
+                    ? services.filter((s: any) => s.status === "up").length === services.length
                       ? "A"
                       : "B"
                     : "N/A"}
@@ -150,7 +153,7 @@ export default function Services() {
               <div className="text-center p-4 glass-card rounded-lg">
                 <div className="text-2xl font-bold text-warning mb-1">
                   {services.length > 0
-                    ? (services.reduce((acc, s) => acc + Number(s.uptime_percent), 0) / services.length).toFixed(1)
+                    ? (services.reduce((acc: number, s: any) => acc + Number(s.uptime_percent), 0) / services.length).toFixed(1)
                     : 0}
                   %
                 </div>
@@ -160,14 +163,14 @@ export default function Services() {
                 <div className="text-2xl font-bold text-accent mb-1">
                   $
                   {services.length > 0
-                    ? (services.reduce((acc, s) => acc + Number(s.cost_hr), 0) * 24).toFixed(2)
+                    ? (services.reduce((acc: number, s: any) => acc + Number(s.cost_hr), 0) * 24).toFixed(2)
                     : "0.00"}
                 </div>
                 <div className="text-sm text-gray-400">Daily Cost</div>
               </div>
               <div className="text-center p-4 glass-card rounded-lg">
                 <div className="text-2xl font-bold text-error mb-1">
-                  {services.filter((s) => s.status !== "up").length}
+                  {services.filter((s: any) => s.status !== "up").length}
                 </div>
                 <div className="text-sm text-gray-400">Issues</div>
               </div>
@@ -181,7 +184,7 @@ export default function Services() {
                 <p>No services found</p>
               </div>
             ) : (
-              services.map((service) => <ServiceCard key={service.id} service={service} />)
+              services.map((service: any) => <ServiceCard key={service.id} service={service} />)
             )}
           </div>
         </main>

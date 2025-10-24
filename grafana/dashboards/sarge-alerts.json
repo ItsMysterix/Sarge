@@ -1,0 +1,23 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "type": "table",
+      "title": "Active Alerts",
+      "targets": [{"expr": "ALERTS{alertstate=\"firing\"}"}],
+      "id": 1
+    },
+    {
+      "type": "table",
+      "title": "Alerts For State",
+      "targets": [{"expr": "ALERTS_FOR_STATE"}],
+      "id": 2
+    }
+  ],
+  "schemaVersion": 38,
+  "title": "Sarge Alerts",
+  "version": 1
+}

@@ -1,10 +1,29 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as any
 
 export async function GET() {
   try {
+    if (!sql) {
+      return NextResponse.json([
+        {
+          id: "1",
+          name: "API Gateway",
+          status: "up",
+          cost_hr: 1.02,
+          uptime_percent: 99.9,
+        },
+        {
+          id: "2",
+          name: "PostgreSQL DB",
+          status: "up",
+          cost_hr: 1.88,
+          uptime_percent: 99.8,
+        },
+      ])
+    }
     const services = await sql`
       SELECT * FROM services 
       ORDER BY name

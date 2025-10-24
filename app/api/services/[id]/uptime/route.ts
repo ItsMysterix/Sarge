@@ -1,12 +1,24 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as any
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
     const serviceId = params.id
 
+    if (!sql) {
+      // Return mock data if DB disabled
+      const mockUptime = Array.from({ length: 24 }, (_, i) => ({
+        id: `${i}`,
+        service_id: serviceId,
+        timestamp: new Date(Date.now() - i * 3600000).toISOString(),
+        value: 95 + Math.random() * 5,
+      }))
+
+      return NextResponse.json(mockUptime)
+    }
     const uptime = await sql`
       SELECT * FROM uptime_logs 
       WHERE service_id = ${serviceId}

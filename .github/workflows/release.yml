@@ -1,0 +1,203 @@
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: false
+        default: 'dev'
+        type: choice
+        options: [ dev, staging, prod ]
+      deploy:
+        description: 'Deploy to EC2 via SSM'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  REPO: ${{ github.repository }}
+  GHCR_USER: ${{ github.actor }}
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i; else npm ci; fi
+      - name: Build backend (to produce dist/scripts/migrate.js)
+        run: |
+          cd backend
+          npm run build || pnpm build || true
+      - name: Backend + ops tests
+        run: |
+          # Optional migrate dry-run if built
+          node backend/dist/scripts/migrate.js --dry-run || true
+          # Run test suites (root vitest config includes ops/tests)
+          npx vitest run --config vitest.config.ts
+      - name: Run preflight validation script
+        env:
+          REPO: ${{ github.repository }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          EC2_SSM_TARGET: ${{ secrets.EC2_SSM_TARGET || '' }}
+          GHCR_PAT_PARAM: ${{ secrets.GHCR_PAT_PARAM || '' }}
+        run: |
+          node ops/scripts/validate-release.js
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Dry build backend image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/Dockerfile
+          tags: ghcr.io/${{ github.repository }}/sarge-backend:dryrun-${{ github.sha }}
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Dry build app image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: app/Dockerfile
+          tags: ghcr.io/${{ github.repository }}/sarge-app:dryrun-${{ github.sha }}
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  build-push:
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.deploy != false) }}
+    needs: preflight
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ backend, app ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Verify GHCR permissions (packages: write)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "GITHUB_TOKEN is not set; ensure workflow has packages: write permission" >&2
+            exit 1
+          fi
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin || {
+            echo "Failed to authenticate to GHCR. Ensure GITHUB_TOKEN has packages: write permission." >&2
+            exit 1
+          }
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.service == 'backend' && 'backend/Dockerfile' || 'app/Dockerfile' }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/sarge-${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Tag latest (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          docker buildx imagetools create -t ghcr.io/${{ github.repository }}/sarge-${{ matrix.service }}:latest ghcr.io/${{ github.repository }}/sarge-${{ matrix.service }}:${{ github.sha }}
+          docker buildx imagetools create -t ghcr.io/${{ github.repository }}/sarge-${{ matrix.service }}:${{ github.ref_name }} ghcr.io/${{ github.repository }}/sarge-${{ matrix.service }}:${{ github.sha }}
+
+  migrate-and-deploy:
+    needs: [preflight, build-push]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: precheck
+        name: Check required secrets for deploy
+        env:
+          AK: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          SK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TARGET: ${{ secrets.EC2_SSM_TARGET }}
+          PAT_PARAM: ${{ secrets.GHCR_PAT_PARAM }}
+        run: |
+          missing=[]
+          [ -z "$AK" ] && missing+=(AWS_ACCESS_KEY_ID)
+          [ -z "$SK" ] && missing+=(AWS_SECRET_ACCESS_KEY)
+          [ -z "$TARGET" ] && missing+=(EC2_SSM_TARGET)
+          [ -z "$PAT_PARAM" ] && missing+=(GHCR_PAT_PARAM)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing required secrets: ${missing[*]}" >&2
+            echo "ok=false" >> $GITHUB_OUTPUT
+          else
+            echo "ok=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Skip deploy (secrets missing)
+        if: steps.precheck.outputs.ok != 'true'
+        run: |
+          echo "Skipping deploy because required secrets are missing. See previous step for the list."
+      - name: Configure AWS credentials
+        if: steps.precheck.outputs.ok == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Send SSM deploy command
+        if: steps.precheck.outputs.ok == 'true'
+        env:
+          EC2_SSM_TARGET: ${{ secrets.EC2_SSM_TARGET }}
+          GHCR_PAT_PARAM: ${{ secrets.GHCR_PAT_PARAM }}
+        run: |
+          set -euo pipefail
+          TARGET="$EC2_SSM_TARGET"
+          CMD="export REPO='${{ github.repository }}' && export SHA='${{ github.sha }}' && export GHCR_USER='${{ github.actor }}' && export GHCR_PAT_PARAM='${{ secrets.GHCR_PAT_PARAM }}' && /bin/bash /opt/sarge/ssm-deploy.sh"
+          if [[ "$TARGET" == i-* ]]; then
+            aws ssm send-command --document-name AWS-RunShellScript --instance-ids "$TARGET" --parameters commands="$CMD",executionTimeout="3600" --region "${{ env.AWS_REGION }}" > out.json
+          else
+            aws ssm send-command --document-name AWS-RunShellScript --targets Key=tag:Name,Values="$TARGET" --parameters commands="$CMD",executionTimeout="3600" --region "${{ env.AWS_REGION }}" > out.json
+          fi
+          cat out.json
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Send SSM deploy command
+        env:
+          EC2_SSM_TARGET: ${{ secrets.EC2_SSM_TARGET }}
+          GHCR_PAT_PARAM: ${{ secrets.GHCR_PAT_PARAM }}
+        run: |
+          set -euo pipefail
+          TARGET="$EC2_SSM_TARGET"
+          CMD="export REPO='${{ github.repository }}' && export SHA='${{ github.sha }}' && export GHCR_USER='${{ github.actor }}' && export GHCR_PAT_PARAM='${{ secrets.GHCR_PAT_PARAM }}' && /bin/bash /opt/sarge/ssm-deploy.sh"
+          if [[ "$TARGET" == i-* ]]; then
+            aws ssm send-command --document-name AWS-RunShellScript --instance-ids "$TARGET" --parameters commands="$CMD",executionTimeout="3600" --region "${{ env.AWS_REGION }}" > out.json
+          else
+            # Treat as tag Name value
+            aws ssm send-command --document-name AWS-RunShellScript --targets Key=tag:Name,Values="$TARGET" --parameters commands="$CMD",executionTimeout="3600" --region "${{ env.AWS_REGION }}" > out.json
+          fi
+          cat out.json

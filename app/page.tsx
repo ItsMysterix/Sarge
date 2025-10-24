@@ -1,6 +1,7 @@
 "use client"
+export const dynamic = 'force-dynamic'
 
-import { useUser } from "@clerk/nextjs"
+import { useUser } from "@/lib/clerk-safe"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
@@ -22,30 +23,29 @@ export default function Overview() {
   const [logs, setLogs] = useState<any[]>([])
   const [metricsLoading, setMetricsLoading] = useState(true)
 
-  const triggerDeployment = trpc.deploy.create.useMutation()
-  const fetchMetrics = trpc.metrics.latest.useQuery()
-  const { data: metricsData, isLoading, isError } = trpc.metrics.latest.useQuery()
+  const t = trpc as any
+  const triggerDeployment = t.deploy.create.useMutation()
+  const metricsQuery = t.metrics.latest.useQuery()
 
   useEffect(() => {
-    if (!isLoading && metricsData) {
-      setMetrics(metricsData)
+    if (!metricsQuery.isLoading && metricsQuery.data) {
+      setMetrics(metricsQuery.data)
       setMetricsLoading(false)
-  }
+    }
+    if (!metricsQuery.isLoading && metricsQuery.isError) {
+      setMetricsLoading(false)
+    }
+  }, [metricsQuery.data, metricsQuery.isLoading, metricsQuery.isError])
 
-  if (!fetchMetrics.isLoading && fetchMetrics.isError) {
-    setMetricsLoading(false)
-  }
-}, [fetchMetrics.data, fetchMetrics.isLoading, fetchMetrics.isError])
-
-  trpc.metrics.live.useSubscription(undefined, {
-    onData(data) {
+  t.metrics.live.useSubscription(undefined, {
+    onData(data: any) {
       setMetrics(data)
       setMetricsLoading(false)
     },
   })
 
-  trpc.logs.stream.useSubscription(undefined, {
-    onData(log) {
+  t.logs.stream.useSubscription(undefined, {
+    onData(log: any) {
       setLogs((prev) => [log, ...prev.slice(0, 49)])
     },
   })
@@ -86,7 +86,7 @@ export default function Overview() {
             </div>
 
             <div className="flex items-center gap-4">
-              <button onClick={() => fetchMetrics.refetch()} title="Refresh Metrics">
+              <button onClick={() => metricsQuery.refetch()} title="Refresh Metrics">
                 <RefreshCcw className="w-5 h-5 text-gray-400 hover:text-white" />
               </button>
               <LoadingButton

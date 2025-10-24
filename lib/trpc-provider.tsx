@@ -5,9 +5,15 @@ import { createWSClient, wsLink } from '@trpc/client';
 import superjson from 'superjson';
 import { QueryClient } from '@tanstack/react-query';
 
-const wsClient = createWSClient({
-  url: 'ws://localhost:3200', 
-});
+function wsUrlFromEnv() {
+  if (typeof window === 'undefined') return process.env.NEXT_PUBLIC_WS_URL || '';
+  const envUrl = process.env.NEXT_PUBLIC_WS_URL;
+  if (envUrl && envUrl.length > 0) return envUrl;
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  return `${proto}://${window.location.host}/ws`;
+}
+
+const wsClient = createWSClient({ url: wsUrlFromEnv() });
 
 export const TrpcProvider = trpc.Provider;
 

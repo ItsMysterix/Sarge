@@ -9,7 +9,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "ws-server": "ts-node backend/src/api/ws-server.ts"
+    "ws-server": "ts-node backend/src/api/ws-server.ts",
+    "validate:release": "node ops/scripts/validate-release.js",
+  "docs:trpc": "node scripts/generate-trpc-docs.js",
+    "docs:lint": "remark -qf .",
+  "docs:links": "markdown-link-check -q -p -v -c .mlc-config.json README.md docs/**/*.md"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.22.0",
@@ -68,11 +72,11 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "ws": "^8.18.2",
-    "zod": "^3.25.67",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "@tanstack/react-virtual": "^3.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^22.18.12",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/ws": "^8.18.1",
@@ -81,6 +85,16 @@
     "dotenv": "^16.5.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vitest": "^4.0.1",
+    "zod": "^4.1.12",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.2",
+    "jsdom": "^24.0.0",
+    "axe-core": "^4.8.2",
+    "remark-cli": "^12.0.1",
+    "remark-preset-lint-recommended": "^7.0.0",
+    "markdown-link-check": "^3.12.2",
+    "ts-node": "^10.9.2"
   }
 }

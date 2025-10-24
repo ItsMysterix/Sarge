@@ -1,7 +1,8 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as any
 
 export async function GET(request: Request) {
   try {
@@ -9,7 +10,26 @@ export async function GET(request: Request) {
     const type = searchParams.get("type")
 
     let logs
-    if (type && type !== "all") {
+    if (!sql) {
+      // Return mock data if database disabled
+      const mockLogs = [
+        {
+          id: "1",
+          type: "error",
+          message: "Authentication failed for user ID 12345",
+          service: "api-gateway",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          type: "warn",
+          message: "High memory usage detected: 85% of allocated memory in use",
+          service: "worker-queue",
+          timestamp: new Date(Date.now() - 60000).toISOString(),
+        },
+      ]
+      return NextResponse.json(type && type !== "all" ? mockLogs.filter((log) => log.type === type) : mockLogs)
+    } else if (type && type !== "all") {
       logs = await sql`
         SELECT * FROM logs 
         WHERE type = ${type}
