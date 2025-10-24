@@ -1,0 +1,106 @@
+groups:
+  - name: sarge.uptime
+    interval: 5m
+    rules:
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Backend down
+          description: Prometheus cannot scrape the backend metrics endpoint.
+      - alert: AppDown
+        expr: up{job="app"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: App down
+          description: Prometheus cannot scrape the app metrics endpoint.
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Nginx down
+          description: Prometheus cannot scrape the nginx metrics endpoint.
+
+  - name: sarge.errors
+    interval: 5m
+    rules:
+      - alert: DeployFailuresSpike
+        expr: increase(sarge_deploys_total{status="failed"}[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Deploy failures observed
+          description: One or more deploys failed in the last 15 minutes.
+      - alert: RateLimitDenialsHigh
+        expr: increase(sarge_rate_denied_total[5m]) > 50
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: High rate-limit denials
+          description: More than 50 rate-limited requests in the last 5 minutes.
+
+  - name: sarge.latency
+    interval: 5m
+    rules:
+      # TODO: Enable if you export http_request_duration_seconds_bucket
+      # - alert: HighP95Latency
+      #   expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.8
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #   annotations:
+      #     summary: High p95 latency
+      #     description: 95th percentile latency above 800ms.
+
+  - name: sarge.websocket
+    interval: 5m
+    rules:
+      - alert: WSDisconnectSurge
+        expr: increase(sarge_ws_disconnects_total[5m]) > 20
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: WebSocket disconnect surge
+          description: More than 20 WS disconnects in last 5 minutes.
+      - alert: WSMsgRateCapTriggered
+        expr: increase(sarge_ws_rate_cap_total[5m]) > 10
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: WS message/subscription rate cap triggered
+          description: WS rate cap exceeded more than 10 times in last 5 minutes.
+
+  - name: sarge.infra
+    interval: 5m
+    rules:
+      # Placeholder; replace with actual container restarts metric if available (e.g. cadvisor)
+      - alert: ContainerRestarts
+        expr: increase(process_start_time_seconds[5m]) > 1
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: Process restarts detected
+          description: One or more processes restarted in the last 5 minutes.
+
+  - name: sarge.slo
+    interval: 5m
+    rules:
+      - alert: DeploySuccessRatioLow
+        expr: (increase(sarge_deploys_total{status="success"}[1h]) / (increase(sarge_deploys_total[1h]) + 1e-9)) < 0.9
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Deploy success ratio low
+          description: Less than 90% of deploys succeeded in the last hour.

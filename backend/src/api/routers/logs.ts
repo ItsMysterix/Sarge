@@ -1,27 +1,69 @@
-import { t } from "../lib/trpc";
-import { pool, ee } from "../lib/db";
+import { router, publicProcedure } from "../../trpc";
+import { secureProcedure } from "../trpc/middlewares/security";
+import createBufferedSubscription from "../lib/realtime";
+import { startQueryTimer } from "../../metrics/exporter";
 import { z } from "zod";
-import { Observable } from "rxjs";
 
-export const logsRouter = t.router({
-  recent: t.procedure
-    .input(z.object({ type: z.string().optional() }))
-    .query(async ({ input }) => {
+export const logsRouter = router({
+  recent: secureProcedure('logs.recent')
+    .input(z.object({
+      type: z.string().optional(),
+      cursor: z.string().optional(),
+      limit: z.number().int().positive().max(1000).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const end = startQueryTimer('logs.recent');
       const type = input.type;
-      const query = type && type !== "all"
-        ? `SELECT * FROM logs WHERE type = $1 ORDER BY timestamp DESC LIMIT 100`
-        : `SELECT * FROM logs ORDER BY timestamp DESC LIMIT 100`;
+      const limit = input.limit ?? 100;
 
-      const params = type && type !== "all" ? [type] : [];
-      const result = await pool.query(query, params);
-      return result.rows;
+      // Parse cursor if provided
+      let cursorCreatedAt: string | null = null;
+      let cursorId: string | number | null = null;
+      if (input.cursor) {
+        try {
+          const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf8'));
+          cursorCreatedAt = decoded.created_at ?? null;
+          cursorId = decoded.id ?? null;
+        } catch {}
+      }
+
+      // Build SQL dynamically to keep parameter ordering correct
+      const selects = `SELECT id, service_id, type, message, "timestamp", created_at`;
+      let sql = `${selects} FROM logs`;
+      const params: any[] = [];
+      const where: string[] = [];
+      if (type && type !== 'all') {
+        params.push(type);
+        where.push(`type = $${params.length}`);
+      }
+      if (cursorCreatedAt && cursorId != null) {
+        params.push(cursorCreatedAt);
+        params.push(cursorId);
+        where.push(`(created_at, id) < ($${params.length - 1}, $${params.length})`);
+      }
+      if (where.length) {
+        sql += ` WHERE ${where.join(' AND ')}`;
+      }
+      sql += ` ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST, id DESC`;
+      params.push(limit);
+      sql += ` LIMIT $${params.length}`;
+
+      const result = await ctx.db.query(sql, params);
+      end();
+
+      const items = result.rows;
+      // nextCursor from last item
+      let nextCursor: string | null = null;
+      if (items.length > 0) {
+        const last = items[items.length - 1];
+        nextCursor = Buffer.from(
+          JSON.stringify({ created_at: last.created_at ?? last.timestamp ?? null, id: last.id })
+        ).toString('base64');
+      }
+      return { items, nextCursor };
     }),
 
-  stream: t.procedure.subscription(() => {
-    return new Observable<any>((emit) => {
-      const handler = (data: any) => emit.next(data);
-      ee.on("log", handler);
-      return () => ee.off("log", handler);
-    });
-  }),
+  stream: secureProcedure('logs.stream').subscription(
+    createBufferedSubscription("logs:new", { bufferSize: 500, perTickCap: 100 })
+  ),
 });

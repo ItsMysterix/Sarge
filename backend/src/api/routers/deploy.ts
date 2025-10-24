@@ -1,42 +1,64 @@
-import { t } from "../lib/trpc"
-import { z } from "zod"
-import { pool } from "../lib/db"
-import { ee } from "../lib/events"
-import { observable } from "@trpc/server/observable"
+import { router, publicProcedure } from '../../trpc';
+import { secureProcedure } from '../trpc/middlewares/security';
+import { z } from 'zod';
+import createBufferedSubscription from '../lib/realtime';
+import { startQueryTimer } from '../../metrics/exporter';
+import { observable } from '@trpc/server/observable';
+import { topicAll, topicOne } from '../lib/deployEmit';
 
-export const deployRouter = t.router({
-  create: t.procedure
+export const deployRouter = router({
+  create: secureProcedure('deploy.create')
     .input(z.object({
       branch: z.string().default("main"),
       commit: z.string().optional(),
       summary: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
-      const commit = input.commit || Math.random().toString(36).substring(2, 9)
-      const summary = input.summary || `Deployment from ${input.branch}`
+    .mutation(async ({ ctx, input }) => {
+      const end = startQueryTimer('deploy.create');
+      const commit = input.commit ?? null;
+      const summary = input.summary ?? `Deployment from ${input.branch}`;
 
-      const result = await pool.query(
+      const result = await ctx.db.query(
         `INSERT INTO deployments (branch, commit, status, summary, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
         [input.branch, commit, "pending", summary]
       )
+      end();
 
       const deployment = result.rows[0]
-      ee.emit("deployment", { ...deployment, status: "started" })
+      // enqueue real work for executor; subscribers will receive updates via deploys:update
+      if (deployment?.id != null) {
+        ctx.ee.emit("deploys:enqueue", { id: deployment.id })
+      }
       return deployment
     }),
   
-    getDeployments: t.procedure.query(async () => {
-  const result = await pool.query(
+  getDeployments: secureProcedure('deploy.get').query(async ({ ctx }) => {
+  const result = await ctx.db.query(
     `SELECT * FROM deployments ORDER BY created_at DESC LIMIT 50`
   )
   return result.rows
 }),
 
-  subscribe: t.procedure.subscription(() => {
-    return observable<any>((emit) => {
-      const handler = (data: any) => emit.next(data)
-      ee.on("deployment", handler)
-      return () => ee.off("deployment", handler)
-    })
-  }),
+  subscribe: secureProcedure('deploy.subscribe')
+    .input(z.object({ deploymentId: z.string().optional() }).optional())
+    .subscription(({ ctx, input }) => {
+      const id = input?.deploymentId;
+      return observable<any>((emit) => {
+        // Emit a one-time ready frame
+        emit.next({ type: 'ready', id: id ?? '*' });
+        const subFactory = createBufferedSubscription(ctx.ee, {
+          topics: id ? [topicOne(id)] : [topicAll],
+          perTickCap: 100,
+          bufferSize: 50,
+          predicate: id ? (ev) => ev?.id === id : undefined,
+        });
+        const inner = subFactory();
+        const subscription = (inner as any).subscribe({
+          next: (v: any) => emit.next(v),
+          error: (e: any) => emit.error(e),
+          complete: () => emit.complete(),
+        });
+        return () => subscription.unsubscribe?.();
+      });
+    }),
 })

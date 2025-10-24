@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic'
 
 import type React from "react";
 import { useState } from "react";
@@ -18,18 +19,19 @@ import { formatDistanceToNow } from "date-fns";
 import { trpc } from "@/lib/trpc";
 
 export default function Logs() {
+  const t = trpc as any;
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const { addToast, ToastContainer } = useToast();
 
-  const logsQuery = trpc.logs.recent.useQuery(
+  const logsQuery = t.logs.recent.useQuery(
     { type: activeFilter.toLowerCase() === "all" ? undefined : activeFilter.toLowerCase() },
     { refetchOnWindowFocus: false }
   );
 
   const logs = logsQuery.data || [];
 
-  const filteredLogs = logs.filter((log) => {
+  const filteredLogs = logs.filter((log: any) => {
     const matchesSearch =
       searchTerm === "" ||
       log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -213,7 +215,7 @@ export default function Logs() {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {filteredLogs.map((log, i) => (
+                  {filteredLogs.map((log: any, i: number) => (
                     <div
                       key={log.id || i}
                       className="flex items-start space-x-3 py-1 hover:bg-white/5 rounded px-2 -mx-2 transition-colors group"

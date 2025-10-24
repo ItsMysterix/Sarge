@@ -1,0 +1,38 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Uptime per job",
+      "targets": [{"expr": "up", "legendFormat": "{{job}}"}],
+      "id": 1
+    },
+    {
+      "type": "timeseries",
+      "title": "Deploys (1h)",
+      "targets": [{"expr": "sum by (status) (increase(sarge_deploys_total[1h]))", "legendFormat": "{{status}}"}],
+      "id": 2
+    },
+    {
+      "type": "timeseries",
+      "title": "Rate-limit denials (1h)",
+      "targets": [{"expr": "increase(sarge_rate_denied_total[1h])", "legendFormat": "denials"}],
+      "id": 3
+    },
+    {
+      "type": "timeseries",
+      "title": "WS disconnects / rate caps (1h)",
+      "targets": [
+        {"expr": "increase(sarge_ws_disconnects_total[1h])", "legendFormat": "disconnects"},
+        {"expr": "increase(sarge_ws_rate_cap_total[1h])", "legendFormat": "rate-cap"}
+      ],
+      "id": 4
+    }
+  ],
+  "schemaVersion": 38,
+  "title": "Sarge Overview",
+  "version": 1
+}

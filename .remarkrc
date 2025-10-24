@@ -1,0 +1,7 @@
+{
+  "plugins": [
+    "remark-preset-lint-recommended",
+    ["remark-lint-ordered-list-marker-style", false],
+    ["remark-lint-no-undefined-references", false]
+  ]
+}

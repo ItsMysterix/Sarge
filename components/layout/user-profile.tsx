@@ -1,6 +1,6 @@
 "use client"
 
-import { UserButton, useUser } from "@clerk/nextjs"
+import { UserButton, useUser } from "@/lib/clerk-safe"
 
 export function UserProfile() {
   const { user, isLoaded } = useUser()

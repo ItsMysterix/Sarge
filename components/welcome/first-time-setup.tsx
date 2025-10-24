@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useUser } from "@clerk/nextjs"
+import { useUser } from "@/lib/clerk-safe"
 import { Brain, Rocket, CheckCircle, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 

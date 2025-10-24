@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+.DS_Store
+.git
+*.md
+src/**/*.spec.ts
+src/**/__tests__
+dist
+.env
