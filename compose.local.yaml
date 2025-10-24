@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: sarge-backend-local
+    environment:
+      NODE_ENV: production
+      METRICS_ENABLE: "true"
+      METRICS_PORT: "3000"
+      WS_PORT: "3001"
+      # Allow both localhost (browser) and host.docker.internal origins
+      ALLOWED_ORIGINS: "http://localhost:3003,http://host.docker.internal:3003"
+      WS_ALLOWED_ORIGINS: "http://localhost:3003,http://host.docker.internal:3003"
+      # Token required for metrics; set via env or fallback in run script
+      PROM_METRICS_TOKEN: "${PROM_METRICS_TOKEN}"
+      # Placeholder DB URL; backend tolerates failures and continues running
+      DATABASE_URL: "postgres://example:example@localhost/example?sslmode=disable"
+    ports:
+      - "3005:3001"   # WS server on host 3005
+      - "3006:3000"   # Metrics exposed on host :3006
+
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_mock"
+    container_name: sarge-app-local
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Point client to backend WS on host 3005
+      NEXT_PUBLIC_WS_URL: "ws://localhost:3005"
+      # Set valid-looking Clerk keys (mock values for local docker; auth won't work but app will load)
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_mock"
+      CLERK_SECRET_KEY: "sk_test_mock_secret_for_local_docker_only"
+    ports:
+      - "3003:3001"   # App served at http://localhost:3003
+    depends_on:
+      - backend
+
+networks:
+  default:
+    driver: bridge
