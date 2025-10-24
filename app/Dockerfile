@@ -3,13 +3,15 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* package-lock.json* ./
-RUN if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i --frozen-lockfile; \
-    else npm ci; fi
+RUN npm install --legacy-peer-deps
 
 FROM node:20-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 COPY . .
+COPY --from=deps /app/node_modules ./node_modules
 RUN if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm run build; \
     else npm run build; fi
 

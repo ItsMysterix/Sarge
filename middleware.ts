@@ -2,7 +2,9 @@ import { clerkMiddleware } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const clerk = clerkMiddleware()
+// Only use Clerk middleware if a real key is provided (not 'pk_test_mock')
+const isClerkEnabled = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "pk_test_mock"
+const clerk = isClerkEnabled ? clerkMiddleware() : null
 
 function parseAllowed(str?: string | null): string[] {
   return (str || "")
@@ -44,7 +46,8 @@ export default async function middleware(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  const res = (await clerk(req, {} as any)) ?? NextResponse.next()
+  // Only invoke Clerk middleware if it's enabled (real key provided)
+  const res = clerk ? ((await clerk(req, {} as any)) ?? NextResponse.next()) : NextResponse.next()
   // Set CORS headers for allowed API requests
   if (isApi && isAllowed) {
     try {

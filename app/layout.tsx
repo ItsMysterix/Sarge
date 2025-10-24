@@ -6,6 +6,9 @@ import { TrpcReactProvider } from "@/lib/trpc-provider";
 import { AuthDebug } from "@/components/debug/auth-debug";
 import "./globals.css";
 
+// Force dynamic rendering for all pages (no static generation)
+export const dynamic = 'force-dynamic';
+
 // Font setup
 const inter = Inter({
   subsets: ["latin"],
