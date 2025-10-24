@@ -1,20 +1,21 @@
-import { Pool } from "pg"
-import dotenv from "dotenv"
-import { EventEmitter } from "events"
+import { Pool } from '@neondatabase/serverless';
+import { ENV } from '../../env';
 
-dotenv.config()
+declare global {
+  // eslint-disable-next-line no-var
+  var __db: Pool | undefined;
+}
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-})
+let db: Pool;
 
-export const ee = new EventEmitter() // ← Add this
-
-pool.connect((err, client, release) => {
-  if (err) console.error("❌ Error connecting to Neon:", err)
-  else {
-    console.log("✅ Connected to Neon database")
-    release()
+if (process.env.NODE_ENV === 'production') {
+  db = new Pool({ connectionString: ENV.DATABASE_URL });
+} else {
+  if (!global.__db) {
+    global.__db = new Pool({ connectionString: ENV.DATABASE_URL });
   }
-})
+  db = global.__db;
+}
+
+export { db };
+

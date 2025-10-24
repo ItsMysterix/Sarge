@@ -1,30 +1,30 @@
-import { t } from "../lib/trpc";
-import { pool, ee } from "../lib/db";
-import { Observable } from "rxjs";
+import { router, publicProcedure } from "../../trpc";
+import { secureProcedure } from "../trpc/middlewares/security";
+import createBufferedSubscription from "../lib/realtime";
+import { startQueryTimer, setServiceCpu, setServiceMemoryBytes, observeServiceLatencyMs } from "../../metrics/exporter";
 
-export const metricsRouter = t.router({
-  latest: t.procedure.query(async () => {
-    const result = await pool.query(`SELECT * FROM metrics ORDER BY timestamp DESC LIMIT 1`);
-    const metrics = result.rows[0] || generateMockMetrics();
-    return metrics;
+export const metricsRouter = router({
+  latest: secureProcedure('metrics.latest').query(async ({ ctx }) => {
+    const end = startQueryTimer('metrics.latest');
+    const result = await ctx.db.query(
+      `SELECT id, service_id, cpu, memory, latency, cost, "timestamp", created_at
+       FROM metrics
+       ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST
+       LIMIT 1`
+    );
+    end();
+    const row = result.rows[0] ?? null;
+    if (row) {
+      if (row.service_id) {
+        if (typeof row.cpu === 'number') setServiceCpu(String(row.service_id), Number(row.cpu));
+        if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.service_id), Number(row.memory));
+        if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.service_id), Number(row.latency));
+      }
+    }
+    return row;
   }),
 
-  live: t.procedure.subscription(() => {
-    return new Observable<any>((emit) => {
-      const handler = (data: any) => emit.next(data);
-      ee.on("metric", handler);
-      return () => ee.off("metric", handler);
-    });
-  }),
+  live: secureProcedure('metrics.live').subscription(
+    createBufferedSubscription("metrics:new", { bufferSize: 100 })
+  ),
 });
-
-function generateMockMetrics() {
-  return {
-    id: Math.random().toString(36).substring(2, 9),
-    cpu: 70 + Math.floor(Math.random() * 10),
-    memory: 80 + Math.floor(Math.random() * 10),
-    latency: 40 + Math.floor(Math.random() * 20),
-    cost: 91.4 + Math.random() * 5,
-    timestamp: new Date().toISOString(),
-  };
-}

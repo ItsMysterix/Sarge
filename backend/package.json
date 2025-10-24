@@ -4,12 +4,21 @@
   "description": "Express API backend for Sarge DevOps Dashboard with Socket.IO WebSockets",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node backend/src/api/ws-server.ts",
+    "dev": "ts-node backend/src/ws-server.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0"
+    "migrate": "node dist/scripts/migrate.js",
+    "db:migrate": "ts-node --transpile-only ../scripts/run-migrations.ts",
+    "start:ws": "node --enable-source-maps dist/ws-server.js",
+    "start:metrics": "node --enable-source-maps dist/http/metrics-server.js",
+    "metrics:check": "node scripts/check-metrics.js",
+    "logs:retention": "ts-node --transpile-only ../scripts/run-retention.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "prom-client": "^15.1.3",
+    "@neondatabase/serverless": "^1.0.2",
     "dotenv": "^16.3.1",
     "pg": "^8.11.3",
     "superjson": "^1.13.1",
@@ -23,6 +32,8 @@
     "@types/pg": "^8.10.2",
     "nodemon": "^3.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.1",
+    "zod": "^4.1.12"
   }
 }

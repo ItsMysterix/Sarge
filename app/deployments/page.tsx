@@ -1,222 +1,73 @@
-"use client"
+"use client";
+export const dynamic = 'force-dynamic'
+import React, { useMemo, useState } from 'react';
+import { trpc } from '@/lib/trpc';
+import { Card, CardBody, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/components/ui/toast';
+import { ListView } from './components/ListView';
+import { useRouter } from 'next/navigation';
 
-import { Sidebar } from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
-import {
-  Rocket,
-  GitBranch,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  MessageCircle,
-  RotateCcw,
-  Play,
-  Brain,
-} from "lucide-react"
-import { LoadingButton } from "@/components/ui/loading-button"
-import { useToast } from "@/components/ui/toast"
-import { useAppStore } from "@/lib/store"
-import { formatDistanceToNow } from "date-fns"
-import { useEffect, useState } from "react"
-import { trpc } from "@/lib/trpc"
+export default function DeploymentsPage() {
+  const t = trpc as any;
+  const { data, isLoading } = t.deploy.getDeployments.useQuery();
+  const router = useRouter();
+  const { addToast, ToastContainer } = useToast();
+  const [filters, setFilters] = useState<{ status?: string; service?: string }>({});
 
-export default function Deployments() {
-  const { isDeploying, setDeploying } = useAppStore()
-  const { addToast, ToastContainer } = useToast()
-
-  const [deployments, setDeployments] = useState<any[]>([])
-  const deploymentsQuery = trpc.deploy.getDeployments.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  })
-
-  const { mutate: triggerDeployment } = trpc.deploy.create.useMutation()
-
-  const deploymentSub = trpc.deploy.subscribe.useSubscription(undefined, {
-    onData(data) {
-      setDeployments((prev) => [data, ...prev.slice(0, 49)])
+  t.deploy.subscribe.useSubscription(undefined, {
+    onData(ev: any) {
+      if (ev?.type === 'ready') return;
+      // surface success/failed as toast
+      if (ev?.status === 'success') addToast({ type: 'success', title: 'Deploy succeeded', description: `#${ev.id}` });
+      if (ev?.status === 'failed') addToast({ type: 'error', title: 'Deploy failed', description: `#${ev.id}` });
     },
-  })
+    onError(err: any) {
+      addToast({ type: 'warning', title: 'Realtime disconnected', description: err.message });
+    },
+  });
 
-  useEffect(() => {
-    if (deploymentsQuery.data) {
-      setDeployments(deploymentsQuery.data)
-    }
-  }, [deploymentsQuery.data])
-
-  const handleDeploy = async () => {
-    setDeploying(true)
-    triggerDeployment({ branch: "main" })
-    addToast({
-      type: "success",
-      title: "Deployment Started",
-      description: "Deployment triggered successfully",
-    })
-    setTimeout(() => setDeploying(false), 1000)
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "success":
-        return <CheckCircle className="w-4 h-4 text-success" />
-      case "failed":
-        return <XCircle className="w-4 h-4 text-error" />
-      case "pending":
-        return <Clock className="w-4 h-4 text-warning animate-spin" />
-      default:
-        return <AlertTriangle className="w-4 h-4 text-gray-400" />
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "success":
-        return "text-success"
-      case "failed":
-        return "text-error"
-      case "pending":
-        return "text-warning"
-      default:
-        return "text-gray-400"
-    }
-  }
-
-  if (deploymentsQuery.isLoading) {
-    return (
-      <div className="flex h-screen bg-[#0f0f0f]">
-        <Sidebar />
-        <div className="flex-1 flex flex-col lg:ml-0">
-          <Header />
-          <main className="flex-1 p-6 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-              <p className="text-gray-400">Loading deployments...</p>
-            </div>
-          </main>
-        </div>
-      </div>
-    )
-  }
+  const items = useMemo(() => {
+    const rows = data ?? [];
+    return rows.filter((r: any) => (!filters.status || r.status === filters.status));
+  }, [data, filters]);
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f]">
-      <Sidebar />
+    <div className="p-4">
       <ToastContainer />
-      <div className="flex-1 flex flex-col lg:ml-0">
-        <Header />
-        <main className="flex-1 p-6 overflow-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <div className="flex items-center space-x-3 mb-2">
-                <Rocket className="w-8 h-8 text-accent" />
-                <h1 className="text-3xl font-bold">Smart Deployments</h1>
-              </div>
-              <p className="text-gray-400">Real-time deployment tracking with tRPC</p>
-            </div>
-            <LoadingButton
-              loading={isDeploying}
-              loadingText="Deploying..."
-              onClick={handleDeploy}
-              className="glass-card px-6 py-3 text-accent hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Deploy Latest
-            </LoadingButton>
-          </div>
-
-          <div className="glass-card p-6 mb-8 border-l-4 border-l-accent">
-            <div className="flex items-center space-x-3 mb-4">
-              <Brain className="w-6 h-6 text-accent" />
-              <h2 className="text-xl font-semibold">Deployment Intelligence</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <SummaryCard label="Success Rate" tone="success" value={`${getSuccessRate(deployments)}%`} />
-              <SummaryCard label="Avg Duration" tone="warning" value="2.1m" />
-              <SummaryCard label="Failed Deploys" tone="error" value={countFailed(deployments)} />
-              <SummaryCard label="Total Deploys" tone="accent" value={deployments.length} />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold">Deployments</h1>
+            <div className="flex gap-2">
+              <button className="px-3 py-1.5 rounded border border-zinc-700 hover:bg-zinc-800" aria-label="New Deploy">New Deploy</button>
+              <select className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm" aria-label="Filter status" value={filters.status ?? ''} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined }))}>
+                <option value="">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="running">Running</option>
+                <option value="success">Success</option>
+                <option value="failed">Failed</option>
+              </select>
             </div>
           </div>
-
-          <div className="glass-card overflow-hidden">
-            <div className="p-6 border-b border-white/10">
-              <h2 className="text-xl font-semibold">Recent Deployments</h2>
-              <p className="text-sm text-gray-400 mt-1">Live data from Supabase</p>
+        </CardHeader>
+        <CardBody>
+          {isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
             </div>
-
-            <div className="divide-y divide-white/5">
-              {deployments.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  <Rocket className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>No deployments found</p>
-                </div>
-              ) : (
-                deployments.map((deploy) => (
-                  <div key={deploy.id} className="p-6 hover:bg-white/5 transition-colors">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-4">
-                        {getStatusIcon(deploy.status)}
-                        <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="terminal-text text-accent font-medium">#{deploy.id.slice(-6)}</span>
-                            <div className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(deploy.status)} bg-opacity-10`}>
-                              {deploy.status}
-                            </div>
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            {formatDistanceToNow(new Date(deploy.created_at), { addSuffix: true })}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <button className="p-2 glass-card hover:bg-white/10 transition-colors rounded">
-                          <MessageCircle className="w-4 h-4 text-gray-400" />
-                        </button>
-                        <button className="p-2 glass-card hover:bg-white/10 transition-colors rounded">
-                          <RotateCcw className="w-4 h-4 text-gray-400" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-6 mb-3">
-                      <div className="flex items-center space-x-2">
-                        <GitBranch className="w-4 h-4 text-gray-400" />
-                        <span className="terminal-text text-sm">{deploy.branch}</span>
-                      </div>
-                      <div className="terminal-text text-sm text-gray-400">{deploy.commit}</div>
-                    </div>
-
-                    <div className="p-3 glass-card rounded-lg">
-                      <div className="text-sm text-gray-300">{deploy.summary}</div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </main>
-      </div>
+          ) : items.length === 0 ? (
+            <div className="text-sm text-zinc-400">No deployments found.</div>
+          ) : (
+            <ListView
+              items={items as any[]}
+              onView={(id) => router.push(`/deployments/${id}`)}
+              onLogs={(id) => router.push(`/deployments/${id}#logs`)}
+            />
+          )}
+        </CardBody>
+      </Card>
     </div>
-  )
+  );
 }
-
-// Summary UI helpers
-function SummaryCard({ label, value, tone }: { label: string; value: any; tone: string }) {
-  return (
-    <div className="text-center p-4 glass-card rounded-lg">
-      <div className={`text-2xl font-bold text-${tone} mb-1`}>{value}</div>
-      <div className="text-sm text-gray-400">{label}</div>
-    </div>
-  )
-}
-
-function getSuccessRate(deployments: any[]) {
-  if (!deployments.length) return 0
-  const successful = deployments.filter((d) => d.status === "success").length
-  return Math.round((successful / deployments.length) * 100)
-}
-
-function countFailed(deployments: any[]) {
-  return deployments.filter((d) => d.status === "failed").length
-}
+ 

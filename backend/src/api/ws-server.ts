@@ -1,13 +1,3 @@
-import { applyWSSHandler } from '@trpc/server/adapters/ws';
-import ws from 'ws';
-import { appRouter } from '../api/root';
-
-const wss = new ws.Server({ port: 3200 });
-
-applyWSSHandler({
-  wss,
-  router: appRouter,
-  createContext: () => ({}),
-});
-
-console.log('✅ tRPC WebSocket running at ws://localhost:3200');
+// Legacy entry kept for compatibility with existing scripts.
+// Delegate to the new single WS server at src/ws-server.ts
+import '../ws-server';

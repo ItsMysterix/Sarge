@@ -26,19 +26,33 @@ export const metadata: Metadata = {
 };
 
 // Layout Component
+import { ENV } from "@/app/lib/env";
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pk = ENV.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const enableClerk = pk && pk !== 'pk_test_mock';
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
-    >
+    enableClerk ? (
+      <ClerkProvider
+        publishableKey={pk}
+        signInUrl="/sign-in"
+        signUpUrl="/sign-up"
+        afterSignInUrl="/"
+        afterSignUpUrl="/"
+      >
+        <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+          <body className="font-sans antialiased bg-black text-white">
+            <TrpcReactProvider>
+              {children}
+              <AuthDebug />
+            </TrpcReactProvider>
+          </body>
+        </html>
+      </ClerkProvider>
+    ) : (
       <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
         <body className="font-sans antialiased bg-black text-white">
           <TrpcReactProvider>
@@ -47,6 +61,6 @@ export default function RootLayout({
           </TrpcReactProvider>
         </body>
       </html>
-    </ClerkProvider>
+    )
   );
 }

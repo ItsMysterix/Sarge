@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ feature/** ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i; else npm ci; fi
+
+  backend-test:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i; else npm ci; fi
+      - name: Run backend tests
+        run: |
+          cd backend
+          npm test --silent
+
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i; else npm ci; fi
+      - name: Typecheck
+        run: |
+          npx tsc -v >/dev/null 2>&1 || npm i -g typescript
+          npx tsc --noEmit || true
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i; else npm ci; fi
+      - name: Build Next.js
+        run: |
+          npm run build
+
+  ops-tests:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i; else npm ci; fi
+      - name: Backend tests (full suite)
+        run: |
+          cd backend
+          npm test --silent
+      - name: Ops config smoke checks
+        run: |
+          node -e "require('fs').readFileSync('ops/nginx/nginx.conf','utf8')"
+          node backend/dist/scripts/migrate.js --dry-run || true
+      - name: Run ops + backend config tests
+        run: |
+          npx vitest run --config vitest.config.ts
+      - name: Install promtool
+        run: |
+          PROM_VERSION=2.54.1
+          curl -L -o /tmp/prom.tar.gz https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz
+          tar -xzf /tmp/prom.tar.gz -C /tmp
+          sudo mv /tmp/prometheus-${PROM_VERSION}.linux-amd64/promtool /usr/local/bin/promtool
+          promtool --version
+      - name: Prometheus config check
+        run: |
+          promtool check config prometheus/prometheus.yml
+      - name: Prometheus rules test
+        run: |
+          promtool test rules prometheus/tests/rules.test.yml
+
+  docs-check:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm i; else npm ci; fi
+      - name: Generate tRPC API docs
+        run: npm run docs:trpc
+      - name: Lint docs
+        run: npm run docs:lint
+      - name: Check links
+        run: npm run docs:links

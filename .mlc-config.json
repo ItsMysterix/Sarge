@@ -1,0 +1,10 @@
+{
+  "timeout": "10s",
+  "retryOn429": true,
+  "aliveStatusCodes": [200, 206, 301, 302, 307, 308, 403],
+  "ignorePatterns": [
+    { "pattern": "^https://localhost" },
+    { "pattern": "^https://github.com/.+/.+/actions/workflows/.+" },
+    { "pattern": "^https://github.com/.+/.+/actions/workflows/.+/badge\\.svg$" }
+  ]
+}
