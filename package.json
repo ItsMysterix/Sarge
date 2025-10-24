@@ -16,6 +16,7 @@
   "docs:links": "markdown-link-check -q -p -v -c .mlc-config.json README.md docs/**/*.md"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.5",
     "@clerk/nextjs": "^6.22.0",
     "@hookform/resolvers": "^3.9.1",
     "@neondatabase/serverless": "^1.0.1",
