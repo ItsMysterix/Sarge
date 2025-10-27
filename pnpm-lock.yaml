@@ -267,18 +267,27 @@ importers:
       sarge-aws-shim:
         specifier: workspace:*
         version: link:../sarge-aws-shim
+      sarge-cloudwatch:
+        specifier: workspace:*
+        version: link:../sarge-cloudwatch
       sarge-core:
         specifier: workspace:*
         version: link:../sarge-core
       sarge-iam:
         specifier: workspace:*
         version: link:../sarge-iam
+      sarge-services-dynamo:
+        specifier: workspace:*
+        version: link:../sarge-services-dynamo
       sarge-services-eventbridge:
         specifier: workspace:*
         version: link:../sarge-services-eventbridge
       sarge-services-lambda:
         specifier: workspace:*
         version: link:../sarge-services-lambda
+      sarge-services-s3:
+        specifier: workspace:*
+        version: link:../sarge-services-s3
       sarge-services-sns:
         specifier: workspace:*
         version: link:../sarge-services-sns
