@@ -1,0 +1,21 @@
+{
+  "code": 200,
+  "type": "application/json",
+  "body": {
+    "Items": [
+      {
+        "pk": {
+          "S": "u#2"
+        },
+        "sk": {
+          "S": "p#2023"
+        },
+        "name": {
+          "S": "Bob"
+        }
+      }
+    ],
+    "Count": 1,
+    "ScannedCount": 3
+  }
+}

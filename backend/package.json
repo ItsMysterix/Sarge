@@ -22,7 +22,10 @@
     "dotenv": "^16.3.1",
     "pg": "^8.11.3",
     "superjson": "^1.13.1",
-    "ws": "^8.13.0"
+    "ws": "^8.13.0",
+    "sarge-core": "workspace:*",
+    "sarge-services-s3": "workspace:*",
+    "sarge-services-dynamo": "workspace:*"
   },
   "devDependencies": {
     "@trpc/client": "^10.39.0",

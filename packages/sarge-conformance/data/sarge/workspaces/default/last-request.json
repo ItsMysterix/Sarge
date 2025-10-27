@@ -1,0 +1,19 @@
+{
+  "method": "POST",
+  "url": "/dynamodb/",
+  "headers": {
+    "content-type": "application/x-amz-json-1.0",
+    "x-amz-target": "DynamoDB_20120810.Scan",
+    "content-length": "80",
+    "x-amz-user-agent": "aws-sdk-js/3.917.0",
+    "user-agent": "aws-sdk-js/3.917.0 ua/2.1 os/darwin#25.1.0 lang/js md/nodejs#20.17.0 api/dynamodb#3.917.0 m/N,E,P,e",
+    "host": "127.0.0.1:49222",
+    "amz-sdk-invocation-id": "1e7735b5-7150-406f-b24c-adeb5cb0dfcc",
+    "amz-sdk-request": "attempt=1; max=3",
+    "x-amz-date": "20251025T173550Z",
+    "x-amz-content-sha256": "cbdfbc1afdda85b003bb35f70118c5941e8dd45f42384c7cb00fdc8cf4b4e7cb",
+    "authorization": "AWS4-HMAC-SHA256 Credential=local/20251025/us-east-1/dynamodb/aws4_request, SignedHeaders=amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;host;x-amz-content-sha256;x-amz-date;x-amz-target;x-amz-user-agent, Signature=759888b8448bdda711d9649acb39a372a308379fd2312137184df82c6e28b468",
+    "connection": "keep-alive"
+  },
+  "body": "{\"ExclusiveStartKey\":{\"pk\":{\"S\":\"u#1\"},\"sk\":{\"S\":\"p#2024\"}},\"TableName\":\"Users\"}"
+}

@@ -1,0 +1,9 @@
+packages:
+  - "packages/sarge-*"
+  - "packages/sarge-desktop"
+  - "app"
+  - "backend"
+  - "components"
+  - "hooks"
+  - "lib"
+  - "prometheus"

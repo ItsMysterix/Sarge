@@ -1,0 +1,68 @@
+{"ts":1761345451491,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761345451669,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761345451900,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761345451902,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761345508666,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761345508837,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761345509067,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761345509069,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761345789897,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761345790072,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761345790299,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761345790301,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761345818892,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761345819067,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761345819405,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761345819409,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761348750076,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761348750239,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761348750640,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761348750641,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761348772948,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761348773125,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761348773373,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761348773374,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761348795868,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761348796049,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761348796289,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761348796290,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761350947405,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761350949947,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761350950852,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761350950854,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761352747145,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761352747328,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761352747561,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761352747563,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761406156741,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761406156920,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761406157293,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761406157300,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761407139633,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761407139808,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761407140037,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761407140038,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761407171678,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761407171857,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761407172090,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761407172091,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761407190889,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761407191069,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761407191306,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761407191308,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761410655914,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761410656078,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761410656304,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761410656306,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761410849096,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761410849247,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761410849490,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761410849492,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761411309747,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761411309928,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761411310157,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761411310160,"service":"api","stream":"exit","msg":"code=1\n"}
+{"ts":1761411959152,"service":"api","stream":"stdout","msg":"api up 4011\n"}
+{"ts":1761411959339,"service":"api","stream":"exit","msg":"code=null\n"}
+{"ts":1761411959566,"service":"api","stream":"stderr","msg":"failing fast\n"}
+{"ts":1761411959567,"service":"api","stream":"exit","msg":"code=1\n"}

@@ -3,14 +3,17 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Rocket, Activity, FileText, Settings, Menu, X } from "lucide-react"
+import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap } from "lucide-react"
 
 const navigation = [
-  { name: "Overview", href: "/", icon: Home },
-  { name: "Deployments", href: "/deployments", icon: Rocket },
-  { name: "Services", href: "/services", icon: Activity },
-  { name: "Logs", href: "/logs", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
+  { name: "One-Click Deploy", href: "/oneclick", icon: Zap, description: "Detect, plan & deploy in 3 steps" },
+  { name: "Stacks", href: "/stacks", icon: Layers, description: "Compose services into applications" },
+  { name: "AWS Emulation", href: "/aws", icon: Cloud, description: "S3, DynamoDB, Lambda & more—offline" },
+  { name: "Metrics", href: "/metrics", icon: Activity, description: "Real-time performance data" },
+  { name: "Logs", href: "/logs", icon: FileText, description: "Structured logs from all services" },
+  { name: "Deployments", href: "/deployments", icon: Rocket, description: "Legacy deployment pipeline" },
+  { name: "Settings", href: "/settings", icon: Settings, description: "Configure workspace & snapshots" },
 ]
 
 export function Sidebar() {

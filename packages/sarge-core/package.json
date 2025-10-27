@@ -1,0 +1,24 @@
+{
+  "name": "sarge-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/tar": "^6.1.13"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.2",
+    "yaml": "^2.8.0",
+    "tar": "^6.2.0"
+  }
+}

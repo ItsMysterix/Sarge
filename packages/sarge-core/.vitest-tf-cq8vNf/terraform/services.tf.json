@@ -1,0 +1,18 @@
+{
+  "resource": {
+    "null_resource": {
+      "svc_api": {
+        "triggers": {
+          "name": "api",
+          "type": "api"
+        }
+      },
+      "svc_web": {
+        "triggers": {
+          "name": "web",
+          "type": "web"
+        }
+      }
+    }
+  }
+}

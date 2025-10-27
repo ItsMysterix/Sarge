@@ -1,0 +1,2 @@
+sarge_service_up{service="web"} 0
+sarge_service_up{service="api"} 0
