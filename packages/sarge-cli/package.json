@@ -1,0 +1,32 @@
+{
+  "name": "sarge-cli",
+  "version": "0.0.1",
+  "private": true,
+  "bin": {
+    "sarge": "dist/src/index.js"
+  },
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "package:bin": "pkg dist/index.js --out-path dist/bin -t node20-macos-x64,node20-linux-x64",
+    "package:bin:arm64": "pkg dist/index.js --out-path dist/bin -t node20-macos-arm64,node20-linux-arm64"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "sarge-core": "workspace:*",
+    "sarge-services-s3": "workspace:*",
+    "sarge-services-dynamo": "workspace:*"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "assets": []
+  }
+}

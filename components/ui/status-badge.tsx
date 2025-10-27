@@ -1,20 +1,109 @@
-"use client";
-import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
+"use client"
 
-export function StatusBadge({ status }: { status: string }) {
-  const s = status.toLowerCase();
-  const map: Record<string, { label: string; className: string; Icon: any }> = {
-    pending: { label: 'Pending', className: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', Icon: Clock },
-    running: { label: 'Running', className: 'bg-blue-500/10 text-blue-400 border-blue-500/30', Icon: Loader2 },
-    success: { label: 'Success', className: 'bg-green-500/10 text-green-400 border-green-500/30', Icon: CheckCircle2 },
-    failed:  { label: 'Failed',  className: 'bg-red-500/10 text-red-400 border-red-500/30', Icon: XCircle },
-  };
-  const m = map[s] ?? { label: status, className: 'bg-zinc-700/30 text-zinc-200 border-zinc-500/20', Icon: Clock };
-  const Icon = m.Icon;
-  return (
-    <span aria-label={`status ${m.label}`} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs ${m.className}`}>
-      <Icon className="h-3.5 w-3.5" aria-hidden />
-      {m.label}
-    </span>
-  );
+import { motion } from "framer-motion"
+import { CheckCircle2, XCircle, AlertCircle, Clock, Zap, Loader2 } from "lucide-react"
+
+type StatusType = "success" | "error" | "warning" | "pending" | "running" | "failed"
+
+interface StatusBadgeProps {
+  status: StatusType | string
+  label?: string
+  animated?: boolean
+  size?: "sm" | "md" | "lg"
+  showIcon?: boolean
+}
+
+const statusConfig = {
+  success: {
+    icon: CheckCircle2,
+    color: "text-success",
+    bgColor: "bg-success/10",
+    borderColor: "border-success/30",
+    label: "Success"
+  },
+  error: {
+    icon: XCircle,
+    color: "text-error",
+    bgColor: "bg-error/10",
+    borderColor: "border-error/30",
+    label: "Error"
+  },
+  failed: {
+    icon: XCircle,
+    color: "text-error",
+    bgColor: "bg-error/10",
+    borderColor: "border-error/30",
+    label: "Failed"
+  },
+  warning: {
+    icon: AlertCircle,
+    color: "text-warning",
+    bgColor: "bg-warning/10",
+    borderColor: "border-warning/30",
+    label: "Warning"
+  },
+  pending: {
+    icon: Clock,
+    color: "text-gray-400",
+    bgColor: "bg-gray-400/10",
+    borderColor: "border-gray-400/30",
+    label: "Pending"
+  },
+  running: {
+    icon: Loader2,
+    color: "text-accent",
+    bgColor: "bg-accent/10",
+    borderColor: "border-accent/30",
+    label: "Running"
+  }
+}
+
+const sizeConfig = {
+  sm: { text: "text-xs", padding: "px-2 py-0.5", icon: "w-3 h-3" },
+  md: { text: "text-sm", padding: "px-3 py-1.5", icon: "w-4 h-4" },
+  lg: { text: "text-base", padding: "px-4 py-2", icon: "w-5 h-5" }
+}
+
+export function StatusBadge({ 
+  status, 
+  label, 
+  animated = true, 
+  size = "md",
+  showIcon = true 
+}: StatusBadgeProps) {
+  const statusLower = status.toLowerCase() as StatusType
+  const config = statusConfig[statusLower] || statusConfig.pending
+  const sizeStyles = sizeConfig[size]
+  const Icon = config.icon
+  const displayLabel = label || config.label
+
+  const Badge = (
+    <div 
+      className={`
+        inline-flex items-center gap-1.5 rounded-full border
+        ${config.bgColor} ${config.borderColor} ${config.color}
+        ${sizeStyles.padding} ${sizeStyles.text}
+        font-medium terminal-text
+      `}
+    >
+      {showIcon && (
+        <Icon className={`${sizeStyles.icon} ${statusLower === "running" ? "animate-spin" : ""}`} />
+      )}
+      {displayLabel}
+    </div>
+  )
+
+  if (animated) {
+    return (
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      >
+        {Badge}
+      </motion.div>
+    )
+  }
+
+  return Badge
 }

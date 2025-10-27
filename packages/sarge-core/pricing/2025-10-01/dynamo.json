@@ -1,0 +1,5 @@
+{
+  "storageGBMonth": 0.25,
+  "onDemandReadPerMillion": 0.25,
+  "onDemandWritePerMillion": 1.25
+}

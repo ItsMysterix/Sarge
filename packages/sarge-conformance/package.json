@@ -1,0 +1,32 @@
+{
+  "name": "sarge-conformance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.616.0",
+    "@aws-sdk/client-dynamodb": "^3.616.0"
+  },
+  "dependencies": {
+    "sarge-aws-shim": "workspace:*",
+    "sarge-core": "workspace:*",
+    "sarge-iam": "workspace:*",
+    "sarge-services-sqs": "workspace:*",
+    "sarge-services-sns": "workspace:*",
+    "sarge-services-eventbridge": "workspace:*",
+    "sarge-services-lambda": "workspace:*",
+    "sarge-services-s3": "workspace:*",
+    "sarge-services-dynamo": "workspace:*",
+    "sarge-cloudwatch": "workspace:*"
+  }
+}

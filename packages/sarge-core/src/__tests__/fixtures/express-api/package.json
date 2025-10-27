@@ -1,0 +1,10 @@
+{
+  "name": "fixture-express-api",
+  "private": true,
+  "dependencies": {
+    "express": "4.18.2"
+  },
+  "scripts": {
+    "start": "node server.js -p 8081"
+  }
+}

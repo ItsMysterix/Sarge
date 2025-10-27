@@ -1,9 +1,47 @@
 "use client"
 
 import { SignIn } from "@clerk/nextjs"
-import { Brain, Shield, Zap } from "lucide-react"
+import { Brain, Shield, Zap, AlertCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { CLERK_ENABLED } from "@/lib/clerk-safe"
+import { Button } from "@/components/ui/button"
 
 export default function SignInPage() {
+  const router = useRouter()
+
+  // Redirect to dashboard if Clerk is disabled
+  useEffect(() => {
+    if (!CLERK_ENABLED) {
+      const timer = setTimeout(() => {
+        router.push("/")
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [router])
+
+  // Show informational message when Clerk is disabled
+  if (!CLERK_ENABLED) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4">
+        <div className="glass-card p-8 max-w-md text-center">
+          <AlertCircle className="w-16 h-16 text-warning mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-4">Authentication Disabled</h2>
+          <p className="text-gray-400 mb-6">
+            This instance is running in development mode without authentication.
+            Redirecting you to the dashboard...
+          </p>
+          <Button 
+            onClick={() => router.push("/")}
+            className="bg-accent hover:bg-accent/90 text-black font-bold"
+          >
+            Go to Dashboard Now
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4">
       {/* Background Effects */}

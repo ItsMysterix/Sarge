@@ -1,0 +1,14 @@
+{
+  "resource": {
+    "aws_lambda_function": {
+      "img_resize": {
+        "function_name": "img-resize",
+        "handler": "index.handler",
+        "runtime": "nodejs20.x",
+        "filename": "FUNCTION_ZIP_PLACEHOLDER",
+        "source_code_hash": "HASH_PLACEHOLDER",
+        "role": "ROLE_ARN_PLACEHOLDER"
+      }
+    }
+  }
+}

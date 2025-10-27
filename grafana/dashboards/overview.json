@@ -1,0 +1,50 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Workspace Healthy Services",
+      "targets": [
+        {
+          "expr": "sarge_services_healthy",
+          "legendFormat": "healthy"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "options": { "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Workspace Started Services",
+      "targets": [
+        {
+          "expr": "sarge_services_started",
+          "legendFormat": "started"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "options": { "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Request Latency (p95)",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(sarge_request_latency_seconds_bucket[5m])) by (le, route))", "legendFormat": "{{route}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "legend": { "showLegend": true } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 }
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Sarge Overview",
+  "version": 1
+}

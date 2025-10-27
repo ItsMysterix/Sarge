@@ -2,8 +2,44 @@ import { TRPCError } from '@trpc/server'
 import { t } from '../../lib/trpc'
 import { checkAndConsume, scopeKey, type Scope } from '../../lib/rateLimit'
 import { rateDeniedTotal } from '../../../metrics/exporter'
+import fs from 'node:fs'
+import path from 'node:path'
+import crypto from 'node:crypto'
 
-export type RateOverride = Partial<{ windowSec: number; max: number; burst: number; scope: Scope }>
+export type Role = 'admin' | 'operator' | 'viewer'
+export type RateOverride = Partial<{ windowSec: number; max: number; burst: number; scope: Scope; requiresRole: Role; requiresLicenseFeature: 'teamSpaces' | 'cloudApply' }>
+
+function getDataRoot() {
+  const base = process.env.SARGE_DATA_DIR ? path.resolve(process.cwd(), process.env.SARGE_DATA_DIR) : path.resolve(process.cwd(), 'data/sarge/workspaces/default')
+  return base
+}
+
+type StoredToken = { id: string; role: Role; salt: string; hash: string; createdAt: string; revokedAt?: string }
+
+function tokensFile() {
+  const dir = path.join(getDataRoot(), 'security')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  return path.join(dir, 'tokens.json')
+}
+
+function readTokens(): StoredToken[] {
+  const f = tokensFile()
+  if (!fs.existsSync(f)) return []
+  try { return JSON.parse(fs.readFileSync(f, 'utf8')) as StoredToken[] } catch { return [] }
+}
+
+function verifyTokenString(token: string): { ok: boolean; role?: Role } {
+  const items = readTokens()
+  for (const it of items) {
+    if (it.revokedAt) continue
+    const salt = Buffer.from(it.salt, 'hex')
+    const hash = crypto.scryptSync(token, salt, 32).toString('hex')
+    if (crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(it.hash, 'hex'))) {
+      return { ok: true, role: it.role }
+    }
+  }
+  return { ok: false }
+}
 
 export function secureProcedure(route: string, override?: RateOverride) {
   const rateDefaults = {
@@ -17,7 +53,7 @@ export function secureProcedure(route: string, override?: RateOverride) {
     if (process.env.NODE_ENV === 'test' && process.env.RATE_LIMIT_ENABLE_IN_TEST !== 'true') {
       return next()
     }
-    const ip = ctx.requestMeta?.ip || ''
+  const ip = ctx.requestMeta?.ip || ''
     // user id not present in backend Context; future: derive from auth if added
     const key = scopeKey({ scope: cfg.scope!, ip, userId: undefined })
     const res = await checkAndConsume(ctx.db as any, {
@@ -33,6 +69,39 @@ export function secureProcedure(route: string, override?: RateOverride) {
       try { console.debug?.(`rate-limit deny route=${route} key=${key}`) } catch {}
       try { rateDeniedTotal.labels({ route }).inc() } catch {}
       throw new TRPCError({ code: 'TOO_MANY_REQUESTS' })
+    }
+    // RBAC (opt-in): require token and role if RBAC_ENABLED
+    if (process.env.RBAC_ENABLED === 'true') {
+      const token = ctx.requestMeta?.apiToken
+      if (!token) throw new TRPCError({ code: 'UNAUTHORIZED' })
+      const ver = verifyTokenString(token)
+      if (!ver.ok) throw new TRPCError({ code: 'UNAUTHORIZED' })
+      const required = cfg.requiresRole
+      if (required) {
+        const rank: Record<Role, number> = { admin: 3, operator: 2, viewer: 1 }
+        if (rank[ver.role!] < rank[required]) throw new TRPCError({ code: 'FORBIDDEN' })
+      }
+    }
+    // Licensing (optional, offline): gate certain features when not licensed
+    if (override?.requiresLicenseFeature) {
+      try {
+        // Dynamic import to avoid hard dependency on build order
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        let core: any
+        try { core = require('sarge-core') } catch (e: any) {
+          if (e?.code === 'ERR_REQUIRE_ESM') core = await import('sarge-core')
+        }
+        const dataRoot = getDataRoot()
+        const chk = core?.licensing?.ensureFeature?.(override.requiresLicenseFeature, { dataRoot })
+        if (!chk?.ok) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: chk?.reason || 'feature_locked' })
+        }
+      } catch (e) {
+        // If licensing module unavailable, default to allowing Community features only
+        if (override?.requiresLicenseFeature && override.requiresLicenseFeature !== 'teamSpaces' && override.requiresLicenseFeature !== 'cloudApply') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'feature_locked' })
+        }
+      }
     }
     return next()
   })
