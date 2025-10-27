@@ -1,0 +1,1 @@
+export const LOCALCLOUD_CONFORMANCE_VERSION = '0.0.0';

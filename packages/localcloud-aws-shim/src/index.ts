@@ -1,0 +1,1 @@
+export const LOCALCLOUD_AWS_SHIM_VERSION = '0.0.0';

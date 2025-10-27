@@ -1,0 +1,1 @@
+export const LOCALCLOUD_SERVICE_DYNAMO_VERSION = '0.0.0';

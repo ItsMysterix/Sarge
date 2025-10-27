@@ -1,0 +1,36 @@
+{
+  "name": "sarge-aws-shim",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "node dist/server.js"
+  },
+  "dependencies": {
+    "sarge-services-s3": "workspace:*",
+    "sarge-cloudwatch": "workspace:*",
+    "sarge-services-dynamo": "workspace:*",
+    "sarge-iam": "workspace:*",
+    "sarge-services-sqs": "workspace:*",
+    "sarge-services-sns": "workspace:*",
+    "sarge-services-eventbridge": "workspace:*",
+    "sarge-services-lambda": "workspace:*"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.616.0",
+    "@aws-sdk/client-lambda": "^3.616.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.616.0",
+    "@aws-sdk/client-sqs": "^3.616.0",
+    "@aws-sdk/client-sns": "^3.616.0",
+    "@aws-sdk/client-eventbridge": "^3.616.0"
+  },
+  "peerDependencies": {}
+}

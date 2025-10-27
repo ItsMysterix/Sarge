@@ -1,0 +1,1 @@
+export const LOCALCLOUD_CLOUDWATCH_VERSION = '0.0.0';

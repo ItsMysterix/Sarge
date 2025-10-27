@@ -7,75 +7,19 @@ const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as 
 export async function GET() {
   try {
     if (!sql) {
-      return NextResponse.json([
-        {
-          id: "1",
-          branch: "main",
-          commit: "a7f3c2d",
-          status: "success",
-          summary: "Deployment completed successfully",
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          branch: "feature/auth",
-          commit: "b8e4d3f",
-          status: "failed",
-          summary: "Failed due to database migration timeout",
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-      ])
+      console.error("DATABASE_URL not configured")
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 })
     }
+
     const deployments = await sql`
       SELECT * FROM deployments 
       ORDER BY created_at DESC 
       LIMIT 20
     `
 
-    if (deployments.length === 0) {
-      // Return mock data if no deployments found
-      return NextResponse.json([
-        {
-          id: "1",
-          branch: "main",
-          commit: "a7f3c2d",
-          status: "success",
-          summary: "Deployment completed successfully",
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          branch: "feature/auth",
-          commit: "b8e4d3f",
-          status: "failed",
-          summary: "Failed due to database migration timeout",
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-      ])
-    }
-
     return NextResponse.json(deployments)
   } catch (error) {
     console.error("Failed to fetch deployments:", error)
-
-    // Return mock data if database error (table doesn't exist, etc.)
-    return NextResponse.json([
-      {
-        id: "1",
-        branch: "main",
-        commit: "a7f3c2d",
-        status: "success",
-        summary: "Deployment completed successfully",
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "2",
-        branch: "feature/auth",
-        commit: "b8e4d3f",
-        status: "failed",
-        summary: "Failed due to database migration timeout",
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-      },
-    ])
+    return NextResponse.json({ error: "Failed to fetch deployments" }, { status: 500 })
   }
 }

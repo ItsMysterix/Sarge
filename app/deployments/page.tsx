@@ -1,24 +1,41 @@
 "use client";
 export const dynamic = 'force-dynamic'
 import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { trpc } from '@/lib/trpc';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { ListView } from './components/ListView';
 import { useRouter } from 'next/navigation';
+import { Plus, Filter, GitBranch, Clock, CheckCircle2, XCircle, PlayCircle, RotateCcw, TrendingUp, Rocket } from 'lucide-react';
+import { QuickStatCard } from '@/components/ui/quick-stat-card';
+import { FilterBar } from '@/components/ui/filter-bar';
+import { TimelineItem } from '@/components/ui/timeline-item';
+import { Sidebar } from '@/components/layout/sidebar';
+import { Header } from '@/components/layout/header';
 
 export default function DeploymentsPage() {
   const t = trpc as any;
   const { data, isLoading } = t.deploy.getDeployments.useQuery();
   const router = useRouter();
   const { addToast, ToastContainer } = useToast();
-  const [filters, setFilters] = useState<{ status?: string; service?: string }>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState([
+    { id: "pending", label: "Pending", active: false },
+    { id: "running", label: "Running", active: false },
+    { id: "success", label: "Success", active: false },
+    { id: "failed", label: "Failed", active: false },
+    { id: "main", label: "Main Branch", active: false },
+    { id: "develop", label: "Develop", active: false },
+    { id: "production", label: "Production", active: false },
+    { id: "staging", label: "Staging", active: false },
+  ]);
+  const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
 
   t.deploy.subscribe.useSubscription(undefined, {
     onData(ev: any) {
       if (ev?.type === 'ready') return;
-      // surface success/failed as toast
       if (ev?.status === 'success') addToast({ type: 'success', title: 'Deploy succeeded', description: `#${ev.id}` });
       if (ev?.status === 'failed') addToast({ type: 'error', title: 'Deploy failed', description: `#${ev.id}` });
     },
@@ -27,46 +44,279 @@ export default function DeploymentsPage() {
     },
   });
 
+  const handleFilterToggle = (filterId: string) => {
+    setFilters(filters.map(f => f.id === filterId ? { ...f, active: !f.active } : f))
+  }
+
+  const handleClearFilters = () => {
+    setFilters(filters.map(f => ({ ...f, active: false })))
+    setSearchQuery("")
+  }
+
   const items = useMemo(() => {
     const rows = data ?? [];
-    return rows.filter((r: any) => (!filters.status || r.status === filters.status));
-  }, [data, filters]);
+    const activeStatusFilters = filters.filter(f => ["pending", "running", "success", "failed"].includes(f.id) && f.active);
+    const activeBranchFilters = filters.filter(f => ["main", "develop"].includes(f.id) && f.active);
+    const activeEnvFilters = filters.filter(f => ["production", "staging"].includes(f.id) && f.active);
+
+    return rows.filter((r: any) => {
+      const matchesSearch = !searchQuery || 
+        r.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.branch?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.commit?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesStatus = activeStatusFilters.length === 0 || activeStatusFilters.some(f => r.status === f.id);
+      const matchesBranch = activeBranchFilters.length === 0 || activeBranchFilters.some(f => r.branch?.toLowerCase().includes(f.id));
+      const matchesEnv = activeEnvFilters.length === 0 || activeEnvFilters.some(f => r.summary?.toLowerCase().includes(f.id));
+
+      return matchesSearch && matchesStatus && matchesBranch && matchesEnv;
+    });
+  }, [data, filters, searchQuery]);
+
+  const stats = useMemo(() => {
+    const all = data ?? [];
+    return {
+      total: all.length,
+      success: all.filter((d: any) => d.status === 'success').length,
+      failed: all.filter((d: any) => d.status === 'failed').length,
+      running: all.filter((d: any) => d.status === 'running').length,
+      pending: all.filter((d: any) => d.status === 'pending').length,
+      successRate: all.length > 0 
+        ? ((all.filter((d: any) => d.status === 'success').length / all.length) * 100).toFixed(1)
+        : 0
+    };
+  }, [data]);
 
   return (
-    <div className="p-4">
-      <ToastContainer />
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Deployments</h1>
-            <div className="flex gap-2">
-              <button className="px-3 py-1.5 rounded border border-zinc-700 hover:bg-zinc-800" aria-label="New Deploy">New Deploy</button>
-              <select className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm" aria-label="Filter status" value={filters.status ?? ''} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined }))}>
-                <option value="">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="running">Running</option>
-                <option value="success">Success</option>
-                <option value="failed">Failed</option>
-              </select>
+    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
+        <Header />
+        
+        <motion.main 
+          className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <ToastContainer />
+          
+          {/* Page Header */}
+          <motion.div 
+            className="mb-4 sm:mb-6 md:mb-8"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-2">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <motion.div
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <Rocket className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
+                </motion.div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Deployment Pipeline</h1>
+              </div>
+              <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+                <motion.div className="flex rounded-lg border border-accent/20 bg-accent/5 p-1 flex-1 sm:flex-none">
+                  <button
+                    className={`px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm transition-all flex-1 sm:flex-none ${
+                      viewMode === "list" ? "bg-accent text-black" : "text-gray-400 hover:text-white"
+                    }`}
+                    onClick={() => setViewMode("list")}
+                  >
+                    List
+                  </button>
+                  <button
+                    className={`px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm transition-all flex-1 sm:flex-none ${
+                      viewMode === "timeline" ? "bg-accent text-black" : "text-gray-400 hover:text-white"
+                    }`}
+                    onClick={() => setViewMode("timeline")}
+                  >
+                    Timeline
+                  </button>
+                </motion.div>
+                <motion.button
+                  className="px-3 sm:px-4 py-2 bg-accent/10 border border-accent/20 rounded-lg text-accent hover:bg-accent/20 transition-colors flex items-center space-x-2 text-sm sm:text-base shrink-0"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">New Deploy</span>
+                  <span className="sm:hidden">New</span>
+                </motion.button>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardBody>
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
-            </div>
-          ) : items.length === 0 ? (
-            <div className="text-sm text-zinc-400">No deployments found.</div>
-          ) : (
-            <ListView
-              items={items as any[]}
-              onView={(id) => router.push(`/deployments/${id}`)}
-              onLogs={(id) => router.push(`/deployments/${id}#logs`)}
+            <p className="text-sm sm:text-base text-gray-400">Track and manage application deployments across environments</p>
+          </motion.div>
+
+          {/* Quick Stats */}
+          <motion.div
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <QuickStatCard
+              title="Total Deploys"
+              value={stats.total.toString()}
+              icon={Rocket}
+              subtitle="All time"
+              color="accent"
+              delay={0}
             />
-          )}
-        </CardBody>
-      </Card>
+            <QuickStatCard
+              title="Success Rate"
+              value={`${stats.successRate}%`}
+              icon={CheckCircle2}
+              trend={{ direction: "up", value: 3.2 }}
+              subtitle={`${stats.success} successful`}
+              color="success"
+              delay={0.1}
+            />
+            <QuickStatCard
+              title="Active"
+              value={(stats.running + stats.pending).toString()}
+              icon={PlayCircle}
+              subtitle={`${stats.running} running, ${stats.pending} pending`}
+              color="warning"
+              delay={0.2}
+            />
+            <QuickStatCard
+              title="Failed"
+              value={stats.failed.toString()}
+              icon={XCircle}
+              trend={stats.failed > 0 ? { direction: "down", value: 12 } : undefined}
+              subtitle="Needs attention"
+              color={stats.failed > 0 ? "error" : "success"}
+              delay={0.3}
+            />
+          </motion.div>
+
+          {/* Filter Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mb-6"
+          >
+            <FilterBar
+              searchPlaceholder="Search deployments..."
+              searchValue={searchQuery}
+              onSearchChange={(value) => setSearchQuery(value)}
+              filters={filters}
+              onFilterToggle={handleFilterToggle}
+              onClearFilters={handleClearFilters}
+            />
+          </motion.div>
+
+          {/* Content */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Card>
+              <CardBody>
+                <AnimatePresence mode="wait">
+                  {isLoading ? (
+                    <motion.div 
+                      className="space-y-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <Skeleton className="h-10" />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  ) : items.length === 0 ? (
+                    <motion.div 
+                      className="text-sm text-zinc-400 text-center py-12"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="text-4xl mb-4"
+                      >
+                        📦
+                      </motion.div>
+                      <p>No deployments found matching your filters</p>
+                      <button
+                        onClick={handleClearFilters}
+                        className="mt-4 px-4 py-2 text-accent hover:underline"
+                      >
+                        Clear filters
+                      </button>
+                    </motion.div>
+                  ) : viewMode === "list" ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <ListView
+                        items={items as any[]}
+                        onView={(id) => router.push(`/deployments/${id}`)}
+                        onLogs={(id) => router.push(`/deployments/${id}#logs`)}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      className="space-y-4 p-4"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {items.map((deployment: any, index: number) => (
+                        <TimelineItem
+                          key={deployment.id}
+                          title={deployment.summary || `Deployment #${deployment.id}`}
+                          description={`Branch: ${deployment.branch || 'unknown'} • Commit: ${deployment.commit?.slice(0, 7) || 'N/A'}`}
+                          timestamp={deployment.created_at}
+                          icon={
+                            deployment.status === 'success' ? CheckCircle2 :
+                            deployment.status === 'failed' ? XCircle :
+                            deployment.status === 'running' ? PlayCircle :
+                            Clock
+                          }
+                          status={deployment.status}
+                          metadata={[
+                            { label: "Started", value: deployment.created_at?.slice(0, 19).replace('T', ' ') || '-' },
+                            { label: "Updated", value: deployment.updated_at?.slice(0, 19).replace('T', ' ') || '-' },
+                            { label: "Branch", value: deployment.branch || '-' },
+                            { label: "Commit", value: deployment.commit?.slice(0, 7) || '-' },
+                          ]}
+                          actions={[
+                            { label: "View Details", onClick: () => router.push(`/deployments/${deployment.id}`) },
+                            { label: "View Logs", onClick: () => router.push(`/deployments/${deployment.id}#logs`) },
+                            ...(deployment.status === 'failed' ? [
+                              { label: "Rollback", onClick: () => console.log('Rollback', deployment.id), variant: "danger" as const }
+                            ] : [])
+                          ]}
+                          isLast={index === items.length - 1}
+                          delay={index * 0.1}
+                        />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardBody>
+            </Card>
+          </motion.div>
+        </motion.main>
+      </div>
     </div>
   );
 }

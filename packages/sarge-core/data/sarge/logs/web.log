@@ -1,0 +1,92 @@
+{"ts":1761344992059,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n"}
+{"ts":1761344992059,"service":"web","stream":"stderr","msg":"\nNode.js v20.9.0\n"}
+{"ts":1761344992061,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761344993098,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761344993099,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345025223,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345025226,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345026281,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345026285,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345092418,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345092419,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345093470,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345093472,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345137970,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345137972,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345139019,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345139021,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345172744,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345172749,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345173992,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345173994,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345242249,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345242253,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345243500,"service":"web","stream":"stderr","msg":"file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1\nconst http = require('http')\n             ^\n\nReferenceError: require is not defined in ES module scope, you can use import instead\nThis file is being treated as an ES module because it has a '.js' file extension and '/Users/mysterix/Downloads/Sarge-1/packages/sarge-core/package.json' contains \"type\": \"module\". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.\n    at file:///Users/mysterix/Downloads/Sarge-1/packages/sarge-core/src/__tests__/fixtures/services/web/server.js:1:14\n    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)\n    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)\n    at async loadESM (node:internal/process/esm_loader:34:7)\n    at async handleMainPromise (node:internal/modules/run_main:66:12)\n\nNode.js v20.9.0\n"}
+{"ts":1761345243501,"service":"web","stream":"exit","msg":"code=1\n"}
+{"ts":1761345451258,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345451669,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761345451701,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345453100,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761345508428,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345508837,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761345508863,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345510265,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761345789668,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345790072,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761345790100,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345791505,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761345818665,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345819067,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761345819095,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761345820569,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761348749815,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761348750240,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761348750284,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761348751823,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761348772710,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761348773125,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761348773153,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761348774570,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761348795630,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761348796049,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761348796080,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761348797492,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761350946313,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761350949947,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761350949980,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761352746922,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761352747327,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761352747364,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761352748759,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761406156506,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761406156920,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761406156947,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761406158353,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761407139400,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761407139808,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761407139840,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761407141231,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761407171452,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761407171856,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761407171884,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761407173300,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761407190662,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761407191069,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761407191098,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761407192518,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761410655649,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761410656078,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761410656102,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761410657498,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761410848826,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761410849247,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761410849284,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761410850681,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761411309531,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761411309927,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761411309955,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761411311362,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761411958938,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761411959339,"service":"web","stream":"exit","msg":"code=null\n"}
+{"ts":1761411959373,"service":"web","stream":"stdout","msg":"web up 4010\n"}
+{"ts":1761411960771,"service":"web","stream":"exit","msg":"code=null\n"}

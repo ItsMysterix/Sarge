@@ -1,0 +1,20 @@
+{
+  "method": "POST",
+  "url": "/sqs/",
+  "headers": {
+    "content-type": "application/x-amz-json-1.0",
+    "x-amz-target": "AmazonSQS.ReceiveMessage",
+    "x-amzn-query-mode": "true",
+    "content-length": "62",
+    "x-amz-user-agent": "aws-sdk-js/3.917.0",
+    "user-agent": "aws-sdk-js/3.917.0 ua/2.1 os/darwin#25.1.0 lang/js md/nodejs#20.17.0 api/sqs#3.917.0 m/N,E,e",
+    "host": "127.0.0.1:53584",
+    "amz-sdk-invocation-id": "69acf5cd-7c25-4425-994c-a258855e31a1",
+    "amz-sdk-request": "attempt=1; max=3",
+    "x-amz-date": "20251025T152003Z",
+    "x-amz-content-sha256": "e53d8ffe44171676b787d5f07eb7db1ce4fd93182ccdb9f985490d42b0e39a22",
+    "authorization": "AWS4-HMAC-SHA256 Credential=local/20251025/us-east-1/sqs/aws4_request, SignedHeaders=amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;host;x-amz-content-sha256;x-amz-date;x-amz-target;x-amz-user-agent;x-amzn-query-mode, Signature=05c68a6e43a78427a5b3a230639821217e9e4c216e95b284b28aac2535b51998",
+    "connection": "keep-alive"
+  },
+  "body": "{\"MaxNumberOfMessages\":1,\"QueueUrl\":\"http://localhost/sqs/q3\"}"
+}

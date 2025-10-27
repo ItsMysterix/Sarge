@@ -1,0 +1,20 @@
+{
+  "name": "sarge-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "electron ./dist/main.js",
+    "predev": "pnpm -w -r run build && pnpm -F app build && pnpm -F backend build && pnpm -F sarge-desktop build",
+    "start": "electron ./dist/main.js",
+    "test:smoke": "node ./test/smoke-runner.js"
+  },
+  "dependencies": {
+    "electron": "^31.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

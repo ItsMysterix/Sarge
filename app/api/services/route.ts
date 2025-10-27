@@ -7,68 +7,18 @@ const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as 
 export async function GET() {
   try {
     if (!sql) {
-      return NextResponse.json([
-        {
-          id: "1",
-          name: "API Gateway",
-          status: "up",
-          cost_hr: 1.02,
-          uptime_percent: 99.9,
-        },
-        {
-          id: "2",
-          name: "PostgreSQL DB",
-          status: "up",
-          cost_hr: 1.88,
-          uptime_percent: 99.8,
-        },
-      ])
+      console.error("DATABASE_URL not configured")
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 })
     }
+
     const services = await sql`
       SELECT * FROM services 
       ORDER BY name
     `
 
-    if (services.length === 0) {
-      // Return mock data if no services found
-      return NextResponse.json([
-        {
-          id: "1",
-          name: "API Gateway",
-          status: "up",
-          cost_hr: 1.02,
-          uptime_percent: 99.9,
-        },
-        {
-          id: "2",
-          name: "PostgreSQL DB",
-          status: "up",
-          cost_hr: 1.88,
-          uptime_percent: 99.8,
-        },
-      ])
-    }
-
     return NextResponse.json(services)
   } catch (error) {
     console.error("Failed to fetch services:", error)
-
-    // Return mock data if database error (table doesn't exist, etc.)
-    return NextResponse.json([
-      {
-        id: "1",
-        name: "API Gateway",
-        status: "up",
-        cost_hr: 1.02,
-        uptime_percent: 99.9,
-      },
-      {
-        id: "2",
-        name: "PostgreSQL DB",
-        status: "up",
-        cost_hr: 1.88,
-        uptime_percent: 99.8,
-      },
-    ])
+    return NextResponse.json({ error: "Failed to fetch services" }, { status: 500 })
   }
 }
