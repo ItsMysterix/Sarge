@@ -42,11 +42,27 @@ export default async function middleware(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  // Always use Clerk middleware for authentication
-  const clerkMw = clerkMiddleware()
-  const res = (await clerkMw(req, {} as any)) ?? NextResponse.next()
+  // Only use Clerk middleware if enabled (not mock key)
+  const isClerkEnabled = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
+                         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== 'pk_test_mock'
   
-  // Set CORS headers for allowed API requests
+  if (isClerkEnabled) {
+    const clerkMw = clerkMiddleware()
+    const res = (await clerkMw(req, {} as any)) ?? NextResponse.next()
+    
+    // Set CORS headers for allowed API requests
+    if (isApi && isAllowed) {
+      try {
+        res.headers.set('Access-Control-Allow-Origin', origin)
+        res.headers.set('Vary', 'Origin')
+        res.headers.set('Access-Control-Allow-Credentials', 'true')
+      } catch {}
+    }
+    return res
+  }
+  
+  // If Clerk is not enabled, just return NextResponse with CORS
+  const res = NextResponse.next()
   if (isApi && isAllowed) {
     try {
       res.headers.set('Access-Control-Allow-Origin', origin)
