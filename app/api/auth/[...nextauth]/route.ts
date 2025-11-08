@@ -3,6 +3,13 @@ import type { NextAuthOptions } from "next-auth"
 import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
 
+// Ensure NEXTAUTH_SECRET is set
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error(
+    'NEXTAUTH_SECRET environment variable is not set. Generate one with: openssl rand -base64 32'
+  )
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     // GitHub OAuth provider (optional, requires GITHUB_ID and GITHUB_SECRET)
