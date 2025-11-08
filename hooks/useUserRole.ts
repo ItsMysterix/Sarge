@@ -7,17 +7,11 @@ export type UserRole = "developer" | "manager" | "viewer"
 export function useUserRole(): UserRole {
   const { user } = useUser()
   
-  // Check Clerk public metadata for role
-  const clerkRole = user?.publicMetadata?.role as UserRole | undefined
-  
-  // Fallback logic
-  if (clerkRole) return clerkRole
-  
   // If in development mode, assume developer
   if (process.env.NODE_ENV === "development") return "developer"
   
   // Check email domain (you can customize this)
-  const email = user?.primaryEmailAddress?.emailAddress
+  const email = user?.emailAddresses?.[0]?.emailAddress
   if (email) {
     // Internal team emails = developer access
     if (email.includes("@yourcompany.com") || email.includes("@internal.")) {
