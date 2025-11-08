@@ -3,7 +3,7 @@ import type React from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { TrpcReactProvider } from "@/lib/trpc-provider"; 
 import { AuthDebug } from "@/components/debug/auth-debug";
-import { SessionProvider } from "next-auth/react";
+import { SessionProviderWrapper } from "@/components/providers/session-provider-wrapper";
 import "./globals.css";
 
 // Force dynamic rendering for all pages (no static generation)
@@ -37,12 +37,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans antialiased bg-black text-white">
-        <SessionProvider>
+        <SessionProviderWrapper>
           <TrpcReactProvider>
             {children}
             <AuthDebug />
           </TrpcReactProvider>
-        </SessionProvider>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
