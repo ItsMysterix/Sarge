@@ -46,18 +46,24 @@ export default async function middleware(req: NextRequest) {
   const isPublicPath = url.pathname.startsWith('/sign-in') ||
                        url.pathname.startsWith('/sign-up') ||
                        url.pathname.startsWith('/landing') ||
-                       url.pathname.startsWith('/api/auth')
+                       url.pathname.startsWith('/api/auth') ||
+                       url.pathname === '/' // Allow root path for now
 
-  if (!isPublicPath) {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-    
-    if (!token) {
-      // Redirect to sign-in if not authenticated
-      if (!isApi) {
-        return NextResponse.redirect(new URL('/sign-in', req.url))
+  if (!isPublicPath && process.env.NEXTAUTH_SECRET) {
+    try {
+      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+      
+      if (!token) {
+        // Redirect to sign-in if not authenticated
+        if (!isApi) {
+          return NextResponse.redirect(new URL('/sign-in', req.url))
+        }
+        // Return 401 for API routes
+        return new NextResponse('Unauthorized', { status: 401 })
       }
-      // Return 401 for API routes
-      return new NextResponse('Unauthorized', { status: 401 })
+    } catch (error) {
+      console.error('Auth middleware error:', error)
+      // Continue without auth on error to prevent blocking
     }
   }
   
