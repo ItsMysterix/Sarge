@@ -1,36 +1,71 @@
 "use client"
 import React from "react"
-import {
-  useUser as useClerkUser,
-  useAuth as useClerkAuth,
-  UserButton as ClerkUserButton,
-  SignedIn as ClerkSignedIn,
-  SignedOut as ClerkSignedOut,
-} from "@clerk/nextjs"
-import { ENV } from "@/app/lib/env"
+import { useSession, signIn, signOut } from "next-auth/react"
+import { Button } from "@/components/ui/button"
 
-// Clerk is considered enabled only when a real publishable key is provided.
-export const CLERK_ENABLED = ENV.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "pk_test_mock"
+// Auth is always enabled with next-auth
+export const CLERK_ENABLED = true
 
 export function useUser() {
-  if (CLERK_ENABLED) return useClerkUser()
-  return { isLoaded: true, isSignedIn: false, user: null } as const
+  const { data: session, status } = useSession()
+  return {
+    isLoaded: status !== "loading",
+    isSignedIn: status === "authenticated",
+    user: session?.user
+      ? {
+          id: session.user.id,
+          emailAddresses: [{ emailAddress: session.user.email }],
+          firstName: session.user.name?.split(" ")[0] || "",
+          lastName: session.user.name?.split(" ")[1] || "",
+          fullName: session.user.name || "",
+          imageUrl: session.user.image || "",
+        }
+      : null,
+  } as const
 }
 
 export function useAuth() {
-  if (CLERK_ENABLED) return useClerkAuth()
-  return { isLoaded: true, isSignedIn: false, sessionId: null, userId: null } as any
+  const { data: session, status } = useSession()
+  return {
+    isLoaded: status !== "loading",
+    isSignedIn: status === "authenticated",
+    sessionId: session ? "session" : null,
+    userId: session?.user?.id || null,
+    signOut: () => signOut({ callbackUrl: "/" }),
+  } as any
 }
 
-export function UserButton(props: React.ComponentProps<typeof ClerkUserButton>) {
-  if (CLERK_ENABLED) return <ClerkUserButton {...props} />
-  return null
+export function UserButton(props: any) {
+  const { data: session } = useSession()
+  
+  if (!session?.user) return null
+  
+  return (
+    <div className="flex items-center gap-2">
+      {session.user.image && (
+        <img
+          src={session.user.image}
+          alt={session.user.name || "User"}
+          className="w-8 h-8 rounded-full"
+        />
+      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => signOut({ callbackUrl: "/" })}
+      >
+        Sign Out
+      </Button>
+    </div>
+  )
 }
 
 export function SignedIn({ children }: { children?: React.ReactNode }) {
-  return CLERK_ENABLED ? <ClerkSignedIn>{children}</ClerkSignedIn> : null
+  const { status } = useSession()
+  return status === "authenticated" ? <>{children}</> : null
 }
 
 export function SignedOut({ children }: { children?: React.ReactNode }) {
-  return CLERK_ENABLED ? <ClerkSignedOut>{children}</ClerkSignedOut> : <>{children}</>
+  const { status } = useSession()
+  return status !== "authenticated" ? <>{children}</> : null
 }

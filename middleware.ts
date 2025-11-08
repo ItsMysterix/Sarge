@@ -1,6 +1,6 @@
-import { clerkMiddleware } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { getToken } from "next-auth/jwt"
 
 function parseAllowed(str?: string | null): string[] {
   return (str || "")
@@ -42,26 +42,26 @@ export default async function middleware(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  // Only use Clerk middleware if enabled (not mock key)
-  const isClerkEnabled = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
-                         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== 'pk_test_mock'
-  
-  if (isClerkEnabled) {
-    const clerkMw = clerkMiddleware()
-    const res = (await clerkMw(req, {} as any)) ?? NextResponse.next()
+  // Check authentication for protected routes (exclude public paths)
+  const isPublicPath = url.pathname.startsWith('/sign-in') ||
+                       url.pathname.startsWith('/sign-up') ||
+                       url.pathname.startsWith('/landing') ||
+                       url.pathname.startsWith('/api/auth')
+
+  if (!isPublicPath) {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
     
-    // Set CORS headers for allowed API requests
-    if (isApi && isAllowed) {
-      try {
-        res.headers.set('Access-Control-Allow-Origin', origin)
-        res.headers.set('Vary', 'Origin')
-        res.headers.set('Access-Control-Allow-Credentials', 'true')
-      } catch {}
+    if (!token) {
+      // Redirect to sign-in if not authenticated
+      if (!isApi) {
+        return NextResponse.redirect(new URL('/sign-in', req.url))
+      }
+      // Return 401 for API routes
+      return new NextResponse('Unauthorized', { status: 401 })
     }
-    return res
   }
   
-  // If Clerk is not enabled, just return NextResponse with CORS
+  // Set CORS headers for allowed API requests
   const res = NextResponse.next()
   if (isApi && isAllowed) {
     try {

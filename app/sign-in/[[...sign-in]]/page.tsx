@@ -1,45 +1,41 @@
 "use client"
 
-import { SignIn } from "@clerk/nextjs"
-import { Brain, Shield, Zap, AlertCircle } from "lucide-react"
+import { Brain, Shield, Zap } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-import { CLERK_ENABLED } from "@/lib/clerk-safe"
+import { useState } from "react"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 
 export default function SignInPage() {
   const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  // Redirect to dashboard if Clerk is disabled
-  useEffect(() => {
-    if (!CLERK_ENABLED) {
-      const timer = setTimeout(() => {
-        router.push("/")
-      }, 3000)
-      return () => clearTimeout(timer)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    })
+
+    if (result?.error) {
+      setError("Invalid credentials")
+      setLoading(false)
+    } else {
+      router.push("/")
+      router.refresh()
     }
-  }, [router])
+  }
 
-  // Show informational message when Clerk is disabled
-  if (!CLERK_ENABLED) {
-    return (
-      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4">
-        <div className="glass-card p-8 max-w-md text-center">
-          <AlertCircle className="w-16 h-16 text-warning mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Authentication Disabled</h2>
-          <p className="text-gray-400 mb-6">
-            This instance is running in development mode without authentication.
-            Redirecting you to the dashboard...
-          </p>
-          <Button 
-            onClick={() => router.push("/")}
-            className="bg-accent hover:bg-accent/90 text-black font-bold"
-          >
-            Go to Dashboard Now
-          </Button>
-        </div>
-      </div>
-    )
+  const handleGitHub = async () => {
+    setLoading(true)
+    await signIn("github", { callbackUrl: "/" })
   }
 
   return (
@@ -77,32 +73,65 @@ export default function SignInPage() {
           </div>
         </div>
 
-        {/* Clerk Sign In Component - Simplified */}
+        {/* Sign In Form */}
         <div className="glass-card p-6 rounded-lg border border-white/10">
-          <SignIn
-            appearance={{
-              elements: {
-                rootBox: "w-full",
-                card: "bg-transparent shadow-none border-none",
-                headerTitle: "text-white text-xl font-bold",
-                headerSubtitle: "text-gray-400",
-                socialButtonsBlockButton:
-                  "glass-card border border-white/10 text-white hover:bg-white/10 transition-colors",
-                socialButtonsBlockButtonText: "text-white font-medium",
-                dividerLine: "bg-white/10",
-                dividerText: "text-gray-400",
-                formFieldLabel: "text-gray-300 font-medium",
-                formFieldInput: "glass-card border border-white/10 text-white bg-transparent focus:border-accent/50",
-                formButtonPrimary: "bg-accent hover:bg-accent/90 text-black font-bold",
-                footerActionLink: "text-accent hover:text-accent/80",
-                footerActionText: "text-gray-400",
-              },
-            }}
-            routing="path"
-            path="/sign-in"
-            signUpUrl="/sign-up"
-            redirectUrl="/"
-          />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-gray-300 font-medium mb-2">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full glass-card border border-white/10 text-white bg-transparent focus:border-accent/50 rounded px-4 py-2 outline-none transition-colors"
+                placeholder="dev@example.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 font-medium mb-2">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full glass-card border border-white/10 text-white bg-transparent focus:border-accent/50 rounded px-4 py-2 outline-none transition-colors"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            {error && <p className="text-error text-sm">{error}</p>}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-accent hover:bg-accent/90 text-black font-bold"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-[#0f0f0f] text-gray-400">Or continue with</span>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleGitHub}
+            disabled={loading}
+            variant="outline"
+            className="w-full glass-card border border-white/10 text-white hover:bg-white/10"
+          >
+            GitHub
+          </Button>
+
+          <div className="mt-4 text-center text-sm text-gray-400">
+            Don't have an account?{" "}
+            <a href="/sign-up" className="text-accent hover:text-accent/80">
+              Sign up
+            </a>
+          </div>
         </div>
 
         {/* Footer */}

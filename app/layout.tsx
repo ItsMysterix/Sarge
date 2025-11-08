@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import type React from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import { TrpcReactProvider } from "@/lib/trpc-provider"; 
 import { AuthDebug } from "@/components/debug/auth-debug";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 // Force dynamic rendering for all pages (no static generation)
@@ -29,41 +29,21 @@ export const metadata: Metadata = {
 };
 
 // Layout Component
-import { ENV } from "@/app/lib/env";
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pk = ENV.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const enableClerk = pk && pk !== 'pk_test_mock';
   return (
-    enableClerk ? (
-      <ClerkProvider
-        publishableKey={pk}
-        signInUrl="/sign-in"
-        signUpUrl="/sign-up"
-        afterSignInUrl="/"
-        afterSignUpUrl="/"
-      >
-        <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-          <body className="font-sans antialiased bg-black text-white">
-            <TrpcReactProvider>
-              {children}
-              <AuthDebug />
-            </TrpcReactProvider>
-          </body>
-        </html>
-      </ClerkProvider>
-    ) : (
-      <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-        <body className="font-sans antialiased bg-black text-white">
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-sans antialiased bg-black text-white">
+        <SessionProvider>
           <TrpcReactProvider>
             {children}
             <AuthDebug />
           </TrpcReactProvider>
-        </body>
-      </html>
-    )
+        </SessionProvider>
+      </body>
+    </html>
   );
 }
