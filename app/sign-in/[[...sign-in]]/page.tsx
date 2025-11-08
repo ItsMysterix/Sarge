@@ -18,24 +18,46 @@ export default function SignInPage() {
     setLoading(true)
     setError("")
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
 
-    if (result?.error) {
-      setError("Invalid credentials")
+      if (result?.error) {
+        // Show specific error messages
+        if (result.error.includes("verify your email")) {
+          setError("Please verify your email before signing in. Check your inbox for the verification code.")
+        } else if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password. Please check your credentials and try again.")
+        } else {
+          setError(result.error)
+        }
+        setLoading(false)
+      } else if (result?.ok) {
+        router.push("/")
+        router.refresh()
+      } else {
+        setError("An unexpected error occurred. Please try again.")
+        setLoading(false)
+      }
+    } catch (err) {
+      setError("Connection error. Please check your internet and try again.")
       setLoading(false)
-    } else {
-      router.push("/")
-      router.refresh()
     }
   }
 
   const handleGitHub = async () => {
     setLoading(true)
-    await signIn("github", { callbackUrl: "/" })
+    setError("")
+    
+    try {
+      await signIn("github", { callbackUrl: "/" })
+    } catch (err) {
+      setError("GitHub sign-in failed. Please try again.")
+      setLoading(false)
+    }
   }
 
   return (
@@ -98,7 +120,16 @@ export default function SignInPage() {
                 required
               />
             </div>
-            {error && <p className="text-error text-sm">{error}</p>}
+            
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded flex items-start gap-2">
+                <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+            
             <Button
               type="submit"
               disabled={loading}
