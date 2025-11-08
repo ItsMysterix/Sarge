@@ -6,7 +6,7 @@ route:
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  receiver: null
+  receiver: "null"
   routes:
     - receiver: slack
       matchers:
@@ -24,7 +24,7 @@ receivers:
     webhook_configs:
       - url: ${SNS_WEBHOOK_URL}
         send_resolved: true
-  - name: null
+  - name: "null"
 
 inhibit_rules:
   - source_matchers:
