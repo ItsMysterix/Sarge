@@ -17,13 +17,17 @@ export default function SignUpPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  console.log('🔵 SignUpPage rendered, step:', step, 'loading:', loading)
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔵 Email signup started:', email)
     setLoading(true)
     setError("")
     setSuccess("")
 
     try {
+      console.log('🔵 Calling /api/auth/signup...')
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,15 +35,19 @@ export default function SignUpPage() {
       })
 
       const data = await res.json()
+      console.log('🔵 Signup response:', res.status, data)
 
       if (!res.ok) {
+        console.error('❌ Signup failed:', data.error)
         setError(data.error || "Signup failed")
         return
       }
 
+      console.log('✅ Signup successful, moving to verify step')
       setSuccess(data.message)
       setStep("verify")
     } catch (err) {
+      console.error('❌ Signup exception:', err)
       setError("Something went wrong")
     } finally {
       setLoading(false)
@@ -48,11 +56,13 @@ export default function SignUpPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔵 Email verification started:', email)
     setLoading(true)
     setError("")
     setSuccess("")
 
     try {
+      console.log('🔵 Calling /api/auth/verify-email...')
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,15 +70,19 @@ export default function SignUpPage() {
       })
 
       const data = await res.json()
+      console.log('🔵 Verification response:', res.status, data)
 
       if (!res.ok) {
+        console.error('❌ Verification failed:', data.error)
         setError(data.error || "Verification failed")
         return
       }
 
+      console.log('✅ Verification successful, redirecting to sign-in...')
       setSuccess(data.message)
       setTimeout(() => router.push("/sign-in"), 2000)
     } catch (err) {
+      console.error('❌ Verification exception:', err)
       setError("Something went wrong")
     } finally {
       setLoading(false)
@@ -76,12 +90,25 @@ export default function SignUpPage() {
   }
 
   const handleGitHub = async () => {
+    console.log('🔵 GitHub button clicked (signup page)')
+    console.log('🔵 Current loading state:', loading)
+    console.log('🔵 signIn function available:', typeof signIn)
+    
     try {
       setLoading(true)
-      await signIn("github", { callbackUrl: "/" })
+      console.log('🔵 Calling signIn("github") with callback: /')
+      const result = await signIn("github", { callbackUrl: "/" })
+      console.log('🔵 signIn result:', result)
+      
+      if (result?.error) {
+        console.error('❌ GitHub OAuth error:', result.error)
+        setError(`GitHub sign-up failed: ${result.error}`)
+        setLoading(false)
+      }
     } catch (err) {
+      console.error('❌ GitHub sign-up exception:', err)
+      console.error('❌ Error stack:', err instanceof Error ? err.stack : 'No stack')
       setError("GitHub sign-up failed. Please try again.")
-    } finally {
       setLoading(false)
     }
   }
@@ -202,12 +229,15 @@ export default function SignUpPage() {
 
               <Button
                 type="button"
-                onClick={handleGitHub}
+                onClick={() => {
+                  console.log('🔵 Button onClick fired (signup)')
+                  handleGitHub()
+                }}
                 disabled={loading}
                 variant="outline"
                 className="w-full glass-card border border-white/10 text-white hover:bg-white/10"
               >
-                GitHub
+                {loading ? 'Loading...' : 'GitHub'}
               </Button>
 
               <div className="mt-4 text-center text-sm text-gray-400">
