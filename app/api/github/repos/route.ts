@@ -18,29 +18,48 @@ export async function GET(req: NextRequest) {
 
     console.log("Fetching GitHub repositories with access token...")
 
-    // Fetch user's repositories from GitHub API
-    const response = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-        Accept: "application/vnd.github.v3+json",
-      },
-    })
+    // Fetch all repositories with pagination
+    let allRepos: any[] = []
+    let page = 1
+    let hasMore = true
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`GitHub API error: ${response.status} ${response.statusText}`, errorText)
-      
-      return NextResponse.json(
-        { 
-          error: `GitHub API error: ${response.statusText}. Please try signing out and signing in again with GitHub.`,
-          details: errorText 
-        },
-        { status: response.status }
+    while (hasMore) {
+      const response = await fetch(
+        `https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
       )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`GitHub API error: ${response.status} ${response.statusText}`, errorText)
+        
+        return NextResponse.json(
+          { 
+            error: `GitHub API error: ${response.statusText}. Please try signing out and signing in again with GitHub.`,
+            details: errorText 
+          },
+          { status: response.status }
+        )
+      }
+
+      const repos = await response.json()
+      allRepos = allRepos.concat(repos)
+      
+      // If we got less than 100 repos, we've reached the last page
+      if (repos.length < 100) {
+        hasMore = false
+      } else {
+        page++
+      }
     }
 
-    const repos = await response.json()
-    console.log(`Successfully fetched ${repos.length} repositories from GitHub`)
+    console.log(`Successfully fetched ${allRepos.length} repositories from GitHub (${page} page${page > 1 ? 's' : ''})`)
+    const repos = allRepos
 
     // Format the response
     const formattedRepos = repos.map((repo: any) => ({
