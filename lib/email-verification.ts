@@ -64,28 +64,119 @@ Code: ${code}
     return
   }
 
-  // In production, integrate with email service (SendGrid, AWS SES, etc.)
-  // Example with nodemailer:
-  /*
+  // Production email sending with nodemailer (SendGrid SMTP)
   const nodemailer = require('nodemailer')
+  
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false, // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER,
+      user: process.env.SMTP_USER || 'apikey',
       pass: process.env.SMTP_PASS,
     },
   })
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+    from: process.env.SMTP_FROM || 'noreply@sarge.dev',
     to: email,
-    subject: 'Verify Your Email - SARGE',
+    subject: 'Verify Your Email - SARGE Command Center',
     html: `
-      <h1>Welcome to SARGE</h1>
-      <p>Your verification code is: <strong>${code}</strong></p>
-      <p>This code expires in 10 minutes.</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0f0f0f; 
+            color: #fff; 
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 40px 20px; 
+          }
+          .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+          }
+          .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00ff9f;
+            margin-bottom: 10px;
+          }
+          .code { 
+            font-size: 36px; 
+            font-weight: bold; 
+            color: #00ff9f; 
+            letter-spacing: 12px; 
+            text-align: center;
+            padding: 24px;
+            background: rgba(0, 255, 159, 0.1);
+            border: 2px solid rgba(0, 255, 159, 0.3);
+            border-radius: 8px;
+            margin: 30px 0;
+          }
+          .content {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          .footer { 
+            text-align: center; 
+            margin-top: 40px; 
+            color: #888; 
+            font-size: 12px; 
+          }
+          .status {
+            display: inline-block;
+            color: #00ff9f;
+            font-size: 11px;
+            margin-top: 10px;
+          }
+          .status::before {
+            content: "●";
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">⚡ SARGE</div>
+            <p style="color: #888; font-size: 14px;">DevOps Command Center</p>
+          </div>
+          
+          <div class="content">
+            <h2 style="margin-top: 0; color: #fff;">Verify Your Email Address</h2>
+            <p style="color: #ccc;">Welcome to SARGE! Use the verification code below to complete your registration:</p>
+            
+            <div class="code">${code}</div>
+            
+            <p style="color: #ccc;">This code will expire in <strong style="color: #00ff9f;">10 minutes</strong>.</p>
+            
+            <p style="color: #888; font-size: 13px; margin-top: 30px;">
+              If you didn't request this code, you can safely ignore this email. Your account will not be created.
+            </p>
+          </div>
+          
+          <div class="footer">
+            <p>SARGE v2.0 • Secure DevOps Command Center</p>
+            <div class="status">SYSTEM ONLINE</div>
+          </div>
+        </div>
+      </body>
+      </html>
     `,
   })
-  */
 }
+
