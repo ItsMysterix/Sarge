@@ -7,6 +7,7 @@ import { sargeRouter } from './routers/sarge';
 import { tracesRouter } from './routers/traces';
 import { authRouter } from './routers/auth';
 import { githubRouter } from './routers/github';
+import { stacksRouter } from './routers/stacks';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -17,6 +18,7 @@ export const appRouter = router({
   auth: authRouter,
   sarge: sargeRouter,
   github: githubRouter,
+  stacks: stacksRouter,
 });
 
 export type AppRouter = typeof appRouter;

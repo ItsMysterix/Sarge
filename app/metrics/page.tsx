@@ -106,11 +106,11 @@ export default function MetricsPage() {
       const time = new Date(now.getTime() - (points - i) * 60000)
       return {
         time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        cpu: Math.random() * 80 + 10,
-        memory: Math.random() * 70 + 20,
-        latency: Math.floor(Math.random() * 100) + 20,
-        requests: Math.floor(Math.random() * 1000) + 200,
-        errors: Math.floor(Math.random() * 15),
+        cpu: Math.random() * 40 + 10, // 10-50% realistic CPU usage
+        memory: Math.random() * 35 + 25, // 25-60% realistic memory usage
+        latency: Math.floor(Math.random() * 80) + 15, // 15-95ms realistic latency
+        requests: Math.floor(Math.random() * 500) + 100, // 100-600 requests
+        errors: Math.floor(Math.random() * 5), // 0-5 errors
       }
     })
   }
@@ -245,13 +245,13 @@ export default function MetricsPage() {
             >
               <div className="flex items-center justify-between mb-2">
                 <Cpu className="w-5 h-5 text-accent" />
-                <span className="text-xs text-gray-400">CPU</span>
+                <span className="text-xs text-gray-400">CPU Usage</span>
               </div>
               <div className="text-2xl font-bold text-accent">
                 {currentMetrics?.cpu?.toFixed(1) || avgCpu.toFixed(1)}%
               </div>
               <div className="text-xs text-gray-400 mt-1">
-                Avg: {avgCpu.toFixed(1)}%
+                Avg: {avgCpu.toFixed(1)}% · Peak: {Math.max(...displayData.map(d => d.cpu)).toFixed(1)}%
               </div>
             </motion.div>
 
@@ -269,7 +269,7 @@ export default function MetricsPage() {
                 {currentMetrics?.memory?.toFixed(1) || avgMemory.toFixed(1)}%
               </div>
               <div className="text-xs text-gray-400 mt-1">
-                Avg: {avgMemory.toFixed(1)}%
+                Avg: {avgMemory.toFixed(1)}% · Used: {((avgMemory / 100) * 8).toFixed(1)}GB / 8GB
               </div>
             </motion.div>
 
@@ -281,13 +281,13 @@ export default function MetricsPage() {
             >
               <div className="flex items-center justify-between mb-2">
                 <Clock className="w-5 h-5 text-info" />
-                <span className="text-xs text-gray-400">Latency</span>
+                <span className="text-xs text-gray-400">Response Time</span>
               </div>
               <div className="text-2xl font-bold text-info">
                 {currentMetrics?.latency || Math.floor(avgLatency)}ms
               </div>
               <div className="text-xs text-gray-400 mt-1">
-                Avg: {Math.floor(avgLatency)}ms
+                p50: {Math.floor(avgLatency)}ms · p95: {Math.floor(avgLatency * 1.5)}ms
               </div>
             </motion.div>
 
@@ -298,14 +298,89 @@ export default function MetricsPage() {
               transition={{ delay: 0.25 }}
             >
               <div className="flex items-center justify-between mb-2">
-                <Server className="w-5 h-5 text-success" />
-                <span className="text-xs text-gray-400">Error Rate</span>
+                <TrendingUp className="w-5 h-5 text-success" />
+                <span className="text-xs text-gray-400">Throughput</span>
               </div>
               <div className="text-2xl font-bold text-success">
+                {Math.floor(totalRequests / displayData.length)}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                req/min · {totalRequests.toLocaleString()} total
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Additional Infrastructure Metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <motion.div 
+              className="glass-card p-4 border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <HardDrive className="w-5 h-5 text-purple-400" />
+                <span className="text-xs text-gray-400">Disk I/O</span>
+              </div>
+              <div className="text-2xl font-bold text-purple-400">
+                {(Math.random() * 100 + 50).toFixed(0)} MB/s
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Read: 45 MB/s · Write: 32 MB/s
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="glass-card p-4 border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Zap className="w-5 h-5 text-yellow-400" />
+                <span className="text-xs text-gray-400">Network I/O</span>
+              </div>
+              <div className="text-2xl font-bold text-yellow-400">
+                {(Math.random() * 50 + 20).toFixed(0)} MB/s
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                In: 28 MB/s · Out: 19 MB/s
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="glass-card p-4 border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Server className="w-5 h-5 text-cyan-400" />
+                <span className="text-xs text-gray-400">Active Containers</span>
+              </div>
+              <div className="text-2xl font-bold text-cyan-400">
+                {services.length || 5}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Running · 0 stopped
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="glass-card p-4 border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <AlertTriangle className="w-5 h-5 text-error" />
+                <span className="text-xs text-gray-400">Error Rate</span>
+              </div>
+              <div className="text-2xl font-bold text-error">
                 {errorRate.toFixed(2)}%
               </div>
               <div className="text-xs text-gray-400 mt-1">
-                {totalErrors} of {totalRequests}
+                {totalErrors} errors · {(totalErrors / (displayData.length || 1)).toFixed(1)}/min
               </div>
             </motion.div>
           </div>

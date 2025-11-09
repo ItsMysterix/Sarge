@@ -139,11 +139,19 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         session.user.id = token.sub
       }
+      // Pass GitHub access token to session
+      if (token.accessToken) {
+        session.accessToken = token.accessToken as string
+      }
       return session
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
+      }
+      // Store GitHub access token on first sign in
+      if (account?.provider === "github" && account.access_token) {
+        token.accessToken = account.access_token
       }
       return token
     },
