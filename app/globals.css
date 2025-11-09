@@ -31,14 +31,42 @@
     --radius: 0.5rem;
   }
 
+  /* Light theme */
+  .light {
+    --background: 255 255 255;
+    --foreground: 15 15 15;
+    --card: 248 248 248;
+    --card-foreground: 15 15 15;
+    --popover: 255 255 255;
+    --popover-foreground: 15 15 15;
+    --primary: 6 214 160;
+    --primary-foreground: 255 255 255;
+    --secondary: 240 240 240;
+    --secondary-foreground: 15 15 15;
+    --muted: 240 240 240;
+    --muted-foreground: 115 115 115;
+    --accent: 6 214 160;
+    --accent-foreground: 255 255 255;
+    --destructive: 215 38 61;
+    --destructive-foreground: 255 255 255;
+    --border: 229 229 229;
+    --input: 229 229 229;
+    --ring: 6 214 160;
+  }
+
   * {
     border-color: hsl(var(--border));
   }
 
   body {
-    background-color: #0f0f0f;
-    color: #ffffff;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: var(--font-inter), sans-serif;
+  }
+
+  .light body {
+    background-color: #ffffff;
+    color: #0f0f0f;
   }
 
   html {

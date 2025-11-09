@@ -36,6 +36,7 @@ export default function Overview() {
   const [metrics, setMetrics] = useState<any>(null)
   const [logs, setLogs] = useState<any[]>([])
   const [metricsLoading, setMetricsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [repository, setRepository] = useState<any>(null)
   const [repoLoading, setRepoLoading] = useState(true)
   const [showConnectModal, setShowConnectModal] = useState(false)
@@ -129,13 +130,30 @@ export default function Overview() {
     router.push("/logs")
   }
 
-  const handleRefresh = () => {
-    metricsQuery.refetch()
-    addToast({
-      type: "success",
-      title: "Refreshed",
-      description: "Dashboard data updated",
-    })
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    setMetricsLoading(true)
+    
+    try {
+      await metricsQuery.refetch()
+      addToast({
+        type: "success",
+        title: "Refreshed",
+        description: "Dashboard data updated",
+      })
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Refresh Failed",
+        description: "Could not refresh dashboard data",
+      })
+    } finally {
+      // Show loading for at least 500ms so user sees the feedback
+      setTimeout(() => {
+        setIsRefreshing(false)
+        setMetricsLoading(false)
+      }, 500)
+    }
   }
 
   const handleConnectRepo = async (repo: any) => {
@@ -278,14 +296,15 @@ export default function Overview() {
 
               <div className="flex items-center gap-3 sm:gap-4">
                 <motion.button 
-                  onClick={() => metricsQuery.refetch()} 
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
                   title="Refresh Metrics"
                   whileHover={{ scale: 1.1, rotate: 180 }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ duration: 0.3 }}
-                  className="p-2"
+                  className="p-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <RefreshCcw className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-white" />
+                  <RefreshCcw className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-white ${isRefreshing ? 'animate-spin' : ''}`} />
                 </motion.button>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
@@ -305,7 +324,7 @@ export default function Overview() {
               </div>
             </motion.div>
 
-            <MetricsCard metrics={metrics} loading={metricsLoading} />
+            <MetricsCard metrics={metrics} loading={metricsLoading || isRefreshing} />
             <GitHubActivity 
               repository={repository} 
               loading={repoLoading}
