@@ -118,9 +118,6 @@ export default function LandingPage() {
     { label: "Users", value: "500+", icon: Users },
   ]
 
-  const signUpLink = CLERK_ENABLED ? "/sign-up" : "/"
-  const signInLink = CLERK_ENABLED ? "/sign-in" : "/"
-
   return (
     <AnimationErrorBoundary fallbackType="user">
     <div className="min-h-screen bg-[#0f0f0f] overflow-hidden">
@@ -190,14 +187,14 @@ export default function LandingPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Link href={signInLink}>
+              <Link href="/sign-in">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button variant="ghost" className="text-gray-300 hover:text-accent hover:bg-accent/10">
                     Sign In
                   </Button>
                 </motion.div>
               </Link>
-              <Link href={signUpLink}>
+              <Link href="/sign-up">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button className="bg-accent hover:bg-accent/90 text-black font-bold hover:glow-accent transition-all duration-200">
                     Get Started
@@ -662,7 +659,7 @@ export default function LandingPage() {
             transition={{ delay: 0.3 }}
           >
             <p className="text-xs text-gray-500 terminal-text">
-              © 2024 Sarge DevOps Platform. Built with Next.js, Neon, and Clerk Auth.
+              © 2024 Sarge DevOps Platform. Built with Next.js, Neon, and Auth.js.
             </p>
           </motion.div>
         </div>
