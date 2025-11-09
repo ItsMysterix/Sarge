@@ -13,36 +13,44 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  console.log('🔵 SignInPage rendered, loading:', loading)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔵 Email sign-in started:', email)
     setLoading(true)
     setError("")
 
     try {
+      console.log('🔵 Calling signIn("credentials")...')
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       })
 
+      console.log('🔵 Credentials signIn result:', result)
+
       if (result?.error) {
-        // Show specific error messages
-        if (result.error.includes("verify your email")) {
+        console.error('❌ Sign-in error:', result.error)
+        // Parse detailed error messages
+        if (result.error.includes("verify")) {
           setError("Please verify your email before signing in. Check your inbox for the verification code.")
-        } else if (result.error === "CredentialsSignin") {
-          setError("Invalid email or password. Please check your credentials and try again.")
+        } else if (result.error.includes("credentials")) {
+          setError("Invalid email or password. Please try again.")
         } else {
           setError(result.error)
         }
         setLoading(false)
-      } else if (result?.ok) {
+        return
+      }
+
+      if (result?.ok) {
+        console.log('✅ Sign-in successful, redirecting...')
         router.push("/")
-        router.refresh()
-      } else {
-        setError("An unexpected error occurred. Please try again.")
-        setLoading(false)
       }
     } catch (err) {
+      console.error('❌ Unexpected error during sign-in:', err)
       setError("Connection error. Please check your internet and try again.")
       setLoading(false)
     }
@@ -50,15 +58,25 @@ export default function SignInPage() {
 
   const handleGitHub = async () => {
     console.log('🔵 GitHub button clicked')
+    console.log('🔵 Current loading state:', loading)
+    console.log('🔵 signIn function available:', typeof signIn)
+    
     setLoading(true)
     setError("")
     
     try {
-      console.log('🔵 Calling signIn("github")...')
+      console.log('🔵 Calling signIn("github") with callback: /')
       const result = await signIn("github", { callbackUrl: "/" })
       console.log('🔵 signIn result:', result)
+      
+      if (result?.error) {
+        console.error('❌ GitHub OAuth error:', result.error)
+        setError(`GitHub sign-in failed: ${result.error}`)
+        setLoading(false)
+      }
     } catch (err) {
-      console.error('❌ GitHub sign-in error:', err)
+      console.error('❌ GitHub sign-in exception:', err)
+      console.error('❌ Error stack:', err instanceof Error ? err.stack : 'No stack')
       setError("GitHub sign-in failed. Please try again.")
       setLoading(false)
     }
@@ -154,12 +172,15 @@ export default function SignInPage() {
 
           <Button
             type="button"
-            onClick={handleGitHub}
+            onClick={() => {
+              console.log('🔵 Button onClick fired')
+              handleGitHub()
+            }}
             disabled={loading}
             variant="outline"
             className="w-full glass-card border border-white/10 text-white hover:bg-white/10"
           >
-            GitHub
+            {loading ? 'Loading...' : 'GitHub'}
           </Button>
 
           <div className="mt-4 text-center text-sm text-gray-400">
