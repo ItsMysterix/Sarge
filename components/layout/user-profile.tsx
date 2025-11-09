@@ -1,6 +1,7 @@
 "use client"
 
 import { UserButton, useUser } from "@/lib/clerk-safe"
+import Link from "next/link"
 
 export function UserProfile() {
   const { user, isLoaded } = useUser()
@@ -16,9 +17,9 @@ export function UserProfile() {
 
   return (
     <div className="flex items-center space-x-4">
-      <div className="text-sm text-gray-300">
-        Welcome, <span className="text-accent font-medium">{user?.firstName || user?.fullName || "User"}</span>
-      </div>
+      <Link href="/profile" className="text-sm text-gray-300 hover:text-accent transition-colors cursor-pointer group">
+        Welcome, <span className="text-accent font-medium group-hover:underline">{user?.firstName || user?.fullName || "User"}</span>
+      </Link>
 
       <UserButton />
     </div>
