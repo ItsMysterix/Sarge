@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import {
   Brain,
@@ -18,14 +19,28 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary"
-import { CLERK_ENABLED } from "@/lib/clerk-safe"
+import { useUser } from "@/lib/clerk-safe"
 
 export default function LandingPage() {
+  const router = useRouter()
+  const { user, isLoaded } = useUser()
   const [time, setTime] = useState("")
   const [activeFeature, setActiveFeature] = useState(0)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const { scrollYProgress } = useScroll()
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
+
+  const handleLaunchClick = () => {
+    if (isLoaded) {
+      if (user) {
+        // User is logged in, go to dashboard
+        router.push("/")
+      } else {
+        // User is not logged in, go to sign up
+        router.push("/sign-up")
+      }
+    }
+  }
 
   useEffect(() => {
     const updateTime = () => {
@@ -253,20 +268,19 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
             >
-              <Link href="/">
-                <motion.div
-                  whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(0, 255, 255, 0.5)" }}
-                  whileTap={{ scale: 0.95 }}
+              <motion.div
+                whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(0, 255, 255, 0.5)" }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  onClick={handleLaunchClick}
+                  size="lg"
+                  className="bg-accent hover:bg-accent/90 text-black font-bold px-8 py-4 text-lg hover:glow-accent transition-all duration-200"
                 >
-                  <Button
-                    size="lg"
-                    className="bg-accent hover:bg-accent/90 text-black font-bold px-8 py-4 text-lg hover:glow-accent transition-all duration-200"
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    Launch Command Center
-                  </Button>
-                </motion.div>
-              </Link>
+                  <Play className="w-5 h-5 mr-2" />
+                  Launch Command Center
+                </Button>
+              </motion.div>
             </motion.div>
           </div>
 
