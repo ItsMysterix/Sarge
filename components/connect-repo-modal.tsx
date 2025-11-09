@@ -40,6 +40,7 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
     setLoading(true)
     setError(null)
     try {
+      console.log('Fetching repositories from GitHub...')
       const response = await fetch('/api/github/repos')
       if (!response.ok) {
         const errorData = await response.json()
@@ -52,12 +53,16 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
         throw new Error(data.error)
       }
       
-      console.log(`Loaded ${data.length} repositories from GitHub`)
+      console.log(`✅ Loaded ${data.length} repositories from GitHub`)
       setRepos(data)
+      
+      if (data.length === 0) {
+        setError('No repositories found in your GitHub account')
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load repositories'
       setError(errorMessage)
-      console.error('Error fetching repos:', errorMessage)
+      console.error('❌ Error fetching repos:', errorMessage)
     } finally {
       setLoading(false)
     }
