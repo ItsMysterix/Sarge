@@ -7,18 +7,18 @@ export const metricsRouter = router({
   latest: secureProcedure('metrics.latest').query(async ({ ctx }) => {
     const end = startQueryTimer('metrics.latest');
     const result = await ctx.db.query(
-      `SELECT id, service_id, cpu, memory, latency, cost, "timestamp", created_at
+      `SELECT id, project_id, cpu_usage as cpu, memory_usage as memory, latency_ms as latency, cost_daily as cost, uptime_percent, "timestamp"
        FROM metrics
-       ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST
+       ORDER BY "timestamp" DESC
        LIMIT 1`
     );
     end();
     const row = result.rows[0] ?? null;
     if (row) {
-      if (row.service_id) {
-        if (typeof row.cpu === 'number') setServiceCpu(String(row.service_id), Number(row.cpu));
-        if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.service_id), Number(row.memory));
-        if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.service_id), Number(row.latency));
+      if (row.project_id) {
+        if (typeof row.cpu === 'number') setServiceCpu(String(row.project_id), Number(row.cpu));
+        if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.project_id), Number(row.memory));
+        if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.project_id), Number(row.latency));
       }
     }
     return row;
