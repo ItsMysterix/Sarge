@@ -151,9 +151,8 @@ export type UserSettings = {
 
 ### 1. Update Database Schema
 ```bash
-# Apply all pending migrations (includes settings table)
-DATABASE_URL=postgresql://user:pass@host/db?sslmode=require \
-  npm run --workspace backend db:migrate
+# Run the settings migration
+node scripts/run-settings-migration.js
 ```
 
 ### 2. Environment Variables
