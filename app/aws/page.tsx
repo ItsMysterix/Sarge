@@ -10,6 +10,7 @@ import { trpc } from "@/lib/trpc"
 
 export default function AWSEmulationPage() {
   const [activeTab, setActiveTab] = useState("s3")
+  const [showEmptyStates, setShowEmptyStates] = useState(false)
 
   const t = trpc as any
   const summaryQuery = t.aws.getSummary.useQuery()
@@ -18,6 +19,15 @@ export default function AWSEmulationPage() {
   const lambdaQuery = t.aws.lambda.listFunctions.useQuery()
   const iamQuery = t.aws.iam.listRoles.useQuery()
   const cwQuery = t.aws.cloudwatch.listLogGroups.useQuery()
+
+  // Show empty states after 2 seconds if still loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowEmptyStates(true)
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   const services = [
     { 
@@ -103,27 +113,27 @@ export default function AWSEmulationPage() {
 
             {/* S3 Tab */}
             <TabsContent value="s3">
-              <S3Content buckets={s3Query.data || []} loading={s3Query.isLoading} />
+              <S3Content buckets={s3Query.data || []} loading={s3Query.isLoading && !showEmptyStates} />
             </TabsContent>
 
             {/* DynamoDB Tab */}
             <TabsContent value="dynamo">
-              <DynamoDBContent tables={dynamoQuery.data || []} loading={dynamoQuery.isLoading} />
+              <DynamoDBContent tables={dynamoQuery.data || []} loading={dynamoQuery.isLoading && !showEmptyStates} />
             </TabsContent>
 
             {/* Lambda Tab */}
             <TabsContent value="lambda">
-              <LambdaContent functions={lambdaQuery.data || []} loading={lambdaQuery.isLoading} />
+              <LambdaContent functions={lambdaQuery.data || []} loading={lambdaQuery.isLoading && !showEmptyStates} />
             </TabsContent>
 
             {/* IAM Tab */}
             <TabsContent value="iam">
-              <IAMContent roles={iamQuery.data || []} loading={iamQuery.isLoading} />
+              <IAMContent roles={iamQuery.data || []} loading={iamQuery.isLoading && !showEmptyStates} />
             </TabsContent>
 
             {/* CloudWatch Tab */}
             <TabsContent value="cloudwatch">
-              <CloudWatchContent logGroups={cwQuery.data || []} loading={cwQuery.isLoading} />
+              <CloudWatchContent logGroups={cwQuery.data || []} loading={cwQuery.isLoading && !showEmptyStates} />
             </TabsContent>
           </Tabs>
         </main>
@@ -412,11 +422,14 @@ function EmptyState({ service, icon: Icon, description }: { service: string, ico
           <Icon className="w-12 h-12 text-accent" />
         </div>
       </div>
-      <h2 className="text-xl sm:text-2xl font-bold mb-3">{service}</h2>
-      <p className="text-gray-400 mb-6">{description}</p>
-      <button className="glass-card px-6 py-3 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto">
+      <h2 className="text-xl sm:text-2xl font-bold mb-3">No {service} Yet</h2>
+      <p className="text-gray-400 mb-4">{description}</p>
+      <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+        💡 Connect a repository or use Quick Deploy to start creating AWS resources. All services run offline—no internet needed!
+      </p>
+      <button className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
         <Plus className="w-5 h-5 mr-2" />
-        Create {service}
+        Create Your First {service}
       </button>
     </motion.div>
   )

@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import {
@@ -38,6 +38,7 @@ export default function Logs() {
   const [isPaused, setIsPaused] = useState(false);
   const [timeRange, setTimeRange] = useState("1h");
   const [selectedService, setSelectedService] = useState<string>("all");
+  const [showEmptyState, setShowEmptyState] = useState(false);
   const { addToast, ToastContainer } = useToast();
   const userRole = useUserRole();
 
@@ -73,6 +74,17 @@ export default function Logs() {
 
   const logs = logsQuery.data?.items || [];
   const availableServices = servicesQuery.data || [];
+
+  // Show empty state after 2 seconds if still loading with no data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (logs.length === 0 && !logsQuery.isError) {
+        setShowEmptyState(true)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [logs.length, logsQuery.isError])
 
   const handleFilterToggle = (filterId: string) => {
     setFilters(filters.map(f => f.id === filterId ? { ...f, active: !f.active } : f))
@@ -226,7 +238,7 @@ export default function Logs() {
     }
   };
 
-  if (logsQuery.isLoading) {
+  if (logsQuery.isLoading && !showEmptyState) {
     return (
       <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
         <div className="flex h-screen bg-[#0f0f0f]">
