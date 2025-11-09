@@ -2,20 +2,29 @@
 
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
-import { User, Mail, Calendar, GitBranch, Activity, Settings, Save, Database, Cloud, Zap } from "lucide-react"
+import { User, Mail, Calendar, GitBranch, Activity, Settings, Save, Database, Cloud, Zap, Lock, Key, Github } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/clerk-safe"
 import { trpc } from "@/lib/trpc"
 import { useToast } from "@/components/ui/toast"
 import { AuthLoading } from "@/components/auth/loading"
+import { useSession } from "next-auth/react"
 
 export default function ProfilePage() {
   const { isLoaded, isSignedIn, user } = useUser()
+  const { data: session } = useSession()
   const { addToast, ToastContainer } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  
+  // Security settings state
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
   
   // Fetch user stats
   const t = trpc as any
@@ -31,6 +40,9 @@ export default function ProfilePage() {
   if (!isLoaded || !isSignedIn) {
     return <AuthLoading />
   }
+
+  const isGitHubUser = session?.user && (session as any).accessToken
+  const isCredentialsUser = !isGitHubUser
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -59,6 +71,61 @@ export default function ProfilePage() {
       })
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      addToast({
+        type: 'error',
+        title: 'Password Mismatch',
+        description: 'New password and confirmation do not match',
+      })
+      return
+    }
+
+    if (newPassword.length < 8) {
+      addToast({
+        type: 'error',
+        title: 'Weak Password',
+        description: 'Password must be at least 8 characters long',
+      })
+      return
+    }
+
+    setIsChangingPassword(true)
+    try {
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          currentPassword, 
+          newPassword 
+        }),
+      })
+
+      if (response.ok) {
+        addToast({
+          type: 'success',
+          title: 'Password Changed',
+          description: 'Your password has been updated successfully',
+        })
+        setShowSecuritySettings(false)
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      } else {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to change password')
+      }
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Password Change Failed',
+        description: error instanceof Error ? error.message : 'Failed to change password',
+      })
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -254,42 +321,115 @@ export default function ProfilePage() {
                 </div>
               </motion.div>
 
-              {/* GitHub Connection */}
+              {/* GitHub Connection & Security */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
+                className="space-y-4"
               >
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <GitBranch className="w-5 h-5 text-accent" />
-                  Connected Accounts
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-accent" />
+                  Security & Connections
                 </h3>
+                
+                {/* GitHub Connection Status */}
                 <div className="glass-card p-6 border border-white/10 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-[#24292e] rounded-lg flex items-center justify-center">
-                        <GitBranch className="w-6 h-6 text-white" />
+                        <Github className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <h4 className="font-semibold">GitHub</h4>
                         <p className="text-sm text-gray-400">
-                          {(user as any)?.externalAccounts?.find((acc: any) => acc.provider === 'oauth_github')
-                            ? 'Connected'
-                            : 'Not connected'}
+                          {isGitHubUser ? 'Connected - OAuth Active' : 'Sign in with GitHub to connect'}
                         </p>
                       </div>
                     </div>
-                    {(user as any)?.externalAccounts?.find((acc: any) => acc.provider === 'oauth_github') ? (
-                      <span className="px-3 py-1.5 bg-success/20 text-success text-sm rounded-lg border border-success/30">
-                        ✓ Connected
+                    {isGitHubUser ? (
+                      <span className="px-3 py-1.5 bg-success/20 text-success text-sm rounded-lg border border-success/30 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                        Connected
                       </span>
                     ) : (
-                      <button className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30">
-                        Connect
-                      </button>
+                      <a 
+                        href="/api/auth/signin?callbackUrl=/profile"
+                        className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30"
+                      >
+                        Connect GitHub
+                      </a>
                     )}
                   </div>
                 </div>
+
+                {/* Password Change (only for credentials users) */}
+                {isCredentialsUser && (
+                  <div className="glass-card p-6 border border-white/10 rounded-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Key className="w-5 h-5 text-accent" />
+                        <div>
+                          <h4 className="font-semibold">Change Password</h4>
+                          <p className="text-sm text-gray-400">Update your account password</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowSecuritySettings(!showSecuritySettings)}
+                        className="text-sm text-accent hover:underline"
+                      >
+                        {showSecuritySettings ? 'Cancel' : 'Change'}
+                      </button>
+                    </div>
+
+                    {showSecuritySettings && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-3 pt-4 border-t border-white/10"
+                      >
+                        <div>
+                          <label className="text-sm text-gray-400 block mb-1">Current Password</label>
+                          <input
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:border-accent"
+                            placeholder="Enter current password"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-400 block mb-1">New Password</label>
+                          <input
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:border-accent"
+                            placeholder="Enter new password (min 8 characters)"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-400 block mb-1">Confirm New Password</label>
+                          <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:border-accent"
+                            placeholder="Confirm new password"
+                          />
+                        </div>
+                        <button
+                          onClick={handleChangePassword}
+                          disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                          className="w-full glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isChangingPassword ? 'Changing Password...' : 'Update Password'}
+                        </button>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
               </motion.div>
 
               {/* Recent Activity */}
