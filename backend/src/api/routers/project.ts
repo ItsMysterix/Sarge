@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { router, publicProcedure } from '../../trpc';
 import { TRPCError } from '@trpc/server';
+import { getAIAnalyzer } from '../lib/ai-analyzer';
 
 // Project schema for validation
 const createProjectSchema = z.object({
@@ -275,26 +276,49 @@ export const projectRouter = router({
       repositoryId: z.number(),
       owner: z.string(),
       repo: z.string(),
+      branch: z.string().optional().default('main'),
     }))
     .mutation(async ({ input, ctx }) => {
-      // TODO: Clone repo and analyze structure
-      // TODO: Use AI to detect framework, ports, tools
-      
-      // Mock AI analysis
-      return {
-        framework: 'next.js',
-        detectedPorts: [3000],
-        detectedTools: ['node', 'npm', 'typescript'],
-        suggestedBuildCommand: 'npm run build',
-        suggestedOutputDirectory: '.next',
-        suggestedInstallCommand: 'npm install',
-        suggestedDevCommand: 'npm run dev',
-        summary: `Detected a Next.js 14 application with App Router. 
-                  The project uses TypeScript and has dependencies for React 18.
-                  Recommended deployment: Static export with serverless functions.`,
-        confidence: 0.95,
-        estimatedBuildTime: 120, // seconds
-        requiresEnvironmentVariables: ['DATABASE_URL', 'NEXTAUTH_SECRET'],
-      };
+      try {
+        console.log(`[tRPC] Analyzing repository: ${input.owner}/${input.repo}`);
+        
+        // Use AI analyzer to analyze the repository
+        const analyzer = getAIAnalyzer();
+        const analysis = await analyzer.analyzeRepository(
+          input.owner,
+          input.repo,
+          input.branch
+        );
+        
+        console.log(`[tRPC] Analysis complete: ${analysis.framework} (confidence: ${analysis.confidence})`);
+        
+        return analysis;
+      } catch (error) {
+        console.error('[tRPC] Analysis failed:', error);
+        
+        // Return fallback mock data if AI fails
+        console.warn('[tRPC] Returning fallback mock analysis');
+        return {
+          projectType: 'fullstack' as const,
+          services: [],
+          infrastructure: [],
+          needsDocker: false,
+          dockerComposeYml: null,
+          dockerfiles: {},
+          recommendedPlatform: 'docker' as const,
+          deploymentStrategy: 'Unable to analyze. Please configure manually.',
+          framework: 'Unknown',
+          detectedPorts: [3000],
+          detectedTools: ['node', 'npm'],
+          suggestedBuildCommand: 'npm run build',
+          suggestedOutputDirectory: 'dist',
+          suggestedInstallCommand: 'npm install',
+          suggestedDevCommand: 'npm run dev',
+          summary: `Unable to analyze repository automatically. Please configure manually. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          confidence: 0.3,
+          estimatedBuildTime: 120,
+          requiresEnvironmentVariables: [],
+        };
+      }
     }),
 });

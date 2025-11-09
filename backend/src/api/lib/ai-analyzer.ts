@@ -1,0 +1,374 @@
+import Anthropic from '@anthropic-ai/sdk';
+import simpleGit from 'simple-git';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+
+export interface ServiceConfig {
+  name: string;                      // "frontend", "api", "worker", etc.
+  type: 'web' | 'api' | 'worker' | 'database' | 'cache' | 'queue';
+  framework?: string;                // "Next.js 14", "Express", "Django", etc.
+  defaultPort: number;               // Suggested default port
+  buildCommand?: string;             // How to build this service
+  startCommand: string;              // How to start this service
+  workingDirectory: string;          // Relative path from repo root
+  environmentVariables: string[];    // Required env vars for this service
+  dockerfile?: string;               // Generated Dockerfile content
+  healthcheck?: string;              // Health check endpoint
+}
+
+export interface InfrastructureRequirement {
+  type: 'database' | 'cache' | 'queue' | 'storage' | 'other';
+  service: string;                   // "PostgreSQL", "Redis", "RabbitMQ", "S3", etc.
+  version?: string;                  // "15", "7.0", etc.
+  purpose: string;                   // "Primary database", "Session store", etc.
+}
+
+export interface RepositoryAnalysis {
+  // Project structure
+  projectType: 'monorepo' | 'fullstack' | 'frontend' | 'backend' | 'static';
+  services: ServiceConfig[];         // All detected services
+  
+  // Infrastructure requirements
+  infrastructure: InfrastructureRequirement[];
+  
+  // Docker configuration
+  needsDocker: boolean;
+  dockerComposeYml?: string | null;         // Generated docker-compose.yml
+  dockerfiles: Record<string, string>; // service name -> Dockerfile content
+  
+  // Deployment recommendations
+  recommendedPlatform: 'vercel' | 'docker' | 'kubernetes' | 'traditional';
+  deploymentStrategy: string;        // Detailed explanation
+  
+  // Original fields (for backward compatibility)
+  framework: string;
+  detectedPorts: number[];
+  detectedTools: string[];
+  suggestedBuildCommand: string;
+  suggestedOutputDirectory: string;
+  suggestedInstallCommand: string;
+  suggestedDevCommand: string;
+  summary: string;
+  confidence: number;
+  estimatedBuildTime: number;
+  requiresEnvironmentVariables: string[];
+}
+
+export interface FileInfo {
+  path: string;
+  content: string;
+  size: number;
+}
+
+/**
+ * AI-powered repository analyzer using Claude 3.5 Sonnet
+ */
+export class AIRepositoryAnalyzer {
+  private anthropic: Anthropic;
+  private maxFileSize = 100 * 1024; // 100KB max per file
+  private maxFiles = 30; // Limit files to analyze to control costs
+
+  constructor() {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+    }
+    this.anthropic = new Anthropic({ apiKey });
+  }
+
+  /**
+   * Analyze a GitHub repository
+   */
+  async analyzeRepository(owner: string, repo: string, branch: string = 'main'): Promise<RepositoryAnalysis> {
+    console.log(`[AI Analyzer] Starting analysis for ${owner}/${repo}`);
+    
+    // Clone repository to temp directory
+    const repoPath = await this.cloneRepository(owner, repo, branch);
+    
+    try {
+      // Scan repository structure
+      const files = await this.scanRepository(repoPath);
+      
+      // Analyze with Claude
+      const analysis = await this.analyzeWithClaude(files, owner, repo);
+      
+      return analysis;
+    } finally {
+      // Cleanup temp directory
+      await this.cleanup(repoPath);
+    }
+  }
+
+  /**
+   * Clone repository to temporary directory
+   */
+  private async cloneRepository(owner: string, repo: string, branch: string): Promise<string> {
+    const tempDir = path.join(os.tmpdir(), `repo-${owner}-${repo}-${Date.now()}`);
+    const repoUrl = `https://github.com/${owner}/${repo}.git`;
+    
+    console.log(`[AI Analyzer] Cloning ${repoUrl} to ${tempDir}`);
+    
+    const git = simpleGit();
+    await git.clone(repoUrl, tempDir, ['--depth', '1', '--branch', branch]);
+    
+    return tempDir;
+  }
+
+  /**
+   * Scan repository and extract important files
+   */
+  private async scanRepository(repoPath: string): Promise<FileInfo[]> {
+    const files: FileInfo[] = [];
+    
+    // Priority files to analyze (ordered by importance)
+    const priorityFiles = [
+      'package.json',
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      'Dockerfile',
+      'docker-compose.yml',
+      'docker-compose.yaml',
+      'next.config.js',
+      'next.config.ts',
+      'next.config.mjs',
+      'vite.config.js',
+      'vite.config.ts',
+      'nuxt.config.js',
+      'nuxt.config.ts',
+      'angular.json',
+      'tsconfig.json',
+      'README.md',
+      '.env.example',
+      '.env.sample',
+      'src/main.ts',
+      'src/main.js',
+      'src/index.ts',
+      'src/index.js',
+      'app/page.tsx',
+      'pages/index.tsx',
+      'main.go',
+      'go.mod',
+      'requirements.txt',
+      'Pipfile',
+      'pyproject.toml',
+      'Cargo.toml',
+      'pom.xml',
+      'build.gradle',
+    ];
+
+    // Read priority files
+    for (const file of priorityFiles) {
+      const filePath = path.join(repoPath, file);
+      try {
+        const stats = await fs.stat(filePath);
+        if (stats.isFile() && stats.size <= this.maxFileSize) {
+          const content = await fs.readFile(filePath, 'utf-8');
+          files.push({
+            path: file,
+            content,
+            size: stats.size,
+          });
+          console.log(`[AI Analyzer] Read file: ${file} (${stats.size} bytes)`);
+        }
+      } catch (error) {
+        // File doesn't exist, skip
+      }
+      
+      // Stop if we have enough files
+      if (files.length >= this.maxFiles) break;
+    }
+
+    return files;
+  }
+
+  /**
+   * Analyze repository files using Claude 3.5 Sonnet
+   */
+  private async analyzeWithClaude(files: FileInfo[], owner: string, repo: string): Promise<RepositoryAnalysis> {
+    console.log(`[AI Analyzer] Analyzing ${files.length} files with Claude 3.5 Sonnet`);
+
+    // Prepare context for Claude
+    const filesContext = files.map(f => 
+      `--- ${f.path} ---\n${f.content}\n`
+    ).join('\n');
+
+    const prompt = `You are an expert DevOps engineer analyzing a GitHub repository for automatic deployment configuration.
+
+Repository: ${owner}/${repo}
+Files provided: ${files.map(f => f.path).join(', ')}
+
+${filesContext}
+
+Analyze the repository structure and provide a comprehensive deployment analysis as JSON:
+
+{
+  "projectType": "monorepo | fullstack | frontend | backend | static",
+  
+  "services": [
+    {
+      "name": "string (e.g., 'frontend', 'api', 'worker', 'admin')",
+      "type": "web | api | worker | database | cache | queue",
+      "framework": "string (e.g., 'Next.js 14', 'Express 4', 'FastAPI')",
+      "defaultPort": number (suggested default port - user can spawn multiple instances on different ports),
+      "buildCommand": "string (how to build, or null)",
+      "startCommand": "string (how to start in production)",
+      "workingDirectory": "string (relative path from repo root, e.g., '.' or 'apps/web')",
+      "environmentVariables": ["array of required env vars for this service"],
+      "dockerfile": "string (generated Dockerfile content for this service, or null)",
+      "healthcheck": "string (health check endpoint like '/health' or null)"
+    }
+  ],
+  
+  "infrastructure": [
+    {
+      "type": "database | cache | queue | storage | other",
+      "service": "string (e.g., 'PostgreSQL', 'Redis', 'RabbitMQ', 'S3')",
+      "version": "string (recommended version, or null)",
+      "purpose": "string (why it's needed, e.g., 'Primary database', 'Session store')"
+    }
+  ],
+  
+  "needsDocker": boolean,
+  "dockerComposeYml": "string (full docker-compose.yml content, or null)",
+  "dockerfiles": {
+    "serviceName": "Dockerfile content as string"
+  },
+  
+  "recommendedPlatform": "vercel | docker | kubernetes | traditional",
+  "deploymentStrategy": "string (detailed explanation of how to deploy)",
+  
+  "framework": "string (primary framework)",
+  "detectedPorts": [all ports needed],
+  "detectedTools": ["node", "npm", "typescript", "docker", etc.],
+  "suggestedBuildCommand": "string (for primary service)",
+  "suggestedOutputDirectory": "string",
+  "suggestedInstallCommand": "string",
+  "suggestedDevCommand": "string",
+  "summary": "string (2-3 sentences)",
+  "confidence": number (0.0 to 1.0),
+  "estimatedBuildTime": number (seconds),
+  "requiresEnvironmentVariables": [all env vars across all services]
+}
+
+CRITICAL ANALYSIS REQUIREMENTS:
+
+1. PROJECT STRUCTURE:
+   - Detect monorepo (multiple apps/packages)
+   - Detect fullstack (frontend + backend in same repo)
+   - Identify each deployable service separately
+
+2. SERVICE DETECTION:
+   - Frontend: Next.js, React, Vue, Angular, static sites
+   - Backend: Express, Fastify, NestJS, Django, FastAPI, Go, etc.
+   - Workers: Background jobs, cron tasks
+   - Identify port for EACH service
+
+3. INFRASTRUCTURE:
+   - Database: PostgreSQL, MySQL, MongoDB from dependencies
+   - Cache: Redis, Memcached
+   - Queue: RabbitMQ, Redis, SQS
+   - Storage: S3, local filesystem
+   - Look for: pg, mysql2, mongoose, redis, bull, aws-sdk
+
+4. DOCKER GENERATION:
+   - If multiple services OR needs database: needsDocker = true
+   - Generate production-ready Dockerfiles for each service
+   - Generate docker-compose.yml with all services + infrastructure
+   - Include proper networking, volumes, health checks
+
+5. DEPLOYMENT STRATEGY:
+   - Vercel: Next.js/React frontend-only or with serverless API
+   - Docker: Multiple services, needs custom infra
+   - Kubernetes: Microservices, high scale
+   - Traditional: Simple apps, VPS deployment
+
+6. PORT DETECTION:
+   - Check server.listen() in code
+   - Check PORT env var usage
+   - Check Dockerfile EXPOSE
+   - Default: 3000 (Node), 8000 (Python), 8080 (Go)
+
+Respond ONLY with valid JSON, no markdown, no additional text.`;
+
+    try {
+      const message = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 2048,
+        temperature: 0.2, // Low temperature for more consistent analysis
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      });
+
+      // Extract JSON from response
+      const responseText = message.content[0].type === 'text' 
+        ? message.content[0].text 
+        : '';
+      
+      console.log(`[AI Analyzer] Claude response: ${responseText.substring(0, 200)}...`);
+
+      // Parse JSON response
+      const analysis = JSON.parse(responseText) as RepositoryAnalysis;
+
+      // Validate and sanitize
+      return {
+        // New comprehensive fields
+        projectType: analysis.projectType || 'fullstack',
+        services: Array.isArray(analysis.services) ? analysis.services : [],
+        infrastructure: Array.isArray(analysis.infrastructure) ? analysis.infrastructure : [],
+        needsDocker: analysis.needsDocker ?? true,
+        dockerComposeYml: analysis.dockerComposeYml || null,
+        dockerfiles: analysis.dockerfiles || {},
+        recommendedPlatform: analysis.recommendedPlatform || 'docker',
+        deploymentStrategy: analysis.deploymentStrategy || 'Deploy using Docker Compose',
+        
+        // Backward compatibility fields
+        framework: analysis.framework || 'Unknown',
+        detectedPorts: Array.isArray(analysis.detectedPorts) ? analysis.detectedPorts : [],
+        detectedTools: Array.isArray(analysis.detectedTools) ? analysis.detectedTools : [],
+        suggestedBuildCommand: analysis.suggestedBuildCommand || 'npm run build',
+        suggestedOutputDirectory: analysis.suggestedOutputDirectory || 'dist',
+        suggestedInstallCommand: analysis.suggestedInstallCommand || 'npm install',
+        suggestedDevCommand: analysis.suggestedDevCommand || 'npm run dev',
+        summary: analysis.summary || 'Repository analysis completed.',
+        confidence: Math.max(0, Math.min(1, analysis.confidence || 0.5)),
+        estimatedBuildTime: Math.max(0, analysis.estimatedBuildTime || 60),
+        requiresEnvironmentVariables: Array.isArray(analysis.requiresEnvironmentVariables) 
+          ? analysis.requiresEnvironmentVariables 
+          : [],
+      };
+    } catch (error) {
+      console.error('[AI Analyzer] Claude API error:', error);
+      throw new Error(`AI analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Cleanup temporary directory
+   */
+  private async cleanup(repoPath: string): Promise<void> {
+    try {
+      console.log(`[AI Analyzer] Cleaning up ${repoPath}`);
+      await fs.rm(repoPath, { recursive: true, force: true });
+    } catch (error) {
+      console.warn(`[AI Analyzer] Cleanup warning:`, error);
+    }
+  }
+}
+
+/**
+ * Create singleton instance
+ */
+let analyzerInstance: AIRepositoryAnalyzer | null = null;
+
+export function getAIAnalyzer(): AIRepositoryAnalyzer {
+  if (!analyzerInstance) {
+    analyzerInstance = new AIRepositoryAnalyzer();
+  }
+  return analyzerInstance;
+}

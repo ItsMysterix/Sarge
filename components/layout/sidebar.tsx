@@ -7,8 +7,8 @@ import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap
 import { ProjectSwitcher } from "@/components/project-switcher"
 
 const navigation = [
+  { name: "One-Click Deploy", href: "/oneclick", icon: Zap, description: "AI Copilot: Detect, plan & deploy in 3 steps" },
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
-  { name: "One-Click Deploy", href: "/oneclick", icon: Zap, description: "Detect, plan & deploy in 3 steps" },
   { name: "Stacks", href: "/stacks", icon: Layers, description: "Compose services into applications" },
   { name: "AWS Emulation", href: "/aws", icon: Cloud, description: "S3, DynamoDB, Lambda & more—offline" },
   { name: "Metrics", href: "/metrics", icon: Activity, description: "Real-time performance data" },
@@ -42,9 +42,16 @@ export function Sidebar() {
       >
         <div className="flex flex-col h-full p-4">
           {/* Logo */}
-          <div className="flex items-center mb-8 pt-8 lg:pt-0">
-            <div className="text-2xl font-bold text-accent terminal-text">SARGE</div>
-            <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+          <div className="flex flex-col mb-6 pt-8 lg:pt-0">
+            <div className="flex items-center mb-2">
+              <div className="text-2xl font-bold text-accent terminal-text">SARGE</div>
+              <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+            </div>
+            {/* AI Copilot Label */}
+            <div className="flex items-center gap-2 px-3 py-2 glass-card border border-accent/30 rounded-lg bg-accent/10">
+              <Zap className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium text-accent">AI Copilot</span>
+            </div>
           </div>
 
           {/* Project Switcher */}
