@@ -12,7 +12,7 @@ export const servicesRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const result = await ctx.db.query(
-        "SELECT * FROM service_uptime WHERE service_id = $1 ORDER BY timestamp DESC LIMIT 24",
+        "SELECT timestamp, uptime_value as uptime_percent FROM uptime_logs WHERE service_id = $1 ORDER BY timestamp DESC LIMIT 24",
         [input.id]
       )
       return result.rows.map((row: any) => ({
