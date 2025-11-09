@@ -19,7 +19,7 @@ export function LoadingButton({
   children,
   loadingText,
   onClick,
-  variant = "default",
+  variant = "ghost",
   className,
   disabled,
 }: LoadingButtonProps) {
