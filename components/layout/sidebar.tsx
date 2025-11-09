@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap, User } from "lucide-react"
+import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap } from "lucide-react"
 
 const navigation = [
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
@@ -13,7 +13,6 @@ const navigation = [
   { name: "Metrics", href: "/metrics", icon: Activity, description: "Real-time performance data" },
   { name: "Logs", href: "/logs", icon: FileText, description: "Structured logs from all services" },
   { name: "Deployments", href: "/deployments", icon: Rocket, description: "Legacy deployment pipeline" },
-  { name: "Profile", href: "/profile", icon: User, description: "Manage your account and activity" },
   { name: "Settings", href: "/settings", icon: Settings, description: "Configure workspace & snapshots" },
 ]
 
