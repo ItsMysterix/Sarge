@@ -26,17 +26,15 @@ services:
     build:
       context: .
       dockerfile: app/Dockerfile
-      args:
-        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_mock"
     container_name: sarge-app-local
     environment:
       NODE_ENV: production
       PORT: "3001"
       # Point client to backend WS on host 3005
       NEXT_PUBLIC_WS_URL: "ws://localhost:3005"
-      # Set valid-looking Clerk keys (mock values for local docker; auth won't work but app will load)
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_mock"
-      CLERK_SECRET_KEY: "sk_test_mock_secret_for_local_docker_only"
+      # Auth.js configuration for local docker
+      NEXTAUTH_SECRET: "local_docker_secret_change_in_production"
+      NEXTAUTH_URL: "http://localhost:3003"
     ports:
       - "3003:3001"   # App served at http://localhost:3003
     depends_on:

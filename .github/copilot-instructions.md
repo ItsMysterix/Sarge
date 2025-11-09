@@ -3,7 +3,7 @@
 Purpose: give an AI coding agent the minimal, concrete context needed to be productive in this repo.
 
 - Big picture
-  - Next.js 14 frontend lives under `app/` (App Router). UI uses Tailwind + Clerk for auth.
+  - Next.js 14 frontend lives under `app/` (App Router). UI uses Tailwind + Auth.js (NextAuth.js) for authentication.
   - A small TypeScript backend lives under `backend/` exposing a tRPC router served over WebSockets (see `backend/src/api/ws-server.ts`).
   - Frontend uses a tRPC client over WebSockets to `ws://localhost:3200` (see `lib/trpc-provider.tsx`).
   - The repo includes k8s manifests/kustomize under `bridge/` (base + overlays) for optional deployments.
@@ -19,7 +19,7 @@ Purpose: give an AI coding agent the minimal, concrete context needed to be prod
   - tRPC over WebSocket: the frontend imports trpc types from `../backend/src/api/root` (see `lib/trpc.ts`). When adding new backend routers, register them in `backend/src/api/root.ts` so client types pick them up.
   - WebSocket server port: `3200` (hard-coded in `backend/src/api/ws-server.ts` and client in `lib/trpc-provider.tsx`). Keep these in sync when changing.
   - Serverless route handlers: `app/api/*` are Next.js server actions/route handlers. Many endpoints use `@neondatabase/serverless` (Neon) with `process.env.DATABASE_URL`. They include defensive fallbacks (mock data) when DB tables are missing — expect and respect those patterns when changing endpoints.
-  - Auth: Clerk is used (see `middleware.ts`, `app/layout.tsx`, and `components/debug/auth-debug.tsx`). `middleware.ts` protects routes using the matcher; changing route protection should update this file.
+  - Auth: Auth.js (NextAuth.js) is used with database session management (see `middleware.ts`, `app/layout.tsx`, `app/api/auth/[...nextauth]/route.ts`, and `lib/clerk-safe.tsx` for Auth.js wrapper). `middleware.ts` protects routes using the matcher; changing route protection should update this file.
   - Serialization: tRPC uses `superjson` on both server (`backend/src/api/lib/trpc.ts`) and client (`lib/trpc-provider.tsx`) — preserve that transformer across client/server changes.
 
 - Project-specific patterns to follow

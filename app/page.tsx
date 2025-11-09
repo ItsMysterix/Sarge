@@ -1,7 +1,7 @@
 "use client"
 export const dynamic = 'force-dynamic'
 
-import { useUser, CLERK_ENABLED } from "@/lib/clerk-safe"
+import { useUser } from "@/lib/clerk-safe"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
@@ -30,7 +30,6 @@ export default function Overview() {
   const { isDeploying, setDeploying } = useAppStore()
   const { addToast, ToastContainer } = useToast()
   const userRole = useUserRole()
-  const isClerkEnabled = CLERK_ENABLED
 
   const [metrics, setMetrics] = useState<any>(null)
   const [logs, setLogs] = useState<any[]>([])
@@ -64,14 +63,14 @@ export default function Overview() {
   })
 
   useEffect(() => {
-    // Only redirect to landing if Clerk is enabled and user is not signed in
-    if (isClerkEnabled && isLoaded && !isSignedIn) {
+    // Redirect to landing if user is not signed in
+    if (isLoaded && !isSignedIn) {
       router.replace("/landing")
     }
-  }, [isLoaded, isSignedIn, isClerkEnabled])
+  }, [isLoaded, isSignedIn, router])
 
-  // Only show loading/auth check if Clerk is enabled
-  if (isClerkEnabled && (!isLoaded || !isSignedIn)) return <AuthLoading />
+  // Show loading/auth check
+  if (!isLoaded || !isSignedIn) return <AuthLoading />
 
   const handleQuickDeploy = () => {
     setDeploying(true)
