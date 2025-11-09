@@ -18,6 +18,16 @@ export function GitHubActivity({ repository, loading, onConnectClick }: GitHubAc
   
   const [repoInfo, setRepoInfo] = useState<any>(null)
   const [commits, setCommits] = useState<any[]>([])
+  const [showEmptyState, setShowEmptyState] = useState(false)
+
+  // Add timeout for empty state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowEmptyState(true)
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [])
   
   // Fetch GitHub data when repository is available
   useEffect(() => {
@@ -43,7 +53,7 @@ export function GitHubActivity({ repository, loading, onConnectClick }: GitHubAc
     }
   }, [repository])
 
-  if (loading) {
+  if (loading && !showEmptyState) {
     return (
       <motion.div 
         className="glass-card p-6 mb-6"
@@ -62,29 +72,35 @@ export function GitHubActivity({ repository, loading, onConnectClick }: GitHubAc
     )
   }
 
-  if (!repository) {
+  if (!repository || showEmptyState) {
     return (
       <motion.div 
         className="glass-card p-6 mb-6 border border-warning/30"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Lightbulb className="w-6 h-6 text-warning" />
-            <div>
-              <h2 className="text-xl font-semibold">Connect GitHub Repository</h2>
-              <p className="text-sm text-gray-400">Connect a repository to see real-time activity and insights</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Lightbulb className="w-6 h-6 text-warning" />
+              <div>
+                <h2 className="text-xl font-semibold">Connect GitHub Repository</h2>
+                <p className="text-sm text-gray-400">Connect a repository to see real-time activity and insights</p>
+              </div>
             </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onConnectClick}
+              className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg text-sm backdrop-blur-sm transition-all duration-300"
+            >
+              Connect Repository
+            </motion.button>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onConnectClick}
-            className="px-4 py-2 bg-accent/20 text-accent hover:bg-accent/30 border border-accent/30 rounded-lg text-sm"
-          >
-            Connect Repository
-          </motion.button>
+          <div className="text-xs text-gray-500 flex items-start gap-2 pt-2 border-t border-white/10">
+            <span className="text-accent">💡</span>
+            <span>Pro tip: You can use <span className="text-accent font-medium">Quick Deploy</span> to test the platform without connecting a repository.</span>
+          </div>
         </div>
       </motion.div>
     )
