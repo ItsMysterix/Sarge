@@ -94,13 +94,20 @@ export const authOptions: NextAuthOptions = {
   
   callbacks: {
     async signIn({ user, account, profile }) {
-      // For OAuth providers (GitHub), auto-verify email
-      if (account?.provider === "github") {
-        const pool = getDbPool()
-        await pool.query(
-          `UPDATE users SET email_verified = NOW() WHERE id = $1 AND email_verified IS NULL`,
-          [user.id]
-        )
+      try {
+        // For OAuth providers (GitHub), auto-verify email
+        if (account?.provider === "github" && user?.id) {
+          console.log('🔵 GitHub OAuth signIn callback, user:', user.id)
+          const pool = getDbPool()
+          const result = await pool.query(
+            `UPDATE users SET email_verified = NOW() WHERE id = $1 AND email_verified IS NULL`,
+            [user.id]
+          )
+          console.log('✅ Updated email_verified for user:', user.id, 'rows affected:', result.rowCount)
+        }
+      } catch (error) {
+        console.error('❌ Error in signIn callback:', error)
+        // Don't block sign-in if this fails
       }
       return true
     },
