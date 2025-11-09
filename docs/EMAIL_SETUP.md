@@ -54,40 +54,19 @@ SMTP_FROM=noreply@yourdomain.com
 
 ---
 
-## 🔧 Enable Production Emails
+## 🔧 Production Email Setup
 
-### Step 1: Uncomment Code in `lib/email-verification.ts`
+### ✅ **Code Already Enabled!**
 
-Find this section around line 55:
+The email sending code in `lib/email-verification.ts` is **already active** with a beautiful branded template.
 
-```typescript
-  // In production, integrate with email service (SendGrid, AWS SES, etc.)
-  // Example with nodemailer:
-  /*
-  const nodemailer = require('nodemailer')
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  })
+### Step 1: Get SendGrid API Key
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
-    to: email,
-    subject: 'Verify Your Email - SARGE',
-    html: `
-      <h1>Welcome to SARGE</h1>
-      <p>Your verification code is: <strong>${code}</strong></p>
-      <p>This code expires in 10 minutes.</p>
-    `,
-  })
-  */
-```
-
-**Remove the `/*` and `*/` comments** to enable it.
+1. Go to [SendGrid Dashboard](https://app.sendgrid.com/settings/api_keys)
+2. Click **Create API Key**
+3. Name: `SARGE Production`
+4. Choose **Restricted Access** → Enable only **Mail Send**
+5. Copy the API key (starts with `SG.`)
 
 ### Step 2: Add Environment Variables
 
@@ -96,7 +75,7 @@ Find this section around line 55:
 SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
 SMTP_USER=apikey
-SMTP_PASS=SG.your_api_key_here
+SMTP_PASS=SG.paste_your_new_api_key_here
 SMTP_FROM=noreply@yourdomain.com
 ```
 
@@ -206,14 +185,14 @@ All emails will appear in Mailtrap inbox instead of real inboxes!
 
 ## 🎯 Production Checklist
 
-- [ ] Choose email service (SendGrid recommended)
-- [ ] Get API credentials
-- [ ] Add SMTP env vars to Vercel
-- [ ] Uncomment nodemailer code in `lib/email-verification.ts`
-- [ ] Test signup flow
+- [ ] **SECURITY FIRST**: Revoke old/exposed API keys in SendGrid dashboard
+- [ ] Create NEW SendGrid API key with Mail Send permission only
+- [ ] Add SMTP env vars to Vercel (see above)
+- [ ] Update local `.env` with new API key
+- [ ] Test signup flow on production URL
 - [ ] Check spam folder if emails not arriving
-- [ ] Add domain verification for better deliverability
-- [ ] Customize email template with your branding
+- [ ] Optional: Add domain verification for better deliverability
+- [ ] Optional: Customize email template with your branding
 
 ---
 
