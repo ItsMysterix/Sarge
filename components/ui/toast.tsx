@@ -70,9 +70,12 @@ export function useToast() {
   }
 
   const ToastContainer = () => (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    // z-[70] elevates above header (z-50) and project switcher overlay (z-60)
+    <div className="fixed top-4 right-4 z-[70] space-y-2 pointer-events-none">
       {toasts.map((toast) => (
-        <ToastComponent key={toast.id} {...toast} onClose={removeToast} />
+        <div key={toast.id} className="pointer-events-auto">
+          <ToastComponent {...toast} onClose={removeToast} />
+        </div>
       ))}
     </div>
   )

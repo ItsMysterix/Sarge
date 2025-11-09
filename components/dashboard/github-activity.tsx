@@ -18,16 +18,9 @@ export function GitHubActivity({ repository, loading, onConnectClick }: GitHubAc
   
   const [repoInfo, setRepoInfo] = useState<any>(null)
   const [commits, setCommits] = useState<any[]>([])
-  const [showEmptyState, setShowEmptyState] = useState(false)
-
-  // Add timeout for empty state
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowEmptyState(true)
-    }, 2000)
-
-    return () => clearTimeout(timer)
-  }, [])
+  // We intentionally removed the unconditional empty-state timeout because it hid
+  // the connected repository after 2s. The empty state should only render if no
+  // repository is connected.
   
   // Fetch GitHub data when repository is available
   useEffect(() => {
@@ -53,7 +46,7 @@ export function GitHubActivity({ repository, loading, onConnectClick }: GitHubAc
     }
   }, [repository])
 
-  if (loading && !showEmptyState) {
+  if (loading) {
     return (
       <motion.div 
         className="glass-card p-6 mb-6"
@@ -72,7 +65,7 @@ export function GitHubActivity({ repository, loading, onConnectClick }: GitHubAc
     )
   }
 
-  if (!repository || showEmptyState) {
+  if (!repository) {
     return (
       <motion.div 
         className="glass-card p-6 mb-6 border border-warning/30"
@@ -123,7 +116,9 @@ export function GitHubActivity({ repository, loading, onConnectClick }: GitHubAc
           </motion.div>
           <div>
             <h2 className="text-xl font-semibold">Repository Activity</h2>
-            <p className="text-sm text-gray-400">{repository.full_name}</p>
+            <p className="text-sm text-gray-400">
+              {repoInfo?.full_name || (repository?.owner && repository?.repo ? `${repository.owner}/${repository.repo}` : repository?.full_name)}
+            </p>
           </div>
         </div>
         {repoInfo && (
