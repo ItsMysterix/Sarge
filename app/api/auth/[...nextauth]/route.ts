@@ -93,6 +93,17 @@ export const authOptions: NextAuthOptions = {
   },
   
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // For OAuth providers (GitHub), auto-verify email
+      if (account?.provider === "github") {
+        const pool = getDbPool()
+        await pool.query(
+          `UPDATE users SET email_verified = NOW() WHERE id = $1 AND email_verified IS NULL`,
+          [user.id]
+        )
+      }
+      return true
+    },
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub
