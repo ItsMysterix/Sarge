@@ -3,12 +3,13 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap } from "lucide-react"
+import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen } from "lucide-react"
 import { ProjectSwitcher } from "@/components/project-switcher"
 
 const navigation = [
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
   { name: "One-Click Deploy", href: "/oneclick", icon: Zap, description: "Detect, plan & deploy in 3 steps" },
+  { name: "Workspaces", href: "/workspaces", icon: FolderOpen, description: "Manage local dev workspaces" },
   { name: "Stacks", href: "/stacks", icon: Layers, description: "Compose services into applications" },
   { name: "AWS Emulation", href: "/aws", icon: Cloud, description: "S3, DynamoDB, Lambda & more—offline" },
   { name: "Metrics", href: "/metrics", icon: Activity, description: "Real-time performance data" },
