@@ -49,12 +49,16 @@ export default function SignInPage() {
   }
 
   const handleGitHub = async () => {
+    console.log('🔵 GitHub button clicked')
     setLoading(true)
     setError("")
     
     try {
-      await signIn("github", { callbackUrl: "/" })
+      console.log('🔵 Calling signIn("github")...')
+      const result = await signIn("github", { callbackUrl: "/" })
+      console.log('🔵 signIn result:', result)
     } catch (err) {
+      console.error('❌ GitHub sign-in error:', err)
       setError("GitHub sign-in failed. Please try again.")
       setLoading(false)
     }
