@@ -66,7 +66,7 @@ export function QuickStatCard({
       onClick={onClick}
       className={`
         glass-card p-4 border ${colors.border}
-        ${isClickable ? `cursor-pointer ${colors.glow} hover:bg-white/5 transition-all duration-300` : ""}
+        ${isClickable ? `cursor-pointer hover:bg-accent/20 ${colors.glow} transition-all duration-300` : ""}
       `}
     >
       <div className="flex items-start justify-between mb-3">
