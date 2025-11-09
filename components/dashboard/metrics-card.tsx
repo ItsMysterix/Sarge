@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Brain, Activity, Database, CheckCircle, AlertTriangle, Shield } from 'lucide-react'
 
@@ -11,8 +11,18 @@ interface MetricsCardProps {
 
 export function MetricsCard({ metrics, loading }: MetricsCardProps) {
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d">("24h")
+  const [showEmptyState, setShowEmptyState] = useState(false)
 
-  if (loading) {
+  // Add timeout for empty state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowEmptyState(true)
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (loading && !showEmptyState) {
     return (
       <motion.div 
         className="flex justify-center items-center h-40 text-gray-400"
@@ -30,6 +40,28 @@ export function MetricsCard({ metrics, loading }: MetricsCardProps) {
         >
           Loading metrics...
         </motion.span>
+      </motion.div>
+    )
+  }
+
+  // Show placeholder when no metrics or after timeout
+  if (!metrics || (showEmptyState && loading)) {
+    return (
+      <motion.div 
+        className="glass-card p-6 mb-6 border border-white/10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="text-center py-8">
+          <Brain className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Metrics Available</h3>
+          <p className="text-sm text-gray-400 mb-4">
+            Deploy your application to see real-time performance metrics
+          </p>
+          <p className="text-xs text-gray-500">
+            💡 Use <span className="text-accent font-medium">Quick Deploy</span> to start generating metrics
+          </p>
+        </div>
       </motion.div>
     )
   }
