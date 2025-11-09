@@ -27,8 +27,6 @@ export default function Settings() {
   
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
   const [enableAnimations, setEnableAnimations] = useState(true)
-  const [userName, setUserName] = useState("User")
-  const [isEditingName, setIsEditingName] = useState(false)
   const [notifications, setNotifications] = useState({
     deploySuccess: true,
     deployFailure: true,
@@ -129,19 +127,36 @@ export default function Settings() {
     }
   }
 
-  const handleSaveName = async () => {
-    try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: userName }),
-      })
-      if (response.ok) {
-        addToast({ type: 'success', title: 'Profile Updated', description: 'Name saved successfully' })
-        setIsEditingName(false)
+  const handleExportSettings = () => {
+    const data = JSON.stringify(settings, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'sarge-settings.json'
+    a.click()
+    addToast({ type: 'success', title: 'Settings Exported', description: 'Configuration downloaded successfully' })
+  }
+
+  const handleImportSettings = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const text = await file.text()
+        const data = JSON.parse(text)
+        await updateSettings(data)
+        addToast({ type: 'success', title: 'Settings Imported', description: 'Configuration restored successfully' })
       }
-    } catch (error) {
-      addToast({ type: 'error', title: 'Update Failed', description: 'Failed to update name' })
+    }
+    input.click()
+  }
+
+  const handleClearData = () => {
+    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+      addToast({ type: 'warning', title: 'Clear Data', description: 'This feature will be implemented soon' })
     }
   }
 
@@ -196,11 +211,9 @@ export default function Settings() {
           {/* Tab Content */}
           {activeTab === "general" && (
             <GeneralTab
-              userName={userName}
-              isEditingName={isEditingName}
-              onNameChange={setUserName}
-              onEditToggle={() => setIsEditingName(!isEditingName)}
-              onSave={handleSaveName}
+              onExport={handleExportSettings}
+              onImport={handleImportSettings}
+              onClearData={handleClearData}
             />
           )}
 
