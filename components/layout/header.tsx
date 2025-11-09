@@ -26,7 +26,7 @@ export function Header() {
   }, [])
 
   return (
-    <header className="glass-card border-b border-white/10 px-6 py-4">
+    <header className="glass-card border-b border-white/10 px-6 py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* Project Switcher in header */}
