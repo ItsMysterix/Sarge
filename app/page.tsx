@@ -295,7 +295,7 @@ export default function Overview() {
                     loading={isDeploying}
                     loadingText="Deploying..."
                     onClick={handleQuickDeploy}
-                    className="glass-card px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center font-medium"
+                    className="px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center font-medium backdrop-blur-sm"
                   >
                     <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Quick Deploy</span>

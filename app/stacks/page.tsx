@@ -121,7 +121,7 @@ export default function StacksPage() {
                 Create a stack to compose services (S3, DynamoDB, Lambda, your APIs) into a cohesive application. 
                 Each stack runs independently with its own resources and logs.
               </p>
-              <button className="glass-card px-6 py-3 text-accent hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto">
+              <button className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
                 <Plus className="w-5 h-5 mr-2" />
                 Create Your First Stack
               </button>
