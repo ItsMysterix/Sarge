@@ -32,7 +32,7 @@ export function StepDetect({ onNext }: StepDetectProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div>
         <h2 className="mb-4 text-xl font-semibold">1. Detect Stack</h2>
         <p className="mb-6 text-sm text-muted-foreground">
           Point to your repo—we'll scan for services, AWS resources (S3, DynamoDB, Lambda), ports, and env keys. No cloud account needed.

@@ -49,12 +49,30 @@ export default function Logs() {
     { id: "bookmarked", label: "Bookmarked", active: false },
   ]);
 
+  // Get active type filters
+  const activeTypeFilters = filters.filter(f => ["info", "warn", "error", "alert"].includes(f.id) && f.active);
+  const typeFilter = activeTypeFilters.length === 1 ? activeTypeFilters[0].id : undefined;
+
   const logsQuery = t.logs.recent.useQuery(
-    { type: activeFilter.toLowerCase() === "all" ? undefined : activeFilter.toLowerCase() },
-    { refetchOnWindowFocus: false, enabled: !isPaused }
+    { 
+      type: typeFilter,
+      service: selectedService !== "all" ? selectedService : undefined,
+      search: searchTerm || undefined,
+    },
+    { 
+      refetchOnWindowFocus: false, 
+      enabled: !isPaused,
+      refetchInterval: isPaused ? false : 5000, // Refresh every 5 seconds when not paused
+    }
   );
 
-  const logs = logsQuery.data || [];
+  const servicesQuery = t.logs.services.useQuery(undefined, {
+    refetchOnMount: true,
+    staleTime: 60000, // Cache for 1 minute
+  });
+
+  const logs = logsQuery.data?.items || [];
+  const availableServices = servicesQuery.data || [];
 
   const handleFilterToggle = (filterId: string) => {
     setFilters(filters.map(f => f.id === filterId ? { ...f, active: !f.active } : f))
@@ -110,22 +128,10 @@ export default function Logs() {
   }
 
   const filteredLogs = logs.filter((log: any) => {
-    const activeTypeFilters = filters.filter(f => ["info", "warn", "error", "alert"].includes(f.id) && f.active);
     const showBookmarked = filters.find(f => f.id === "bookmarked")?.active;
-
-    const matchesSearch =
-      searchTerm === "" ||
-      log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.service.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesType = activeTypeFilters.length === 0 || activeTypeFilters.some(f => log.type === f.id);
-    const matchesService = selectedService === "all" || log.service === selectedService;
     const matchesBookmark = !showBookmarked || bookmarkedLogs.has(log.id);
-
-    return matchesSearch && matchesType && matchesService && matchesBookmark;
+    return matchesBookmark;
   });
-
-  const uniqueServices = Array.from(new Set(logs.map((log: any) => log.service)));
 
   const stats = {
     total: logs.length,
@@ -420,7 +426,7 @@ export default function Logs() {
                   className="glass-card px-4 py-2 rounded-lg border border-white/10 bg-transparent text-white focus:outline-none focus:border-accent/50"
                 >
                   <option value="all" className="bg-[#0f0f0f]">All Services</option>
-                  {(uniqueServices as string[]).map((service: string) => (
+                  {(availableServices as string[]).map((service: string) => (
                     <option key={service} value={service} className="bg-[#0f0f0f]">{service}</option>
                   ))}
                 </select>
