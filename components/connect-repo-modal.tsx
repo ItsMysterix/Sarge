@@ -42,12 +42,21 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
     try {
       const response = await fetch('/api/github/repos')
       if (!response.ok) {
-        throw new Error('Failed to fetch repositories')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch repositories')
       }
       const data = await response.json()
+      
+      // Check if data has error property (for edge cases)
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
       setRepos(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load repositories')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load repositories'
+      setError(errorMessage)
+      console.error('Error fetching repos:', errorMessage)
     } finally {
       setLoading(false)
     }
