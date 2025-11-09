@@ -158,29 +158,33 @@ export default function Overview() {
 
   const handleConnectRepo = async (repo: any) => {
     try {
+      // Extract owner and repo name from full_name (format: "owner/repo")
+      const [owner, repoName] = repo.full_name.split('/')
+      
       const response = await fetch('/api/repository', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: repo.name,
-          full_name: repo.full_name,
-          clone_url: repo.clone_url,
-          html_url: repo.html_url,
-          default_branch: repo.default_branch,
+          owner: owner,
+          repo: repoName,
+          description: repo.description || '',
         }),
       })
 
       if (response.ok) {
-        setRepository(repo)
+        const data = await response.json()
+        setRepository(data.repository)
         addToast({
           type: "success",
           title: "Repository Connected",
           description: `Successfully connected ${repo.full_name}`,
         })
       } else {
-        throw new Error('Failed to connect repository')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to connect repository')
       }
     } catch (error) {
+      console.error('Repository connection error:', error)
       addToast({
         type: "error",
         title: "Connection Failed",

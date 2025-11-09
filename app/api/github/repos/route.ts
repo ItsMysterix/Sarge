@@ -23,9 +23,10 @@ export async function GET(req: NextRequest) {
     let page = 1
     let hasMore = true
 
-    while (hasMore) {
+    while (hasMore && page <= 10) { // Safety limit of 10 pages (1000 repos)
+      console.log(`📥 Fetching page ${page}...`)
       const response = await fetch(
-        `https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated`,
+        `https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`,
         {
           headers: {
             Authorization: `Bearer ${session.accessToken}`,
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
       }
 
       const repos = await response.json()
+      console.log(`   ✓ Page ${page}: got ${repos.length} repositories`)
       allRepos = allRepos.concat(repos)
       
       // If we got less than 100 repos, we've reached the last page
@@ -58,7 +60,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`Successfully fetched ${allRepos.length} repositories from GitHub (${page} page${page > 1 ? 's' : ''})`)
+    console.log(`✅ Successfully fetched ${allRepos.length} total repositories from GitHub (${page} page${page > 1 ? 's' : ''})`)
     const repos = allRepos
 
     // Format the response
