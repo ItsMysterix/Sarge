@@ -9,5 +9,5 @@
  * with a clear message so nobody accidentally applies migrations twice.
  */
 
-console.warn('[DEPRECATED] Use `npm run db:migrate` (backend/scripts/migrate.ts) instead of scripts/run-migrations.ts');
+console.warn('[DEPRECATED] Use `npm run --workspace backend db:migrate` (backend/scripts/migrate.ts) instead of scripts/run-migrations.ts');
 process.exit(0);
