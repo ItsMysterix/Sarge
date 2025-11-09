@@ -232,7 +232,7 @@ export default function ProfilePage() {
                   <button
                     onClick={isEditing ? handleSave : () => setIsEditing(true)}
                     disabled={isSaving}
-                    className="glass-card w-full px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
                   >
                     {isEditing ? (
                       <>
@@ -355,7 +355,7 @@ export default function ProfilePage() {
                     ) : (
                       <a 
                         href="/api/auth/signin?callbackUrl=/profile"
-                        className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30"
+                        className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 backdrop-blur-sm"
                       >
                         Connect GitHub
                       </a>
@@ -422,7 +422,7 @@ export default function ProfilePage() {
                         <button
                           onClick={handleChangePassword}
                           disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-                          className="w-full glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
                         >
                           {isChangingPassword ? 'Changing Password...' : 'Update Password'}
                         </button>

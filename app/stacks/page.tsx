@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast"
 
 export default function StacksPage() {
   const [stacks, setStacks] = useState<any[]>([])
+  const [showEmptyState, setShowEmptyState] = useState(false)
   const { addToast, ToastContainer } = useToast()
   
   const t = trpc as any
@@ -21,6 +22,17 @@ export default function StacksPage() {
       setStacks(stacksQuery.data)
     }
   }, [stacksQuery.data])
+
+  // Show empty state after 2 seconds if still loading with no data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (stacks.length === 0 && !stacksQuery.isError) {
+        setShowEmptyState(true)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [stacks.length, stacksQuery.isError])
 
   const handleToggleStack = async (stack: any) => {
     const newStatus = stack.status === 'running' ? 'stopped' : 'running'
@@ -90,7 +102,7 @@ export default function StacksPage() {
           </motion.div>
 
           {/* Loading State */}
-          {stacksQuery.isLoading && (
+          {stacksQuery.isLoading && !showEmptyState && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <motion.div
@@ -103,8 +115,8 @@ export default function StacksPage() {
             </div>
           )}
 
-          {/* Empty State */}
-          {!stacksQuery.isLoading && stacks.length === 0 && (
+          {/* Empty State - Show after loading timeout or when no data */}
+          {(showEmptyState || (!stacksQuery.isLoading && stacks.length === 0)) && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
