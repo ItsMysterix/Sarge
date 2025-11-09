@@ -34,10 +34,41 @@ export default function Overview() {
   const [metrics, setMetrics] = useState<any>(null)
   const [logs, setLogs] = useState<any[]>([])
   const [metricsLoading, setMetricsLoading] = useState(true)
+  const [repository, setRepository] = useState<any>(null)
+  const [repoLoading, setRepoLoading] = useState(true)
 
   const t = trpc as any
   const triggerDeployment = t.deploy.create.useMutation()
   const metricsQuery = t.metrics.latest.useQuery()
+
+  // Fetch user's connected repository
+  useEffect(() => {
+    const fetchRepository = async () => {
+      try {
+        const res = await fetch('/api/repository')
+        const data = await res.json()
+        if (data.repository) {
+          setRepository(data.repository)
+          // Fetch GitHub data for this repo
+          const repoInfo = await t.github.getRepoInfo.useQuery({
+            owner: data.repository.owner,
+            repo: data.repository.repo,
+          })
+          if (repoInfo.data) {
+            setRepository({ ...data.repository, github: repoInfo.data })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching repository:', error)
+      } finally {
+        setRepoLoading(false)
+      }
+    }
+    
+    if (isSignedIn) {
+      fetchRepository()
+    }
+  }, [isSignedIn])
 
   useEffect(() => {
     if (!metricsQuery.isLoading && metricsQuery.data) {
@@ -231,9 +262,9 @@ export default function Overview() {
                     loading={isDeploying}
                     loadingText="Deploying..."
                     onClick={handleQuickDeploy}
-                    className="glass-card px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base text-accent hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center"
+                    className="bg-black px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base text-white hover:bg-accent hover:text-black transition-all duration-300 rounded-lg border border-accent/30 flex items-center font-medium"
                   >
-                    <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 text-black" />
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Quick Deploy</span>
                     <span className="sm:hidden">Deploy</span>
                   </LoadingButton>
@@ -242,7 +273,7 @@ export default function Overview() {
             </motion.div>
 
             <MetricsCard metrics={metrics} loading={metricsLoading} />
-            <Recommendations />
+            <GitHubActivity repository={repository} loading={repoLoading} />
             <LiveLogs logs={logs} />
           </motion.main>
         </div>
@@ -348,28 +379,28 @@ function MetricsCard({ metrics, loading }: { metrics: any; loading: boolean }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <MetricItem 
           label="CPU Usage" 
-          value={`${metrics?.cpu?.toFixed(1) || 23.4}%`} 
+          value={metrics?.cpu ? `${metrics.cpu.toFixed(1)}%` : "N/A"} 
           status={metrics?.cpu > 80 ? "error" : metrics?.cpu > 60 ? "warning" : "success"}
           icon={Activity}
           delay={0.4}
         />
         <MetricItem 
           label="Memory" 
-          value={`${metrics?.memory?.toFixed(1) || 45.2}%`} 
+          value={metrics?.memory ? `${metrics.memory.toFixed(1)}%` : "N/A"} 
           status={metrics?.memory > 85 ? "error" : metrics?.memory > 70 ? "warning" : "success"}
           icon={Database}
           delay={0.45}
         />
         <MetricItem 
           label="Uptime" 
-          value={`${(100 - (metrics?.cpu || 20)).toFixed(1)}%`}
+          value={metrics?.cpu ? `${(100 - metrics.cpu).toFixed(1)}%` : "N/A"}
           status="success"
           icon={CheckCircle}
           delay={0.5}
         />
         <MetricItem 
           label="Alerts" 
-          value={Math.floor(metrics?.memory / 20) || 2}
+          value={metrics?.memory ? Math.floor(metrics.memory / 20) : 0}
           status={metrics?.memory > 50 ? "warning" : "success"}
           icon={AlertTriangle}
           delay={0.55}
@@ -442,28 +473,84 @@ function MetricItem({
   )
 }
 
-function Recommendations() {
-  const [selectedCategory, setSelectedCategory] = useState<"all" | "performance" | "cost" | "security">("all")
+function GitHubActivity({ repository, loading }: { repository: any; loading: boolean }) {
+  const router = useRouter()
+  const t = trpc as any
   
-  const allRecommendations = [
-    { id: 1, category: "performance", tip: "Scale down unused containers during off-hours", impact: "High", savings: "$45/mo" },
-    { id: 2, category: "performance", tip: "Enable autoscaling for worker nodes", impact: "Medium", savings: "15% faster" },
-    { id: 3, category: "cost", tip: "Archive old logs to reduce storage cost", impact: "Medium", savings: "$23/mo" },
-    { id: 4, category: "security", tip: "Update SSL certificates expiring in 30 days", impact: "Critical", savings: "Security" },
-    { id: 5, category: "cost", tip: "Switch to reserved instances for 40% savings", impact: "High", savings: "$120/mo" },
-    { id: 6, category: "performance", tip: "Optimize database queries reducing load by 30%", impact: "High", savings: "Performance" },
-  ]
+  const [repoInfo, setRepoInfo] = useState<any>(null)
+  const [commits, setCommits] = useState<any[]>([])
+  
+  // Fetch GitHub data when repository is available
+  useEffect(() => {
+    if (repository?.owner && repository?.repo) {
+      // Using trpc queries
+      const fetchData = async () => {
+        try {
+          const info = await fetch(`https://api.github.com/repos/${repository.owner}/${repository.repo}`)
+          if (info.ok) {
+            const infoData = await info.json()
+            setRepoInfo(infoData)
+          }
+          
+          const commitsRes = await fetch(`https://api.github.com/repos/${repository.owner}/${repository.repo}/commits?per_page=5`)
+          if (commitsRes.ok) {
+            const commitsData = await commitsRes.json()
+            setCommits(commitsData)
+          }
+        } catch (error) {
+          console.error('Error fetching GitHub data:', error)
+        }
+      }
+      fetchData()
+    }
+  }, [repository])
 
-  const filteredTips = selectedCategory === "all" 
-    ? allRecommendations 
-    : allRecommendations.filter(r => r.category === selectedCategory)
+  if (loading) {
+    return (
+      <motion.div 
+        className="glass-card p-6 mb-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="text-center py-8 text-gray-400">
+          <motion.div 
+            className="h-6 w-6 border-b-2 border-accent rounded-full mx-auto mb-4"
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          />
+          Loading repository data...
+        </div>
+      </motion.div>
+    )
+  }
 
-  const categories = [
-    { id: "all", label: "All", count: allRecommendations.length },
-    { id: "performance", label: "Performance", count: allRecommendations.filter(r => r.category === "performance").length },
-    { id: "cost", label: "Cost", count: allRecommendations.filter(r => r.category === "cost").length },
-    { id: "security", label: "Security", count: allRecommendations.filter(r => r.category === "security").length },
-  ]
+  if (!repository) {
+    return (
+      <motion.div 
+        className="glass-card p-6 mb-6 border border-warning/30"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Lightbulb className="w-6 h-6 text-warning" />
+            <div>
+              <h2 className="text-xl font-semibold">Connect GitHub Repository</h2>
+              <p className="text-sm text-gray-400">Connect a repository to see real-time activity and insights</p>
+            </div>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push('/settings')}
+            className="px-4 py-2 bg-accent/20 text-accent hover:bg-accent/30 border border-accent/30 rounded-lg text-sm"
+          >
+            Connect Repository
+          </motion.button>
+        </div>
+      </motion.div>
+    )
+  }
 
   return (
     <motion.div 
@@ -481,96 +568,74 @@ function Recommendations() {
             <Lightbulb className="w-6 h-6 text-accent" />
           </motion.div>
           <div>
-            <h2 className="text-xl font-semibold">AI Recommendations</h2>
-            <p className="text-sm text-gray-400">Actionable insights to optimize your infrastructure</p>
+            <h2 className="text-xl font-semibold">Repository Activity</h2>
+            <p className="text-sm text-gray-400">{repository.full_name}</p>
           </div>
         </div>
-        <div className="text-sm text-gray-400 terminal-text">
-          Potential savings: <span className="text-accent font-bold">$188/mo</span>
-        </div>
+        {repoInfo && (
+          <div className="flex gap-4 text-sm text-gray-400">
+            <div className="flex items-center gap-1">
+              <span className="text-warning">★</span>
+              <span>{repoInfo.stargazers_count}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span>🔀</span>
+              <span>{repoInfo.forks_count}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <AlertTriangle className="w-4 h-4 text-error" />
+              <span>{repoInfo.open_issues_count}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Category Filter */}
-      <div className="flex gap-2 mb-6">
-        {categories.map((cat) => (
-          <motion.button
-            key={cat.id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedCategory(cat.id as any)}
-            className={`
-              px-4 py-2 rounded-lg text-sm font-medium terminal-text transition-all
-              ${selectedCategory === cat.id
-                ? "bg-accent/20 text-accent border border-accent/30"
-                : "glass-card text-gray-400 hover:text-white border border-white/10"
-              }
-            `}
-          >
-            {cat.label}
-            <span className="ml-2 px-1.5 py-0.5 rounded-full bg-white/10 text-xs">
-              {cat.count}
-            </span>
-          </motion.button>
-        ))}
-      </div>
-
-      <div className="space-y-3">
-        <AnimatePresence mode="wait">
-          {filteredTips.map((item, i) => (
+      {commits.length > 0 ? (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-gray-400 mb-3">Recent Commits</h3>
+          {commits.map((commit: any, i: number) => (
             <motion.div 
-              key={item.id} 
+              key={commit.sha}
               className="p-4 glass-card rounded-lg border border-white/10 hover:border-accent/30 transition-all"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3, delay: i * 0.05 }}
               whileHover={{ scale: 1.01, x: 5 }}
             >
               <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3 flex-1">
-                  <motion.div
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <Target className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-                  </motion.div>
-                  <div className="flex-1">
-                    <div className="text-sm text-gray-300 mb-2">{item.tip}</div>
-                    <div className="flex gap-3 text-xs">
-                      <span className={`
-                        px-2 py-1 rounded ${
-                          item.impact === "Critical" ? "bg-error/10 text-error" :
-                          item.impact === "High" ? "bg-warning/10 text-warning" :
-                          "bg-accent/10 text-accent"
-                        }
-                      `}>
-                        {item.impact} Impact
-                      </span>
-                      <span className="text-gray-500">Savings: <span className="text-success">{item.savings}</span></span>
-                    </div>
+                <div className="flex-1">
+                  <div className="text-sm text-gray-300 mb-2">{commit.commit.message}</div>
+                  <div className="flex gap-3 text-xs">
+                    <span className="text-gray-500">
+                      by <span className="text-accent">{commit.commit.author.name}</span>
+                    </span>
+                    <span className="text-gray-500">
+                      {new Date(commit.commit.author.date).toLocaleDateString()}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-accent/10 text-accent font-mono">
+                      {commit.sha.substring(0, 7)}
+                    </span>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <motion.button 
-                    className="px-3 py-1.5 text-xs text-accent hover:bg-accent/10 rounded border border-accent/30"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Apply
-                  </motion.button>
-                  <motion.button 
-                    className="px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/5 rounded"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Dismiss
-                  </motion.button>
-                </div>
+                <motion.a
+                  href={commit.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 text-xs text-accent hover:bg-accent/10 rounded border border-accent/30"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  View
+                </motion.a>
               </div>
             </motion.div>
           ))}
-        </AnimatePresence>
-      </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          No recent commits found
+        </div>
+      )}
     </motion.div>
   )
 }

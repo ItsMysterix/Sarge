@@ -1,8 +1,31 @@
 import { z } from "zod";
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 
 // Load environment variables from .env file if present
-dotenv.config({ path: '../../.env' });
+// Try multiple paths to find the .env file
+const possibleEnvPaths = [
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../../../.env'),
+];
+
+let envLoaded = false;
+for (const envPath of possibleEnvPaths) {
+  if (fs.existsSync(envPath)) {
+    const result = dotenv.config({ path: envPath });
+    if (!result.error) {
+      console.log(`✅ Backend loaded env from: ${envPath}`);
+      envLoaded = true;
+      break;
+    }
+  }
+}
+
+if (!envLoaded) {
+  console.warn('⚠️  No .env file found, using environment variables');
+}
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),

@@ -40,6 +40,18 @@ export type UserSettings = {
   user_id: string
   slack_alerts: boolean
   auto_rebuild: boolean
+  enable_animations?: boolean
+  theme_mode?: 'dark' | 'light' | 'auto'
+  notifications?: {
+    deploySuccess: boolean
+    deployFailure: boolean
+    serviceDown: boolean
+    highCpu: boolean
+    highMemory: boolean
+    securityAlerts: boolean
+    emailNotifications: boolean
+    slackNotifications: boolean
+  }
 }
 
 export const useUserSettings = () => {
@@ -64,7 +76,7 @@ export const useUserSettings = () => {
     return () => { cancelled = true }
   }, [])
 
-  async function updateSettings(patch: Partial<Pick<UserSettings, 'slack_alerts' | 'auto_rebuild'>>) {
+  async function updateSettings(patch: Partial<Omit<UserSettings, 'id' | 'user_id'>>) {
     const res = await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
