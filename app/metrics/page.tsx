@@ -2,18 +2,16 @@
 
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
-import { Activity, TrendingUp, Clock, Zap, Server, Database, Cpu, HardDrive, AlertTriangle, CheckCircle } from "lucide-react"
+import { Activity } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
-import { 
-  CPUUsageChart, 
-  MemoryUsageChart, 
-  RequestVolumeChart, 
-  ErrorRateChart,
-  ServiceDistributionChart,
-  MetricsChart 
-} from "@/components/ui/metrics-chart"
 import { trpc } from "@/lib/trpc"
+import { HealthBanner } from "@/components/metrics/health-banner"
+import { TabsNavigation } from "@/components/metrics/tabs-navigation"
+import { OverviewTab } from "@/components/metrics/overview-tab"
+import { PerformanceTab } from "@/components/metrics/performance-tab"
+import { InfrastructureTab } from "@/components/metrics/infrastructure-tab"
+import { ServicesTab } from "@/components/metrics/services-tab"
 
 interface MetricDataPoint {
   time: string
@@ -26,6 +24,7 @@ interface MetricDataPoint {
 
 export default function MetricsPage() {
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d'>('24h')
+  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'infrastructure' | 'services'>('overview')
   const [metricsHistory, setMetricsHistory] = useState<MetricDataPoint[]>([])
   const [currentMetrics, setCurrentMetrics] = useState<any>(null)
   const [services, setServices] = useState<any[]>([])
@@ -171,7 +170,7 @@ export default function MetricsPage() {
             transition={{ duration: 0.5 }}
             className="mb-6 sm:mb-8"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
                 <div className="flex items-center space-x-3 mb-2">
                   <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
@@ -201,262 +200,57 @@ export default function MetricsPage() {
                 ))}
               </div>
             </div>
+
+            {/* Tabs Navigation */}
+            <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
           </motion.div>
 
-          {/* Health Score Banner */}
-          <motion.div 
-            className="glass-card p-6 mb-6 border-l-4 border-l-accent"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`p-4 rounded-lg ${healthScore >= 80 ? 'bg-success/10' : healthScore >= 60 ? 'bg-warning/10' : 'bg-error/10'}`}>
-                  {healthScore >= 80 ? (
-                    <CheckCircle className="w-8 h-8 text-success" />
-                  ) : (
-                    <AlertTriangle className="w-8 h-8 text-warning" />
-                  )}
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">System Health</div>
-                  <div className={`text-2xl font-bold ${healthScore >= 80 ? 'text-success' : healthScore >= 60 ? 'text-warning' : 'text-error'}`}>
-                    {healthStatus}
-                  </div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className={`text-5xl font-bold ${healthScore >= 80 ? 'text-success' : healthScore >= 60 ? 'text-warning' : 'text-error'}`}>
-                  {healthGrade}
-                </div>
-                <div className="text-xs text-gray-400 mt-1">{healthScore}/100</div>
-              </div>
-            </div>
-          </motion.div>
+          {/* Health Score Banner - Only on Overview */}
+          {activeTab === 'overview' && (
+            <HealthBanner 
+              healthScore={healthScore} 
+              healthStatus={healthStatus} 
+              healthGrade={healthGrade} 
+            />
+          )}
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Cpu className="w-5 h-5 text-accent" />
-                <span className="text-xs text-gray-400">CPU Usage</span>
-              </div>
-              <div className="text-2xl font-bold text-accent">
-                {currentMetrics?.cpu?.toFixed(1) || avgCpu.toFixed(1)}%
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                Avg: {avgCpu.toFixed(1)}% · Peak: {Math.max(...displayData.map(d => d.cpu)).toFixed(1)}%
-              </div>
-            </motion.div>
+          {/* Tab Content */}
+          {activeTab === 'overview' && (
+            <OverviewTab
+              displayData={displayData}
+              currentMetrics={currentMetrics}
+              avgCpu={avgCpu}
+              avgMemory={avgMemory}
+              avgLatency={avgLatency}
+              totalRequests={totalRequests}
+            />
+          )}
 
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Database className="w-5 h-5 text-warning" />
-                <span className="text-xs text-gray-400">Memory</span>
-              </div>
-              <div className="text-2xl font-bold text-warning">
-                {currentMetrics?.memory?.toFixed(1) || avgMemory.toFixed(1)}%
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                Avg: {avgMemory.toFixed(1)}% · Used: {((avgMemory / 100) * 8).toFixed(1)}GB / 8GB
-              </div>
-            </motion.div>
+          {activeTab === 'performance' && (
+            <PerformanceTab
+              displayData={displayData}
+              avgLatency={avgLatency}
+              totalRequests={totalRequests}
+              errorRate={errorRate}
+              totalErrors={totalErrors}
+            />
+          )}
 
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-info" />
-                <span className="text-xs text-gray-400">Response Time</span>
-              </div>
-              <div className="text-2xl font-bold text-info">
-                {currentMetrics?.latency || Math.floor(avgLatency)}ms
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                p50: {Math.floor(avgLatency)}ms · p95: {Math.floor(avgLatency * 1.5)}ms
-              </div>
-            </motion.div>
+          {activeTab === 'infrastructure' && (
+            <InfrastructureTab
+              displayData={displayData}
+              currentMetrics={currentMetrics}
+              avgCpu={avgCpu}
+              avgMemory={avgMemory}
+            />
+          )}
 
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-5 h-5 text-success" />
-                <span className="text-xs text-gray-400">Throughput</span>
-              </div>
-              <div className="text-2xl font-bold text-success">
-                {Math.floor(totalRequests / displayData.length)}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                req/min · {totalRequests.toLocaleString()} total
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Additional Infrastructure Metrics */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <HardDrive className="w-5 h-5 text-purple-400" />
-                <span className="text-xs text-gray-400">Disk I/O</span>
-              </div>
-              <div className="text-2xl font-bold text-purple-400">
-                {(Math.random() * 100 + 50).toFixed(0)} MB/s
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                Read: 45 MB/s · Write: 32 MB/s
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Zap className="w-5 h-5 text-yellow-400" />
-                <span className="text-xs text-gray-400">Network I/O</span>
-              </div>
-              <div className="text-2xl font-bold text-yellow-400">
-                {(Math.random() * 50 + 20).toFixed(0)} MB/s
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                In: 28 MB/s · Out: 19 MB/s
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Server className="w-5 h-5 text-cyan-400" />
-                <span className="text-xs text-gray-400">Active Containers</span>
-              </div>
-              <div className="text-2xl font-bold text-cyan-400">
-                {services.length || 5}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                Running · 0 stopped
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="glass-card p-4 border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <AlertTriangle className="w-5 h-5 text-error" />
-                <span className="text-xs text-gray-400">Error Rate</span>
-              </div>
-              <div className="text-2xl font-bold text-error">
-                {errorRate.toFixed(2)}%
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                {totalErrors} errors · {(totalErrors / (displayData.length || 1)).toFixed(1)}/min
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* CPU Chart */}
-            <motion.div 
-              className="glass-card p-6 border border-white/10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <CPUUsageChart data={displayData} />
-            </motion.div>
-
-            {/* Memory Chart */}
-            <motion.div 
-              className="glass-card p-6 border border-white/10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.35 }}
-            >
-              <MemoryUsageChart data={displayData} />
-            </motion.div>
-
-            {/* Latency Chart */}
-            <motion.div 
-              className="glass-card p-6 border border-white/10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              <MetricsChart
-                data={displayData}
-                type="line"
-                dataKey="latency"
-                xAxisKey="time"
-                title="Response Latency (ms)"
-                color="#00d4ff"
-              />
-            </motion.div>
-
-            {/* Error Rate */}
-            <motion.div 
-              className="glass-card p-6 border border-white/10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.45 }}
-            >
-              <ErrorRateChart data={displayData} />
-            </motion.div>
-          </div>
-
-          {/* Additional Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Service Distribution */}
-            <motion.div 
-              className="glass-card p-6 border border-white/10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <ServiceDistributionChart data={serviceData} />
-            </motion.div>
-
-            {/* Request Volume */}
-            <motion.div 
-              className="glass-card p-6 border border-white/10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.55 }}
-            >
-              <RequestVolumeChart data={displayData} />
-            </motion.div>
-          </div>
+          {activeTab === 'services' && (
+            <ServicesTab
+              services={services}
+              serviceData={serviceData}
+            />
+          )}
         </main>
       </div>
     </div>
