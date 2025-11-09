@@ -2,10 +2,8 @@ import NextAuth from "next-auth"
 import type { NextAuthOptions } from "next-auth"
 import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
-import PostgresAdapter from "@auth/pg-adapter"
 import { getDbPool } from "@/lib/db"
 import bcrypt from "bcryptjs"
-import type { Adapter } from "next-auth/adapters"
 
 // Ensure NEXTAUTH_SECRET is set
 if (!process.env.NEXTAUTH_SECRET) {
@@ -15,7 +13,8 @@ if (!process.env.NEXTAUTH_SECRET) {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: PostgresAdapter(getDbPool()) as Adapter,
+  // Don't use database adapter - use pure JWT for now
+  // adapter: PostgresAdapter(getDbPool()) as Adapter,
   
   providers: [
     // GitHub OAuth provider (optional, requires GITHUB_ID and GITHUB_SECRET)
@@ -89,26 +88,59 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/sign-in",
     signOut: "/",
-    error: "/sign-in",
+    error: "/sign-in", // Keep simple - will show error in URL params
+  },
+  
+  session: {
+    strategy: "jwt", // Use JWT instead of database sessions for OAuth
   },
   
   callbacks: {
     async signIn({ user, account, profile }) {
+      console.log('🔵 signIn callback started', { 
+        provider: account?.provider, 
+        userId: user?.id, 
+        email: user?.email 
+      })
+      
       try {
-        // For OAuth providers (GitHub), auto-verify email
-        if (account?.provider === "github" && user?.id) {
-          console.log('🔵 GitHub OAuth signIn callback, user:', user.id)
+        // For OAuth providers (GitHub), create/update user in database
+        if (account?.provider === "github" && user?.email) {
+          console.log('🔵 GitHub OAuth - handling user for:', user.email)
           const pool = getDbPool()
-          const result = await pool.query(
-            `UPDATE users SET email_verified = NOW() WHERE id = $1 AND email_verified IS NULL`,
-            [user.id]
+          
+          // Check if user exists
+          const existing = await pool.query(
+            `SELECT id FROM users WHERE email = $1`,
+            [user.email]
           )
-          console.log('✅ Updated email_verified for user:', user.id, 'rows affected:', result.rowCount)
+          
+          if (existing.rows.length === 0) {
+            // Create new user
+            console.log('🔵 Creating new user:', user.email)
+            await pool.query(
+              `INSERT INTO users (id, email, name, image, email_verified, created_at, updated_at)
+               VALUES (gen_random_uuid(), $1, $2, $3, NOW(), NOW(), NOW())`,
+              [user.email, user.name || user.email.split('@')[0], user.image]
+            )
+            console.log('✅ New user created')
+          } else {
+            // Update existing user
+            console.log('🔵 Updating existing user:', user.email)
+            await pool.query(
+              `UPDATE users SET name = $1, image = $2, email_verified = NOW(), updated_at = NOW()
+               WHERE email = $3`,
+              [user.name || user.email.split('@')[0], user.image, user.email]
+            )
+            console.log('✅ User updated')
+          }
         }
       } catch (error) {
         console.error('❌ Error in signIn callback:', error)
-        // Don't block sign-in if this fails
+        // Don't block sign-in if database operations fail
       }
+      
+      console.log('✅ signIn callback returning true')
       return true
     },
     async session({ session, token }) {
