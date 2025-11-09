@@ -106,7 +106,7 @@ export function ProjectSwitcher() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
-              className="absolute top-full left-0 mt-2 w-[320px] rounded-lg bg-[#1a1a1a] border border-white/10 shadow-2xl z-50 overflow-hidden"
+              className="absolute top-full left-0 mt-2 w-[320px] rounded-lg bg-[#1a1a1a] border border-white/10 shadow-2xl z-[60] overflow-hidden"
             >
               {/* Search */}
               <div className="p-3 border-b border-white/10">
