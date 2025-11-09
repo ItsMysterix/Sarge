@@ -31,7 +31,7 @@ export function StepPlan({ blueprint, onBack, onNext }: StepPlanProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div>
         <h2 className="mb-4 text-xl font-semibold">2. Plan Changes</h2>
         <p className="mb-6 text-sm text-muted-foreground">
           Preview exactly what will run. We assign ports, validate env vars, and surface conflicts—before any process starts.

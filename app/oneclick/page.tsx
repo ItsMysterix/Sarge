@@ -72,30 +72,32 @@ export default function OneClickPage() {
             </nav>
 
             {/* Step content */}
-            {step === 'detect' && (
-              <StepDetect
-                onNext={(bp: any) => {
-                  setBlueprint(bp)
-                  setStep('plan')
-                }}
-              />
-            )}
-            {step === 'plan' && blueprint && (
-              <StepPlan
-                blueprint={blueprint}
-                onBack={() => setStep('detect')}
-                onNext={(p: any) => {
-                  setPlan(p)
-                  setStep('observe')
-                }}
-              />
-            )}
-            {step === 'observe' && plan && (
-              <StepObserve
-                plan={plan}
-                onBack={() => setStep('plan')}
-              />
-            )}
+            <div className="glass-card p-6 border border-white/10 rounded-lg">
+              {step === 'detect' && (
+                <StepDetect
+                  onNext={(bp: any) => {
+                    setBlueprint(bp)
+                    setStep('plan')
+                  }}
+                />
+              )}
+              {step === 'plan' && blueprint && (
+                <StepPlan
+                  blueprint={blueprint}
+                  onBack={() => setStep('detect')}
+                  onNext={(p: any) => {
+                    setPlan(p)
+                    setStep('observe')
+                  }}
+                />
+              )}
+              {step === 'observe' && plan && (
+                <StepObserve
+                  plan={plan}
+                  onBack={() => setStep('plan')}
+                />
+              )}
+            </div>
           </div>
         </main>
       </div>

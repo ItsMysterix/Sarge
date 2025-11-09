@@ -62,7 +62,7 @@ export function StepObserve({ plan, onBack }: StepObserveProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold">3. Observe & Manage</h2>
           <div className="flex items-center gap-2">
