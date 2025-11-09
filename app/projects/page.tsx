@@ -85,12 +85,23 @@ export default function ProjectsPage() {
 
   return (
     <div className="flex-1 p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Projects</h1>
-        <p className="text-gray-400">
-          Manage all your deployed applications and services
-        </p>
+      {/* Branded Hero Header */}
+      <div className="mb-10">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              SARGE
+            </span>
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/5 border border-white/10 backdrop-blur-sm">
+              AI Co-Pilot
+            </span>
+          </div>
+          <h1 className="text-3xl font-bold">Your Operational Projects</h1>
+          <p className="text-gray-400 max-w-2xl text-sm">
+            Select a project to enter the real-time command center. Create new environments with one-click deploy,
+            stream logs & metrics instantly, and let the AI co‑pilot surface insights as you scale.
+          </p>
+        </div>
       </div>
 
       {/* Actions Bar */}
@@ -249,28 +260,29 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {/* Stats Footer */}
+      {/* Stats Footer / Portfolio Summary */}
       {projects.length > 0 && (
-        <div className="mt-8 glass-card p-6 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="mt-12 glass-card p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 flex-1">
             <div>
               <div className="text-2xl font-bold">{projects.length}</div>
-              <div className="text-sm text-gray-400">Total Projects</div>
+              <div className="text-xs uppercase tracking-wide text-gray-400">Total Projects</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-400">
-                {projects.filter(p => p.status === 'active').length}
-              </div>
-              <div className="text-sm text-gray-400">Active</div>
+              <div className="text-2xl font-bold text-green-400">{projects.filter(p => p.status === 'active').length}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-400">Active</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-400">
-                {projects.reduce((sum, p) => sum + p.deploymentCount, 0)}
-              </div>
-              <div className="text-sm text-gray-400">Total Deploys</div>
+              <div className="text-2xl font-bold text-blue-400">{projects.reduce((sum, p) => sum + p.deploymentCount, 0)}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-400">Total Deploys</div>
             </div>
           </div>
-          <TrendingUp className="h-8 w-8 text-blue-400" />
+          <div className="flex items-center gap-3 text-sm text-gray-400">
+            <TrendingUp className="h-5 w-5 text-blue-400" />
+            <span className="hidden sm:inline">
+              Healthy portfolio · Real-time telemetry ready
+            </span>
+          </div>
         </div>
       )}
     </div>

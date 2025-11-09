@@ -19,6 +19,8 @@ Minimum values:
 - NEXT_PUBLIC_WS_URL (e.g. ws://localhost:3200) if your WS server runs on a separate port; otherwise it defaults to ws(s)://<host>/ws
 - PROM_METRICS_TOKEN required only in production (not for local dev)
 - NEXTAUTH_SECRET and NEXTAUTH_URL for Auth.js authentication
+ - ANTHROPIC_API_KEY (optional) to enable AI Co-Pilot analysis features
+ - ENABLE_AI_ANALYSIS=true (optional flag to gate AI features)
 
 2) Install + run
 
@@ -77,6 +79,28 @@ Auto-generated snapshot: `docs/api/trpc.md` (run `npm run docs:trpc`).
 
 ## Release Checklist
 See `docs/release-checklist.md`.
+
+## Vercel Environment Variables
+Set these in your Vercel project (Production + Preview). If a variable is optional, the platform will fall back to mock data or hide that feature.
+
+| Name | Required | Purpose |
+|------|----------|---------|
+| DATABASE_URL | Recommended (required for persistence) | Neon Postgres connection string (use psql or Dashboard to copy). |
+| NEXTAUTH_SECRET | Yes (if auth enabled) | Auth.js session encryption secret. Generate with `openssl rand -hex 32`. |
+| NEXTAUTH_URL | Yes (auth) | Public site URL (https://your-domain). |
+| NEXT_PUBLIC_WS_URL | Optional | Override WS endpoint if running backend separately (e.g. wss://api.your-domain/ws). |
+| PROM_METRICS_TOKEN | Optional (prod) | Token required for scraping protected metrics endpoint. |
+| ANTHROPIC_API_KEY | Optional | Enables AI Co-Pilot suggestions & analysis. |
+| ENABLE_AI_ANALYSIS | Optional | Feature flag to toggle AI components (set to `true`). |
+| RATE_LIMIT_MAX | Optional | Override default rate limit bucket size. |
+| RATE_LIMIT_WINDOW_SEC | Optional | Override rate limit window length. |
+| WS_PORT | Optional (local only) | WebSocket server port (defaults to 3200 locally). |
+
+Tips:
+1. Keep secrets out of the client: only NEXT_PUBLIC_* vars are exposed.
+2. If DATABASE_URL is absent, serverless routes will serve mock data for a smoother dev UX.
+3. Rotate NEXTAUTH_SECRET if compromised; sessions become invalid immediately.
+4. Use separate DATABASE_URL for Preview vs Production to avoid mixing data.
 
 ## Contributing / License
 - Internal project; contributions welcome via PRs.
