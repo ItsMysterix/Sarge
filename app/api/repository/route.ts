@@ -5,7 +5,7 @@ import { getDbPool } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -15,8 +15,24 @@ export async function GET() {
 
     try {
       const pool = getDbPool()
+      const url = new URL(req.url)
+      const projectSlug = url.searchParams.get('projectSlug')
       
-      // Get user's primary repository
+      if (projectSlug) {
+        // Prefer project-specific repository if set
+        const byProject = await pool.query(
+          `SELECT r.* FROM projects p
+           JOIN repositories r ON r.id = p.repository_id
+           WHERE p.slug = $1
+           LIMIT 1`,
+          [projectSlug]
+        )
+        if (byProject.rows.length > 0) {
+          return NextResponse.json({ repository: byProject.rows[0] })
+        }
+      }
+
+      // Fallback: user's primary repository
       const result = await pool.query(
         `SELECT r.* FROM repositories r
          JOIN users u ON r.user_id = u.id
@@ -49,7 +65,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { owner, repo, description } = await req.json()
+  const { owner, repo, description, projectSlug } = await req.json()
 
     if (!owner || !repo) {
       return NextResponse.json({ error: "Owner and repo are required" }, { status: 400 })
@@ -93,7 +109,7 @@ export async function POST(req: Request) {
 
       const userId = userResult.rows[0].id
 
-      // Upsert repository (set as primary)
+      // Upsert repository (set as primary for the user)
       const result = await pool.query(
         `INSERT INTO repositories (user_id, owner, repo, full_name, description, is_primary, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
@@ -112,6 +128,15 @@ export async function POST(req: Request) {
          WHERE user_id = $1 AND id != $2`,
         [userId, result.rows[0].id]
       )
+
+      // If a projectSlug is provided, bind this repository to that project (one repo per project)
+      if (projectSlug) {
+        await pool.query(
+          `UPDATE projects SET repository_id = $1, updated_at = NOW()
+           WHERE slug = $2`,
+          [result.rows[0].id, projectSlug]
+        )
+      }
 
       return NextResponse.json({ repository: result.rows[0] })
     } catch (dbError) {

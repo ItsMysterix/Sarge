@@ -47,22 +47,15 @@ export default function Overview() {
   const triggerDeployment = t.deploy.create.useMutation()
   const metricsQuery = t.metrics.latest.useQuery()
 
-  // Fetch user's connected repository
+  // Fetch connected repository for current project (or fallback to user's primary)
   useEffect(() => {
     const fetchRepository = async () => {
       try {
-        const res = await fetch('/api/repository')
+        const query = currentProject ? `?projectSlug=${encodeURIComponent(currentProject.slug)}` : ''
+        const res = await fetch(`/api/repository${query}`)
         const data = await res.json()
         if (data.repository) {
           setRepository(data.repository)
-          // Fetch GitHub data for this repo
-          const repoInfo = await t.github.getRepoInfo.useQuery({
-            owner: data.repository.owner,
-            repo: data.repository.repo,
-          })
-          if (repoInfo.data) {
-            setRepository({ ...data.repository, github: repoInfo.data })
-          }
         }
       } catch (error) {
         console.error('Error fetching repository:', error)
@@ -74,7 +67,7 @@ export default function Overview() {
     if (isSignedIn) {
       fetchRepository()
     }
-  }, [isSignedIn])
+  }, [isSignedIn, currentProject])
 
   useEffect(() => {
     if (!metricsQuery.isLoading && metricsQuery.data) {
@@ -176,12 +169,20 @@ export default function Overview() {
           owner: owner,
           repo: repoName,
           description: repo.description || '',
+          projectSlug: currentProject?.slug,
         }),
       })
 
       if (response.ok) {
         const data = await response.json()
         setRepository(data.repository)
+        // refresh from server to include any project binding
+        try {
+          const query = currentProject ? `?projectSlug=${encodeURIComponent(currentProject.slug)}` : ''
+          const latest = await fetch(`/api/repository${query}`)
+          const latestData = await latest.json()
+          if (latest.ok && latestData.repository) setRepository(latestData.repository)
+        } catch {}
         addToast({
           type: "success",
           title: "Repository Connected",
