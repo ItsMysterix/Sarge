@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { SettingsIcon } from "lucide-react"
@@ -22,9 +23,9 @@ export default function Settings() {
   const { isTestingWebhook, setTestingWebhook } = useAppStore()
   const { addToast, ToastContainer } = useToast()
   const userRole = useUserRole()
+  const { theme, setTheme } = useTheme()
   
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
-  const [themeMode, setThemeMode] = useState<"dark" | "light" | "system">("dark")
   const [enableAnimations, setEnableAnimations] = useState(true)
   const [userName, setUserName] = useState("User")
   const [isEditingName, setIsEditingName] = useState(false)
@@ -42,29 +43,9 @@ export default function Settings() {
   // Load settings on mount
   useEffect(() => {
     if (settings) {
-      const savedTheme = (settings.theme_mode || "dark") as "dark" | "light" | "system"
-      setThemeMode(savedTheme)
       setEnableAnimations(settings.enable_animations ?? true)
       if (settings.notifications) {
         setNotifications({ ...notifications, ...settings.notifications })
-      }
-      
-      // Apply theme on load
-      if (savedTheme === "system") {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        document.documentElement.classList.remove('dark', 'light')
-        document.documentElement.classList.add(prefersDark ? 'dark' : 'light')
-        
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-        const handleChange = (e: MediaQueryListEvent) => {
-          document.documentElement.classList.remove('dark', 'light')
-          document.documentElement.classList.add(e.matches ? 'dark' : 'light')
-        }
-        mediaQuery.addEventListener('change', handleChange)
-        return () => mediaQuery.removeEventListener('change', handleChange)
-      } else {
-        document.documentElement.classList.remove('dark', 'light')
-        document.documentElement.classList.add(savedTheme)
       }
     }
   }, [settings])
@@ -88,16 +69,7 @@ export default function Settings() {
   }
 
   const handleThemeChange = async (mode: "dark" | "light" | "system") => {
-    setThemeMode(mode)
-    
-    if (mode === "system") {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      document.documentElement.classList.remove('dark', 'light')
-      document.documentElement.classList.add(prefersDark ? 'dark' : 'light')
-    } else {
-      document.documentElement.classList.remove('dark', 'light')
-      document.documentElement.classList.add(mode)
-    }
+    setTheme(mode)
     
     try {
       await updateSettings({ theme_mode: mode as any })
@@ -234,7 +206,7 @@ export default function Settings() {
 
           {activeTab === "appearance" && (
             <AppearanceTab
-              themeMode={themeMode}
+              themeMode={(theme as "dark" | "light" | "system") || "dark"}
               enableAnimations={enableAnimations}
               onThemeChange={handleThemeChange}
               onAnimationsToggle={handleAnimationsToggle}

@@ -4,6 +4,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { TrpcReactProvider } from "@/lib/trpc-provider"; 
 import { AuthDebug } from "@/components/debug/auth-debug";
 import { SessionProviderWrapper } from "@/components/providers/session-provider-wrapper";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
 // Force dynamic rendering for all pages (no static generation)
@@ -35,14 +36,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="font-sans antialiased bg-black text-white">
-        <SessionProviderWrapper>
-          <TrpcReactProvider>
-            {children}
-            <AuthDebug />
-          </TrpcReactProvider>
-        </SessionProviderWrapper>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange={false}
+        >
+          <SessionProviderWrapper>
+            <TrpcReactProvider>
+              {children}
+              <AuthDebug />
+            </TrpcReactProvider>
+          </SessionProviderWrapper>
+        </ThemeProvider>
       </body>
     </html>
   );
