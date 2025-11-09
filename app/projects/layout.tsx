@@ -1,4 +1,4 @@
-import { Header } from "@/components/layout/header";
+import { ProjectsHeader } from "@/components/layout/projects-header";
 
 export default function ProjectsLayout({
   children,
@@ -8,7 +8,7 @@ export default function ProjectsLayout({
   return (
     <div className="flex h-screen bg-[#0f0f0f]">
       <main className="flex-1 overflow-auto">
-        <Header />
+        <ProjectsHeader />
         {children}
       </main>
     </div>
