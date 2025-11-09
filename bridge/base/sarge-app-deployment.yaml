@@ -28,8 +28,10 @@ spec:
                   image: sarge-sarge-app
                   imagePullPolicy: IfNotPresent
                   env:
-                    - name: CLERK_SECRET_KEY
-                      value: "sk_test_F44DaxEnCfRnIubQzWvo35RrfJEt7KKbgUmaJfG6Ck"
+                    - name: NEXTAUTH_SECRET
+                      value: "change_this_in_production_use_openssl_rand_base64_32"
+                    - name: NEXTAUTH_URL
+                      value: "http://localhost:3000"
                     - name: DATABASE_URL
                       value: "postgresql://username:password@ep-example-123456.us-east-1.aws.neon.tech/neondb?sslmode=require"
                     - name: DATABASE_URL_UNPOOLED
@@ -42,16 +44,6 @@ spec:
                       value: "http://localhost:3000/"
                     - name: NEXT_PUBLIC_BACKEND_URL
                       value: "http://localhost:5050/"
-                    - name: NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
-                      value: "/"
-                    - name: NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-                      value: "/"
-                    - name: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-                      value: "pk_test_YXNzdXJpbmctdGV0cmEtOTkuY2xlcmsuYWNjb3VudHMuZGV2JA"
-                    - name: NEXT_PUBLIC_CLERK_SIGN_IN_URL
-                      value: "/sign-in"
-                    - name: NEXT_PUBLIC_CLERK_SIGN_UP_URL
-                      value: "/sign-up"
                     - name: NEXT_PUBLIC_STACK_PROJECT_ID
                       value: "***REDACTED_STACK_PROJECT_ID***"
                     - name: NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY

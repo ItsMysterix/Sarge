@@ -3,9 +3,6 @@ import React from "react"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 
-// Auth is always enabled with next-auth
-export const CLERK_ENABLED = true
-
 export function useUser() {
   const { data: session, status } = useSession()
   return {

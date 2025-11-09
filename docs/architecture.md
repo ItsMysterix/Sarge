@@ -56,7 +56,7 @@ Client        Backend WS           Executor          DB
 +-------------------+           WS (tRPC)           +-------------------+
 | Next.js (app/)    |  <------------------------>   | Backend (tRPC WS) |
 |  - UI + TRPC      |                               |  - Routers        |
-|  - Clerk (opt)    |       ctx.ee events           |  - Executor       |
+|  - Auth.js        |       ctx.ee events           |  - Executor       |
 +---------+---------+        (deploys/logs/metrics) +----+--------------+
           ^                                           ^  |
           |                                           |  v

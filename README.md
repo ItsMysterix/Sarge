@@ -18,7 +18,7 @@ Minimum values:
 - DATABASE_URL (Neon) if you want real data (without it, API routes return mock data in dev)
 - NEXT_PUBLIC_WS_URL (e.g. ws://localhost:3200) if your WS server runs on a separate port; otherwise it defaults to ws(s)://<host>/ws
 - PROM_METRICS_TOKEN required only in production (not for local dev)
-- Clerk keys are optional; without them, app runs unauthenticated via a safe wrapper
+- NEXTAUTH_SECRET and NEXTAUTH_URL for Auth.js authentication
 
 2) Install + run
 
@@ -30,7 +30,7 @@ npm run dev
 ## Features by Epic
 - 1) Core WS + tRPC: subscriptions for logs, metrics, deploys
 - 2) Persistence: Neon-backed storage and migrations
-- 3) Security: CORS, rate limits, payload caps, auth (Clerk optional)
+- 3) Security: CORS, rate limits, payload caps, Auth.js authentication
 - 4) CI/CD: preflight validation, GHCR build/push foundation
 - 5) Observability: Prometheus metrics, Grafana dashboards, Alertmanager
 - 6) Deploy executor: background worker and event topics
@@ -53,7 +53,7 @@ See docs for details:
 +-------------------+           WS (tRPC)           +-------------------+
 | Next.js (app/)    |  <------------------------>   | Backend (tRPC WS) |
 |  - UI + TRPC      |                               |  - Routers        |
-|  - Clerk (opt)    |       ctx.ee events           |  - Executor       |
+|  - Auth.js        |       ctx.ee events           |  - Executor       |
 +---------+---------+        (deploys/logs/metrics) +----+--------------+
 	    ^                                           ^  |
 	    |                                           |  v

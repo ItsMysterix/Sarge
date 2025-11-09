@@ -247,7 +247,7 @@ app/
 lib/
 ├── db.ts                              # Database connection pool
 ├── email-verification.ts              # OTP generation & email
-└── clerk-safe.tsx                     # Auth hooks (useUser, etc.)
+└── clerk-safe.tsx                     # Auth hooks wrapper (useUser, etc.)
 
 scripts/migrations/
 └── 0008_auth_tables.sql               # Database schema

@@ -4,7 +4,7 @@
 - Node.js 20+
 - pnpm or npm
 - Neon/Postgres URL (DATABASE_URL)
-- Clerk keys (optional; app runs without, thanks to safe wrapper)
+- Auth.js environment variables (NEXTAUTH_SECRET, NEXTAUTH_URL)
 - Docker (optional: Prometheus/Grafana/Alertmanager locally)
 
 ## Steps
@@ -18,7 +18,7 @@ cp .env.example .env
 Minimum to run:
 - NEXT_PUBLIC_WS_URL (if WS runs on a separate port, e.g. ws://localhost:3200)
 - DATABASE_URL (for real data; otherwise mock-first API routes return sample data)
-- Clerk keys are optional; without them, the app runs in unauthenticated mode.
+- NEXTAUTH_SECRET and NEXTAUTH_URL for Auth.js authentication
 
 2) Install deps
 
@@ -53,4 +53,4 @@ node backend/scripts/migrate.js # or provided scripts in scripts/*.sql
 - WS URL mismatch: ensure `NEXT_PUBLIC_WS_URL` matches your WS server (port/host). If omitted, client defaults to ws(s)://<host>/ws.
 - Metrics token: `PROM_METRICS_TOKEN` is required in production only.
 - CORS: set `ALLOWED_ORIGINS` and `WS_ALLOWED_ORIGINS` for cross-origin WebSocket/API calls.
-- Clerk: without real keys, auth UI is disabled; to test sign-in, provide `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`.
+- Auth.js: ensure NEXTAUTH_SECRET is set and DATABASE_URL points to a database with Auth.js tables.
