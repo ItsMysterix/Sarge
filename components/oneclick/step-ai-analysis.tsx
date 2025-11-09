@@ -17,6 +17,7 @@ import {
   Edit2,
   Save
 } from 'lucide-react'
+import { trpc } from '@/lib/trpc'
 
 interface Repository {
   id: number
@@ -70,6 +71,9 @@ export function StepAIAnalysis({ repository, onAnalysisComplete, onBack, onNext 
   const [isEditingPorts, setIsEditingPorts] = useState(false)
   const [newPort, setNewPort] = useState('')
 
+  // tRPC mutation for AI analysis
+  const analyzeMutation = (trpc.project as any).analyzeRepository.useMutation()
+
   useEffect(() => {
     performAIAnalysis()
   }, [repository])
@@ -79,39 +83,32 @@ export function StepAIAnalysis({ repository, onAnalysisComplete, onBack, onNext 
     setError(null)
 
     try {
-      // Simulate AI analysis - replace with actual tRPC call
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      console.log(`Starting AI analysis for ${repository.owner}/${repository.repo}`)
+      
+      // Call real AI analysis via tRPC
+      const result = await analyzeMutation.mutateAsync({
+        repositoryId: repository.id,
+        owner: repository.owner,
+        repo: repository.repo,
+        branch: repository.branch || 'main',
+      })
 
-      const mockAnalysis: AIAnalysis = {
-        framework: 'Next.js 14',
-        detectedPorts: [3000],
-        detectedTools: ['Node.js', 'npm', 'TypeScript', 'React'],
-        suggestedBuildCommand: 'npm run build',
-        suggestedOutputDirectory: '.next',
-        suggestedInstallCommand: 'npm install',
-        suggestedDevCommand: 'npm run dev',
-        summary: `Detected a Next.js 14 application using the App Router pattern. 
-                  The project uses TypeScript and React 18 with server components. 
-                  Recommended deployment strategy: Static export with serverless functions for API routes.`,
-        confidence: 0.95,
-        estimatedBuildTime: 120,
-        requiresEnvironmentVariables: ['DATABASE_URL', 'NEXTAUTH_SECRET', 'NEXTAUTH_URL'],
-      }
+      console.log('AI analysis complete:', result)
 
-      setAnalysis(mockAnalysis)
-      setSelectedPorts(mockAnalysis.detectedPorts)
+      setAnalysis(result)
+      setSelectedPorts(result.detectedPorts)
       
       // Initialize env vars
       const initialEnvVars: Record<string, string> = {}
-      mockAnalysis.requiresEnvironmentVariables.forEach(key => {
+      result.requiresEnvironmentVariables.forEach((key: string) => {
         initialEnvVars[key] = ''
       })
       setEnvVars(initialEnvVars)
       
-      onAnalysisComplete(mockAnalysis)
+      onAnalysisComplete(result)
     } catch (err) {
       console.error('AI Analysis failed:', err)
-      setError('Failed to analyze repository. Please try again.')
+      setError(err instanceof Error ? err.message : 'Failed to analyze repository. Please try again.')
     } finally {
       setIsAnalyzing(false)
     }

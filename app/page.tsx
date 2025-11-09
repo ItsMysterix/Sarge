@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useUser } from "@/lib/clerk-safe"
+import { useProject } from "@/lib/project-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
@@ -32,6 +33,7 @@ export default function Overview() {
   const { isDeploying, setDeploying } = useAppStore()
   const { addToast, ToastContainer } = useToast()
   const userRole = useUserRole()
+  const { currentProject } = useProject()
 
   const [metrics, setMetrics] = useState<any>(null)
   const [logs, setLogs] = useState<any[]>([])
@@ -101,8 +103,14 @@ export default function Overview() {
     // Redirect to landing if user is not signed in
     if (isLoaded && !isSignedIn) {
       router.replace("/landing")
+      return
     }
-  }, [isLoaded, isSignedIn, router])
+    
+    // Redirect to projects page if no project is selected
+    if (isLoaded && isSignedIn && !currentProject) {
+      router.replace("/projects")
+    }
+  }, [isLoaded, isSignedIn, currentProject, router])
 
   // Show loading/auth check
   if (!isLoaded || !isSignedIn) return <AuthLoading />
