@@ -17,15 +17,6 @@
     "docs:lint": "remark -qf .",
     "docs:links": "markdown-link-check -q -p -v -c .mlc-config.json README.md docs/**/*.md"
   },
-  "workspaces": [
-    "packages/*",
-    "app",
-    "backend",
-    "components",
-    "hooks",
-    "lib",
-    "prometheus"
-  ],
   "dependencies": {
     "@auth/pg-adapter": "^1.11.1",
     "@aws-sdk/client-eventbridge": "^3.917.0",
