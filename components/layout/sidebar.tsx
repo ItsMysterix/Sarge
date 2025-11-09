@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap } from "lucide-react"
+import { ProjectSwitcher } from "@/components/project-switcher"
 
 const navigation = [
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
@@ -44,6 +45,11 @@ export function Sidebar() {
           <div className="flex items-center mb-8 pt-8 lg:pt-0">
             <div className="text-2xl font-bold text-accent terminal-text">SARGE</div>
             <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+          </div>
+
+          {/* Project Switcher */}
+          <div className="mb-6">
+            <ProjectSwitcher />
           </div>
 
           {/* Navigation */}
