@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import {
@@ -42,6 +42,8 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("general")
   const [themeMode, setThemeMode] = useState<"dark" | "light" | "auto">("dark")
   const [enableAnimations, setEnableAnimations] = useState(true)
+  const [userName, setUserName] = useState("")
+  const [isEditingName, setIsEditingName] = useState(false)
   const [notifications, setNotifications] = useState({
     deploySuccess: true,
     deployFailure: true,
@@ -53,6 +55,17 @@ export default function Settings() {
     slackNotifications: true,
   })
 
+  // Load settings on mount
+  useEffect(() => {
+    if (settings) {
+      setThemeMode(settings.theme_mode || "dark")
+      setEnableAnimations(settings.enable_animations ?? true)
+      if (settings.notifications) {
+        setNotifications({ ...notifications, ...settings.notifications })
+      }
+    }
+  }, [settings])
+
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "general", label: "General", icon: SettingsIcon },
     { id: "notifications", label: "Notifications", icon: Bell },
@@ -62,7 +75,7 @@ export default function Settings() {
     { id: "security", label: "Security", icon: Shield },
   ];
 
-  const handleToggle = async (key: "slack_alerts" | "auto_rebuild", value: boolean) => {
+  const handleToggle = async (key: "slack_alerts" | "auto_rebuild" | "enable_animations", value: boolean) => {
     try {
       await updateSettings({ [key]: value })
       addToast({
@@ -77,6 +90,113 @@ export default function Settings() {
         description: error instanceof Error ? error.message : "Failed to update settings",
       })
     }
+  }
+
+  const handleThemeChange = async (mode: "dark" | "light" | "auto") => {
+    setThemeMode(mode)
+    try {
+      await updateSettings({ theme_mode: mode })
+      addToast({
+        type: "success",
+        title: "Theme Updated",
+        description: `Theme set to ${mode} mode`,
+      })
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: "Failed to update theme",
+      })
+    }
+  }
+
+  const handleNotificationToggle = async (key: string, value: boolean) => {
+    const updated = { ...notifications, [key]: value }
+    setNotifications(updated)
+    try {
+      await updateSettings({ notifications: updated })
+      addToast({
+        type: "success",
+        title: "Notification Updated",
+        description: `${key} notifications ${value ? "enabled" : "disabled"}`,
+      })
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: "Failed to update notifications",
+      })
+    }
+  }
+
+  const handleExportSettings = async () => {
+    try {
+      addToast({ 
+        type: "info", 
+        title: "Exporting Data...", 
+        description: "Preparing your data export" 
+      })
+      
+      const response = await fetch('/api/data/export')
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `sarge-export-${Date.now()}.json`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+        addToast({ 
+          type: "success", 
+          title: "Export Complete", 
+          description: "Your data has been downloaded" 
+        })
+      } else {
+        throw new Error('Export failed')
+      }
+    } catch (error) {
+      addToast({ 
+        type: "error", 
+        title: "Export Failed", 
+        description: "Could not export settings" 
+      })
+    }
+  }
+
+  const handleImportSettings = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async (e: any) => {
+      try {
+        const file = e.target.files[0]
+        if (file) {
+          const text = await file.text()
+          const data = JSON.parse(text)
+          
+          // Import settings
+          if (data.settings) {
+            await updateSettings(data.settings)
+          }
+          
+          addToast({ 
+            type: "success", 
+            title: "Import Complete", 
+            description: "Settings imported successfully" 
+          })
+        }
+      } catch (error) {
+        addToast({ 
+          type: "error", 
+          title: "Import Failed", 
+          description: "Invalid settings file" 
+        })
+      }
+    }
+    input.click()
   }
 
   const handleWebhookTest = async () => {
@@ -167,7 +287,7 @@ export default function Settings() {
                     className="px-3 sm:px-4 py-2 glass-card border border-accent/20 text-accent hover:bg-accent/10 rounded-lg text-xs sm:text-sm flex items-center space-x-2 flex-1 sm:flex-none justify-center"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => addToast({ type: "success", title: "Settings Exported", description: "Settings downloaded successfully" })}
+                    onClick={handleExportSettings}
                   >
                     <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Export</span>
@@ -176,7 +296,7 @@ export default function Settings() {
                     className="px-3 sm:px-4 py-2 glass-card border border-accent/20 text-accent hover:bg-accent/10 rounded-lg text-xs sm:text-sm flex items-center space-x-2 flex-1 sm:flex-none justify-center"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => addToast({ type: "info", title: "Import Settings", description: "Choose a settings file to import" })}
+                    onClick={handleImportSettings}
                   >
                     <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Import</span>
@@ -298,9 +418,10 @@ export default function Settings() {
                         <div className="text-xs text-gray-400">Show smooth transitions and effects</div>
                       </div>
                       <motion.button
-                        onClick={() => {
-                          setEnableAnimations(!enableAnimations);
-                          addToast({ type: "success", title: "Animations " + (!enableAnimations ? "enabled" : "disabled") });
+                        onClick={async () => {
+                          const newValue = !enableAnimations
+                          setEnableAnimations(newValue)
+                          await handleToggle("enable_animations", newValue)
                         }}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                           enableAnimations ? "bg-accent" : "bg-gray-600"
@@ -331,22 +452,7 @@ export default function Settings() {
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 glass-card rounded-lg">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <Github className="w-6 h-6 text-accent" />
-                      <div>
-                        <h3 className="font-medium text-sm">GitHub Repository</h3>
-                        <div className="text-xs text-gray-400">Connected to deployment tracking</div>
-                      </div>
-                    </div>
-                    <CheckCircle className="w-4 h-4 text-success" />
-                  </div>
-                  <div className="text-xs text-gray-400 mb-3">Connected to sarge-app/main</div>
-                  <button className="w-full py-2 px-3 glass-card text-xs hover:bg-white/10 transition-colors rounded">
-                    Configure
-                  </button>
-                </div>
+                <GitHubRepositoryConnect />
 
                 <div className="p-4 glass-card rounded-lg">
                   <div className="flex items-start justify-between mb-3">
@@ -477,7 +583,7 @@ export default function Settings() {
                     <div className="text-xs text-gray-400">Receive notifications for {key}</div>
                   </div>
                   <motion.button
-                    onClick={() => setNotifications({ ...notifications, [key]: !value })}
+                    onClick={() => handleNotificationToggle(key, !value)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       value ? "bg-accent" : "bg-gray-600"
                     }`}
@@ -516,18 +622,20 @@ export default function Settings() {
                   ].map((theme) => {
                     const Icon = theme.icon;
                     return (
-                      <button
+                      <motion.button
                         key={theme.id}
-                        onClick={() => setThemeMode(theme.id)}
+                        onClick={() => handleThemeChange(theme.id)}
                         className={`flex-1 p-3 rounded-lg border transition-all ${
                           themeMode === theme.id
                             ? "bg-accent/20 border-accent/30 text-accent"
                             : "glass-card border-white/10 hover:border-accent/20"
                         }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
                         <Icon className="w-5 h-5 mx-auto mb-2" />
                         <div className="text-sm">{theme.label}</div>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
@@ -540,17 +648,191 @@ export default function Settings() {
         )}
 
         {/* Other tabs show a placeholder */}
-        {["shortcuts", "integrations", "security"].includes(activeTab) && (
+        {activeTab === "shortcuts" && (
           <motion.div
-            key={activeTab}
+            key="shortcuts"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3 }}
             className="glass-card p-6"
           >
-            <h2 className="text-xl font-semibold mb-4 capitalize">{activeTab} Settings</h2>
-            <p className="text-gray-400">Advanced {activeTab} configuration coming soon...</p>
+            <h2 className="text-xl font-semibold mb-6">Keyboard Shortcuts</h2>
+            <div className="space-y-3">
+              {[
+                { action: "Quick Deploy", shortcut: "Ctrl+D", description: "Deploy current configuration" },
+                { action: "Open Metrics", shortcut: "Ctrl+M", description: "View metrics dashboard" },
+                { action: "View Logs", shortcut: "Ctrl+L", description: "Open logs viewer" },
+                { action: "Settings", shortcut: "Ctrl+,", description: "Open settings panel" },
+                { action: "Search", shortcut: "Ctrl+K", description: "Global search" },
+                { action: "Command Palette", shortcut: "Ctrl+P", description: "Open command palette" },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  className="flex items-center justify-between p-3 glass-card rounded-lg"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <div>
+                    <div className="font-medium text-sm">{item.action}</div>
+                    <div className="text-xs text-gray-400">{item.description}</div>
+                  </div>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-black/40 border border-white/20 rounded">
+                    {item.shortcut}
+                  </kbd>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === "integrations" && (
+          <motion.div
+            key="integrations"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            {/* GitHub Integration */}
+            <motion.div className="glass-card p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Github className="w-6 h-6 text-accent" />
+                <h3 className="text-lg font-semibold">GitHub</h3>
+              </div>
+              <GitHubRepositoryConnect />
+            </motion.div>
+
+            {/* Slack Integration */}
+            <motion.div className="glass-card p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <MessageSquare className="w-6 h-6 text-accent" />
+                <h3 className="text-lg font-semibold">Slack</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="text-sm text-gray-400">Get notifications and alerts in Slack</div>
+                <div className="flex items-center justify-between p-2 glass-card rounded">
+                  <span className="text-sm">Status</span>
+                  <span className="text-xs text-warning">Configured</span>
+                </div>
+                <LoadingButton
+                  loading={isTestingWebhook}
+                  loadingText="Testing..."
+                  onClick={handleWebhookTest}
+                  className="w-full py-2 px-3 bg-accent/20 text-accent hover:bg-accent/30 border border-accent/30 text-sm rounded transition-colors"
+                >
+                  Test Webhook
+                </LoadingButton>
+              </div>
+            </motion.div>
+
+            {/* Add more integrations */}
+            <motion.div className="glass-card p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Database className="w-6 h-6 text-info" />
+                <h3 className="text-lg font-semibold">Database</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="text-sm text-gray-400">PostgreSQL (Neon) connection</div>
+                <div className="flex items-center justify-between p-2 glass-card rounded">
+                  <span className="text-sm">Status</span>
+                  <span className="text-xs text-success">Connected</span>
+                </div>
+                <button className="w-full py-2 px-3 glass-card hover:bg-white/10 text-sm rounded transition-colors">
+                  View Connection Details
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {activeTab === "security" && (
+          <motion.div
+            key="security"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Authentication */}
+            <motion.div className="glass-card p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Lock className="w-6 h-6 text-accent" />
+                <h3 className="text-lg font-semibold">Authentication</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 glass-card rounded-lg">
+                  <div>
+                    <div className="font-medium text-sm">Auth Provider</div>
+                    <div className="text-xs text-gray-400">Auth.js with GitHub OAuth</div>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-success" />
+                </div>
+                <div className="flex items-center justify-between p-3 glass-card rounded-lg">
+                  <div>
+                    <div className="font-medium text-sm">Session Type</div>
+                    <div className="text-xs text-gray-400">JWT (JSON Web Tokens)</div>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-success" />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* API Security */}
+            <motion.div className="glass-card p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Shield className="w-6 h-6 text-success" />
+                <h3 className="text-lg font-semibold">API Security</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 glass-card rounded-lg">
+                  <div>
+                    <div className="font-medium text-sm">Database RLS</div>
+                    <div className="text-xs text-gray-400">Row-Level Security policies active</div>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-success" />
+                </div>
+                <div className="flex items-center justify-between p-3 glass-card rounded-lg">
+                  <div>
+                    <div className="font-medium text-sm">tRPC Server</div>
+                    <div className="text-xs text-gray-400">WebSocket server secured</div>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-success" />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Data Management */}
+            <motion.div className="glass-card p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Database className="w-6 h-6 text-warning" />
+                <h3 className="text-lg font-semibold">Data Management</h3>
+              </div>
+              <div className="space-y-3">
+                <button 
+                  onClick={handleExportSettings}
+                  className="w-full p-3 glass-card hover:bg-accent/10 rounded-lg text-left transition-colors group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-sm group-hover:text-accent transition-colors">Export All Data</div>
+                      <div className="text-xs text-gray-400">Download settings, deployments, metrics, and logs</div>
+                    </div>
+                    <Download className="w-4 h-4 text-accent" />
+                  </div>
+                </button>
+                <div className="p-3 glass-card rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-sm">Data Retention</div>
+                    <span className="text-xs text-warning">90 days</span>
+                  </div>
+                  <div className="text-xs text-gray-400">Logs and metrics automatically cleaned after retention period</div>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -558,5 +840,131 @@ export default function Settings() {
       </div>
     </div>
     </AnimationErrorBoundary>
+  )
+}
+
+function GitHubRepositoryConnect() {
+  const [repository, setRepository] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [owner, setOwner] = useState("")
+  const [repo, setRepo] = useState("")
+  const [connecting, setConnecting] = useState(false)
+
+  useEffect(() => {
+    fetchRepository()
+  }, [])
+
+  const fetchRepository = async () => {
+    try {
+      const res = await fetch('/api/repository')
+      const data = await res.json()
+      if (data.repository) {
+        setRepository(data.repository)
+        setOwner(data.repository.owner)
+        setRepo(data.repository.repo)
+      }
+    } catch (error) {
+      console.error('Error fetching repository:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConnect = async () => {
+    if (!owner || !repo) return
+    
+    setConnecting(true)
+    try {
+      const res = await fetch('/api/repository', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner, repo, description: `${owner}/${repo}` })
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setRepository(data.repository)
+        alert('Repository connected successfully!')
+      } else {
+        alert('Failed to connect repository')
+      }
+    } catch (error) {
+      console.error('Error connecting repository:', error)
+      alert('Error connecting repository')
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    if (!confirm('Disconnect this repository?')) return
+    
+    try {
+      const res = await fetch('/api/repository', { method: 'DELETE' })
+      if (res.ok) {
+        setRepository(null)
+        setOwner("")
+        setRepo("")
+        alert('Repository disconnected')
+      }
+    } catch (error) {
+      console.error('Error disconnecting repository:', error)
+    }
+  }
+
+  if (loading) {
+    return <div className="p-4 glass-card rounded-lg text-center text-gray-400">Loading...</div>
+  }
+
+  return (
+    <div className="p-4 glass-card rounded-lg">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center space-x-3">
+          <Github className="w-6 h-6 text-accent" />
+          <div>
+            <h3 className="font-medium text-sm">GitHub Repository</h3>
+            <div className="text-xs text-gray-400">Connect to track deployments and activity</div>
+          </div>
+        </div>
+        {repository && <CheckCircle className="w-4 h-4 text-success" />}
+      </div>
+
+      {repository ? (
+        <>
+          <div className="text-xs text-gray-400 mb-3">Connected to {repository.full_name}</div>
+          <button 
+            onClick={handleDisconnect}
+            className="w-full py-2 px-3 glass-card text-xs hover:bg-error/10 hover:text-error transition-colors rounded"
+          >
+            Disconnect
+          </button>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <div className="text-xs text-gray-400 mb-2">Enter repository details (e.g., owner: "facebook", repo: "react")</div>
+          <input
+            type="text"
+            placeholder="Owner (e.g., facebook)"
+            value={owner}
+            onChange={(e) => setOwner(e.target.value)}
+            className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded text-sm focus:border-accent/50 outline-none"
+          />
+          <input
+            type="text"
+            placeholder="Repository (e.g., react)"
+            value={repo}
+            onChange={(e) => setRepo(e.target.value)}
+            className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded text-sm focus:border-accent/50 outline-none"
+          />
+          <button 
+            onClick={handleConnect}
+            disabled={connecting || !owner || !repo}
+            className="w-full py-2 px-3 bg-accent/20 text-accent hover:bg-accent/30 border border-accent/30 text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {connecting ? 'Connecting...' : 'Connect Repository'}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
