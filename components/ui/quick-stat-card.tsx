@@ -65,7 +65,9 @@ export function QuickStatCard({
       whileHover={isClickable ? { y: -4, scale: 1.02 } : {}}
       onClick={onClick}
       className={`
-        glass-card p-4 border ${colors.border}
+        p-4 rounded-lg border ${colors.border}
+        bg-gradient-to-br from-white/[0.07] to-white/[0.03]
+        backdrop-blur-sm
         ${isClickable ? `cursor-pointer hover:bg-accent/20 ${colors.glow} transition-all duration-300` : ""}
       `}
     >
