@@ -149,6 +149,7 @@ export default function SignInPage() {
           </div>
 
           <Button
+            type="button"
             onClick={handleGitHub}
             disabled={loading}
             variant="outline"
