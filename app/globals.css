@@ -55,18 +55,12 @@
   }
 
   * {
-    border-color: hsl(var(--border));
+    @apply border-border;
   }
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
     font-family: var(--font-inter), sans-serif;
-  }
-
-  .light body {
-    background-color: #ffffff;
-    color: #0f0f0f;
   }
 
   html {
@@ -76,10 +70,11 @@
 
 @layer components {
   .glass-card {
-    background-color: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg;
+  }
+
+  .light .glass-card {
+    @apply bg-black/5 border-black/10;
   }
 
   .pulse-border {
@@ -132,33 +127,35 @@
   }
 
   .insight-card {
-    background-color: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 transition-all cursor-pointer;
   }
 
   .insight-card:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    @apply bg-white/10;
+  }
+
+  .light .insight-card {
+    @apply bg-black/5 border-black/10;
+  }
+
+  .light .insight-card:hover {
+    @apply bg-black/10;
   }
 
   .recommendation-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background-color: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
-    transition: background-color 0.2s ease;
+    @apply flex items-start gap-3 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg transition-colors;
   }
 
   .recommendation-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    @apply bg-white/5;
+  }
+
+  .light .recommendation-item {
+    @apply bg-black/5 border-black/10;
+  }
+
+  .light .recommendation-item:hover {
+    @apply bg-black/10;
   }
 
   /* Landing page specific animations */
