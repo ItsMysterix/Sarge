@@ -28,9 +28,26 @@ export default function MetricsPage() {
   const [metricsHistory, setMetricsHistory] = useState<MetricDataPoint[]>([])
   const [currentMetrics, setCurrentMetrics] = useState<any>(null)
   const [services, setServices] = useState<any[]>([])
+  const [workspaceHealth, setWorkspaceHealth] = useState<any[]>([])
   
   const t = trpc as any
   const metricsQuery = t.metrics.latest.useQuery()
+  const servicesSummaryQuery = t.sarge.metrics.getServicesSummary.useQuery()
+  const workspaceHealthQuery = t.sarge.metrics.getWorkspaceHealth.useQuery({})
+
+  // Fetch workspace health data
+  useEffect(() => {
+    if (workspaceHealthQuery.data) {
+      setWorkspaceHealth(Array.isArray(workspaceHealthQuery.data) ? workspaceHealthQuery.data : [workspaceHealthQuery.data])
+    }
+  }, [workspaceHealthQuery.data])
+
+  // Fetch services summary
+  useEffect(() => {
+    if (servicesSummaryQuery.data) {
+      setServices(servicesSummaryQuery.data)
+    }
+  }, [servicesSummaryQuery.data])
 
   // Fetch initial data
   useEffect(() => {
@@ -43,8 +60,8 @@ export default function MetricsPage() {
         cpu: metricsQuery.data.cpu || 0,
         memory: metricsQuery.data.memory || 0,
         latency: metricsQuery.data.latency || 0,
-        requests: Math.floor(Math.random() * 1000) + 500,
-        errors: Math.floor(Math.random() * 10),
+        requests: 0, // Will be aggregated from service metrics
+        errors: 0,
       }
       
       setMetricsHistory(prev => {
@@ -64,11 +81,11 @@ export default function MetricsPage() {
         
         const newPoint: MetricDataPoint = {
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          cpu: data.cpu || 0,
-          memory: data.memory || 0,
-          latency: data.latency || 0,
-          requests: Math.floor(Math.random() * 1000) + 500,
-          errors: Math.floor(Math.random() * 10),
+          cpu: data.cpu_percent || data.cpu || 0,
+          memory: data.memory_mb || data.memory || 0,
+          latency: data.avg_response_ms || data.latency || 0,
+          requests: data.request_count || 0,
+          errors: data.error_count || 0,
         }
         
         setMetricsHistory(prev => {
@@ -80,21 +97,41 @@ export default function MetricsPage() {
     },
   })
 
-  // Fetch services data
+  // Fetch services data from real metrics
   useEffect(() => {
     const fetchServices = async () => {
       try {
         const res = await fetch('/api/services')
         if (res.ok) {
           const data = await res.json()
-          setServices(data.services || [])
+          const servicesList = data.services || []
+          
+          // Merge with metrics data if available
+          if (servicesSummaryQuery.data && servicesSummaryQuery.data.length > 0) {
+            setServices(servicesSummaryQuery.data.map((metric: any) => ({
+              name: metric.service_name,
+              status: metric.status,
+              port: metric.port,
+              avgCpu: parseFloat(metric.avg_cpu || 0),
+              avgMemory: parseFloat(metric.avg_memory || 0),
+              totalRequests: parseInt(metric.total_requests || 0),
+              totalErrors: parseInt(metric.total_errors || 0),
+              avgResponse: parseFloat(metric.avg_response || 0),
+            })))
+          } else if (servicesList.length > 0) {
+            setServices(servicesList)
+          }
         }
       } catch (error) {
         console.error('Error fetching services:', error)
+        // Use metrics summary data if available
+        if (servicesSummaryQuery.data) {
+          setServices(servicesSummaryQuery.data)
+        }
       }
     }
     fetchServices()
-  }, [])
+  }, [servicesSummaryQuery.data])
 
   // Generate fallback data if no real data yet
   const generateFallbackData = (points: number): MetricDataPoint[] => {
@@ -132,15 +169,19 @@ export default function MetricsPage() {
   const totalErrors = displayData.reduce((sum, d) => sum + (d.errors || 0), 0)
   const errorRate = totalRequests > 0 ? (totalErrors / totalRequests) * 100 : 0
 
-  // Service distribution data
+  // Service distribution data from real metrics
   const serviceData = services.length > 0 
-    ? services.map(s => ({ name: s.name, value: Math.floor(Math.random() * 100) }))
+    ? services.map(s => ({ 
+        name: s.service_name || s.name, 
+        value: s.total_requests || s.avgCpu || Math.floor(Math.random() * 100)
+      }))
+    : workspaceHealth.length > 0
+    ? workspaceHealth.map(w => ({
+        name: w.workspace_name || 'Workspace',
+        value: w.active_services || 0
+      }))
     : [
-        { name: 'Lambda', value: 35 },
-        { name: 'DynamoDB', value: 25 },
-        { name: 'S3', value: 20 },
-        { name: 'SQS', value: 12 },
-        { name: 'SNS', value: 8 },
+        { name: 'No Services', value: 0 },
       ]
 
   // Health score calculation

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { trpc } from '@/lib/trpc'
 
 interface StepDetectProps {
@@ -9,10 +9,32 @@ interface StepDetectProps {
 
 export function StepDetect({ onNext }: StepDetectProps) {
   const [path, setPath] = useState('')
+  const [useConnectedRepo, setUseConnectedRepo] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [blueprint, setBlueprint] = useState<any>(null)
+  const [connectedRepo, setConnectedRepo] = useState<any>(null)
 
   const detectMutation = (trpc.sarge as any).oneclick.detectRepo.useMutation()
+
+  // Fetch connected repository on mount
+  useEffect(() => {
+    async function fetchRepo() {
+      try {
+        const response = await fetch('/api/repository')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.repository) {
+            setConnectedRepo(data.repository)
+            // Auto-fill with connected repo
+            setPath(`github:${data.repository.owner}/${data.repository.repo}`)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch connected repo:', err)
+      }
+    }
+    fetchRepo()
+  }, [])
 
   const handleDetect = async () => {
     try {
@@ -39,9 +61,34 @@ export function StepDetect({ onNext }: StepDetectProps) {
         </p>
 
         <div className="space-y-4">
+          {/* Connected Repository Info */}
+          {connectedRepo && (
+            <div className="rounded-lg border border-blue-500/50 bg-blue-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-blue-500/20 p-2 text-blue-500">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">Connected Repository Detected</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    <span className="font-mono">{connectedRepo.full_name}</span> is ready for one-click deployment
+                  </p>
+                  <button
+                    onClick={() => setUseConnectedRepo(!useConnectedRepo)}
+                    className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
+                  >
+                    {useConnectedRepo ? 'Use different path' : 'Use connected repository'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <label htmlFor="repo-path" className="mb-2 block text-sm font-medium">
-              Repository Path
+              Repository Path {useConnectedRepo && connectedRepo && <span className="text-muted-foreground">(auto-filled)</span>}
             </label>
             <div className="flex gap-2">
               <input
@@ -50,8 +97,9 @@ export function StepDetect({ onNext }: StepDetectProps) {
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleDetect()}
-                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                placeholder="/path/to/your/repo"
+                disabled={useConnectedRepo && !!connectedRepo}
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="github:owner/repo or /path/to/your/repo"
                 aria-label="Repository path"
               />
               <button
@@ -62,6 +110,9 @@ export function StepDetect({ onNext }: StepDetectProps) {
                 {detectMutation.isPending ? 'Detecting...' : 'Detect'}
               </button>
             </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Supports local paths, GitHub repos (github:owner/repo), or connected repositories
+            </p>
           </div>
 
           {detectMutation.isError && (

@@ -6,14 +6,14 @@ import { ENV, effectiveWsAllowedOrigins } from './env';
 import { isAllowedOrigin } from './ws/origin';
 import { db } from './api/lib/db';
 import { ee } from './api/lib/events';
-import { startDeployExecutor } from './jobs/deploy-executor';
+import { startRealDeployExecutor } from './jobs/real-deploy-executor';
 import { wsDisconnectsTotal, wsRateCapTotal } from './metrics/exporter';
 
 const port = ENV.WS_PORT;
 const allowlist = effectiveWsAllowedOrigins();
 
-// Start in-process deploy executor
-const deployExec = startDeployExecutor();
+// Start real deploy executor that clones repos and runs builds
+const deployExec = startRealDeployExecutor();
 
 // Create WebSocket server with payload cap
 const wss = new WebSocketServer({ port, maxPayload: ENV.MAX_JSON_BODY_KB * 1024 });

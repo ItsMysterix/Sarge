@@ -50,46 +50,6 @@ const ResourceSearchInput = z.object({
   limit: z.number().int().positive().max(1000).optional(),
 })
 
-// AWS shapes
-const S3ListObjectsInput = z.object({
-  bucket: z.string().min(1),
-  prefix: z.string().optional(),
-  maxKeys: z.number().int().positive().max(1000).optional(),
-  continuationToken: z.string().optional(),
-})
-const S3PutObjectInput = z.object({
-  bucket: z.string().min(1),
-  key: z.string().min(1),
-  content: z.union([z.string(), z.instanceof(Uint8Array)]),
-  contentType: z.string().optional(),
-})
-const S3GetObjectInput = z.object({ bucket: z.string().min(1), key: z.string().min(1) })
-const S3DeleteObjectInput = z.object({ bucket: z.string().min(1), key: z.string().min(1) })
-
-const DynamoCreateTableInput = z.object({
-  tableName: z.string().min(1),
-  keySchema: z.array(z.object({ attributeName: z.string(), keyType: z.enum(["HASH","RANGE"]) })).min(1),
-  attributeDefinitions: z.array(z.object({ attributeName: z.string(), attributeType: z.enum(["S","N","B"]) })).min(1),
-  billingMode: z.enum(["PAY_PER_REQUEST","PROVISIONED"]).default("PAY_PER_REQUEST"),
-})
-const DynamoKeyInput = z.object({ tableName: z.string().min(1), key: z.record(z.string(), z.any()) })
-const DynamoPutItemInput = z.object({ tableName: z.string().min(1), item: z.record(z.string(), z.any()) })
-const DynamoQueryInput = z.object({ tableName: z.string().min(1), keyCondition: z.string().min(1), limit: z.number().int().positive().max(1000).optional() })
-const DynamoScanInput = z.object({ tableName: z.string().min(1), limit: z.number().int().positive().max(1000).optional() })
-
-const LambdaInvokeInput = z.object({ functionName: z.string().min(1), payload: z.any().optional(), qualifier: z.string().optional() })
-const LambdaCreateFunctionInput = z.object({
-  functionName: z.string().min(1),
-  runtime: z.string().min(1),
-  handler: z.string().min(1),
-  code: z.object({ zipBase64: z.string().min(1) }),
-})
-const LambdaUpdateCodeInput = z.object({ functionName: z.string().min(1), code: z.object({ zipBase64: z.string().min(1) }) })
-
-function notImplemented(): never {
-  throw new TRPCError({ code: 'NOT_IMPLEMENTED', message: 'Operation not implemented in current build' })
-}
-
 export const sargeRouter = router({
   workspace: router({
     status: secureProcedure('sarge.workspace.status').query(async () => {
@@ -133,28 +93,8 @@ export const sargeRouter = router({
     }),
   }),
 
-  stacks: router({
-      license: router({
-        status: secureProcedure('sarge.license.status').query(async () => {
-          async function getCore(): Promise<any> {
-            try { return require('sarge-core') } catch (e: any) {
-              if (e?.code === 'ERR_REQUIRE_ESM') {
-                const mod = await import('sarge-core'); return mod
-              }
-              throw e
-            }
-          }
-          const core = await getCore()
-          const base = process.env.SARGE_DATA_DIR ? require('path').resolve(process.cwd(), process.env.SARGE_DATA_DIR) : require('path').resolve(process.cwd(), 'data/sarge/workspaces/default')
-          const st = core?.licensing?.getStatus?.({ dataRoot: base }) ?? { edition: 'community', features: { teamSpaces: false, cloudApply: false }, valid: true, expired: false, inGrace: false, messages: ['Community edition'] }
-          return st
-        })
-      }),
-    list: secureProcedure('sarge.stacks.list').query(async () => ([] as any[])),
-    create: secureProcedure('sarge.stacks.create').input(StackCreateInput).mutation(async ({ input }) => ({ id: `stk_${Date.now()}`, name: input.name })),
-    delete: secureProcedure('sarge.stacks.delete').input(StackIdInput).mutation(async () => ({ ok: true })),
-    apply: secureProcedure('sarge.stacks.apply').input(StackApplyInput).mutation(async ({ input }) => ({ id: `stk_${Date.now()}`, name: input.name, composed: input.compose.map(s => s.id) })),
-  }),
+  // Note: stacks router is in routers/stacks.ts and exposed at top-level as trpc.stacks.*
+  // Kept here for backward compatibility but prefer using trpc.stacks.* directly
 
   services: router({
     list: secureProcedure('sarge.services.list').query(async () => ([] as any[])),
@@ -240,28 +180,9 @@ export const sargeRouter = router({
       })
   }),
 
-  aws: router({
-    s3: router({
-      listBuckets: secureProcedure('sarge.aws.s3.listBuckets').query(async () => ([] as any[])),
-      listObjects: secureProcedure('sarge.aws.s3.listObjects').input(S3ListObjectsInput).query(async () => ({ items: [] as any[], nextToken: null as string | null })),
-      putObject: secureProcedure('sarge.aws.s3.putObject').input(S3PutObjectInput).mutation(async () => notImplemented()),
-      getObject: secureProcedure('sarge.aws.s3.getObject').input(S3GetObjectInput).query(async () => notImplemented()),
-      deleteObject: secureProcedure('sarge.aws.s3.deleteObject').input(S3DeleteObjectInput).mutation(async () => notImplemented()),
-    }),
-    dynamo: router({
-      createTable: secureProcedure('sarge.aws.dynamo.createTable').input(DynamoCreateTableInput).mutation(async () => notImplemented()),
-      putItem: secureProcedure('sarge.aws.dynamo.putItem').input(DynamoPutItemInput).mutation(async () => notImplemented()),
-      getItem: secureProcedure('sarge.aws.dynamo.getItem').input(DynamoKeyInput).query(async () => notImplemented()),
-      query: secureProcedure('sarge.aws.dynamo.query').input(DynamoQueryInput).query(async () => notImplemented()),
-      scan: secureProcedure('sarge.aws.dynamo.scan').input(DynamoScanInput).query(async () => notImplemented()),
-    }),
-    lambda: router({
-      listFunctions: secureProcedure('sarge.aws.lambda.listFunctions').query(async () => ([] as any[])),
-      invoke: secureProcedure('sarge.aws.lambda.invoke').input(LambdaInvokeInput).mutation(async () => notImplemented()),
-      createFunction: secureProcedure('sarge.aws.lambda.createFunction').input(LambdaCreateFunctionInput).mutation(async () => notImplemented()),
-      updateFunctionCode: secureProcedure('sarge.aws.lambda.updateFunctionCode').input(LambdaUpdateCodeInput).mutation(async () => notImplemented()),
-    }),
-  }),
+  // Note: awsRouter with real database operations is in routers/aws.ts 
+  // and exposed at top-level as trpc.aws.* (s3, dynamodb, lambda)
+  // (removed duplicate mock aws router to avoid confusion)
 
   // Back-compat: re-export legacy routers underneath sarge.legacy.*
   legacy: router({
