@@ -22,25 +22,25 @@ const colorConfig = {
     icon: "text-accent",
     bg: "bg-accent/10",
     border: "border-accent/30",
-    glow: "hover:shadow-accent/20"
+    glow: "hover:glow-accent"
   },
   success: {
     icon: "text-success",
     bg: "bg-success/10",
     border: "border-success/30",
-    glow: "hover:shadow-success/20"
+    glow: "hover:shadow-[0_0_20px_rgba(34,197,94,0.3)]"
   },
   warning: {
     icon: "text-warning",
     bg: "bg-warning/10",
     border: "border-warning/30",
-    glow: "hover:shadow-warning/20"
+    glow: "hover:shadow-[0_0_20px_rgba(234,179,8,0.3)]"
   },
   error: {
     icon: "text-error",
     bg: "bg-error/10",
     border: "border-error/30",
-    glow: "hover:shadow-error/20"
+    glow: "hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]"
   }
 }
 
@@ -66,7 +66,7 @@ export function QuickStatCard({
       onClick={onClick}
       className={`
         glass-card p-4 border ${colors.border}
-        ${isClickable ? `cursor-pointer ${colors.glow} hover:shadow-lg transition-all duration-300` : ""}
+        ${isClickable ? `cursor-pointer ${colors.glow} hover:bg-white/5 transition-all duration-300` : ""}
       `}
     >
       <div className="flex items-start justify-between mb-3">
