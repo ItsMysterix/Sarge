@@ -28,8 +28,9 @@ export function Header() {
     <header className="glass-card border-b border-white/10 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-accent terminal-text">SARGE</h1>
-          <div className="ml-3 px-2 py-1 glass-card text-xs terminal-text text-gray-400">AI Co-Pilot</div>
+          <div className="px-3 py-1.5 glass-card text-xs terminal-text text-gray-400 border border-white/10">
+            AI Co-Pilot
+          </div>
         </div>
 
         <div className="flex items-center space-x-6">
