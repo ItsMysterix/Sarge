@@ -8,7 +8,7 @@ interface StepDetectProps {
 }
 
 export function StepDetect({ onNext }: StepDetectProps) {
-  const [path, setPath] = useState(process.cwd?.() || '/workspace')
+  const [path, setPath] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [blueprint, setBlueprint] = useState<any>(null)
 
