@@ -1,0 +1,70 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Build outputs
+.next
+out
+dist
+build
+.turbo
+
+# Backend (not needed for Vercel frontend deployment)
+backend/node_modules
+backend/dist
+backend/.next
+
+# Testing
+coverage
+.vitest
+
+# Local environment
+.env
+.env*.local
+
+# Package manager
+.pnpm-store
+.yarn
+
+# Workspace packages (exclude from Vercel build)
+packages/*/node_modules
+packages/*/dist
+packages/localcloud-*
+packages/sarge-*
+
+# Monitoring
+prometheus/data
+grafana/data
+
+# Infrastructure
+infra/
+ops/
+bridge/
+
+# Docs (not needed for deployment)
+docs/img
+
+# Test files
+test/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+test-*.js
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Misc
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
