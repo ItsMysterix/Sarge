@@ -2,6 +2,7 @@
 import React, { useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { trpc } from '@/lib/trpc';
 
 type Deployment = {
   id: string | number;
@@ -11,6 +12,8 @@ type Deployment = {
   commit?: string | null;
   created_at?: string;
   updated_at?: string;
+  workspace_name?: string;
+  services?: any[];
 };
 
 export function ListView({ items, onView, onLogs }: { items: Deployment[]; onView: (id: string|number) => void; onLogs: (id: string|number) => void }) {
@@ -24,10 +27,10 @@ export function ListView({ items, onView, onLogs }: { items: Deployment[]; onVie
   }) : null;
 
   const headers = (
-    <div className="grid grid-cols-[120px_1fr_1fr_180px_120px_160px] gap-3 px-4 py-2 text-xs text-zinc-400">
+    <div className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 text-xs text-zinc-400">
       <div>Status</div>
-      <div>Service</div>
-      <div>Version</div>
+      <div>Workspace</div>
+      <div>Branch</div>
       <div>Commit</div>
       <div>Started</div>
       <div>Actions</div>
@@ -62,19 +65,42 @@ export function ListView({ items, onView, onLogs }: { items: Deployment[]; onVie
 }
 
 function Row({ d, onView, onLogs }: { d: Deployment; onView: (id: string|number) => void; onLogs: (id: string|number) => void }) {
+  const t = trpc as any
+  const stopMutation = t.sarge.deploy.stopDeployment?.useMutation()
+  
+  const handleStop = async () => {
+    if (!confirm('Stop this deployment?')) return
+    try {
+      await stopMutation.mutateAsync({ deploymentId: d.id.toString() })
+    } catch (err) {
+      console.error('Failed to stop deployment:', err)
+    }
+  }
+  
   const short = (s?: string | null) => s ? s.slice(0,7) : '';
+  const canStop = d.status === 'running' || d.status === 'pending'
+  
   return (
-    <div role="row" className="grid grid-cols-[120px_1fr_1fr_180px_120px_160px] gap-3 px-4 py-2 items-center">
+    <div role="row" className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 items-center">
       <div><StatusBadge status={d.status} /></div>
-      <div className="truncate" title={d.summary ?? ''}>{d.summary ?? '-'}</div>
+      <div className="truncate" title={d.workspace_name || d.summary || ''}>{d.workspace_name || d.summary || '-'}</div>
       <div className="font-mono text-xs opacity-80">{d.branch ?? '-'}</div>
       <div className="font-mono text-xs">
         <span title={d.commit ?? ''}>{short(d.commit)}</span>
       </div>
       <div className="text-xs opacity-75" title={d.created_at ?? ''}>{d.created_at?.slice(0,19).replace('T',' ') ?? '-'}</div>
       <div className="flex gap-2">
-        <button className="px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" onClick={() => onView(d.id)}>View</button>
-        <button className="px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" onClick={() => onLogs(d.id)}>Logs</button>
+        <button className="px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800 text-xs" onClick={() => onView(d.id)}>View</button>
+        <button className="px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800 text-xs" onClick={() => onLogs(d.id)}>Logs</button>
+        {canStop && (
+          <button 
+            className="px-2 py-1 rounded border border-red-700/50 hover:bg-red-900/20 text-red-400 text-xs"
+            onClick={handleStop}
+            disabled={stopMutation.isLoading}
+          >
+            {stopMutation.isLoading ? '...' : 'Stop'}
+          </button>
+        )}
       </div>
     </div>
   );

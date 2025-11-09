@@ -4,7 +4,7 @@
   "description": "Express API backend for Sarge DevOps Dashboard with Socket.IO WebSockets",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node backend/src/ws-server.ts",
+    "dev": "ts-node src/ws-server.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node dist/scripts/migrate.js",

@@ -2,10 +2,106 @@ import { z } from 'zod'
 import { publicProcedure, router } from '../../trpc'
 import { neon } from '@neondatabase/serverless'
 import { ENV } from '../../env'
+import { AWSDetector } from '../../services/aws-detector'
+import { AWSCostCalculator } from '../../services/aws-cost-calculator'
+import * as path from 'path'
+import * as os from 'os'
 
 const sql = neon(ENV.DATABASE_URL)
 
 export const awsRouter = router({
+  // Detect AWS services in a repository
+  detectServices: publicProcedure
+    .input(
+      z.object({
+        projectSlug: z.string(),
+        repoPath: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // In production, fetch the actual repo path from the database based on projectSlug
+      // For now, if repoPath is provided, use it; otherwise use a temp location
+      const repoPath = input.repoPath || path.join(os.tmpdir(), 'sarge-repos', input.projectSlug)
+
+      const detector = new AWSDetector(repoPath)
+      const result = await detector.detect()
+
+      return {
+        success: true,
+        detection: result,
+      }
+    }),
+
+  // Calculate cost estimates for detected services
+  calculateCosts: publicProcedure
+    .input(
+      z.object({
+        services: z.array(
+          z.object({
+            type: z.enum(['S3', 'Lambda', 'DynamoDB', 'SQS', 'SNS', 'EventBridge', 'CloudWatch', 'IAM', 'API Gateway', 'EC2', 'RDS', 'ElastiCache']),
+            name: z.string(),
+            config: z.record(z.string(), z.any()),
+            detectedFrom: z.array(z.string()),
+          })
+        ),
+        usage: z
+          .object({
+            s3: z
+              .object({
+                storageGB: z.number(),
+                getRequestsPerMonth: z.number(),
+                putRequestsPerMonth: z.number(),
+              })
+              .optional(),
+            lambda: z
+              .object({
+                invocationsPerMonth: z.number(),
+                avgDurationMs: z.number(),
+                memoryMB: z.number(),
+              })
+              .optional(),
+            dynamodb: z
+              .object({
+                storageGB: z.number(),
+                readUnitsPerMonth: z.number(),
+                writeUnitsPerMonth: z.number(),
+              })
+              .optional(),
+            sqs: z
+              .object({
+                requestsPerMonth: z.number(),
+              })
+              .optional(),
+            sns: z
+              .object({
+                requestsPerMonth: z.number(),
+              })
+              .optional(),
+            eventbridge: z
+              .object({
+                eventsPerMonth: z.number(),
+              })
+              .optional(),
+            cloudwatch: z
+              .object({
+                logsIngestedGB: z.number(),
+                customMetrics: z.number(),
+              })
+              .optional(),
+          })
+          .optional(),
+      })
+    )
+    .query(({ input }) => {
+      const calculator = new AWSCostCalculator()
+      const estimate = calculator.calculateCosts(input.services, input.usage)
+
+      return {
+        success: true,
+        estimate,
+      }
+    }),
+
   // Get all AWS resources summary
   getSummary: publicProcedure.query(async () => {
     const [s3Count] = await sql`SELECT COUNT(*)::int as count FROM s3_buckets`

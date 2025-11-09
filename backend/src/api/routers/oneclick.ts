@@ -1,6 +1,8 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
+import { workspaceManager } from '../../services/workspace-manager'
+
 async function getCore(): Promise<any> {
   // Import sarge-core at runtime to avoid type dependency on built artifacts during tests
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -48,13 +50,97 @@ const ApplyInput = z.object({ plan: z.any() })
 const StatusInput = z.object({ stackId: z.string().min(1) })
 const LogsTailInput = z.object({ stackId: z.string().min(1), service: z.string().min(1) })
 const ToggleDockerInput = z.object({ enabled: z.boolean() })
+const CloneRepoInput = z.object({ 
+  repoUrl: z.string().url(), 
+  branch: z.string().default('main') 
+})
+const RegisterLocalInput = z.object({ 
+  localPath: z.string().min(1) 
+})
+const WorkspaceIdInput = z.object({ 
+  workspaceId: z.string().min(1) 
+})
 
 export const oneclickRouter = router({
+  // Workspace management
+  workspaces: router({
+    // Clone GitHub repo to local workspace
+    cloneRepo: secureProcedure('sarge.oneclick.workspaces.cloneRepo')
+      .input(CloneRepoInput)
+      .mutation(async ({ input }) => {
+        const workspace = await workspaceManager.cloneRepo(input.repoUrl, input.branch)
+        return workspace
+      }),
+
+    // Register existing local folder
+    registerLocal: secureProcedure('sarge.oneclick.workspaces.registerLocal')
+      .input(RegisterLocalInput)
+      .mutation(async ({ input }) => {
+        const workspace = workspaceManager.registerLocal(input.localPath)
+        return workspace
+      }),
+
+    // List all workspaces
+    list: secureProcedure('sarge.oneclick.workspaces.list')
+      .query(async () => {
+        const workspaces = workspaceManager.listWorkspaces()
+        return workspaces
+      }),
+
+    // Get workspace details
+    get: secureProcedure('sarge.oneclick.workspaces.get')
+      .input(WorkspaceIdInput)
+      .query(async ({ input }) => {
+        const workspace = workspaceManager.getWorkspace(input.workspaceId)
+        if (!workspace) {
+          throw new Error(`Workspace not found: ${input.workspaceId}`)
+        }
+        return workspace
+      }),
+
+    // Delete workspace
+    delete: secureProcedure('sarge.oneclick.workspaces.delete')
+      .input(WorkspaceIdInput)
+      .mutation(async ({ input }) => {
+        await workspaceManager.deleteWorkspace(input.workspaceId)
+        return { success: true }
+      }),
+
+    // Pull latest changes (GitHub only)
+    pull: secureProcedure('sarge.oneclick.workspaces.pull')
+      .input(WorkspaceIdInput)
+      .mutation(async ({ input }) => {
+        await workspaceManager.pullLatest(input.workspaceId)
+        return { success: true }
+      }),
+  }),
+
+  // Detect services in workspace
   detectRepo: secureProcedure('sarge.oneclick.detectRepo')
-    .input(DetectRepoInput)
+    .input(z.object({
+      path: z.string().optional(),
+      workspaceId: z.string().optional(),
+    }))
     .mutation(async ({ input }) => {
-  const core = await getCore()
-  const bp = await core.detector.detectStack(input.path)
+      let repoPath: string
+
+      if (input.workspaceId) {
+        // Use workspace
+        const workspace = workspaceManager.getWorkspace(input.workspaceId)
+        if (!workspace) {
+          throw new Error(`Workspace not found: ${input.workspaceId}`)
+        }
+        repoPath = workspace.path
+      } else if (input.path) {
+        // Use provided path
+        repoPath = input.path
+      } else {
+        // Default to current directory
+        repoPath = process.cwd()
+      }
+
+      const core = await getCore()
+      const bp = await core.detector.detectStack(repoPath)
       return bp
     }),
 
@@ -67,17 +153,38 @@ export const oneclickRouter = router({
     }),
 
   apply: secureProcedure('sarge.oneclick.apply', { requiresRole: 'operator', requiresLicenseFeature: 'cloudApply' })
-    .input(z.any())
+    .input(z.object({
+      plan: z.any(),
+      workspaceId: z.string().optional(),
+      repoPath: z.string().optional(),
+    }))
     .mutation(async ({ input }) => {
+      let repoPath: string
+
+      if (input.workspaceId) {
+        // Use workspace
+        const workspace = workspaceManager.getWorkspace(input.workspaceId)
+        if (!workspace) {
+          throw new Error(`Workspace not found: ${input.workspaceId}`)
+        }
+        repoPath = workspace.path
+      } else if (input.repoPath) {
+        // Use provided path
+        repoPath = input.repoPath
+      } else {
+        // Default to current directory
+        repoPath = process.cwd()
+      }
+
       // Start services via local runtime; caller may subscribe to logs separately
   const core = await getCore()
   try {
         core.traces.configureTracing?.({ enabled: true, dataRoot: getDataRoot() })
       } catch {}
       const res = await (core.traces.runInSpan?.('oneclick.apply', async () => {
-        const startRes = await core.apply.apply(input.plan, { repoPath: process.cwd() })
+        const startRes = await core.apply.apply(input.plan, { repoPath })
         return startRes
-      }) ?? core.apply.apply(input.plan, { repoPath: process.cwd() }))
+      }) ?? core.apply.apply(input.plan, { repoPath }))
       const ports = (input.plan.assignedPorts as any[]).map((p: any) => ({ service: p.service, port: p.assigned[0] || null }))
       const urls = ports.filter((p: any) => p.port).map((p: any) => ({ service: p.service, url: `http://localhost:${p.port}` }))
       // Immediately stop to keep API deterministic unless persistence is enabled
