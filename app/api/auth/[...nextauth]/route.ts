@@ -109,34 +109,26 @@ export const authOptions: NextAuthOptions = {
           console.log('🔵 GitHub OAuth - handling user for:', user.email)
           const pool = getDbPool()
           
-          // Check if user exists
-          const existing = await pool.query(
-            `SELECT id FROM users WHERE email = $1`,
-            [user.email]
+          // Atomic UPSERT: Insert new user or update existing one
+          // This handles the case where user already exists from previous attempts
+          const result = await pool.query(
+            `INSERT INTO users (id, email, name, image, email_verified, created_at, updated_at)
+             VALUES (gen_random_uuid(), $1, $2, $3, NOW(), NOW(), NOW())
+             ON CONFLICT (email) 
+             DO UPDATE SET 
+               name = EXCLUDED.name,
+               image = EXCLUDED.image,
+               email_verified = COALESCE(users.email_verified, NOW()),
+               updated_at = NOW()
+             RETURNING id, email`,
+            [user.email, user.name || user.email.split('@')[0], user.image]
           )
           
-          if (existing.rows.length === 0) {
-            // Create new user
-            console.log('🔵 Creating new user:', user.email)
-            await pool.query(
-              `INSERT INTO users (id, email, name, image, email_verified, created_at, updated_at)
-               VALUES (gen_random_uuid(), $1, $2, $3, NOW(), NOW(), NOW())`,
-              [user.email, user.name || user.email.split('@')[0], user.image]
-            )
-            console.log('✅ New user created')
-          } else {
-            // Update existing user
-            console.log('🔵 Updating existing user:', user.email)
-            await pool.query(
-              `UPDATE users SET name = $1, image = $2, email_verified = NOW(), updated_at = NOW()
-               WHERE email = $3`,
-              [user.name || user.email.split('@')[0], user.image, user.email]
-            )
-            console.log('✅ User updated')
-          }
+          console.log('✅ User upserted:', result.rows[0])
         }
       } catch (error) {
         console.error('❌ Error in signIn callback:', error)
+        console.error('❌ Error details:', error instanceof Error ? error.message : String(error))
         // Don't block sign-in if database operations fail
       }
       
