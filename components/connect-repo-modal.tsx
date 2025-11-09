@@ -52,6 +52,7 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
         throw new Error(data.error)
       }
       
+      console.log(`Loaded ${data.length} repositories from GitHub`)
       setRepos(data)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load repositories'
@@ -118,6 +119,11 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
                 className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
             </div>
+            {!loading && repos.length > 0 && (
+              <p className="text-xs text-gray-400 mt-2">
+                Showing {filteredRepos.length} of {repos.length} repositories
+              </p>
+            )}
           </div>
 
           {/* Content */}
