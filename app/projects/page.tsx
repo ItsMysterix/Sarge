@@ -53,7 +53,10 @@ export default function ProjectsPage() {
     refreshProjects();
   }, []);
 
-  const filteredProjects = projects.filter(project => {
+  // Remove known mock project(s) only on this page
+  const pageProjects = projects.filter(p => !(p.slug === 'my-nextjs-app' || p.name === 'My Next.js App'))
+
+  const filteredProjects = pageProjects.filter(project => {
     const matchesSearch = 
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -142,7 +145,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Projects Grid */}
-      {filteredProjects.length === 0 && projects.length === 0 && !isLoading ? (
+  {filteredProjects.length === 0 && pageProjects.length === 0 && !isLoading ? (
         <EmptyState
           icon={FolderGit2}
           title="No Projects Yet"
@@ -269,18 +272,18 @@ export default function ProjectsPage() {
       )}
 
       {/* Compact Stats Footer */}
-      {projects.length > 0 && (
+      {pageProjects.length > 0 && (
         <div className="mt-10 flex flex-wrap gap-8 text-sm">
           <div className="flex flex-col">
-            <span className="font-medium">{projects.length}</span>
+            <span className="font-medium">{pageProjects.length}</span>
             <span className="text-gray-400">Projects</span>
           </div>
           <div className="flex flex-col">
-            <span className="font-medium text-green-400">{projects.filter(p => p.status === 'active').length}</span>
+            <span className="font-medium text-green-400">{pageProjects.filter(p => p.status === 'active').length}</span>
             <span className="text-gray-400">Active</span>
           </div>
           <div className="flex flex-col">
-            <span className="font-medium text-blue-400">{projects.reduce((sum, p) => sum + p.deploymentCount, 0)}</span>
+            <span className="font-medium text-blue-400">{pageProjects.reduce((sum, p) => sum + p.deploymentCount, 0)}</span>
             <span className="text-gray-400">Deploys</span>
           </div>
         </div>
