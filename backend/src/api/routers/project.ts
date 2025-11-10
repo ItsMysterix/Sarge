@@ -159,7 +159,8 @@ export const projectRouter = router({
         let detectedInfo: any = {}
 
         if (workspaceManager && input.workspaceId) {
-          workspace = workspaceManager.get(input.workspaceId)
+          // Use correct accessor (workspaceManager.getWorkspace) for consistency with other router calls.
+          workspace = workspaceManager.getWorkspace?.(input.workspaceId) ?? workspaceManager.get?.(input.workspaceId)
           
           // Run AI detection on workspace
           if (workspace) {
