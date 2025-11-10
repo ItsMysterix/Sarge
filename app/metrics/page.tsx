@@ -2,12 +2,13 @@
 
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
-import { Activity, Rocket, TrendingUp } from "lucide-react"
+import { Activity, Rocket, TrendingUp, Cpu, Server, Gauge } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/lib/trpc"
 import { HealthBanner } from "@/components/metrics/health-banner"
+import { QuickStatCard } from "@/components/ui/quick-stat-card"
 import { TabsNavigation } from "@/components/metrics/tabs-navigation"
 import { OverviewTab } from "@/components/metrics/overview-tab"
 import { PerformanceTab } from "@/components/metrics/performance-tab"
@@ -259,6 +260,72 @@ export default function MetricsPage() {
                   healthGrade={healthGrade} 
                 />
               )}
+
+              {/* Top Quick Stats Row (unified design) */}
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+              >
+                <QuickStatCard
+                  title="CPU"
+                  value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
+                  icon={Cpu}
+                  subtitle="Avg usage"
+                  color="warning"
+                  delay={0}
+                />
+                <QuickStatCard
+                  title="Memory"
+                  value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
+                  icon={Gauge}
+                  subtitle="Working set"
+                  color="accent"
+                  delay={0.1}
+                />
+                <QuickStatCard
+                  title="Latency"
+                  value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
+                  icon={Rocket}
+                  subtitle="P95 response"
+                  color="success"
+                  delay={0.2}
+                />
+                <QuickStatCard
+                  title="Services"
+                  value={services.length.toString()}
+                  icon={Server}
+                  subtitle="Tracked" 
+                  color="accent"
+                  delay={0.3}
+                />
+              </motion.div>
+
+              {/* Selector + Tabs */}
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+              >
+                <div className="flex gap-2">
+                  {(['1h', '24h', '7d'] as const).map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all ${timeRange === range
+                        ? 'bg-accent/20 text-accent border border-accent/30'
+                        : 'glass-card text-gray-400 hover:text-white border border-white/10'}`}
+                    >
+                      {range.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex-1 sm:flex-none">
+                  <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+                </div>
+              </motion.div>
 
               {/* Tab Content */}
               {activeTab === 'overview' && (
