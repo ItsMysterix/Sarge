@@ -9,8 +9,8 @@ export function Header() {
   const [time, setTime] = useState("")
   const pathname = usePathname()
   
-  // Don't show project switcher on projects page (they select from grid)
-  const isProjectsPage = pathname === '/projects'
+  // Design rule: show brand + switcher on all pages except Profile (brand-only there)
+  const isProfilePage = pathname?.startsWith('/profile')
 
   useEffect(() => {
     const updateTime = () => {
@@ -34,13 +34,13 @@ export function Header() {
     <header className="glass-card border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          {/* Show SARGE on projects page, ProjectSwitcher on other pages */}
-          {isProjectsPage ? (
-            <div className="flex items-center">
-              <div className="text-xl sm:text-2xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
-              <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
-            </div>
-          ) : (
+          {/* Brand is always visible */}
+          <div className="flex items-center">
+            <div className="text-xl sm:text-2xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
+            <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
+          </div>
+          {/* Project switcher on all pages except Profile */}
+          {!isProfilePage && (
             <ProjectSwitcher />
           )}
           {/* Commit / build stamp for deployment debugging */}
