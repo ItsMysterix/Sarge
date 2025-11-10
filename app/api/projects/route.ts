@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getDbPool } from '@/lib/db';
 
 export async function GET() {
+  console.log('GET /api/projects - Request received');
+  
   try {
     // Only try database if URL is configured
     if (!process.env.DATABASE_URL) {
@@ -15,21 +17,37 @@ export async function GET() {
       setTimeout(() => reject(new Error('Database query timeout')), 3000)
     );
     
+    // Query actual schema - just get basic project info
     const queryPromise = db.query(
       `SELECT 
-        p.*,
-        COUNT(DISTINCT d.id) as deployment_count,
-        MAX(d.created_at) as last_deployed_at
-       FROM projects p
-       LEFT JOIN deployments d ON d.project_id = p.id
-       WHERE p.user_id = $1
-       GROUP BY p.id
-       ORDER BY p.created_at DESC`,
-      ['user_1'] // TODO: Get from auth context
+        id,
+        name,
+        user_id,
+        webhook_token,
+        created_at,
+        name as slug
+       FROM projects
+       ORDER BY created_at DESC`
     );
     
     const result = await Promise.race([queryPromise, timeoutPromise]) as any;
-    return NextResponse.json({ projects: result.rows });
+    
+    // Transform to expected format
+    const projects = result.rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      userId: row.user_id,
+      webhookToken: row.webhook_token,
+      createdAt: row.created_at,
+      created_at: row.created_at,
+      status: 'active',
+      framework: null,
+      description: '',
+    }));
+    
+    console.log(`Fetched ${projects.length} projects from database`);
+    return NextResponse.json({ projects });
   } catch (error) {
     console.error('Error fetching projects:', error);
     // Return empty array if database is not configured yet
@@ -44,51 +62,31 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log('Request body:', body);
     
-    // Create project object
+    // Create project object matching actual database schema
     const newProject = {
       id: crypto.randomUUID(),
       userId: 'user_1',
       name: body.name,
-      slug: body.slug,
-      description: body.description || '',
-      framework: body.framework || null,
-      repositoryId: body.repositoryId || null,
-      rootDirectory: body.rootDirectory || './',
-      buildCommand: body.buildCommand || 'npm run build',
-      outputDirectory: body.outputDirectory || '.next',
-      installCommand: body.installCommand || 'npm install',
-      devCommand: body.devCommand || 'npm run dev',
-      autoDeploy: body.autoDeploy !== undefined ? body.autoDeploy : true,
-      autoDeployBranch: body.autoDeployBranch || 'main',
-      previewDeployments: body.previewDeployments !== undefined ? body.previewDeployments : true,
-      status: 'active',
-      deploymentCount: 0,
+      slug: body.slug || body.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      webhookToken: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      status: 'active',
+      framework: body.framework || null,
+      description: body.description || '',
     };
 
     console.log('Created project object:', newProject);
 
-    // If database is configured, try to insert
+    // If database is configured, try to insert using actual schema
     if (process.env.DATABASE_URL) {
       console.log('DATABASE_URL is configured, attempting database insert');
       try {
         const db = getDbPool();
         await db.query(
-          `INSERT INTO projects (
-            id, user_id, name, slug, description, framework, repository_id,
-            root_directory, build_command, output_directory, install_command,
-            dev_command, auto_deploy, auto_deploy_branch, preview_deployments,
-            status, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
-          [
-            newProject.id, newProject.userId, newProject.name, newProject.slug,
-            newProject.description, newProject.framework, newProject.repositoryId,
-            newProject.rootDirectory, newProject.buildCommand, newProject.outputDirectory,
-            newProject.installCommand, newProject.devCommand, newProject.autoDeploy,
-            newProject.autoDeployBranch, newProject.previewDeployments, newProject.status,
-            newProject.createdAt, newProject.updatedAt
-          ]
+          `INSERT INTO projects (id, name, user_id, webhook_token, created_at)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [newProject.id, newProject.name, newProject.userId, newProject.webhookToken, newProject.createdAt]
         );
         console.log('Database insert successful');
       } catch (dbError) {
