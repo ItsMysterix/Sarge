@@ -1,101 +1,58 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useProject } from '@/lib/project-context';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
   Search, 
-  Filter, 
   FolderGit2, 
-  Clock, 
-  CheckCircle2, 
-  XCircle,
+  Clock,
   Loader2,
-  Settings,
-  ExternalLink,
-  TrendingUp,
-  Rocket
+  Github,
+  Folder
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
-import { EmptyProjects } from '@/components/projects/empty-projects';
 import { ProjectWizard } from '@/components/projects/project-wizard';
-
-const frameworkIcons: Record<string, string> = {
-  'next.js': '▲',
-  'react': '⚛️',
-  'vue': 'V',
-  'svelte': 'S',
-  'angular': 'A',
-  'node': '◆',
-  'python': '🐍',
-  'go': 'Go',
-  'rust': '🦀',
-};
-
-const statusColors = {
-  active: 'bg-green-500/20 text-green-400 border-green-500/30',
-  paused: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  archived: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  pending: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-};
+import { trpc } from '@/lib/trpc';
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { projects, isLoading, setCurrentProject, refreshProjects } = useProject();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showWizard, setShowWizard] = useState(false);
 
-  useEffect(() => {
-    refreshProjects();
-  }, []);
+  const t = trpc as any
+  const workspacesQuery = t.sarge.oneclick.workspaces.list.useQuery()
 
-  // Remove known mock project(s) only on this page
-  const pageProjects = projects.filter(p => !(p.slug === 'my-nextjs-app' || p.name === 'My Next.js App'))
-
-  const filteredProjects = pageProjects.filter(project => {
+  const filteredWorkspaces = (workspacesQuery.data || []).filter((workspace: any) => {
     const matchesSearch = 
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+      workspace.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      workspace.path.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
-  const handleProjectClick = (project: any) => {
-    setCurrentProject(project);
-    router.push('/');
+  const handleWorkspaceClick = (workspace: any) => {
+    // Navigate to workspace detail or deployment page
+    router.push(`/workspaces/${workspace.id}`);
   };
 
-  const handleCreateProject = () => {
+  const handleCreateWorkspace = () => {
     setShowWizard(true)
   };
 
-  const handleWizardComplete = (project: any) => {
+  const handleWizardComplete = () => {
     setShowWizard(false)
-    // Optimistically set current project for immediate navigation
-    setCurrentProject(project)
-    router.push('/')
-    // Refresh list in background (API may still be mock)
-    refreshProjects()
+    // Refetch workspaces
+    workspacesQuery.refetch()
   };
 
-  const handleProjectSettings = (e: React.MouseEvent, projectSlug: string) => {
-    e.stopPropagation();
-    router.push(`/projects/${projectSlug}/settings`);
-  };
-
-  if (isLoading) {
+  if (workspacesQuery.isLoading) {
     return (
       <AppShell showSidebar={false}>
         <div className="flex flex-1 p-8 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
-            <p className="text-gray-400">Loading projects...</p>
+            <p className="text-gray-400">Loading workspaces...</p>
           </div>
         </div>
       </AppShell>
@@ -105,177 +62,124 @@ export default function ProjectsPage() {
   return (
     <AppShell showSidebar={false}>
       <div className="max-w-7xl mx-auto p-8 flex-1">
-        {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        {/* Search */}
-        <div className="flex-1 relative">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Workspaces</h1>
+            <p className="text-gray-400">Manage your local and cloned repositories</p>
+          </div>
+          <motion.button
+            onClick={handleCreateWorkspace}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
+          >
+            <Plus className="h-5 w-5" />
+            Add Workspace
+          </motion.button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search projects..."
+            placeholder="Search workspaces..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-gray-400"
+            className="w-full pl-11 pr-4 py-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-white placeholder-gray-400"
           />
         </div>
 
-        {/* Status Filter */}
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-11 pr-8 py-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white appearance-none cursor-pointer min-w-[160px]"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="paused">Paused</option>
-            <option value="archived">Archived</option>
-            <option value="pending">Pending</option>
-          </select>
-        </div>
+        {/* Workspaces Grid */}
+        {filteredWorkspaces.length === 0 && (workspacesQuery.data || []).length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <FolderGit2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No workspaces yet</h3>
+            <p className="text-gray-400 mb-6">
+              Clone a repository from GitHub or register a local folder to get started
+            </p>
+            <motion.button
+              onClick={handleCreateWorkspace}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors inline-flex items-center gap-2 hover:bg-accent/90"
+            >
+              <Plus className="h-5 w-5" />
+              Add Your First Workspace
+            </motion.button>
+          </div>
+        ) : filteredWorkspaces.length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No workspaces found</h3>
+            <p className="text-gray-400">
+              Try adjusting your search
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredWorkspaces.map((workspace: any, index: number) => (
+              <motion.div
+                key={workspace.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                onClick={() => handleWorkspaceClick(workspace)}
+                className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/50 transition-all cursor-pointer group"
+              >
+                {/* Workspace Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
+                      {workspace.repoUrl ? (
+                        <Github className="h-6 w-6 text-accent" />
+                      ) : (
+                        <Folder className="h-6 w-6 text-accent" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg truncate group-hover:text-accent transition-colors">
+                        {workspace.name}
+                      </h3>
+                      <p className="text-xs text-gray-400 truncate font-mono">
+                        {workspace.repoUrl || workspace.path}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Create Project Button */}
-        <motion.button
-          onClick={handleCreateProject}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
-        >
-          <Plus className="h-5 w-5" />
-          Create Project
-        </motion.button>
+                {/* Workspace Info */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <FolderGit2 className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{workspace.path}</span>
+                  </div>
+                  {workspace.branch && (
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <Clock className="h-4 w-4 flex-shrink-0" />
+                      <span>Branch: {workspace.branch}</span>
+                    </div>
+                  )}
+                  {workspace.lastPulled && (
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <Clock className="h-4 w-4 flex-shrink-0" />
+                      <span>Last updated: {new Date(workspace.lastPulled).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Projects Grid */}
-      {filteredProjects.length === 0 && pageProjects.length === 0 && !isLoading ? (
-        <EmptyProjects
-          icon={FolderGit2}
-          onCreate={handleCreateProject}
-          onAddWorkspace={() => router.push('/oneclick')}
-        />
-      ) : filteredProjects.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No projects found</h3>
-          <p className="text-gray-400">
-            Try adjusting your search or filters
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProjects.map((project, index) => (
-            <motion.div
-              key={project.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => handleProjectClick(project)}
-              className="glass-card p-6 border border-white/10 rounded-lg hover:border-blue-500/50 transition-all cursor-pointer group"
-            >
-              {/* Project Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xl font-bold">
-                    {project.framework && frameworkIcons[project.framework.toLowerCase()]
-                      ? frameworkIcons[project.framework.toLowerCase()]
-                      : <FolderGit2 className="h-6 w-6" />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg truncate group-hover:text-blue-400 transition-colors">
-                      {project.name}
-                    </h3>
-                    <p className="text-sm text-gray-400 truncate">
-                      {project.slug}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => handleProjectSettings(e, project.slug)}
-                  className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg transition-all"
-                >
-                  <Settings className="h-4 w-4 text-gray-400 hover:text-white" />
-                </button>
-              </div>
-
-              {/* Description */}
-              {project.description && (
-                <p className="text-sm text-gray-400 mb-4 line-clamp-2">
-                  {project.description}
-                </p>
-              )}
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="text-center p-2 bg-white/5 rounded">
-                  <div className="text-lg font-bold text-white">
-                    {project.deploymentCount}
-                  </div>
-                  <div className="text-xs text-gray-400">Deploys</div>
-                </div>
-                <div className="text-center p-2 bg-white/5 rounded">
-                  <div className="text-lg font-bold text-green-400">
-                    <CheckCircle2 className="h-5 w-5 mx-auto" />
-                  </div>
-                  <div className="text-xs text-gray-400">Active</div>
-                </div>
-                <div className="text-center p-2 bg-white/5 rounded">
-                  <div className="text-lg font-bold text-blue-400">
-                    {project.framework || 'N/A'}
-                  </div>
-                  <div className="text-xs text-gray-400">Framework</div>
-                </div>
-              </div>
-
-              {/* Last Deployment */}
-              {project.lastDeployedAt && (
-                <div className="flex items-center gap-2 text-sm text-gray-400 mb-3">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    Last deployed {new Date(project.lastDeployedAt).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-
-              {/* Status Badge */}
-              <div className="flex items-center justify-between">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[project.status]}`}>
-                  {project.status}
-                </span>
-                <ExternalLink className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Compact Stats Footer */}
-      {pageProjects.length > 0 && (
-        <div className="mt-10 flex flex-wrap gap-8 text-sm">
-          <div className="flex flex-col">
-            <span className="font-medium">{pageProjects.length}</span>
-            <span className="text-gray-400">Projects</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-medium text-green-400">{pageProjects.filter(p => p.status === 'active').length}</span>
-            <span className="text-gray-400">Active</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-medium text-blue-400">{pageProjects.reduce((sum, p) => sum + p.deploymentCount, 0)}</span>
-            <span className="text-gray-400">Deploys</span>
-          </div>
-        </div>
-      )}
-      
-      {/* Project Wizard Modal */}
       {showWizard && (
         <ProjectWizard
           onComplete={handleWizardComplete}
           onCancel={() => setShowWizard(false)}
         />
       )}
-      </div>
     </AppShell>
   );
 }
