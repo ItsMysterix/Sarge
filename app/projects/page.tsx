@@ -77,9 +77,11 @@ export default function ProjectsPage() {
 
   const handleWizardComplete = (project: any) => {
     setShowWizard(false)
-    refreshProjects()
+    // Optimistically set current project for immediate navigation
     setCurrentProject(project)
     router.push('/')
+    // Refresh list in background (API may still be mock)
+    refreshProjects()
   };
 
   const handleProjectSettings = (e: React.MouseEvent, projectSlug: string) => {
