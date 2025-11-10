@@ -50,9 +50,16 @@ const ApplyInput = z.object({ plan: z.any() })
 const StatusInput = z.object({ stackId: z.string().min(1) })
 const LogsTailInput = z.object({ stackId: z.string().min(1), service: z.string().min(1) })
 const ToggleDockerInput = z.object({ enabled: z.boolean() })
-const CloneRepoInput = z.object({ 
-  repoUrl: z.string().url(), 
-  branch: z.string().default('main') 
+// Accept both HTTPS URLs and SSH SCP-like syntax (e.g., git@github.com:owner/repo.git)
+const CloneRepoInput = z.object({
+  repoUrl: z
+    .string()
+    .min(1)
+    .refine(
+      (v) => /^https?:\/\//.test(v) || /^git@[\w.-]+:.+/.test(v) || /^ssh:\/\//.test(v),
+      'Invalid repository URL. Use https://github.com/owner/repo(.git) or git@github.com:owner/repo.git'
+    ),
+  branch: z.string().default('main'),
 })
 const RegisterLocalInput = z.object({ 
   localPath: z.string().min(1) 
