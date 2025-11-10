@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Github, Lock, Globe, FolderOpen, Download } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
+import { Button } from '@/components/ui/button'
 
 interface Repo {
   id: number
@@ -189,12 +190,9 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
                 {mode === 'select' ? 'Connect Repository' : mode === 'clone' ? 'Clone to Workspace' : 'Use Local Folder'}
               </h2>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <Button onClick={onClose} variant="ghost" size="icon">
+              <X className="w-4 h-4" />
+            </Button>
           </div>
 
           {/* Mode Selection */}
@@ -284,12 +282,9 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
                 {error && (
                   <div className="text-center py-12">
                     <p className="text-red-400 mb-4">{error}</p>
-                    <button
-                      onClick={fetchRepos}
-                      className="px-4 py-2 bg-accent/20 text-accent hover:bg-accent/30 rounded-lg transition-colors"
-                    >
+                    <Button onClick={fetchRepos} variant="secondary" className="bg-accent/20 text-accent hover:bg-accent/30">
                       Try Again
-                    </button>
+                    </Button>
                   </div>
                 )}
 
@@ -380,33 +375,28 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
             </div>
             <div className="flex space-x-3">
               {mode !== 'select' && (
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setMode('select')
                     setSelectedRepo(null)
                     setLocalPath('')
                     setWorkspaceError(null)
                   }}
-                  className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
                 >
                   Back
-                </button>
+                </Button>
               )}
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
+              <Button variant="outline" onClick={onClose}>Cancel</Button>
               {mode !== 'select' && (
-                <button
+                <Button
                   onClick={handleConnect}
                   disabled={
                     (mode === 'clone' && !selectedRepo) ||
                     (mode === 'local' && !localPath) ||
                     workspaceLoading
                   }
-                  className="px-4 py-2 bg-accent text-black hover:bg-accent/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="bg-accent text-black hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {workspaceLoading ? (
                     <>
@@ -422,7 +412,7 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
                       {mode === 'clone' ? 'Clone & Connect' : 'Register & Connect'}
                     </>
                   )}
-                </button>
+                </Button>
               )}
             </div>
           </div>
