@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
@@ -13,20 +13,37 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ProjectWizard } from '@/components/projects/project-wizard';
-import { trpc } from '@/lib/trpc';
 
 export default function ProjectsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showWizard, setShowWizard] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const t = trpc as any
-  const projectsQuery = t.project.list.useQuery()
+  const fetchProjects = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/projects');
+      const data = await response.json();
+      // Filter out mock projects
+      const realProjects = (data.projects || []).filter((project: any) => 
+        project.slug !== 'my-nextjs-app' && project.name !== 'My Next.js App'
+      );
+      setProjects(realProjects);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      setProjects([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const filteredProjects = ((projectsQuery.data?.projects || []) as any[]).filter((project: any) => {
-    // Filter out mock project
-    if (project.slug === 'my-nextjs-app' || project.name === 'My Next.js App') return false
-    
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const filteredProjects = projects.filter((project: any) => {
     const matchesSearch = 
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.slug.toLowerCase().includes(searchQuery.toLowerCase());
@@ -48,10 +65,10 @@ export default function ProjectsPage() {
       router.push(`/projects/${project.slug}`)
     }
     // Refetch projects
-    projectsQuery.refetch()
+    fetchProjects();
   };
 
-  if (projectsQuery.isLoading) {
+  if (isLoading) {
     return (
       <AppShell showSidebar={false}>
         <div className="flex flex-1 p-8 items-center justify-center">
@@ -97,7 +114,7 @@ export default function ProjectsPage() {
         </div>
 
         {/* Projects Grid */}
-        {filteredProjects.length === 0 && (projectsQuery.data?.projects || []).length === 0 ? (
+        {filteredProjects.length === 0 && projects.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <FolderGit2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No projects yet</h3>

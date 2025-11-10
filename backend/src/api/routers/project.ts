@@ -55,7 +55,12 @@ export const projectRouter = router({
   // List all projects for current user
   list: publicProcedure.query(async ({ ctx }) => {
     try {
-      const result = await ctx.db.query(
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 2000)
+      );
+      
+      const queryPromise = ctx.db.query(
         `SELECT 
           p.*,
           COUNT(DISTINCT d.id) as deployment_count,
@@ -66,11 +71,13 @@ export const projectRouter = router({
          GROUP BY p.id
          ORDER BY p.created_at DESC`,
         ['user_1'] // TODO: Get from auth context
-      )
+      );
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]) as any;
       return { projects: result.rows }
     } catch (error) {
       console.error('Error fetching projects:', error)
-      // Return empty array if table doesn't exist yet
+      // Return empty array if table doesn't exist yet or DB is unavailable
       return { projects: [] }
     }
   }),
