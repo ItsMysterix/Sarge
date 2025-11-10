@@ -33,7 +33,7 @@ export function EmptyProjects({ icon: Icon, title = "No Projects Yet", descripti
             transition={{ type: "spring", stiffness: 180, damping: 12 }}
             className="mb-6 relative"
           >
-            <div className="absolute -inset-3 rounded-full bg-[conic-gradient(from_90deg,theme(colors.accent/30),transparent_60%)] blur-lg" />
+            <div className="absolute -inset-3 rounded-full bg-[conic-gradient(from_90deg,rgba(168,85,247,0.30),transparent_60%)] blur-lg" />
             <div className="relative p-6 rounded-full border border-accent/40 bg-accent/10 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_40px_rgba(168,85,247,0.25)]">
               <Icon className="w-14 h-14 text-accent drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]" />
             </div>
