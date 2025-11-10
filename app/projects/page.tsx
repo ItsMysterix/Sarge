@@ -163,11 +163,11 @@ export default function ProjectsPage() {
   return (
     <AppShell showSidebar={false}>
       <div className="max-w-7xl mx-auto p-8 flex-1">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* Header - Thicker to match site-wide header */}
+        <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Projects</h1>
-            <p className="text-gray-400">Manage your projects and deployments</p>
+            <h1 className="text-4xl font-bold mb-3">Projects</h1>
+            <p className="text-gray-400 text-lg">Manage your projects and deployments</p>
           </div>
           {/* Only show create button when projects exist */}
           {projects.length > 0 && (
