@@ -18,8 +18,12 @@ export default function ProjectsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showWizard, setShowWizard] = useState(false);
+  const [showInlineForm, setShowInlineForm] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const fetchProjects = async () => {
     try {
@@ -66,6 +70,44 @@ export default function ProjectsPage() {
     }
     // Refetch projects
     fetchProjects();
+  };
+
+  const handleCreateInline = async () => {
+    if (!name.trim() || !slug.trim()) {
+      alert('Please provide both project name and slug');
+      return;
+    }
+    
+    try {
+      setCreating(true);
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          slug: slug.trim(),
+          description: '',
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to create project');
+      
+      const project = await response.json();
+      
+      // Reset form
+      setName('');
+      setSlug('');
+      setShowInlineForm(false);
+      
+      // Refetch and navigate
+      await fetchProjects();
+      router.push(`/projects/${project.slug}`);
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project');
+    } finally {
+      setCreating(false);
+    }
   };
 
   if (isLoading) {
@@ -115,21 +157,109 @@ export default function ProjectsPage() {
 
         {/* Projects Grid */}
         {filteredProjects.length === 0 && projects.length === 0 ? (
-          <div className="glass-card p-12 text-center">
-            <FolderGit2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
-            <p className="text-gray-400 mb-6">
-              Create your first project to get started with deployments
-            </p>
-            <motion.button
-              onClick={handleCreateProject}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors inline-flex items-center gap-2 hover:bg-accent/90"
-            >
-              <Plus className="h-5 w-5" />
-              Create Your First Project
-            </motion.button>
+          <div className="glass-card p-8 border border-white/10 rounded-lg">
+            {!showInlineForm ? (
+              <div className="text-center py-8">
+                <FolderGit2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
+                <p className="text-gray-400 mb-6">
+                  Create your first project to get started with deployments
+                </p>
+                <motion.button
+                  onClick={() => setShowInlineForm(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors inline-flex items-center gap-2 hover:bg-accent/90"
+                >
+                  <Plus className="h-5 w-5" />
+                  Create Your First Project
+                </motion.button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold">Create New Project</h3>
+                  <button
+                    onClick={() => {
+                      setShowInlineForm(false);
+                      setName('');
+                      setSlug('');
+                    }}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Project Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      // Auto-generate slug
+                      if (!slug) {
+                        setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                      }
+                    }}
+                    placeholder="My Awesome Project"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-white placeholder-gray-400"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Project Slug
+                  </label>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="my-awesome-project"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-white placeholder-gray-400 font-mono"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Used in URLs: /projects/{slug || 'your-slug'}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <motion.button
+                    onClick={handleCreateInline}
+                    disabled={creating || !name.trim() || !slug.trim()}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex-1 px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent/90 flex items-center justify-center gap-2"
+                  >
+                    {creating ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-5 w-5" />
+                        Create Project
+                      </>
+                    )}
+                  </motion.button>
+                  <button
+                    onClick={() => {
+                      setShowInlineForm(false);
+                      setName('');
+                      setSlug('');
+                    }}
+                    disabled={creating}
+                    className="px-6 py-3 border border-white/10 text-gray-300 rounded-lg font-medium transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : filteredProjects.length === 0 ? (
           <div className="glass-card p-12 text-center">
