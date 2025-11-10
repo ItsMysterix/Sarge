@@ -2,9 +2,10 @@
 
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
-import { Activity } from "lucide-react"
+import { Activity, Rocket, TrendingUp } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { trpc } from "@/lib/trpc"
 import { HealthBanner } from "@/components/metrics/health-banner"
 import { TabsNavigation } from "@/components/metrics/tabs-navigation"
@@ -12,6 +13,8 @@ import { OverviewTab } from "@/components/metrics/overview-tab"
 import { PerformanceTab } from "@/components/metrics/performance-tab"
 import { InfrastructureTab } from "@/components/metrics/infrastructure-tab"
 import { ServicesTab } from "@/components/metrics/services-tab"
+import { EmptyState } from "@/components/ui/empty-state"
+import { OnboardingSteps } from "@/components/ui/onboarding-steps"
 
 interface MetricDataPoint {
   time: string
@@ -23,6 +26,7 @@ interface MetricDataPoint {
 }
 
 export default function MetricsPage() {
+  const router = useRouter()
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d'>('24h')
   const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'infrastructure' | 'services'>('overview')
   const [metricsHistory, setMetricsHistory] = useState<MetricDataPoint[]>([])
@@ -34,6 +38,9 @@ export default function MetricsPage() {
   const metricsQuery = t.metrics.latest.useQuery()
   const servicesSummaryQuery = t.sarge.metrics.getServicesSummary.useQuery()
   const workspaceHealthQuery = t.sarge.metrics.getWorkspaceHealth.useQuery({})
+  
+  // Check if we have any real data
+  const hasData = metricsHistory.length > 0 || services.length > 0 || workspaceHealth.length > 0
 
   // Fetch workspace health data
   useEffect(() => {
@@ -44,7 +51,7 @@ export default function MetricsPage() {
 
   // Fetch services summary
   useEffect(() => {
-    if (servicesSummaryQuery.data) {
+    if (servicesSummaryQuery.data && Array.isArray(servicesSummaryQuery.data)) {
       setServices(servicesSummaryQuery.data)
     }
   }, [servicesSummaryQuery.data])
@@ -133,56 +140,32 @@ export default function MetricsPage() {
     fetchServices()
   }, [servicesSummaryQuery.data])
 
-  // Generate fallback data if no real data yet
-  const generateFallbackData = (points: number): MetricDataPoint[] => {
-    if (metricsHistory.length > 0) return metricsHistory
-    
-    return Array.from({ length: points }, (_, i) => {
-      const now = new Date()
-      const time = new Date(now.getTime() - (points - i) * 60000)
-      return {
-        time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        cpu: Math.random() * 40 + 10, // 10-50% realistic CPU usage
-        memory: Math.random() * 35 + 25, // 25-60% realistic memory usage
-        latency: Math.floor(Math.random() * 80) + 15, // 15-95ms realistic latency
-        requests: Math.floor(Math.random() * 500) + 100, // 100-600 requests
-        errors: Math.floor(Math.random() * 5), // 0-5 errors
-      }
-    })
-  }
-
-  const displayData = metricsHistory.length > 0 
-    ? metricsHistory 
-    : generateFallbackData(timeRange === '1h' ? 60 : timeRange === '24h' ? 144 : 168)
-
-  // Calculate statistics
-  const avgCpu = displayData.length > 0 
-    ? displayData.reduce((sum, d) => sum + d.cpu, 0) / displayData.length 
+  // Calculate statistics from real data only
+  const avgCpu = metricsHistory.length > 0 
+    ? metricsHistory.reduce((sum, d) => sum + d.cpu, 0) / metricsHistory.length 
     : 0
-  const avgMemory = displayData.length > 0 
-    ? displayData.reduce((sum, d) => sum + d.memory, 0) / displayData.length 
+  const avgMemory = metricsHistory.length > 0 
+    ? metricsHistory.reduce((sum, d) => sum + d.memory, 0) / metricsHistory.length 
     : 0
-  const avgLatency = displayData.length > 0 
-    ? displayData.reduce((sum, d) => sum + d.latency, 0) / displayData.length 
+  const avgLatency = metricsHistory.length > 0 
+    ? metricsHistory.reduce((sum, d) => sum + d.latency, 0) / metricsHistory.length 
     : 0
-  const totalRequests = displayData.reduce((sum, d) => sum + (d.requests || 0), 0)
-  const totalErrors = displayData.reduce((sum, d) => sum + (d.errors || 0), 0)
+  const totalRequests = metricsHistory.reduce((sum, d) => sum + (d.requests || 0), 0)
+  const totalErrors = metricsHistory.reduce((sum, d) => sum + (d.errors || 0), 0)
   const errorRate = totalRequests > 0 ? (totalErrors / totalRequests) * 100 : 0
 
-  // Service distribution data from real metrics
+  // Service distribution data from real metrics only
   const serviceData = services.length > 0 
     ? services.map(s => ({ 
         name: s.service_name || s.name, 
-        value: s.total_requests || s.avgCpu || Math.floor(Math.random() * 100)
+        value: s.total_requests || s.avgCpu || 0
       }))
     : workspaceHealth.length > 0
     ? workspaceHealth.map(w => ({
         name: w.workspace_name || 'Workspace',
         value: w.active_services || 0
       }))
-    : [
-        { name: 'No Services', value: 0 },
-      ]
+    : []
 
   // Health score calculation
   const calculateHealthScore = () => {
@@ -204,93 +187,128 @@ export default function MetricsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-8"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div>
-                <div className="flex items-center space-x-3 mb-2">
-                  <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Metrics Dashboard</h1>
+          {/* Show empty state if no data */}
+          {!hasData ? (
+            <EmptyState
+              icon={Activity}
+              title="No Metrics Yet"
+              description="Deploy your first project to start tracking performance metrics, resource usage, and service health in real-time."
+              actionLabel="Deploy a Project"
+              onAction={() => router.push('/oneclick')}
+              secondaryActionLabel="View Documentation"
+              onSecondaryAction={() => router.push('/docs')}
+            >
+              <OnboardingSteps
+                steps={[
+                  {
+                    number: 1,
+                    title: "Add a workspace",
+                    description: "Clone a GitHub repository or register a local project folder in the One-Click Deploy page.",
+                  },
+                  {
+                    number: 2,
+                    title: "Deploy your services",
+                    description: "Select your workspace and click deploy. Sarge will automatically detect services, install dependencies, and start them.",
+                  },
+                  {
+                    number: 3,
+                    title: "Monitor performance",
+                    description: "Once deployed, real-time metrics will appear here showing CPU, memory, latency, and service health.",
+                  },
+                ]}
+              />
+            </EmptyState>
+          ) : (
+            <>
+              {/* Header */}
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="mb-6 sm:mb-8"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div>
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Metrics Dashboard</h1>
+                    </div>
+                    <p className="text-sm sm:text-base text-gray-400">
+                      Real-time performance and infrastructure metrics · {metricsHistory.length} data points
+                    </p>
+                  </div>
+                  
+                  {/* Time Range Selector */}
+                  <div className="flex gap-2">
+                    {(['1h', '24h', '7d'] as const).map((range) => (
+                      <button
+                        key={range}
+                        onClick={() => setTimeRange(range)}
+                        className={`
+                          px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all
+                          ${timeRange === range
+                            ? 'bg-accent/20 text-accent border border-accent/30'
+                            : 'glass-card text-gray-400 hover:text-white border border-white/10'
+                          }
+                        `}
+                      >
+                        {range.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-sm sm:text-base text-gray-400">
-                  Real-time performance and infrastructure metrics · {displayData.length} data points
-                </p>
-              </div>
-              
-              {/* Time Range Selector */}
-              <div className="flex gap-2">
-                {(['1h', '24h', '7d'] as const).map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setTimeRange(range)}
-                    className={`
-                      px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all
-                      ${timeRange === range
-                        ? 'bg-accent/20 text-accent border border-accent/30'
-                        : 'glass-card text-gray-400 hover:text-white border border-white/10'
-                      }
-                    `}
-                  >
-                    {range.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Tabs Navigation */}
-            <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-          </motion.div>
+                {/* Tabs Navigation */}
+                <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+              </motion.div>
 
-          {/* Health Score Banner - Only on Overview */}
-          {activeTab === 'overview' && (
-            <HealthBanner 
-              healthScore={healthScore} 
-              healthStatus={healthStatus} 
-              healthGrade={healthGrade} 
-            />
-          )}
+              {/* Health Score Banner - Only on Overview */}
+              {activeTab === 'overview' && (
+                <HealthBanner 
+                  healthScore={healthScore} 
+                  healthStatus={healthStatus} 
+                  healthGrade={healthGrade} 
+                />
+              )}
 
-          {/* Tab Content */}
-          {activeTab === 'overview' && (
-            <OverviewTab
-              displayData={displayData}
-              currentMetrics={currentMetrics}
-              avgCpu={avgCpu}
-              avgMemory={avgMemory}
-              avgLatency={avgLatency}
-              totalRequests={totalRequests}
-            />
-          )}
+              {/* Tab Content */}
+              {activeTab === 'overview' && (
+                <OverviewTab
+                  displayData={metricsHistory}
+                  currentMetrics={currentMetrics}
+                  avgCpu={avgCpu}
+                  avgMemory={avgMemory}
+                  avgLatency={avgLatency}
+                  totalRequests={totalRequests}
+                />
+              )}
 
-          {activeTab === 'performance' && (
-            <PerformanceTab
-              displayData={displayData}
-              avgLatency={avgLatency}
-              totalRequests={totalRequests}
-              errorRate={errorRate}
-              totalErrors={totalErrors}
-            />
-          )}
+              {activeTab === 'performance' && (
+                <PerformanceTab
+                  displayData={metricsHistory}
+                  avgLatency={avgLatency}
+                  totalRequests={totalRequests}
+                  errorRate={errorRate}
+                  totalErrors={totalErrors}
+                />
+              )}
 
-          {activeTab === 'infrastructure' && (
-            <InfrastructureTab
-              displayData={displayData}
-              currentMetrics={currentMetrics}
-              avgCpu={avgCpu}
-              avgMemory={avgMemory}
-            />
-          )}
+              {activeTab === 'infrastructure' && (
+                <InfrastructureTab
+                  displayData={metricsHistory}
+                  currentMetrics={currentMetrics}
+                  avgCpu={avgCpu}
+                  avgMemory={avgMemory}
+                />
+              )}
 
-          {activeTab === 'services' && (
-            <ServicesTab
-              services={services}
-              serviceData={serviceData}
-            />
+              {activeTab === 'services' && (
+                <ServicesTab
+                  services={services}
+                  serviceData={serviceData}
+                />
+              )}
+            </>
           )}
         </main>
       </div>
