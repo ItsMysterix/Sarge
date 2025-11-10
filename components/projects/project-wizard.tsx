@@ -74,6 +74,9 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
     logRetention: 7,
   })
 
+  // Optional: single paste field for repo URL (e.g., https://github.com/owner/repo or git@github.com:owner/repo.git)
+  const [repoUrlInput, setRepoUrlInput] = useState("")
+
   const t = trpc as any
   const workspacesQuery = t.sarge.oneclick.workspaces.list.useQuery()
   const createProjectMutation = t.project.create.useMutation()
@@ -122,6 +125,37 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
     } finally {
       setCreating(false)
     }
+  }
+
+  // Parse various repo URL forms into { owner, repo, url }
+  const parseRepoInput = (input: string): { owner?: string; repo?: string; url?: string } => {
+    const val = input.trim()
+    if (!val) return {}
+    // SSH scp syntax: git@github.com:owner/repo.git
+    const sshMatch = val.match(/^git@[^:]+:([^/]+)\/([^\.\s]+)(?:\.git)?$/)
+    if (sshMatch) {
+      return { owner: sshMatch[1], repo: sshMatch[2], url: val }
+    }
+    // https URL: https://github.com/owner/repo(.git)
+    try {
+      const u = new URL(val)
+      if (u.hostname.endsWith('github.com')) {
+        // Strip potential token prefix in username portion like x-access-token:TOKEN@
+        const parts = u.pathname.replace(/^\//, '').split('/')
+        if (parts.length >= 2) {
+          const owner = parts[0]
+          const repoWithMaybeGit = parts[1]
+          const repo = repoWithMaybeGit.replace(/\.git$/, '')
+          return { owner, repo, url: val }
+        }
+      }
+    } catch {}
+    // owner/repo shorthand
+    const short = val.match(/^([\w-\.]+)\/([\w-\.]+)$/)
+    if (short) {
+      return { owner: short[1], repo: short[2] }
+    }
+    return {}
   }
 
   const canProceed = () => {
@@ -300,6 +334,28 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="pl-4 space-y-3"
                   >
+                    {/* Paste full repo URL (optional) */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Paste Repository URL (optional)</label>
+                      <input
+                        type="text"
+                        value={repoUrlInput}
+                        onChange={(e) => setRepoUrlInput(e.target.value)}
+                        onBlur={() => {
+                          if (!repoUrlInput) return
+                          const parsed = parseRepoInput(repoUrlInput)
+                          if (parsed.owner && !formData.githubOwner) {
+                            setFormData((fd) => ({ ...fd, githubOwner: parsed.owner! }))
+                          }
+                          if (parsed.repo && !formData.githubRepo) {
+                            setFormData((fd) => ({ ...fd, githubRepo: parsed.repo! }))
+                          }
+                        }}
+                        placeholder="https://github.com/owner/repo or git@github.com:owner/repo.git"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/70 font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">You can paste a full URL or fill the fields below.</p>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-sm font-medium mb-1">Owner</label>
@@ -335,28 +391,54 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                     <div className="flex items-center gap-3">
                       <Button
                         onClick={async () => {
-                          const owner = (formData as any).githubOwner
-                          const repo = (formData as any).githubRepo
+                          // Prefer pasted URL if provided; otherwise build from owner/repo
+                          const parsed = repoUrlInput ? parseRepoInput(repoUrlInput) : {}
+                          const owner = (formData as any).githubOwner || parsed.owner
+                          const repo = (formData as any).githubRepo || parsed.repo
                           const branch = (formData as any).githubBranch || 'main'
-                          if (!owner || !repo) return
+                          if (!owner || !repo) {
+                            addToast({ type: 'error', title: 'Missing info', description: 'Provide owner/repo or paste a valid repository URL' })
+                            return
+                          }
                           try {
-                            // Build repo URL; if we have a token, embed it for private repos support
-                            let repoUrl = `https://github.com/${owner}/${repo}.git`
-                            if (session?.accessToken) {
-                              repoUrl = `https://x-access-token:${session.accessToken}@github.com/${owner}/${repo}.git`
+                            let repoUrl: string | undefined
+                            if (parsed.url && (/^git@/.test(parsed.url) || /^ssh:\/\//.test(parsed.url))) {
+                              // SSH provided – pass through, backend accepts ssh syntax
+                              repoUrl = parsed.url
+                            } else if (parsed.url && /^https?:\/\//.test(parsed.url)) {
+                              // Use pasted https URL (ensure .git)
+                              const u = new URL(parsed.url)
+                              if (u.hostname.endsWith('github.com')) {
+                                if (!u.pathname.endsWith('.git')) u.pathname = u.pathname.replace(/\/$/, '') + '.git'
+                                // Inject token for private repos if available
+                                if (session?.accessToken && u.protocol === 'https:') {
+                                  repoUrl = `https://x-access-token:${session.accessToken}@github.com${u.pathname}`
+                                } else {
+                                  repoUrl = u.toString()
+                                }
+                              } else {
+                                repoUrl = parsed.url
+                              }
+                            } else {
+                              // Build from fields
+                              repoUrl = `https://github.com/${owner}/${repo}.git`
+                              if (session?.accessToken) {
+                                repoUrl = `https://x-access-token:${session.accessToken}@github.com/${owner}/${repo}.git`
+                              }
                             }
+
                             const ws = await cloneRepoMutation.mutateAsync({ repoUrl, branch })
                             setFormData({
                               ...formData,
                               workspaceId: ws.id,
-                              name: ws.name || repo,
-                              slug: (ws.name || repo).toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                              name: ws.name || (repo as string),
+                              slug: (ws.name || (repo as string)).toLowerCase().replace(/[^a-z0-9]+/g, '-')
                             })
                           } catch (e: any) {
                             addToast({ type: 'error', title: 'Clone failed', description: e?.message || 'Could not clone repository' })
                           }
                         }}
-                        disabled={cloneRepoMutation.isLoading || !(formData as any).githubOwner || !(formData as any).githubRepo}
+                        disabled={cloneRepoMutation.isLoading || (!repoUrlInput && (!(formData as any).githubOwner || !(formData as any).githubRepo))}
                         className="bg-accent text-black hover:bg-accent/90"
                       >
                         {cloneRepoMutation.isLoading ? 'Cloning…' : 'Clone from GitHub'}
