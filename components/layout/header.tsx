@@ -31,28 +31,34 @@ export function Header() {
   }, [])
 
   return (
-    <header className="glass-card border-b border-white/10 px-6 py-4 sticky top-0 z-50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <header className="glass-card border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-50">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
           {/* Show SARGE on projects page, ProjectSwitcher on other pages */}
           {isProjectsPage ? (
             <div className="flex items-center">
-              <div className="text-2xl font-bold text-accent terminal-text">SARGE</div>
-              <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+              <div className="text-xl sm:text-2xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
+              <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
             </div>
           ) : (
             <ProjectSwitcher />
           )}
+          {/* Commit / build stamp for deployment debugging */}
+          {typeof window !== 'undefined' && (
+            <div className="hidden md:block text-[10px] font-mono text-gray-500 truncate max-w-[160px]" title={process.env.NEXT_PUBLIC_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA}>
+              {(process.env.NEXT_PUBLIC_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || 'dev-local').slice(0,7)}
+            </div>
+          )}
         </div>
-
-        <div className="flex items-center space-x-6">
-          {/* AI Co-Pilot badge moved to right side */}
-          <div className="px-3 py-1.5 glass-card text-xs terminal-text text-gray-400 border border-white/10">
+        <div className="flex items-center space-x-3 sm:space-x-6">
+          <div className="px-2 sm:px-3 py-1.5 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">
             AI Co-Pilot
           </div>
+          <div className="hidden sm:block terminal-text text-accent text-xs font-mono opacity-70" aria-label="clock">
+            {time}
+          </div>
           <UserProfile />
-          <div className="terminal-text text-accent text-lg font-mono">{time}</div>
-          <div className="w-3 h-3 bg-accent rounded-full animate-pulse-glow"></div>
+          <div className="w-3 h-3 bg-accent rounded-full animate-pulse-glow" aria-label="system-status" />
         </div>
       </div>
     </header>
