@@ -135,24 +135,24 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-gray-900 border border-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        className="glass-card border border-white/10 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-xl"
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-800">
+        <div className="p-6 border-b border-white/10 bg-black/20 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30">
-                <Sparkles className="w-6 h-6 text-blue-400" />
+              <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-accent" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Create New Project</h2>
-                <p className="text-sm text-gray-400">Set up your project in a few steps</p>
+                <h2 className="text-2xl font-bold tracking-tight">Create New Project</h2>
+                <p className="text-sm text-gray-400">Set up your project in a few streamlined steps</p>
               </div>
             </div>
             {onCancel && (
               <button
                 onClick={onCancel}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors hover:bg-white/10 rounded-lg p-2"
               >
                 ✕
               </button>
@@ -166,12 +166,12 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                 <div className="flex flex-col items-center">
                   <div
                     className={`
-                      w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all
+                      w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all shadow-inner
                       ${step > s.number 
-                        ? "bg-green-500 text-white" 
+                        ? "bg-accent text-black" 
                         : step === s.number 
-                        ? "bg-blue-500 text-white ring-4 ring-blue-500/20" 
-                        : "bg-gray-800 text-gray-500"
+                        ? "bg-accent/90 text-black ring-4 ring-accent/30" 
+                        : "bg-white/5 text-gray-500"
                       }
                     `}
                   >
@@ -186,8 +186,8 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                 </div>
                 {idx < steps.length - 1 && (
                   <div className={`
-                    flex-1 h-0.5 mx-4 transition-colors
-                    ${step > s.number ? "bg-green-500" : "bg-gray-800"}
+                    flex-1 h-0.5 mx-4 transition-colors rounded-full
+                    ${step > s.number ? "bg-accent" : "bg-white/10"}
                   `} />
                 )}
               </div>
@@ -248,7 +248,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                           slug: workspace?.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "",
                         })
                       }}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                     >
                       <option value="">Select a workspace...</option>
                       {workspacesQuery.data?.map((workspace: any) => (
@@ -300,7 +300,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       setFormData({ ...formData, name: e.target.value, slug })
                     }}
                     placeholder="My Awesome Project"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                   />
                 </div>
 
@@ -311,7 +311,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
                     placeholder="my-awesome-project"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 font-mono text-sm"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70 font-mono text-sm"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Used in URLs: /projects/{formData.slug || "your-slug"}
@@ -325,7 +325,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Brief description of your project..."
                     rows={3}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70 resize-none"
                   />
                 </div>
               </motion.div>
@@ -352,7 +352,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       value={formData.installCommand}
                       onChange={(e) => setFormData({ ...formData, installCommand: e.target.value })}
                       placeholder="npm install (auto-detected)"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 font-mono text-sm"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70 font-mono text-sm"
                     />
                   </div>
 
@@ -363,7 +363,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       value={formData.buildCommand}
                       onChange={(e) => setFormData({ ...formData, buildCommand: e.target.value })}
                       placeholder="npm run build (auto-detected)"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 font-mono text-sm"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70 font-mono text-sm"
                     />
                   </div>
 
@@ -374,7 +374,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       value={formData.devCommand}
                       onChange={(e) => setFormData({ ...formData, devCommand: e.target.value })}
                       placeholder="npm run dev (auto-detected)"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 font-mono text-sm"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70 font-mono text-sm"
                     />
                   </div>
 
@@ -385,7 +385,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       value={formData.framework}
                       onChange={(e) => setFormData({ ...formData, framework: e.target.value })}
                       placeholder="Auto-detected"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                     />
                   </div>
                 </div>
@@ -400,7 +400,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, autoDeploy: !formData.autoDeploy })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.autoDeploy ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.autoDeploy ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -436,7 +436,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, branchProtection: !formData.branchProtection })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.branchProtection ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.branchProtection ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -457,7 +457,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                           protectedBranches: e.target.value.split(",").map(b => b.trim())
                         })}
                         placeholder="main, master, develop"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                       />
                     </div>
                   )}
@@ -471,7 +471,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, autoMerge: !formData.autoMerge })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.autoMerge ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.autoMerge ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -495,7 +495,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, passwordProtected: !formData.passwordProtected })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.passwordProtected ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.passwordProtected ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -513,7 +513,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         placeholder="Enter password"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                       />
                     </div>
                   )}
@@ -527,7 +527,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, enableWAF: !formData.enableWAF })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.enableWAF ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.enableWAF ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -563,7 +563,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, enableCollaboration: !formData.enableCollaboration })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.enableCollaboration ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.enableCollaboration ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -580,7 +580,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                         <select
                           value={formData.defaultRole}
                           onChange={(e) => setFormData({ ...formData, defaultRole: e.target.value as any })}
-                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                         >
                           <option value="viewer">Viewer (Read-only)</option>
                           <option value="developer">Developer (Deploy & Edit)</option>
@@ -597,7 +597,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                           onClick={() => setFormData({ ...formData, requireApproval: !formData.requireApproval })}
                           className={`
                             relative w-12 h-6 rounded-full transition-colors
-                            ${formData.requireApproval ? "bg-blue-500" : "bg-gray-700"}
+                              ${formData.requireApproval ? "bg-accent" : "bg-white/10"}
                           `}
                         >
                           <div className={`
@@ -640,7 +640,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                               setFormData({ ...formData, envVars: newEnvVars })
                             }}
                             placeholder="KEY"
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono"
+                            className="flex-1 bg-white/5 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:border-accent/70 font-mono"
                           />
                           <input
                             type="text"
@@ -651,7 +651,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                               setFormData({ ...formData, envVars: newEnvVars })
                             }}
                             placeholder="value"
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono"
+                            className="flex-1 bg-white/5 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:border-accent/70 font-mono"
                           />
                           <button
                             onClick={() => {
@@ -678,7 +678,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <select
                         value={formData.nodeVersion}
                         onChange={(e) => setFormData({ ...formData, nodeVersion: e.target.value })}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                       >
                         <option value="16.x">Node.js 16.x</option>
                         <option value="18.x">Node.js 18.x (Recommended)</option>
@@ -695,7 +695,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                         onChange={(e) => setFormData({ ...formData, buildTimeout: parseInt(e.target.value) })}
                         min="5"
                         max="60"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent/70"
                       />
                     </div>
                   </div>
@@ -709,7 +709,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, enableCaching: !formData.enableCaching })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.enableCaching ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.enableCaching ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -728,7 +728,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       onClick={() => setFormData({ ...formData, enableAnalytics: !formData.enableAnalytics })}
                       className={`
                         relative w-12 h-6 rounded-full transition-colors
-                        ${formData.enableAnalytics ? "bg-blue-500" : "bg-gray-700"}
+                          ${formData.enableAnalytics ? "bg-accent" : "bg-white/10"}
                       `}
                     >
                       <div className={`
@@ -820,12 +820,12 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-800 flex items-center justify-between">
+        <div className="p-6 border-t border-white/10 flex items-center justify-between bg-black/30 backdrop-blur-sm">
           <Button
             onClick={handleBack}
             disabled={step === 1}
             variant="outline"
-            className="border-gray-700"
+            className="border-white/10 hover:bg-white/10"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
@@ -836,7 +836,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
               <Button
                 onClick={onCancel}
                 variant="outline"
-                className="border-gray-700"
+                className="border-white/10 hover:bg-white/10"
               >
                 Cancel
               </Button>
@@ -846,7 +846,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
               <Button
                 onClick={handleNext}
                 disabled={!canProceed()}
-                className="bg-blue-500 hover:bg-blue-600"
+                className="bg-accent text-black hover:bg-accent/90"
               >
                 Next
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -855,7 +855,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
               <Button
                 onClick={handleCreate}
                 disabled={creating}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                className="bg-accent text-black hover:bg-accent/90"
               >
                 {creating ? "Creating..." : "Create Project"}
                 <Rocket className="w-4 h-4 ml-2" />

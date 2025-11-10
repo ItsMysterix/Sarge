@@ -134,13 +134,15 @@ export default function ProjectsPage() {
         </div>
 
         {/* Create Project Button */}
-        <button
+        <motion.button
           onClick={handleCreateProject}
-          className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
         >
           <Plus className="h-5 w-5" />
           Create Project
-        </button>
+        </motion.button>
       </div>
 
       {/* Projects Grid */}
