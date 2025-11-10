@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [showGithubModal, setShowGithubModal] = useState(false)
   
   // Security settings state
   const [showSecuritySettings, setShowSecuritySettings] = useState(false)
@@ -327,12 +328,13 @@ export default function ProfilePage() {
                         Connected
                       </span>
                     ) : (
-                      <a 
-                        href="/api/auth/signin?callbackUrl=/profile"
-                        className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 backdrop-blur-sm"
+                      <button
+                        onClick={() => setShowGithubModal(true)}
+                        className="px-4 py-2 text-accent bg-white/5 hover:bg-white/10 transition-all duration-300 rounded-lg border border-accent/30 backdrop-blur-sm flex items-center gap-2"
                       >
+                        <Github className="w-4 h-4" />
                         Connect GitHub
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -448,6 +450,63 @@ export default function ProfilePage() {
             </div>
           </div>
       </main>
+      {/* GitHub Connect Modal */}
+      {!isGitHubUser && showGithubModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* glass overlay (not fully dimmed) */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setShowGithubModal(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="relative glass-card w-full max-w-md border border-white/10 rounded-xl overflow-hidden shadow-xl"
+          >
+            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#24292e] flex items-center justify-center">
+                  <Github className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Connect GitHub</h2>
+                  <p className="text-xs text-gray-400">Authorize GitHub to enable repository imports</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGithubModal(false)}
+                className="text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-300 leading-relaxed">
+                We use GitHub OAuth only to read your repository metadata (name, branches) and enable optional automated analysis.
+                No code is stored. You can revoke access anytime from your GitHub settings.
+              </p>
+              <ul className="text-xs text-gray-400 space-y-1">
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full" /> List repositories</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full" /> Detect framework & build hints</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full" /> Enable one-click deploy flows</li>
+              </ul>
+            </div>
+            <div className="p-6 border-t border-white/10 flex items-center justify-end gap-3 bg-black/20 backdrop-blur-sm">
+              <button
+                onClick={() => setShowGithubModal(false)}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <a
+                href="/api/auth/signin?callbackUrl=/profile"
+                className="px-5 py-2 text-sm font-medium bg-accent text-black rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-2"
+              >
+                <Github className="w-4 h-4" /> Continue with GitHub
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </AppShell>
   )
 }
