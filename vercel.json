@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev:frontend",
-  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm run dev:frontend",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["iad1"],
