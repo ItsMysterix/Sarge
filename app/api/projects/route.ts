@@ -44,9 +44,15 @@ export async function GET() {
       status: 'active',
       framework: null,
       description: '',
-    }));
+    }))
+    // Filter out old test projects - only show projects created after Nov 10, 2025
+    .filter((project: any) => {
+      const createdDate = new Date(project.created_at);
+      const cutoffDate = new Date('2025-11-10T00:00:00Z');
+      return createdDate >= cutoffDate;
+    });
     
-    console.log(`Fetched ${projects.length} projects from database`);
+    console.log(`Fetched ${projects.length} projects from database (filtered)`);
     return NextResponse.json({ projects });
   } catch (error) {
     console.error('Error fetching projects:', error);
