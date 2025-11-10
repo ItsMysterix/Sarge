@@ -54,40 +54,25 @@ const projectSettingsSchema = z.object({
 export const projectRouter = router({
   // List all projects for current user
   list: publicProcedure.query(async ({ ctx }) => {
-    // TODO: Get user from session/auth context
-    // For now, return mock data until we connect to database
-    
-    const mockProjects = [
-      {
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        userId: 'user_1',
-        name: 'My Next.js App',
-        slug: 'my-nextjs-app',
-        description: 'A modern web application built with Next.js',
-        framework: 'next.js',
-        repositoryId: 1,
-        rootDirectory: './',
-        buildCommand: 'npm run build',
-        outputDirectory: '.next',
-        installCommand: 'npm install',
-        devCommand: 'npm run dev',
-        autoDeploy: true,
-        autoDeployBranch: 'main',
-        previewDeployments: true,
-        aiDetectedFramework: 'next.js',
-        aiDetectedPorts: [3000],
-        aiDetectedTools: ['node', 'npm'],
-        aiAnalysisSummary: 'Detected Next.js 14 application with App Router',
-        aiAnalyzedAt: new Date().toISOString(),
-        status: 'active' as const,
-        lastDeployedAt: new Date().toISOString(),
-        deploymentCount: 5,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-
-    return { projects: mockProjects };
+    try {
+      const result = await ctx.db.query(
+        `SELECT 
+          p.*,
+          COUNT(DISTINCT d.id) as deployment_count,
+          MAX(d.created_at) as last_deployed_at
+         FROM projects p
+         LEFT JOIN deployments d ON d.project_id = p.id
+         WHERE p.user_id = $1
+         GROUP BY p.id
+         ORDER BY p.created_at DESC`,
+        ['user_1'] // TODO: Get from auth context
+      )
+      return { projects: result.rows }
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+      // Return empty array if table doesn't exist yet
+      return { projects: [] }
+    }
   }),
 
   // Get project by ID
@@ -156,22 +141,100 @@ export const projectRouter = router({
 
   // Create new project
   create: publicProcedure
-    .input(createProjectSchema)
+    .input(createProjectSchema.extend({
+      workspaceId: z.string(),
+    }))
     .mutation(async ({ input, ctx }) => {
-      // TODO: Get user from session
-      // TODO: Insert into database
-      
-      const projectId = crypto.randomUUID();
-      
-      return {
-        id: projectId,
-        userId: 'user_1',
-        ...input,
-        status: 'active' as const,
-        deploymentCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      try {
+        // Get workspace details
+        const workspaceManager = (() => {
+          try {
+            return require('../../services/workspace-manager').workspaceManager
+          } catch {
+            return null
+          }
+        })()
+
+        let workspace: any = null
+        let detectedInfo: any = {}
+
+        if (workspaceManager && input.workspaceId) {
+          workspace = workspaceManager.get(input.workspaceId)
+          
+          // Run AI detection on workspace
+          if (workspace) {
+            try {
+              const core = require('sarge-core')
+              const detection = await core.detector.detectStack(workspace.path)
+              detectedInfo = {
+                detected_framework: detection.name,
+                detected_package_manager: detection.packageManager,
+                detected_languages: detection.languages || [],
+                ai_detected_ports: detection.ports || [],
+                ai_detected_tools: detection.tools || [],
+                ai_analysis_summary: detection.summary || '',
+                ai_analyzed_at: new Date().toISOString(),
+              }
+            } catch (err) {
+              console.error('AI detection failed:', err)
+            }
+          }
+        }
+
+        const result = await ctx.db.query(
+          `INSERT INTO projects (
+            user_id, name, slug, description, workspace_id, workspace_path,
+            repository_url, framework, detected_framework, detected_package_manager,
+            detected_languages, build_command, dev_command, install_command,
+            auto_deploy, auto_deploy_branch, ai_detected_ports, ai_detected_tools,
+            ai_analysis_summary, ai_analyzed_at, status
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+          ) RETURNING *`,
+          [
+            'user_1', // TODO: Get from auth
+            input.name,
+            input.slug,
+            input.description || null,
+            input.workspaceId,
+            workspace?.path || null,
+            workspace?.repoUrl || null,
+            input.framework || null,
+            detectedInfo.detected_framework || null,
+            detectedInfo.detected_package_manager || null,
+            JSON.stringify(detectedInfo.detected_languages || []),
+            input.buildCommand || null,
+            input.devCommand || null,
+            input.installCommand || null,
+            input.autoDeploy,
+            input.autoDeployBranch,
+            JSON.stringify(detectedInfo.ai_detected_ports || []),
+            JSON.stringify(detectedInfo.ai_detected_tools || []),
+            detectedInfo.ai_analysis_summary || null,
+            detectedInfo.ai_analyzed_at || null,
+            'active',
+          ]
+        )
+
+        const project = result.rows[0]
+
+        // Log activity
+        await ctx.db.query(
+          `INSERT INTO project_activity (project_id, user_id, action, details)
+           VALUES ($1, $2, $3, $4)`,
+          [
+            project.id,
+            'user_1',
+            'created',
+            JSON.stringify({ name: input.name, workspace_id: input.workspaceId }),
+          ]
+        )
+
+        return project
+      } catch (error: any) {
+        console.error('Error creating project:', error)
+        throw new Error(`Failed to create project: ${error.message}`)
+      }
     }),
 
   // Update project
