@@ -138,15 +138,18 @@ export default function ProjectsPage() {
             <h1 className="text-3xl font-bold mb-2">Projects</h1>
             <p className="text-gray-400">Manage your projects and deployments</p>
           </div>
-          <motion.button
-            onClick={handleCreateProject}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
-          >
-            <Plus className="h-5 w-5" />
-            Create Project
-          </motion.button>
+          {/* Only show create button when projects exist */}
+          {projects.length > 0 && (
+            <motion.button
+              onClick={handleCreateProject}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
+            >
+              <Plus className="h-5 w-5" />
+              Create Project
+            </motion.button>
+          )}
         </div>
 
         {/* Search Bar */}
