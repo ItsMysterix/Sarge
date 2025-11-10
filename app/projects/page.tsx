@@ -87,7 +87,7 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <AppShell>
+      <AppShell showSidebar={false}>
         <div className="flex flex-1 p-8 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
@@ -99,7 +99,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell showSidebar={false}>
       <div className="max-w-7xl mx-auto p-8 flex-1">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
