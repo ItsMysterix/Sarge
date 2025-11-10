@@ -8,7 +8,9 @@ import {
   Search, 
   FolderGit2, 
   Clock,
-  Settings
+  Settings,
+  Copy,
+  Check
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ProjectWizard } from '@/components/projects/project-wizard';
@@ -23,6 +25,7 @@ export default function ProjectsPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [creating, setCreating] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchProjects = async () => {
     try {
@@ -71,6 +74,13 @@ export default function ProjectsPage() {
     fetchProjects();
   };
 
+  const copyProjectId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleCreateInline = async () => {
     if (!name.trim() || !slug.trim()) {
       alert('Please provide both project name and slug');
@@ -93,14 +103,21 @@ export default function ProjectsPage() {
       
       const project = await response.json();
       
+      // Add project to local state immediately
+      setProjects(prev => [project, ...prev]);
+      
       // Reset form
       setName('');
       setSlug('');
       setShowInlineForm(false);
       
-      // Refetch and navigate
-      await fetchProjects();
-      router.push(`/projects/${project.slug}`);
+      // Refetch in background to sync with any server changes
+      fetchProjects();
+      
+      // Navigate to new project after a brief delay to show the card
+      setTimeout(() => {
+        router.push(`/projects/${project.slug}`);
+      }, 500);
     } catch (error) {
       console.error('Error creating project:', error);
       alert('Failed to create project');
@@ -321,6 +338,25 @@ export default function ProjectsPage() {
 
                 {/* Project Info */}
                 <div className="space-y-2 text-sm">
+                  {/* Copyable Project ID */}
+                  <div className="flex items-center gap-2 text-gray-400 mb-3 pb-2 border-b border-white/5">
+                    <button
+                      onClick={(e) => copyProjectId(project.id, e)}
+                      className="flex items-center gap-2 text-xs hover:text-accent transition-colors group/copy flex-1 min-w-0"
+                      title="Click to copy project ID"
+                    >
+                      <span className="text-gray-500 flex-shrink-0">ID:</span>
+                      <span className="font-mono truncate flex-1 text-left">
+                        {project.id}
+                      </span>
+                      {copiedId === project.id ? (
+                        <Check className="h-3 w-3 text-accent flex-shrink-0" />
+                      ) : (
+                        <Copy className="h-3 w-3 opacity-0 group-hover/copy:opacity-100 transition-opacity flex-shrink-0" />
+                      )}
+                    </button>
+                  </div>
+                  
                   {project.description && (
                     <p className="text-gray-400 line-clamp-2">{project.description}</p>
                   )}
