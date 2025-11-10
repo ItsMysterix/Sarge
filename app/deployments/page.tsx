@@ -12,8 +12,7 @@ import { Plus, Filter, GitBranch, Clock, CheckCircle2, XCircle, PlayCircle, Rota
 import { QuickStatCard } from '@/components/ui/quick-stat-card';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { TimelineItem } from '@/components/ui/timeline-item';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
+import { AppShell } from '@/components/layout/app-shell';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OnboardingSteps } from '@/components/ui/onboarding-steps';
 
@@ -90,17 +89,14 @@ export default function DeploymentsPage() {
   }, [data]);
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
-        <Header />
-        
-        <motion.main 
-          className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
+    <AppShell>
+      
+      <motion.main 
+        className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
           <ToastContainer />
 
           {/* Quick Stats */}
@@ -307,9 +303,8 @@ export default function DeploymentsPage() {
               )}
             </AnimatePresence>
           </motion.div>
-        </motion.main>
-      </div>
-    </div>
+      </motion.main>
+    </AppShell>
   );
 }
  

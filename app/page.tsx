@@ -5,8 +5,7 @@ import { useUser } from "@/lib/clerk-safe"
 import { useProject } from "@/lib/project-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Sidebar } from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
+import { AppShell } from "@/components/layout/app-shell"
 import { ConnectRepoModal } from "@/components/connect-repo-modal"
 import { MetricsCard } from "@/components/dashboard/metrics-card"
 import { GitHubActivity } from "@/components/dashboard/github-activity"
@@ -224,17 +223,14 @@ export default function Overview() {
 
   return (
     <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
-      <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-        <Sidebar />
+      <AppShell>
         <ToastContainer />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header />
-          <motion.main 
-            className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          >
+        <motion.main 
+          className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
             {/* Quick Stats Overview - Responsive Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -341,9 +337,8 @@ export default function Overview() {
               onConnectClick={() => setShowConnectModal(true)}
             />
             <LiveLogs logs={logs} />
-          </motion.main>
-        </div>
-      </div>
+        </motion.main>
+      </AppShell>
       <KeyboardShortcuts shortcuts={keyboardShortcuts} />
       <ConnectRepoModal 
         isOpen={showConnectModal} 

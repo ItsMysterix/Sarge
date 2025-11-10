@@ -1,7 +1,6 @@
 "use client"
 
-import { Sidebar } from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
+import { AppShell } from "@/components/layout/app-shell"
 import { Activity, Rocket, TrendingUp, Cpu, Server, Gauge } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -183,11 +182,8 @@ export default function MetricsPage() {
   const healthStatus = healthScore >= 80 ? 'Excellent' : healthScore >= 60 ? 'Good' : healthScore >= 40 ? 'Fair' : 'Poor'
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+    <AppShell>
+      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           {/* Show empty state if no data */}
           {!hasData ? (
             <EmptyState
@@ -366,8 +362,7 @@ export default function MetricsPage() {
               )}
             </>
           )}
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   )
 }
