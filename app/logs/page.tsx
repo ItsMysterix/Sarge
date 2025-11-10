@@ -3,8 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import type React from "react";
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { AppShell } from "@/components/layout/app-shell";
 import {
   Search,
   Download,
@@ -241,12 +240,9 @@ export default function Logs() {
   if (logsQuery.isLoading && !showEmptyState) {
     return (
       <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
-        <div className="flex h-screen bg-[#0f0f0f]">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1 p-6 flex items-center justify-center">
-              <div className="text-center">
+        <AppShell>
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <div className="text-center">
                 <motion.div 
                   className="rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"
                   animate={{ rotate: 360 }}
@@ -259,27 +255,23 @@ export default function Logs() {
                 >
                   Loading logs...
                 </motion.p>
-              </div>
-            </main>
-          </div>
-        </div>
+            </div>
+          </main>
+        </AppShell>
       </AnimationErrorBoundary>
     );
   }
 
   return (
     <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
-      <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-        <Sidebar />
+      <AppShell>
         <ToastContainer />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header />
-          <motion.main 
-            className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          >
+        <motion.main 
+          className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
             {/* Control Buttons */}
             <motion.div 
               className="mb-4 sm:mb-6"
@@ -583,9 +575,8 @@ export default function Logs() {
                 Last updated: {new Date().toLocaleTimeString()}
               </div>
             </motion.div>
-          </motion.main>
-        </div>
-      </div>
+        </motion.main>
+      </AppShell>
     </AnimationErrorBoundary>
   );
 }

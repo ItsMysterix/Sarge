@@ -1,7 +1,6 @@
 "use client"
 
-import { Sidebar } from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
+import { AppShell } from "@/components/layout/app-shell"
 import { Layers, Plus, Archive, Play, Pause, StopCircle, AlertCircle, CheckCircle2, Cpu, Database as DatabaseIcon } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -73,12 +72,9 @@ export default function StacksPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
+    <AppShell>
       <ToastContainer />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -256,9 +252,8 @@ export default function StacksPage() {
               ))}
             </div>
           )}
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   )
 }
 

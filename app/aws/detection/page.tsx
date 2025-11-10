@@ -1,7 +1,6 @@
 'use client'
 
-import { Sidebar } from '@/components/layout/sidebar'
-import { Header } from '@/components/layout/header'
+import { AppShell } from '@/components/layout/app-shell'
 import { useEffect, useState } from 'react'
 import { useProject } from '@/lib/project-context'
 import { trpc } from '@/lib/trpc'
@@ -92,30 +91,23 @@ export default function AWSDetectionPage() {
 
   if (!currentProject) {
     return (
-      <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header />
-          <main className="flex-1 flex items-center justify-center p-6">
-            <div className="text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-gray-500" />
-              <h3 className="mt-4 text-lg font-semibold">No Project Selected</h3>
-              <p className="mt-2 text-sm text-gray-400">
-                Please select a project to detect AWS resources
-              </p>
-            </div>
-          </main>
-        </div>
-      </div>
+      <AppShell>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-gray-500" />
+            <h3 className="mt-4 text-lg font-semibold">No Project Selected</h3>
+            <p className="mt-2 text-sm text-gray-400">
+              Please select a project to detect AWS resources
+            </p>
+          </div>
+        </main>
+      </AppShell>
     )
   }
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+    <AppShell>
+      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -347,8 +339,7 @@ export default function AWSDetectionPage() {
               </motion.div>
             </>
           )}
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   )
 }
