@@ -89,6 +89,8 @@ export default function ProjectsPage() {
     
     try {
       setCreating(true);
+      console.log('Creating project:', { name: name.trim(), slug: slug.trim() });
+      
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,9 +101,19 @@ export default function ProjectsPage() {
         }),
       });
       
-      if (!response.ok) throw new Error('Failed to create project');
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
       
-      const project = await response.json();
+      const responseText = await response.text();
+      console.log('Response body:', responseText);
+      
+      if (!response.ok) {
+        console.error('Failed to create project. Status:', response.status);
+        throw new Error(`Failed to create project: ${response.status} ${responseText}`);
+      }
+      
+      const project = JSON.parse(responseText);
+      console.log('Created project:', project);
       
       // Add project to local state immediately
       setProjects(prev => [project, ...prev]);
@@ -116,11 +128,12 @@ export default function ProjectsPage() {
       
       // Navigate to new project after a brief delay to show the card
       setTimeout(() => {
+        console.log('Navigating to project:', project.slug);
         router.push(`/projects/${project.slug}`);
       }, 500);
     } catch (error) {
       console.error('Error creating project:', error);
-      alert('Failed to create project');
+      alert(`Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setCreating(false);
     }
