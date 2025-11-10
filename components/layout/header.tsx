@@ -1,11 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { UserProfile } from "./user-profile"
 import { ProjectSwitcher } from "@/components/project-switcher"
 
 export function Header() {
   const [time, setTime] = useState("")
+  const pathname = usePathname()
+  
+  // Don't show project switcher on projects page (they select from grid)
+  const isProjectsPage = pathname === '/projects'
 
   useEffect(() => {
     const updateTime = () => {
@@ -29,8 +34,18 @@ export function Header() {
     <header className="glass-card border-b border-white/10 px-6 py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* Project Switcher in header */}
-          <ProjectSwitcher />
+          {/* Sarge logo/text */}
+          <div className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            Sarge
+          </div>
+          
+          {/* Project Switcher (hidden on projects page) */}
+          {!isProjectsPage && (
+            <>
+              <div className="w-px h-6 bg-white/10" />
+              <ProjectSwitcher />
+            </>
+          )}
         </div>
 
         <div className="flex items-center space-x-6">

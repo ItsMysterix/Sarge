@@ -15,8 +15,13 @@ import {
   Loader2,
   Settings,
   ExternalLink,
-  TrendingUp
+  TrendingUp,
+  Rocket
 } from 'lucide-react';
+import { Header } from '@/components/layout/header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { OnboardingSteps } from '@/components/ui/onboarding-steps';
+import { ProjectWizard } from '@/components/projects/project-wizard';
 
 const frameworkIcons: Record<string, string> = {
   'next.js': '▲',
@@ -42,6 +47,7 @@ export default function ProjectsPage() {
   const { projects, isLoading, setCurrentProject, refreshProjects } = useProject();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
     refreshProjects();
@@ -64,7 +70,14 @@ export default function ProjectsPage() {
   };
 
   const handleCreateProject = () => {
-    router.push('/oneclick');
+    setShowWizard(true)
+  };
+
+  const handleWizardComplete = (project: any) => {
+    setShowWizard(false)
+    refreshProjects()
+    setCurrentProject(project)
+    router.push('/')
   };
 
   const handleProjectSettings = (e: React.MouseEvent, projectSlug: string) => {
@@ -74,22 +87,27 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-8 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
-          <p className="text-gray-400">Loading projects...</p>
+      <>
+        <Header />
+        <div className="flex-1 p-8 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
+            <p className="text-gray-400">Loading projects...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="flex-1 p-8">
-      {/* Minimal Header matching workspace style (title only, badge lives in global header) */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-        <p className="text-gray-400 text-sm">Select a project to enter the command center.</p>
-      </div>
+    <>
+      <Header />
+      <div className="flex-1 p-8">
+        {/* Minimal Header matching workspace style (title only, badge lives in global header) */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+          <p className="text-gray-400 text-sm">Select a project to enter the command center.</p>
+        </div>
 
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -132,32 +150,43 @@ export default function ProjectsPage() {
       </div>
 
       {/* Projects Grid */}
-      {filteredProjects.length === 0 ? (
+      {filteredProjects.length === 0 && projects.length === 0 && !isLoading ? (
+        <EmptyState
+          icon={FolderGit2}
+          title="No Projects Yet"
+          description="Create your first project to start deploying and managing your applications with Sarge."
+          actionLabel="Create Project"
+          onAction={handleCreateProject}
+          secondaryActionLabel="Add Workspace First"
+          onSecondaryAction={() => router.push('/oneclick')}
+        >
+          <OnboardingSteps
+            steps={[
+              {
+                number: 1,
+                title: "Add a workspace",
+                description: "Clone a GitHub repository or register a local project folder from the One-Click Deploy page.",
+              },
+              {
+                number: 2,
+                title: "Create your project",
+                description: "Use the project wizard to set up your project with auto-detected configuration and build settings.",
+              },
+              {
+                number: 3,
+                title: "Deploy and manage",
+                description: "Your project will be ready to deploy with automated builds, monitoring, and team collaboration.",
+              },
+            ]}
+          />
+        </EmptyState>
+      ) : filteredProjects.length === 0 ? (
         <div className="glass-card p-12 text-center">
-          {projects.length === 0 ? (
-            <>
-              <FolderGit2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
-              <p className="text-gray-400 mb-6">
-                Get started by creating your first project with one-click deploy
-              </p>
-              <button
-                onClick={handleCreateProject}
-                className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                Create Your First Project
-              </button>
-            </>
-          ) : (
-            <>
-              <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No projects found</h3>
-              <p className="text-gray-400">
-                Try adjusting your search or filters
-              </p>
-            </>
-          )}
+          <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">No projects found</h3>
+          <p className="text-gray-400">
+            Try adjusting your search or filters
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -264,6 +293,15 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
-    </div>
+      
+      {/* Project Wizard Modal */}
+      {showWizard && (
+        <ProjectWizard
+          onComplete={handleWizardComplete}
+          onCancel={() => setShowWizard(false)}
+        />
+      )}
+      </div>
+    </>
   );
 }
