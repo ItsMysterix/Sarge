@@ -34,8 +34,13 @@ export function Header() {
     <header className="glass-card border-b border-white/10 px-6 py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* Project Switcher (hidden on projects page) */}
-          {!isProjectsPage && (
+          {/* Show SARGE on projects page, ProjectSwitcher on other pages */}
+          {isProjectsPage ? (
+            <div className="flex items-center">
+              <div className="text-2xl font-bold text-accent terminal-text">SARGE</div>
+              <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+            </div>
+          ) : (
             <ProjectSwitcher />
           )}
         </div>
