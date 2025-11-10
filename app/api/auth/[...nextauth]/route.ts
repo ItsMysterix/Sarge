@@ -23,6 +23,13 @@ export const authOptions: NextAuthOptions = {
           GithubProvider({
             clientId: process.env.GITHUB_ID,
             clientSecret: process.env.GITHUB_SECRET,
+            // Request scopes needed to list org/private repos and clone via token
+            // Users must re-consent after this change to grant the new scopes.
+            authorization: {
+              params: {
+                scope: 'read:user user:email repo read:org',
+              },
+            },
           }),
         ]
       : []),
