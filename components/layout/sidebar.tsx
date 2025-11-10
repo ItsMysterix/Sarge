@@ -42,8 +42,14 @@ export function Sidebar() {
       `}
       >
         <div className="flex flex-col h-full p-4">
+          {/* Logo */}
+          <div className="flex items-center mb-8 pt-8 lg:pt-0">
+            <div className="text-2xl font-bold text-accent terminal-text">SARGE</div>
+            <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+          </div>
+
           {/* Navigation */}
-          <nav className="flex-1 pt-8 lg:pt-4">
+          <nav className="flex-1">
             <ul className="space-y-2">
               {navigation.map((item) => {
                 const isActive = pathname === item.href
