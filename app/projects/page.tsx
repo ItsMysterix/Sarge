@@ -19,8 +19,7 @@ import {
   Rocket
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
-import { EmptyState } from '@/components/ui/empty-state';
-import { OnboardingSteps } from '@/components/ui/onboarding-steps';
+import { EmptyProjects } from '@/components/projects/empty-projects';
 import { ProjectWizard } from '@/components/projects/project-wizard';
 
 const frameworkIcons: Record<string, string> = {
@@ -145,36 +144,12 @@ export default function ProjectsPage() {
       </div>
 
       {/* Projects Grid */}
-  {filteredProjects.length === 0 && pageProjects.length === 0 && !isLoading ? (
-        <EmptyState
+      {filteredProjects.length === 0 && pageProjects.length === 0 && !isLoading ? (
+        <EmptyProjects
           icon={FolderGit2}
-          title="No Projects Yet"
-          description="Create your first project to start deploying and managing your applications with Sarge."
-          actionLabel="Create Project"
-          onAction={handleCreateProject}
-          secondaryActionLabel="Add Workspace First"
-          onSecondaryAction={() => router.push('/oneclick')}
-        >
-          <OnboardingSteps
-            steps={[
-              {
-                number: 1,
-                title: "Add a workspace",
-                description: "Clone a GitHub repository or register a local project folder from the One-Click Deploy page.",
-              },
-              {
-                number: 2,
-                title: "Create your project",
-                description: "Use the project wizard to set up your project with auto-detected configuration and build settings.",
-              },
-              {
-                number: 3,
-                title: "Deploy and manage",
-                description: "Your project will be ready to deploy with automated builds, monitoring, and team collaboration.",
-              },
-            ]}
-          />
-        </EmptyState>
+          onCreate={handleCreateProject}
+          onAddWorkspace={() => router.push('/oneclick')}
+        />
       ) : filteredProjects.length === 0 ? (
         <div className="glass-card p-12 text-center">
           <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
