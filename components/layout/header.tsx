@@ -5,9 +5,12 @@ import { usePathname } from "next/navigation"
 import { UserProfile } from "./user-profile"
 import { ProjectSwitcher } from "@/components/project-switcher"
 import { useProject } from "@/lib/project-context"
+import { GitBranch, Plus } from "lucide-react"
+import { motion } from "framer-motion"
 
 export function Header() {
   const [time, setTime] = useState("")
+  const [showConnectModal, setShowConnectModal] = useState(false)
   const pathname = usePathname()
   const { projects } = useProject()
   
@@ -37,13 +40,13 @@ export function Header() {
   }, [])
 
   return (
-    <header className="glass-card border-b border-white/10 px-4 sm:px-6 py-2 sm:py-3 sticky top-0 z-50">
+    <header className="glass-card border-b border-white/10 px-4 sm:px-6 py-4 sm:py-5 sticky top-0 z-50 backdrop-blur-xl">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           {/* Brand is always visible */}
           <div className="flex items-center">
-            <div className="text-xl sm:text-2xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
-            <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
+            <div className="text-2xl sm:text-3xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
+            <div className="ml-2 w-2.5 h-2.5 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
           </div>
           {/* Project switcher: hide on Profile, on Projects listing, or when there are no real projects */}
           {!isProfilePage && !isProjectsListing && hasRealProjects && (
@@ -52,10 +55,23 @@ export function Header() {
           {/* version badge removed per design */}
         </div>
         <div className="flex items-center space-x-3 sm:space-x-6">
-          <div className="px-2 sm:px-3 py-1 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">
+          {/* Connect Repository Button */}
+          {!isProjectsListing && hasRealProjects && (
+            <motion.button
+              onClick={() => setShowConnectModal(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-medium transition-colors flex items-center gap-2 hover:bg-blue-500/30 text-sm"
+            >
+              <GitBranch className="h-4 w-4" />
+              <span className="hidden sm:inline">Connect Repository</span>
+            </motion.button>
+          )}
+          
+          <div className="px-2 sm:px-3 py-1.5 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">
             AI Co-Pilot
           </div>
-          <div className="hidden sm:block terminal-text text-accent text-xs font-mono opacity-70" aria-label="clock">
+          <div className="hidden sm:block terminal-text text-accent text-sm font-mono opacity-70" aria-label="clock">
             {time}
           </div>
           <UserProfile />
