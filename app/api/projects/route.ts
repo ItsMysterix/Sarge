@@ -3,6 +3,12 @@ import { getDbPool } from '@/lib/db';
 
 export async function GET() {
   try {
+    // Only try database if URL is configured
+    if (!process.env.DATABASE_URL) {
+      console.log('DATABASE_URL not configured, returning empty projects');
+      return NextResponse.json({ projects: [] }, { status: 200 });
+    }
+
     // Try to fetch from database with timeout
     const db = getDbPool();
     const timeoutPromise = new Promise((_, reject) => 
@@ -35,16 +41,53 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // TODO: Insert into database
+    // Create project object
     const newProject = {
       id: crypto.randomUUID(),
       userId: 'user_1',
-      ...body,
+      name: body.name,
+      slug: body.slug,
+      description: body.description || '',
+      framework: body.framework || null,
+      repositoryId: body.repositoryId || null,
+      rootDirectory: body.rootDirectory || './',
+      buildCommand: body.buildCommand || 'npm run build',
+      outputDirectory: body.outputDirectory || '.next',
+      installCommand: body.installCommand || 'npm install',
+      devCommand: body.devCommand || 'npm run dev',
+      autoDeploy: body.autoDeploy !== undefined ? body.autoDeploy : true,
+      autoDeployBranch: body.autoDeployBranch || 'main',
+      previewDeployments: body.previewDeployments !== undefined ? body.previewDeployments : true,
       status: 'active',
       deploymentCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // If database is configured, try to insert
+    if (process.env.DATABASE_URL) {
+      try {
+        const db = getDbPool();
+        await db.query(
+          `INSERT INTO projects (
+            id, user_id, name, slug, description, framework, repository_id,
+            root_directory, build_command, output_directory, install_command,
+            dev_command, auto_deploy, auto_deploy_branch, preview_deployments,
+            status, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+          [
+            newProject.id, newProject.userId, newProject.name, newProject.slug,
+            newProject.description, newProject.framework, newProject.repositoryId,
+            newProject.rootDirectory, newProject.buildCommand, newProject.outputDirectory,
+            newProject.installCommand, newProject.devCommand, newProject.autoDeploy,
+            newProject.autoDeployBranch, newProject.previewDeployments, newProject.status,
+            newProject.createdAt, newProject.updatedAt
+          ]
+        );
+      } catch (dbError) {
+        console.error('Database insert failed, returning project anyway:', dbError);
+      }
+    }
 
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {
