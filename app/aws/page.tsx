@@ -78,22 +78,6 @@ export default function AWSEmulationPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-8"
-          >
-            <div className="flex items-center space-x-3 mb-2">
-              <Cloud className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">AWS Emulation</h1>
-            </div>
-            <p className="text-sm sm:text-base text-gray-400">
-              AWS-compatible services running offline—no internet, no credentials, fully deterministic
-            </p>
-          </motion.div>
-
           {/* Tabs for AWS Services */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="glass-card border border-white/10 p-1 mb-6 flex-wrap h-auto">
