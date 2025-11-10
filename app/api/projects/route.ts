@@ -38,8 +38,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  console.log('POST /api/projects - Request received');
+  
   try {
     const body = await request.json();
+    console.log('Request body:', body);
     
     // Create project object
     const newProject = {
@@ -64,8 +67,11 @@ export async function POST(request: Request) {
       updatedAt: new Date().toISOString(),
     };
 
+    console.log('Created project object:', newProject);
+
     // If database is configured, try to insert
     if (process.env.DATABASE_URL) {
+      console.log('DATABASE_URL is configured, attempting database insert');
       try {
         const db = getDbPool();
         await db.query(
@@ -84,16 +90,20 @@ export async function POST(request: Request) {
             newProject.createdAt, newProject.updatedAt
           ]
         );
+        console.log('Database insert successful');
       } catch (dbError) {
         console.error('Database insert failed, returning project anyway:', dbError);
       }
+    } else {
+      console.log('DATABASE_URL not configured, skipping database insert');
     }
 
+    console.log('Returning project with status 201');
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {
     console.error('Error creating project:', error);
     return NextResponse.json(
-      { error: 'Failed to create project' },
+      { error: 'Failed to create project', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
