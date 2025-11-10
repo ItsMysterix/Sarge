@@ -8,7 +8,6 @@ import {
   Search, 
   FolderGit2, 
   Clock,
-  Loader2,
   Settings
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
@@ -115,8 +114,15 @@ export default function ProjectsPage() {
       <AppShell showSidebar={false}>
         <div className="flex flex-1 p-8 items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
-            <p className="text-gray-400">Loading projects...</p>
+            <div className="glass-card p-8 rounded-lg border border-white/10 inline-block">
+              <FolderGit2 className="h-12 w-12 text-accent mx-auto mb-4 animate-pulse" />
+              <p className="text-gray-400 mb-4">Loading projects...</p>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-accent rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-100" />
+                <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-200" />
+              </div>
+            </div>
           </div>
         </div>
       </AppShell>
@@ -236,8 +242,12 @@ export default function ProjectsPage() {
                   >
                     {creating ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Creating...
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-black rounded-full animate-bounce" />
+                          <div className="w-2 h-2 bg-black rounded-full animate-bounce delay-100" />
+                          <div className="w-2 h-2 bg-black rounded-full animate-bounce delay-200" />
+                        </div>
+                        <span className="ml-2">Creating...</span>
                       </>
                     ) : (
                       <>
