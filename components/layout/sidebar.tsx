@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen } from "lucide-react"
-import { ProjectSwitcher } from "@/components/project-switcher"
+import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen, Pin, PinOff } from "lucide-react"
+import { useProject } from "@/lib/project-context"
+import { useSidebarStore } from "@/lib/sidebar-store"
 
 const navigation = [
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
@@ -21,6 +22,16 @@ const navigation = [
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  const { currentProject } = useProject()
+  const projectId = currentProject?.id ?? null
+  const { getStateFor, toggleCollapsed, togglePinnedRoute, hydrate } = useSidebarStore()
+  const state = getStateFor(projectId)
+
+  useEffect(() => {
+    hydrate(projectId)
+  }, [projectId, hydrate])
+
+  const pinnedSet = useMemo(() => new Set(state.pinnedRoutes), [state.pinnedRoutes])
 
   return (
     <>
@@ -35,7 +46,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-40 w-64 glass-card border-r border-white/10
+        fixed inset-y-0 left-0 z-40 ${state.collapsed ? 'w-16' : 'w-64'} glass-card border-r border-white/10
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0 lg:static lg:inset-0
@@ -43,20 +54,29 @@ export function Sidebar() {
       >
         <div className="flex flex-col h-full p-4">
           {/* Top spacing (brand removed per new global header design) */}
-          <div className="mb-4 pt-8 lg:pt-0" />
+          <div className="mb-4 pt-8 lg:pt-0 flex items-center justify-between">
+            <button
+              onClick={() => toggleCollapsed(projectId)}
+              className="glass-card border border-white/10 px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
+              title={state.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {state.collapsed ? '>>' : '<<'}
+            </button>
+          </div>
 
           {/* Navigation */}
           <nav className="flex-1">
             <ul className="space-y-2">
               {navigation.map((item) => {
                 const isActive = pathname === item.href
+                const isPinned = pinnedSet.has(item.href)
                 return (
                   <li key={item.name}>
                     <Link
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={`
-                        flex items-center px-4 py-3 rounded-lg transition-all duration-200
+                        group flex items-center px-4 py-3 rounded-lg transition-all duration-200
                         ${
                           isActive
                             ? "bg-accent/20 text-accent border border-accent/30 glow-accent"
@@ -65,13 +85,54 @@ export function Sidebar() {
                       `}
                     >
                       <item.icon className="w-5 h-5 mr-3" />
-                      <span className="font-medium">{item.name}</span>
+                      {!state.collapsed && (
+                        <span className="font-medium flex-1">{item.name}</span>
+                      )}
+                      {!state.collapsed && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePinnedRoute(projectId, item.href) }}
+                          className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title={isPinned ? 'Unpin' : 'Pin'}
+                        >
+                          {isPinned ? <PinOff className="w-4 h-4 text-accent" /> : <Pin className="w-4 h-4 text-gray-400 hover:text-white" />}
+                        </button>
+                      )}
                     </Link>
                   </li>
                 )
               })}
             </ul>
           </nav>
+
+          {/* Pinned section */}
+          {!state.collapsed && state.pinnedRoutes.length > 0 && (
+            <div className="mt-4">
+              <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Pinned</div>
+              <ul className="space-y-2 mt-1">
+                {state.pinnedRoutes.map((href) => {
+                  const item = navigation.find(n => n.href === href)
+                  if (!item) return null
+                  const isActive = pathname === item.href
+                  return (
+                    <li key={`pin-${href}`}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={`
+                          flex items-center px-4 py-2 rounded-lg transition-all duration-200 border
+                          ${isActive ? 'bg-accent/10 border-accent/30 text-accent' : 'border-white/10 hover:bg-white/5'}
+                        `}
+                      >
+                        <item.icon className="w-4 h-4 mr-3" />
+                        <span className="text-sm">{item.name}</span>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
 
           {/* Status indicator */}
           <div className="mt-auto p-4 glass-card">
