@@ -4,13 +4,19 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { UserProfile } from "./user-profile"
 import { ProjectSwitcher } from "@/components/project-switcher"
+import { useProject } from "@/lib/project-context"
 
 export function Header() {
   const [time, setTime] = useState("")
   const pathname = usePathname()
+  const { projects } = useProject()
   
   // Design rule: show brand + switcher on all pages except Profile (brand-only there)
   const isProfilePage = pathname?.startsWith('/profile')
+  // Hide switcher on the projects listing page entirely
+  const isProjectsListing = pathname === '/projects'
+  // Hide switcher when there are no real projects (avoid showing mock placeholder)
+  const hasRealProjects = Array.isArray(projects) && projects.some(p => p.slug !== 'my-nextjs-app')
 
   useEffect(() => {
     const updateTime = () => {
@@ -39,8 +45,8 @@ export function Header() {
             <div className="text-xl sm:text-2xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
             <div className="ml-2 w-2 h-2 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
           </div>
-          {/* Project switcher on all pages except Profile */}
-          {!isProfilePage && (
+          {/* Project switcher: hide on Profile, on Projects listing, or when there are no real projects */}
+          {!isProfilePage && !isProjectsListing && hasRealProjects && (
             <ProjectSwitcher />
           )}
           {/* version badge removed per design */}
