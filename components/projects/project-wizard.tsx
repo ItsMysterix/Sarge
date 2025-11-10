@@ -67,8 +67,9 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
   })
 
   const t = trpc as any
-  const workspacesQuery = t.sarge.oneclick.listWorkspaces.useQuery()
-  const createProjectMutation = t.sarge.project.create.useMutation()
+  const workspacesQuery = t.sarge.oneclick.workspaces.list.useQuery()
+  const createProjectMutation = t.project.create.useMutation()
+  const cloneRepoMutation = t.sarge.oneclick.workspaces.cloneRepo.useMutation()
 
   const steps = [
     { number: 1, title: "Choose Source", icon: Folder },
@@ -118,7 +119,11 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
   const canProceed = () => {
     switch (step) {
       case 1:
-        return formData.source && (formData.source !== "workspace" || formData.workspaceId)
+        // Require a concrete workspace to proceed for both Workspace and GitHub sources
+        if (formData.source === 'workspace' || formData.source === 'github') {
+          return Boolean(formData.workspaceId)
+        }
+        return Boolean(formData.source)
       case 2:
         return formData.name && formData.slug
       case 3:
@@ -260,23 +265,96 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                   </motion.div>
                 )}
 
-                {/* Coming Soon Options */}
-                <div className="opacity-50 pointer-events-none">
-                  <button className="w-full p-6 rounded-lg border-2 border-gray-800 text-left">
-                    <div className="flex items-start gap-4">
-                      <Github className="w-8 h-8 text-gray-500 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-semibold text-lg">GitHub Repository</h4>
-                          <span className="text-xs bg-gray-800 px-2 py-1 rounded">Coming Soon</span>
-                        </div>
-                        <p className="text-sm text-gray-400">
-                          Import directly from a GitHub repository
-                        </p>
+                {/* GitHub Option */}
+                <button
+                  onClick={() => setFormData({ ...formData, source: 'github' })}
+                  className={`
+                    w-full p-6 rounded-lg border-2 text-left transition-all
+                    ${formData.source === 'github'
+                      ? 'border-accent bg-accent/10'
+                      : 'border-white/10 hover:border-accent/40'}
+                  `}
+                >
+                  <div className="flex items-start gap-4">
+                    <Github className="w-8 h-8 text-accent flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-lg mb-2">GitHub Repository</h4>
+                      <p className="text-sm text-gray-400">
+                        Clone a GitHub repository into a workspace and continue
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {formData.source === 'github' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="pl-4 space-y-3"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Owner</label>
+                        <input
+                          type="text"
+                          value={(formData as any).githubOwner || ''}
+                          onChange={(e) => setFormData({ ...formData, githubOwner: e.target.value })}
+                          placeholder="itsmysterix"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/70"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Repository</label>
+                        <input
+                          type="text"
+                          value={(formData as any).githubRepo || ''}
+                          onChange={(e) => setFormData({ ...formData, githubRepo: e.target.value })}
+                          placeholder="my-nextjs-app"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/70"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Branch</label>
+                        <input
+                          type="text"
+                          value={(formData as any).githubBranch || 'main'}
+                          onChange={(e) => setFormData({ ...formData, githubBranch: e.target.value })}
+                          placeholder="main"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:border-accent/70"
+                        />
                       </div>
                     </div>
-                  </button>
-                </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={async () => {
+                          const owner = (formData as any).githubOwner
+                          const repo = (formData as any).githubRepo
+                          const branch = (formData as any).githubBranch || 'main'
+                          if (!owner || !repo) return
+                          try {
+                            const repoUrl = `https://github.com/${owner}/${repo}.git`
+                            const ws = await cloneRepoMutation.mutateAsync({ repoUrl, branch })
+                            setFormData({
+                              ...formData,
+                              workspaceId: ws.id,
+                              name: ws.name || repo,
+                              slug: (ws.name || repo).toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                            })
+                          } catch (e: any) {
+                            addToast({ type: 'error', title: 'Clone failed', description: e?.message || 'Could not clone repository' })
+                          }
+                        }}
+                        disabled={cloneRepoMutation.isLoading || !(formData as any).githubOwner || !(formData as any).githubRepo}
+                        className="bg-accent text-black hover:bg-accent/90"
+                      >
+                        {cloneRepoMutation.isLoading ? 'Cloning…' : 'Clone from GitHub'}
+                      </Button>
+                      {formData.workspaceId && (
+                        <span className="text-xs text-success">Workspace ready ✓</span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             )}
 
