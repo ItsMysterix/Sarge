@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Github, Lock, Globe, FolderOpen, Download } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
@@ -13,6 +14,8 @@ interface Repo {
   private: boolean
   html_url: string
   clone_url: string
+  ssh_url?: string
+  default_branch?: string
   updated_at: string
   language: string | null
   stargazers_count: number
@@ -27,6 +30,7 @@ interface ConnectRepoModalProps {
 type WorkspaceMode = 'select' | 'clone' | 'local'
 
 export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModalProps) {
+  const { data: session } = useSession()
   const [repos, setRepos] = useState<Repo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -88,9 +92,28 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
       setWorkspaceLoading(true)
       setWorkspaceError(null)
       try {
+        // Prefer SSH for private repos if available. Otherwise, embed token in HTTPS if we have one.
+        let repoUrl = selectedRepo.clone_url
+        const branch = selectedRepo.default_branch || 'main'
+
+        if (selectedRepo.private) {
+          if (selectedRepo.ssh_url) {
+            repoUrl = selectedRepo.ssh_url
+          } else if (session?.accessToken && selectedRepo.clone_url?.startsWith('https://')) {
+            // https://github.com/owner/repo.git -> https://x-access-token:TOKEN@github.com/owner/repo.git
+            repoUrl = selectedRepo.clone_url.replace(
+              /^https:\/\//,
+              `https://x-access-token:${session.accessToken}@`
+            )
+          }
+        } else if (session?.accessToken && selectedRepo.clone_url?.startsWith('https://')) {
+          // For public, keep plain HTTPS; but if token exists it's OK to use it too. We'll keep plain to avoid confusion.
+          repoUrl = selectedRepo.clone_url
+        }
+
         const result = await t.sarge.oneclick.workspaces.cloneRepo.mutate({
-          repoUrl: selectedRepo.clone_url,
-          branch: 'main'
+          repoUrl,
+          branch
         })
         console.log('✅ Cloned to workspace:', result)
         onConnect(selectedRepo)

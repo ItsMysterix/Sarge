@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   FolderGit2, ArrowRight, ArrowLeft, Check, Sparkles, 
@@ -19,6 +20,7 @@ interface ProjectWizardProps {
 export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
   const router = useRouter()
   const { addToast } = useToast()
+  const { data: session } = useSession()
   const [step, setStep] = useState(1)
   const [creating, setCreating] = useState(false)
   
@@ -34,6 +36,11 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
     installCommand: "",
     autoDeploy: true,
     autoDeployBranch: "main",
+
+    // GitHub inputs for cloning
+    githubOwner: "",
+    githubRepo: "",
+    githubBranch: "main",
     
     // Git & Repository
     protectedBranches: ["main", "master"],
@@ -332,7 +339,11 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                           const branch = (formData as any).githubBranch || 'main'
                           if (!owner || !repo) return
                           try {
-                            const repoUrl = `https://github.com/${owner}/${repo}.git`
+                            // Build repo URL; if we have a token, embed it for private repos support
+                            let repoUrl = `https://github.com/${owner}/${repo}.git`
+                            if (session?.accessToken) {
+                              repoUrl = `https://x-access-token:${session.accessToken}@github.com/${owner}/${repo}.git`
+                            }
                             const ws = await cloneRepoMutation.mutateAsync({ repoUrl, branch })
                             setFormData({
                               ...formData,
