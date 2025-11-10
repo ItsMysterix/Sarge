@@ -12,13 +12,6 @@ export default function OneClickPage() {
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="mx-auto max-w-5xl">
-            <header className="mb-8">
-              <h1 className="text-3xl font-bold tracking-tight">One-Click Deploy</h1>
-              <p className="mt-2 text-sm text-gray-400">
-                AI analyzes your workspace, installs dependencies, and starts services automatically—just pick a port.
-              </p>
-            </header>
-
             {/* Auto Deploy Component */}
             <AutoDeploy />
           </div>

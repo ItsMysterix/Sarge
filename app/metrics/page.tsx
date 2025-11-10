@@ -220,7 +220,6 @@ export default function MetricsPage() {
             </EmptyState>
           ) : (
             <>
-              {/* Header */}
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -228,16 +227,6 @@ export default function MetricsPage() {
                 className="mb-6 sm:mb-8"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  <div>
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Metrics Dashboard</h1>
-                    </div>
-                    <p className="text-sm sm:text-base text-gray-400">
-                      Real-time performance and infrastructure metrics · {metricsHistory.length} data points
-                    </p>
-                  </div>
-                  
                   {/* Time Range Selector */}
                   <div className="flex gap-2">
                     {(['1h', '24h', '7d'] as const).map((range) => (
