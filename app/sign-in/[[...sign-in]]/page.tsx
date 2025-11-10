@@ -46,8 +46,8 @@ export default function SignInPage() {
       }
 
       if (result?.ok) {
-        console.log('✅ Sign-in successful, redirecting...')
-        router.push("/")
+        console.log('✅ Sign-in successful, redirecting to projects...')
+        router.push("/projects")
       }
     } catch (err) {
       console.error('❌ Unexpected error during sign-in:', err)
