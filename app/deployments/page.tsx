@@ -14,6 +14,8 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { TimelineItem } from '@/components/ui/timeline-item';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { OnboardingSteps } from '@/components/ui/onboarding-steps';
 
 export default function DeploymentsPage() {
   const t = trpc as any;
@@ -217,10 +219,10 @@ export default function DeploymentsPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <Card>
-              <CardBody>
-                <AnimatePresence mode="wait">
-                  {isLoading ? (
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <Card>
+                  <CardBody>
                     <motion.div 
                       className="space-y-2"
                       initial={{ opacity: 0 }}
@@ -238,7 +240,41 @@ export default function DeploymentsPage() {
                         </motion.div>
                       ))}
                     </motion.div>
-                  ) : items.length === 0 ? (
+                  </CardBody>
+                </Card>
+              ) : !data || data.length === 0 ? (
+                <EmptyState
+                  icon={Rocket}
+                  title="No Deployments Yet"
+                  description="Start deploying your applications with automated setup, dependency installation, and service management."
+                  actionLabel="Start Deploying"
+                  onAction={() => router.push('/oneclick')}
+                  secondaryActionLabel="Learn More"
+                  onSecondaryAction={() => router.push('/docs')}
+                >
+                  <OnboardingSteps
+                    steps={[
+                      {
+                        number: 1,
+                        title: "Add your workspace",
+                        description: "Clone a GitHub repository or register a local project folder. Sarge supports multiple frameworks and languages.",
+                      },
+                      {
+                        number: 2,
+                        title: "Configure and deploy",
+                        description: "Choose your starting port and click deploy. Sarge automatically detects services, installs dependencies, and starts them.",
+                      },
+                      {
+                        number: 3,
+                        title: "Monitor and manage",
+                        description: "Track deployment status here, view logs, check metrics, and manage your running services.",
+                      },
+                    ]}
+                  />
+                </EmptyState>
+              ) : items.length === 0 ? (
+                <Card>
+                  <CardBody>
                     <motion.div 
                       className="text-sm text-zinc-400 text-center py-12"
                       initial={{ opacity: 0, y: 20 }}
@@ -260,60 +296,66 @@ export default function DeploymentsPage() {
                         Clear filters
                       </button>
                     </motion.div>
-                  ) : viewMode === "list" ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <ListView
-                        items={items as any[]}
-                        onView={(id) => router.push(`/deployments/${id}`)}
-                        onLogs={(id) => router.push(`/deployments/${id}#logs`)}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      className="space-y-4 p-4"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      {items.map((deployment: any, index: number) => (
-                        <TimelineItem
-                          key={deployment.id}
-                          title={deployment.summary || `Deployment #${deployment.id}`}
-                          description={`Branch: ${deployment.branch || 'unknown'} • Commit: ${deployment.commit?.slice(0, 7) || 'N/A'}`}
-                          timestamp={deployment.created_at}
-                          icon={
-                            deployment.status === 'success' ? CheckCircle2 :
-                            deployment.status === 'failed' ? XCircle :
-                            deployment.status === 'running' ? PlayCircle :
-                            Clock
-                          }
-                          status={deployment.status}
-                          metadata={[
-                            { label: "Started", value: deployment.created_at?.slice(0, 19).replace('T', ' ') || '-' },
-                            { label: "Updated", value: deployment.updated_at?.slice(0, 19).replace('T', ' ') || '-' },
-                            { label: "Branch", value: deployment.branch || '-' },
-                            { label: "Commit", value: deployment.commit?.slice(0, 7) || '-' },
-                          ]}
-                          actions={[
-                            { label: "View Details", onClick: () => router.push(`/deployments/${deployment.id}`) },
-                            { label: "View Logs", onClick: () => router.push(`/deployments/${deployment.id}#logs`) },
-                            ...(deployment.status === 'failed' ? [
-                              { label: "Rollback", onClick: () => console.log('Rollback', deployment.id), variant: "danger" as const }
-                            ] : [])
-                          ]}
-                          isLast={index === items.length - 1}
-                          delay={index * 0.1}
+                  </CardBody>
+                </Card>
+              ) : (
+                <Card>
+                  <CardBody>
+                    {viewMode === "list" ? (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <ListView
+                          items={items as any[]}
+                          onView={(id) => router.push(`/deployments/${id}`)}
+                          onLogs={(id) => router.push(`/deployments/${id}#logs`)}
                         />
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </CardBody>
-            </Card>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        className="space-y-4 p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        {items.map((deployment: any, index: number) => (
+                          <TimelineItem
+                            key={deployment.id}
+                            title={deployment.summary || `Deployment #${deployment.id}`}
+                            description={`Branch: ${deployment.branch || 'unknown'} • Commit: ${deployment.commit?.slice(0, 7) || 'N/A'}`}
+                            timestamp={deployment.created_at}
+                            icon={
+                              deployment.status === 'success' ? CheckCircle2 :
+                              deployment.status === 'failed' ? XCircle :
+                              deployment.status === 'running' ? PlayCircle :
+                              Clock
+                            }
+                            status={deployment.status}
+                            metadata={[
+                              { label: "Started", value: deployment.created_at?.slice(0, 19).replace('T', ' ') || '-' },
+                              { label: "Updated", value: deployment.updated_at?.slice(0, 19).replace('T', ' ') || '-' },
+                              { label: "Branch", value: deployment.branch || '-' },
+                              { label: "Commit", value: deployment.commit?.slice(0, 7) || '-' },
+                            ]}
+                            actions={[
+                              { label: "View Details", onClick: () => router.push(`/deployments/${deployment.id}`) },
+                              { label: "View Logs", onClick: () => router.push(`/deployments/${deployment.id}#logs`) },
+                              ...(deployment.status === 'failed' ? [
+                                { label: "Rollback", onClick: () => console.log('Rollback', deployment.id), variant: "danger" as const }
+                              ] : [])
+                            ]}
+                            isLast={index === items.length - 1}
+                            delay={index * 0.1}
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </CardBody>
+                </Card>
+              )}
+            </AnimatePresence>
           </motion.div>
         </motion.main>
       </div>
