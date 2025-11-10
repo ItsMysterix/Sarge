@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sidebar } from '@/components/layout/sidebar'
-import { Header } from '@/components/layout/header'
+import { AppShell } from '@/components/layout/app-shell'
 import { StepSelectRepo } from '@/components/oneclick/step-select-repo'
 import { StepAIAnalysis } from '@/components/oneclick/step-ai-analysis'
 import { StepDeploy } from '@/components/oneclick/step-deploy'
@@ -92,11 +91,8 @@ export default function OneClickDeployPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+    <AppShell>
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <div className={`mx-auto ${isDesktop ? 'max-w-6xl' : isTablet ? 'max-w-4xl' : 'max-w-full'}`}>
             {/* Header */}
             <header className="mb-6 md:mb-8">
@@ -212,8 +208,7 @@ export default function OneClickDeployPage() {
               </div>
             )}
           </div>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   )
 }

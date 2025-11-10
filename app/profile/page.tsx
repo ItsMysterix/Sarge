@@ -1,7 +1,6 @@
 "use client"
 
-import { Sidebar } from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
+import { AppShell } from "@/components/layout/app-shell"
 import { User, Mail, Calendar, GitBranch, Activity, Settings, Save, Database, Cloud, Zap, Lock, Key, Github } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -161,12 +160,9 @@ export default function ProfilePage() {
   ]
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
+    <AppShell>
       <ToastContainer />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Profile Card */}
@@ -458,8 +454,7 @@ export default function ProfilePage() {
               </motion.div>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   )
 }

@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { Sidebar } from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
 import { SettingsIcon } from "lucide-react"
 import { useUserSettings } from "@/hooks/useApi"
 import { useToast } from "@/components/ui/toast"
 import { useAppStore } from "@/lib/store"
 import { motion } from "framer-motion"
-import { useUserRole } from "@/hooks/useUserRole"
+import { useUserRole } from "@/hooks/useUserRole" // kept in case of future role-based gating
 import { TabsNavigation, type SettingsTab } from "@/components/settings/tabs-navigation"
 import { GeneralTab } from "@/components/settings/general-tab"
 import { AppearanceTab } from "@/components/settings/appearance-tab"
@@ -17,6 +15,7 @@ import { NotificationsTab } from "@/components/settings/notifications-tab"
 import { IntegrationsTab } from "@/components/settings/integrations-tab"
 import { SecurityTab } from "@/components/settings/security-tab"
 import { ShortcutsTab } from "@/components/settings/shortcuts-tab"
+import { AppShell } from "@/components/layout/app-shell"
 
 export default function Settings() {
   const { data: settings, loading, updateSettings } = useUserSettings()
@@ -24,7 +23,7 @@ export default function Settings() {
   const { addToast, ToastContainer } = useToast()
   const userRole = useUserRole()
   const { theme, setTheme } = useTheme()
-  
+
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
   const [enableAnimations, setEnableAnimations] = useState(true)
   const [notifications, setNotifications] = useState({
@@ -162,95 +161,86 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-[#0f0f0f]">
-        <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <Header />
-          <main className="flex-1 p-6 flex items-center justify-center">
-            <div className="text-center">
-              <motion.div 
-                className="rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-              />
-              <p className="text-gray-400">Loading settings...</p>
-            </div>
-          </main>
+      <AppShell>
+        <ToastContainer />
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="text-center">
+            <motion.div
+              className="rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            />
+            <p className="text-gray-400">Loading settings...</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     )
   }
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
+    <AppShell>
       <ToastContainer />
+      <motion.main
+        className="flex-1 p-6 overflow-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        {/* Header */}
+        <motion.div className="mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center gap-3 mb-2">
+            <SettingsIcon className="w-8 h-8 text-accent" />
+            <h1 className="text-3xl font-bold">Settings</h1>
+          </div>
+          <p className="text-gray-400">
+            Configure workspace, snapshots, integrations, and notifications
+          </p>
+        </motion.div>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
+        {/* Tabs Navigation */}
+        <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <motion.main 
-          className="flex-1 p-6 overflow-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          {/* Header */}
-          <motion.div className="mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="flex items-center gap-3 mb-2">
-              <SettingsIcon className="w-8 h-8 text-accent" />
-              <h1 className="text-3xl font-bold">Settings</h1>
-            </div>
-            <p className="text-gray-400">
-              Configure workspace, snapshots, integrations, and notifications
-            </p>
-          </motion.div>
+        {/* Tab Content */}
+        {activeTab === "general" && (
+          <GeneralTab
+            onExport={handleExportSettings}
+            onImport={handleImportSettings}
+            onClearData={handleClearData}
+          />
+        )}
 
-          {/* Tabs Navigation */}
-          <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        {activeTab === "appearance" && (
+          <AppearanceTab
+            themeMode={(theme as "dark" | "light" | "system") || "dark"}
+            enableAnimations={enableAnimations}
+            onThemeChange={handleThemeChange}
+            onAnimationsToggle={handleAnimationsToggle}
+          />
+        )}
 
-          {/* Tab Content */}
-          {activeTab === "general" && (
-            <GeneralTab
-              onExport={handleExportSettings}
-              onImport={handleImportSettings}
-              onClearData={handleClearData}
-            />
-          )}
+        {activeTab === "notifications" && (
+          <NotificationsTab
+            notifications={notifications}
+            onToggle={handleNotificationToggle}
+          />
+        )}
 
-          {activeTab === "appearance" && (
-            <AppearanceTab
-              themeMode={(theme as "dark" | "light" | "system") || "dark"}
-              enableAnimations={enableAnimations}
-              onThemeChange={handleThemeChange}
-              onAnimationsToggle={handleAnimationsToggle}
-            />
-          )}
+        {activeTab === "integrations" && (
+          <IntegrationsTab
+            slackAlerts={settings?.slack_alerts ?? false}
+            autoRebuild={settings?.auto_rebuild ?? false}
+            webhookConfigured={true}
+            isTestingWebhook={isTestingWebhook}
+            onToggle={handleToggle}
+            onTestWebhook={handleWebhookTest}
+            onConnectGitHub={() => {
+              addToast({ type: "info", title: "GitHub", description: "Repository management coming soon" })
+            }}
+          />
+        )}
 
-          {activeTab === "notifications" && (
-            <NotificationsTab
-              notifications={notifications}
-              onToggle={handleNotificationToggle}
-            />
-          )}
-
-          {activeTab === "integrations" && (
-            <IntegrationsTab
-              slackAlerts={settings?.slack_alerts ?? false}
-              autoRebuild={settings?.auto_rebuild ?? false}
-              webhookConfigured={true}
-              isTestingWebhook={isTestingWebhook}
-              onToggle={handleToggle}
-              onTestWebhook={handleWebhookTest}
-              onConnectGitHub={() => {
-                addToast({ type: "info", title: "GitHub", description: "Repository management coming soon" })
-              }}
-            />
-          )}
-
-          {activeTab === "security" && <SecurityTab />}
-          {activeTab === "shortcuts" && <ShortcutsTab />}
-        </motion.main>
-      </div>
-    </div>
+        {activeTab === "security" && <SecurityTab />}
+        {activeTab === "shortcuts" && <ShortcutsTab />}
+      </motion.main>
+    </AppShell>
   )
 }

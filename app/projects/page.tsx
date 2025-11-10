@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Rocket
 } from 'lucide-react';
-import { Header } from '@/components/layout/header';
+import { AppShell } from '@/components/layout/app-shell';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OnboardingSteps } from '@/components/ui/onboarding-steps';
 import { ProjectWizard } from '@/components/projects/project-wizard';
@@ -87,22 +87,20 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f]">
-        <Header />
-        <div className="flex-1 p-8 flex items-center justify-center">
+      <AppShell>
+        <div className="flex flex-1 p-8 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
             <p className="text-gray-400">Loading projects...</p>
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
-      <Header />
-      <div className="max-w-7xl mx-auto p-8">
+    <AppShell>
+      <div className="max-w-7xl mx-auto p-8 flex-1">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
         {/* Search */}
@@ -296,6 +294,6 @@ export default function ProjectsPage() {
         />
       )}
       </div>
-    </div>
+    </AppShell>
   );
 }

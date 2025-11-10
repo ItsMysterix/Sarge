@@ -43,12 +43,7 @@ export function Header() {
           {!isProfilePage && (
             <ProjectSwitcher />
           )}
-          {/* Commit / build stamp for deployment debugging */}
-          {typeof window !== 'undefined' && (
-            <div className="hidden md:block text-[10px] font-mono text-gray-500 truncate max-w-[160px]" title={process.env.NEXT_PUBLIC_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA}>
-              {(process.env.NEXT_PUBLIC_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || 'dev-local').slice(0,7)}
-            </div>
-          )}
+          {/* version badge removed per design */}
         </div>
         <div className="flex items-center space-x-3 sm:space-x-6">
           <div className="px-2 sm:px-3 py-1.5 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">

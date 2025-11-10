@@ -6,8 +6,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
 import { LogViewer, LogLine } from '@/components/logs/LogViewer';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
+import { AppShell } from '@/components/layout/app-shell';
 import { ArrowLeft, RefreshCw, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -53,11 +52,8 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
 
   if (!initial && list.isFetched && !list.isLoading) {
     return (
-      <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header />
-          <main className="flex-1 p-6">
+      <AppShell>
+        <main className="flex-1 p-6">
             <div className="flex items-center gap-4 mb-6">
               <button 
                 onClick={() => router.push('/deployments')}
@@ -70,9 +66,8 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
             <div className="text-center py-12">
               <p className="text-gray-400">Deployment not found</p>
             </div>
-          </main>
-        </div>
-      </div>
+        </main>
+      </AppShell>
     );
   }
 
@@ -89,11 +84,8 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+    <AppShell>
+      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           <ToastContainer />
           
           {/* Back Button */}
@@ -170,8 +162,7 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
               </div>
             </CardBody>
           </Card>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   );
 }

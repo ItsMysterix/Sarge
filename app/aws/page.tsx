@@ -1,7 +1,6 @@
 "use client"
 
-import { Sidebar } from "@/components/layout/sidebar"
-import { Header } from "@/components/layout/header"
+import { AppShell } from "@/components/layout/app-shell"
 import { Cloud, Database, Zap, Shield, Activity, Plus, Trash2, Eye } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -73,11 +72,8 @@ export default function AWSEmulationPage() {
   ]
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+    <AppShell>
+      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           {/* Tabs for AWS Services */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="glass-card border border-white/10 p-1 mb-6 flex-wrap h-auto">
@@ -120,9 +116,8 @@ export default function AWSEmulationPage() {
               <CloudWatchContent logGroups={cwQuery.data || []} loading={cwQuery.isLoading && !showEmptyStates} />
             </TabsContent>
           </Tabs>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   )
 }
 
