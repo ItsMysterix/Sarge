@@ -8,7 +8,6 @@ import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ConnectRepoModal } from "@/components/connect-repo-modal"
-import { WelcomeCard } from "@/components/dashboard/welcome-card"
 import { MetricsCard } from "@/components/dashboard/metrics-card"
 import { GitHubActivity } from "@/components/dashboard/github-activity"
 import { LiveLogs } from "@/components/dashboard/live-logs"
@@ -236,8 +235,6 @@ export default function Overview() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
           >
-            <WelcomeCard user={user} />
-
             {/* Quick Stats Overview - Responsive Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
