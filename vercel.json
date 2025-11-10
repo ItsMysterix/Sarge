@@ -1,7 +1,7 @@
 {
   "buildCommand": "pnpm run build",
   "devCommand": "pnpm run dev:frontend",
-  "installCommand": "pnpm install --no-frozen-lockfile",
+  "installCommand": "pnpm install --no-frozen-lockfile --filter=!backend --filter=!./packages/*",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["iad1"],
