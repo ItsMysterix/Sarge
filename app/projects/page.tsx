@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Rocket
 } from 'lucide-react';
+import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OnboardingSteps } from '@/components/ui/onboarding-steps';
@@ -87,27 +88,32 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <>
-        <Header />
-        <div className="flex-1 p-8 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
-            <p className="text-gray-400">Loading projects...</p>
+      <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
+          <Header />
+          <div className="flex-1 p-8 flex items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
+              <p className="text-gray-400">Loading projects...</p>
+            </div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <Header />
-      <div className="flex-1 p-8">
-        {/* Minimal Header matching workspace style (title only, badge lives in global header) */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-          <p className="text-gray-400 text-sm">Select a project to enter the command center.</p>
-        </div>
+    <div className="flex h-screen bg-[#0f0f0f] overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
+        <Header />
+        <div className="flex-1 p-8 overflow-auto">
+          {/* Page Title */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+            <p className="text-gray-400 text-sm">Select a project to enter the command center.</p>
+          </div>
 
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -301,7 +307,8 @@ export default function ProjectsPage() {
           onCancel={() => setShowWizard(false)}
         />
       )}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
