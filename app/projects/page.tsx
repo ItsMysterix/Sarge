@@ -103,14 +103,8 @@ export default function ProjectsPage() {
     <div className="min-h-screen bg-[#0f0f0f]">
       <Header />
       <div className="max-w-7xl mx-auto p-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-          <p className="text-gray-400 text-sm">Select a project to enter the command center.</p>
-        </div>
-
-      {/* Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        {/* Actions Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
         {/* Search */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
