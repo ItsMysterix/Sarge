@@ -57,7 +57,9 @@ export default function ProjectsPage() {
   });
 
   const handleProjectClick = (project: any) => {
-    // Go to main workspace/dashboard instead of project detail page
+    // Save project to localStorage so it becomes the current project
+    localStorage.setItem('sarge_current_project_id', project.id);
+    // Go to main workspace/dashboard
     router.push('/');
   };
 
@@ -123,6 +125,9 @@ export default function ProjectsPage() {
       setName('');
       setSlug('');
       setShowInlineForm(false);
+      
+      // Save project to localStorage so it becomes the current project
+      localStorage.setItem('sarge_current_project_id', project.id);
       
       // Redirect to main workspace/dashboard with sidebar
       console.log('Redirecting to workspace');
