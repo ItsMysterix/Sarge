@@ -9,8 +9,7 @@ import {
   FolderGit2, 
   Clock,
   Loader2,
-  Github,
-  Folder
+  Settings
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { ProjectWizard } from '@/components/projects/project-wizard';
@@ -22,37 +21,43 @@ export default function ProjectsPage() {
   const [showWizard, setShowWizard] = useState(false);
 
   const t = trpc as any
-  const workspacesQuery = t.sarge.oneclick.workspaces.list.useQuery()
+  const projectsQuery = t.project.list.useQuery()
 
-  const filteredWorkspaces = (workspacesQuery.data || []).filter((workspace: any) => {
+  const filteredProjects = ((projectsQuery.data?.projects || []) as any[]).filter((project: any) => {
+    // Filter out mock project
+    if (project.slug === 'my-nextjs-app' || project.name === 'My Next.js App') return false
+    
     const matchesSearch = 
-      workspace.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      workspace.path.toLowerCase().includes(searchQuery.toLowerCase());
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.slug.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
-  const handleWorkspaceClick = (workspace: any) => {
-    // Navigate to workspace detail or deployment page
-    router.push(`/workspaces/${workspace.id}`);
+  const handleProjectClick = (project: any) => {
+    router.push(`/projects/${project.slug}`);
   };
 
-  const handleCreateWorkspace = () => {
+  const handleCreateProject = () => {
     setShowWizard(true)
   };
 
-  const handleWizardComplete = () => {
+  const handleWizardComplete = (project: any) => {
     setShowWizard(false)
-    // Refetch workspaces
-    workspacesQuery.refetch()
+    // Navigate to new project
+    if (project?.slug) {
+      router.push(`/projects/${project.slug}`)
+    }
+    // Refetch projects
+    projectsQuery.refetch()
   };
 
-  if (workspacesQuery.isLoading) {
+  if (projectsQuery.isLoading) {
     return (
       <AppShell showSidebar={false}>
         <div className="flex flex-1 p-8 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-12 w-12 animate-spin text-blue-400 mx-auto mb-4" />
-            <p className="text-gray-400">Loading workspaces...</p>
+            <p className="text-gray-400">Loading projects...</p>
           </div>
         </div>
       </AppShell>
@@ -65,17 +70,17 @@ export default function ProjectsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Workspaces</h1>
-            <p className="text-gray-400">Manage your local and cloned repositories</p>
+            <h1 className="text-3xl font-bold mb-2">Projects</h1>
+            <p className="text-gray-400">Manage your projects and deployments</p>
           </div>
           <motion.button
-            onClick={handleCreateWorkspace}
+            onClick={handleCreateProject}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
           >
             <Plus className="h-5 w-5" />
-            Add Workspace
+            Create Project
           </motion.button>
         </div>
 
@@ -84,89 +89,94 @@ export default function ProjectsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search workspaces..."
+            placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-white placeholder-gray-400"
           />
         </div>
 
-        {/* Workspaces Grid */}
-        {filteredWorkspaces.length === 0 && (workspacesQuery.data || []).length === 0 ? (
+        {/* Projects Grid */}
+        {filteredProjects.length === 0 && (projectsQuery.data?.projects || []).length === 0 ? (
           <div className="glass-card p-12 text-center">
             <FolderGit2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No workspaces yet</h3>
+            <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
             <p className="text-gray-400 mb-6">
-              Clone a repository from GitHub or register a local folder to get started
+              Create your first project to get started with deployments
             </p>
             <motion.button
-              onClick={handleCreateWorkspace}
+              onClick={handleCreateProject}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors inline-flex items-center gap-2 hover:bg-accent/90"
             >
               <Plus className="h-5 w-5" />
-              Add Your First Workspace
+              Create Your First Project
             </motion.button>
           </div>
-        ) : filteredWorkspaces.length === 0 ? (
+        ) : filteredProjects.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No workspaces found</h3>
+            <h3 className="text-xl font-semibold mb-2">No projects found</h3>
             <p className="text-gray-400">
               Try adjusting your search
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredWorkspaces.map((workspace: any, index: number) => (
+            {filteredProjects.map((project: any, index: number) => (
               <motion.div
-                key={workspace.id}
+                key={project.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => handleWorkspaceClick(workspace)}
-                className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/50 transition-all cursor-pointer group"
+                onClick={() => handleProjectClick(project)}
+                className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/50 transition-all cursor-pointer group relative"
               >
-                {/* Workspace Header */}
+                {/* Project Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      {workspace.repoUrl ? (
-                        <Github className="h-6 w-6 text-accent" />
-                      ) : (
-                        <Folder className="h-6 w-6 text-accent" />
-                      )}
+                      <FolderGit2 className="h-6 w-6 text-accent" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg truncate group-hover:text-accent transition-colors">
-                        {workspace.name}
+                        {project.name}
                       </h3>
                       <p className="text-xs text-gray-400 truncate font-mono">
-                        {workspace.repoUrl || workspace.path}
+                        {project.slug}
                       </p>
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/projects/${project.slug}/settings`)
+                    }}
+                    className="text-gray-400 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
                 </div>
 
-                {/* Workspace Info */}
+                {/* Project Info */}
                 <div className="space-y-2 text-sm">
+                  {project.description && (
+                    <p className="text-gray-400 line-clamp-2">{project.description}</p>
+                  )}
+                  {project.framework && (
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <span className="text-xs px-2 py-1 bg-white/5 rounded">
+                        {project.framework}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-gray-400">
-                    <FolderGit2 className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{workspace.path}</span>
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs">
+                      Created {new Date(project.created_at || project.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
-                  {workspace.branch && (
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Clock className="h-4 w-4 flex-shrink-0" />
-                      <span>Branch: {workspace.branch}</span>
-                    </div>
-                  )}
-                  {workspace.lastPulled && (
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Clock className="h-4 w-4 flex-shrink-0" />
-                      <span>Last updated: {new Date(workspace.lastPulled).toLocaleDateString()}</span>
-                    </div>
-                  )}
                 </div>
               </motion.div>
             ))}
