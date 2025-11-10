@@ -8,6 +8,7 @@ import {
   Code, Settings, Rocket, Github, Folder, Link2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import { trpc } from "@/lib/trpc"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
@@ -485,18 +486,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h4 className="font-medium">Auto Deploy</h4>
                       <p className="text-sm text-gray-400">Automatically deploy on git push</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, autoDeploy: !formData.autoDeploy })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.autoDeploy ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.autoDeploy ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.autoDeploy} onCheckedChange={(v: boolean) => setFormData({ ...formData, autoDeploy: v })} />
                   </div>
                 </div>
               </motion.div>
@@ -521,18 +511,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h5 className="font-medium">Branch Protection</h5>
                       <p className="text-sm text-gray-400">Protect main branches from direct pushes</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, branchProtection: !formData.branchProtection })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.branchProtection ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.branchProtection ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.branchProtection} onCheckedChange={(v: boolean) => setFormData({ ...formData, branchProtection: v })} />
                   </div>
 
                   {formData.branchProtection && (
@@ -556,18 +535,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h5 className="font-medium">Auto Merge</h5>
                       <p className="text-sm text-gray-400">Automatically merge approved PRs</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, autoMerge: !formData.autoMerge })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.autoMerge ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.autoMerge ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.autoMerge} onCheckedChange={(v: boolean) => setFormData({ ...formData, autoMerge: v })} />
                   </div>
                 </div>
 
@@ -580,18 +548,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h5 className="font-medium">Password Protection</h5>
                       <p className="text-sm text-gray-400">Require password to access deployments</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, passwordProtected: !formData.passwordProtected })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.passwordProtected ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.passwordProtected ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.passwordProtected} onCheckedChange={(v: boolean) => setFormData({ ...formData, passwordProtected: v })} />
                   </div>
 
                   {formData.passwordProtected && (
@@ -612,18 +569,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h5 className="font-medium">Web Application Firewall</h5>
                       <p className="text-sm text-gray-400">Enable WAF protection (DDoS, SQL injection, etc.)</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, enableWAF: !formData.enableWAF })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.enableWAF ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.enableWAF ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.enableWAF} onCheckedChange={(v: boolean) => setFormData({ ...formData, enableWAF: v })} />
                   </div>
                 </div>
               </motion.div>
@@ -648,18 +594,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h5 className="font-medium">Enable Team Access</h5>
                       <p className="text-sm text-gray-400">Allow team members to collaborate on this project</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, enableCollaboration: !formData.enableCollaboration })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.enableCollaboration ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.enableCollaboration ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.enableCollaboration} onCheckedChange={(v: boolean) => setFormData({ ...formData, enableCollaboration: v })} />
                   </div>
 
                   {formData.enableCollaboration && (
@@ -682,18 +617,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                           <h5 className="font-medium">Require Deployment Approval</h5>
                           <p className="text-sm text-gray-400">Admins must approve before deployments</p>
                         </div>
-                        <button
-                          onClick={() => setFormData({ ...formData, requireApproval: !formData.requireApproval })}
-                          className={`
-                            relative w-12 h-6 rounded-full transition-colors
-                              ${formData.requireApproval ? "bg-accent" : "bg-white/10"}
-                          `}
-                        >
-                          <div className={`
-                            absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                            ${formData.requireApproval ? "translate-x-7" : "translate-x-1"}
-                          `} />
-                        </button>
+                        <Switch checked={formData.requireApproval} onCheckedChange={(v: boolean) => setFormData({ ...formData, requireApproval: v })} />
                       </div>
                     </>
                   )}
@@ -794,18 +718,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h5 className="font-medium">Enable Caching</h5>
                       <p className="text-sm text-gray-400">Cache dependencies for faster builds</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, enableCaching: !formData.enableCaching })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.enableCaching ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.enableCaching ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.enableCaching} onCheckedChange={(v: boolean) => setFormData({ ...formData, enableCaching: v })} />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
@@ -813,18 +726,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
                       <h5 className="font-medium">Analytics & Monitoring</h5>
                       <p className="text-sm text-gray-400">Track performance and usage metrics</p>
                     </div>
-                    <button
-                      onClick={() => setFormData({ ...formData, enableAnalytics: !formData.enableAnalytics })}
-                      className={`
-                        relative w-12 h-6 rounded-full transition-colors
-                          ${formData.enableAnalytics ? "bg-accent" : "bg-white/10"}
-                      `}
-                    >
-                      <div className={`
-                        absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                        ${formData.enableAnalytics ? "translate-x-7" : "translate-x-1"}
-                      `} />
-                    </button>
+                    <Switch checked={formData.enableAnalytics} onCheckedChange={(v: boolean) => setFormData({ ...formData, enableAnalytics: v })} />
                   </div>
                 </div>
               </motion.div>

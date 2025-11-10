@@ -3,6 +3,7 @@ import React, { useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { trpc } from '@/lib/trpc';
+import { Button } from '@/components/ui/button';
 
 type Deployment = {
   id: string | number;
@@ -90,16 +91,18 @@ function Row({ d, onView, onLogs }: { d: Deployment; onView: (id: string|number)
       </div>
       <div className="text-xs opacity-75" title={d.created_at ?? ''}>{d.created_at?.slice(0,19).replace('T',' ') ?? '-'}</div>
       <div className="flex gap-2">
-        <button className="px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800 text-xs" onClick={() => onView(d.id)}>View</button>
-        <button className="px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800 text-xs" onClick={() => onLogs(d.id)}>Logs</button>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => onView(d.id)}>View</Button>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => onLogs(d.id)}>Logs</Button>
         {canStop && (
-          <button 
-            className="px-2 py-1 rounded border border-red-700/50 hover:bg-red-900/20 text-red-400 text-xs"
+          <Button 
+            variant="destructive"
+            size="sm"
+            className="h-7 px-2 text-xs"
             onClick={handleStop}
             disabled={stopMutation.isLoading}
           >
             {stopMutation.isLoading ? '...' : 'Stop'}
-          </button>
+          </Button>
         )}
       </div>
     </div>
