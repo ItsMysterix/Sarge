@@ -167,21 +167,6 @@ export default function ProfilePage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-8"
-          >
-            <div className="flex items-center space-x-3 mb-2">
-              <User className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Profile</h1>
-            </div>
-            <p className="text-sm sm:text-base text-gray-400">
-              Manage your account settings and view your activity
-            </p>
-          </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Profile Card */}

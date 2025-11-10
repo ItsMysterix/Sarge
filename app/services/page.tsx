@@ -275,33 +275,22 @@ export default function Services() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
+          {/* Actions Row (Removed large page heading for unified header design) */}
           <motion.div 
-            className="mb-4 sm:mb-6 md:mb-8"
-            initial={{ y: -20, opacity: 0 }}
+            className="flex justify-end mb-4 sm:mb-6"
+            initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.4 }}
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-2">
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <motion.div
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-                </motion.div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Service Health Intelligence</h1>
-              </div>
-              <motion.button
-                className="px-3 sm:px-4 py-2 bg-accent/10 border border-accent/20 rounded-lg text-accent hover:bg-accent/20 transition-colors flex items-center space-x-2 text-sm sm:text-base"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => refetch()}
-              >
-                <RefreshCcw className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Refresh</span>
-              </motion.button>
-            </div>
-            <p className="text-sm sm:text-base text-gray-400">Real-time service monitoring with intelligent filtering</p>
+            <motion.button
+              className="px-3 sm:px-4 py-2 bg-accent/10 border border-accent/30 rounded-lg text-accent hover:bg-accent/20 transition-colors flex items-center space-x-2 text-sm sm:text-base"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => refetch()}
+            >
+              <RefreshCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>Refresh</span>
+            </motion.button>
           </motion.div>
 
           {/* Quick Stats */}
