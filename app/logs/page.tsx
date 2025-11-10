@@ -280,44 +280,34 @@ export default function Logs() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
           >
-            {/* Page Header */}
+            {/* Control Buttons */}
             <motion.div 
-              className="mb-4 sm:mb-6 md:mb-8"
+              className="mb-4 sm:mb-6"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="flex flex-col gap-3 mb-2">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
-                    <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-                  </motion.div>
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Logs</h1>
-                </div>
-                <p className="text-sm sm:text-base text-gray-400">
-                  Structured logs from all services in your workspace—filter by stack, service, or level
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <motion.button
-                    className={`px-3 sm:px-4 py-2 rounded-lg border transition-colors flex items-center space-x-2 text-sm sm:text-base ${
-                      isPaused 
-                        ? "bg-accent/10 border-accent/20 text-accent hover:bg-accent/20" 
-                        : "bg-success/10 border-success/20 text-success hover:bg-success/20"
-                    }`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsPaused(!isPaused)}
-                  >
-                    {isPaused ? <Play className="w-3 h-3 sm:w-4 sm:h-4" /> : <Pause className="w-3 h-3 sm:w-4 sm:h-4" />}
-                    <span>{isPaused ? "Resume" : "Pause"}</span>
-                  </motion.button>
-                  
-                  <motion.label 
-                    className="glass-card px-3 sm:px-4 py-2 text-accent hover:bg-accent/20 border border-accent/30 flex items-center space-x-2 rounded-lg cursor-pointer"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+              <div className="flex flex-wrap items-center gap-2">
+                <motion.button
+                  className={`px-3 sm:px-4 py-2 rounded-lg border transition-colors flex items-center space-x-2 text-sm sm:text-base ${
+                    isPaused 
+                      ? "bg-accent/10 border-accent/20 text-accent hover:bg-accent/20" 
+                      : "bg-success/10 border-success/20 text-success hover:bg-success/20"
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsPaused(!isPaused)}
+                >
+                  {isPaused ? <Play className="w-3 h-3 sm:w-4 sm:h-4" /> : <Pause className="w-3 h-3 sm:w-4 sm:h-4" />}
+                  <span>{isPaused ? "Resume" : "Pause"}</span>
+                </motion.button>
+                
+                <motion.label 
+                  className="glass-card px-3 sm:px-4 py-2 text-accent hover:bg-accent/20 border border-accent/30 flex items-center space-x-2 rounded-lg cursor-pointer"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span className="text-xs sm:text-sm font-medium">Upload</span>
                     <input
                       type="file"
@@ -346,12 +336,10 @@ export default function Logs() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => exportLogs("csv")}
                   >
-                    <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="text-xs sm:text-sm font-medium">CSV</span>
-                  </motion.button>
-                </div>
+                  <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm font-medium">CSV</span>
+                </motion.button>
               </div>
-              <p className="text-sm sm:text-base text-gray-400">Real-time log analysis with advanced filtering and bookmarking</p>
             </motion.div>
 
             {/* Quick Stats */}

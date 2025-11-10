@@ -102,56 +102,6 @@ export default function DeploymentsPage() {
           transition={{ duration: 0.5 }}
         >
           <ToastContainer />
-          
-          {/* Page Header */}
-          <motion.div 
-            className="mb-4 sm:mb-6 md:mb-8"
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-2">
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <motion.div
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <Rocket className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-                </motion.div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Deployment Pipeline</h1>
-              </div>
-              <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
-                <motion.div className="flex rounded-lg border border-accent/20 bg-accent/5 p-1 flex-1 sm:flex-none">
-                  <button
-                    className={`px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm transition-all flex-1 sm:flex-none ${
-                      viewMode === "list" ? "bg-accent text-black" : "text-gray-400 hover:text-white"
-                    }`}
-                    onClick={() => setViewMode("list")}
-                  >
-                    List
-                  </button>
-                  <button
-                    className={`px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm transition-all flex-1 sm:flex-none ${
-                      viewMode === "timeline" ? "bg-accent text-black" : "text-gray-400 hover:text-white"
-                    }`}
-                    onClick={() => setViewMode("timeline")}
-                  >
-                    Timeline
-                  </button>
-                </motion.div>
-                <motion.button
-                  className="px-3 sm:px-4 py-2 bg-accent/10 border border-accent/20 rounded-lg text-accent hover:bg-accent/20 transition-colors flex items-center space-x-2 text-sm sm:text-base shrink-0"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">New Deploy</span>
-                  <span className="sm:hidden">New</span>
-                </motion.button>
-              </div>
-            </div>
-            <p className="text-sm sm:text-base text-gray-400">Track and manage application deployments across environments</p>
-          </motion.div>
 
           {/* Quick Stats */}
           <motion.div
