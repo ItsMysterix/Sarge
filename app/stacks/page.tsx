@@ -79,7 +79,6 @@ export default function StacksPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
-          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -87,17 +86,13 @@ export default function StacksPage() {
             className="mb-6 sm:mb-8"
           >
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <Layers className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Stacks</h1>
-              </div>
-              <button className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center">
+              <button className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center ml-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Stack
               </button>
             </div>
             <p className="text-sm sm:text-base text-gray-400">
-              Compose services into applications—define what runs together · {stacks.length} stack{stacks.length !== 1 ? 's' : ''}
+              {stacks.length} stack{stacks.length !== 1 ? 's' : ''}
             </p>
           </motion.div>
 
