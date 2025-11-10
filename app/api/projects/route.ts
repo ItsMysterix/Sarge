@@ -1,42 +1,33 @@
 import { NextResponse } from 'next/server';
+import { getDbPool } from '@/lib/db';
 
-// Mock projects data - will be replaced with database queries
 export async function GET() {
   try {
-    const mockProjects = [
-      {
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        userId: 'user_1',
-        name: 'My Next.js App',
-        slug: 'my-nextjs-app',
-        description: 'A modern web application built with Next.js',
-        framework: 'next.js',
-        repositoryId: 1,
-        rootDirectory: './',
-        buildCommand: 'npm run build',
-        outputDirectory: '.next',
-        installCommand: 'npm install',
-        devCommand: 'npm run dev',
-        autoDeploy: true,
-        autoDeployBranch: 'main',
-        previewDeployments: true,
-        aiDetectedFramework: 'next.js',
-        aiDetectedPorts: [3000],
-        aiDetectedTools: ['node', 'npm'],
-        aiAnalysisSummary: 'Detected Next.js 14 application with App Router',
-        aiAnalyzedAt: new Date().toISOString(),
-        status: 'active',
-        lastDeployedAt: new Date().toISOString(),
-        deploymentCount: 5,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-
-    return NextResponse.json({ projects: mockProjects });
+    // Try to fetch from database with timeout
+    const db = getDbPool();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database query timeout')), 3000)
+    );
+    
+    const queryPromise = db.query(
+      `SELECT 
+        p.*,
+        COUNT(DISTINCT d.id) as deployment_count,
+        MAX(d.created_at) as last_deployed_at
+       FROM projects p
+       LEFT JOIN deployments d ON d.project_id = p.id
+       WHERE p.user_id = $1
+       GROUP BY p.id
+       ORDER BY p.created_at DESC`,
+      ['user_1'] // TODO: Get from auth context
+    );
+    
+    const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+    return NextResponse.json({ projects: result.rows });
   } catch (error) {
     console.error('Error fetching projects:', error);
-    return NextResponse.json({ projects: [] }, { status: 200 }); // Graceful fallback
+    // Return empty array if database is not configured yet
+    return NextResponse.json({ projects: [] }, { status: 200 });
   }
 }
 
