@@ -176,17 +176,10 @@ export default function ProfilePage() {
                 <div className="flex flex-col items-center">
                   {/* Avatar */}
                   <div className="relative mb-4">
-                    {user?.imageUrl ? (
-                      <img
-                        src={user?.imageUrl}
-                        alt={user?.fullName || 'User'}
-                        className="w-24 h-24 rounded-full border-2 border-accent/30"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 rounded-full bg-accent/20 border-2 border-accent/30 flex items-center justify-center">
-                        <User className="w-12 h-12 text-accent" />
-                      </div>
-                    )}
+                    {/* Hide photo on Profile page per request; show simple avatar icon only */}
+                    <div className="w-24 h-24 rounded-full bg-accent/20 border-2 border-accent/30 flex items-center justify-center">
+                      <User className="w-12 h-12 text-accent" />
+                    </div>
                     <div className="absolute bottom-0 right-0 w-6 h-6 bg-success rounded-full border-2 border-[#0f0f0f]" />
                   </div>
 
