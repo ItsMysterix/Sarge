@@ -57,7 +57,8 @@ export default function ProjectsPage() {
   });
 
   const handleProjectClick = (project: any) => {
-    router.push(`/projects/${project.slug}`);
+    // Go to main workspace/dashboard instead of project detail page
+    router.push('/');
   };
 
   const handleCreateProject = () => {
@@ -123,14 +124,9 @@ export default function ProjectsPage() {
       setSlug('');
       setShowInlineForm(false);
       
-      // Refetch in background to sync with any server changes
-      fetchProjects();
-      
-      // Navigate to new project after a brief delay to show the card
-      setTimeout(() => {
-        console.log('Navigating to project:', project.slug);
-        router.push(`/projects/${project.slug}`);
-      }, 500);
+      // Redirect to main workspace/dashboard with sidebar
+      console.log('Redirecting to workspace');
+      router.push('/');
     } catch (error) {
       console.error('Error creating project:', error);
       alert(`Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`);
