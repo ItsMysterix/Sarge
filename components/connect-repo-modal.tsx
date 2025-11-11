@@ -112,6 +112,8 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
           repoUrl = selectedRepo.clone_url
         }
 
+        console.log('🚀 Cloning repository:', { repoUrl: repoUrl.replace(/:[^@]+@/, ':***@'), branch })
+        
         const result = await t.sarge.oneclick.workspaces.cloneRepo.mutate({
           repoUrl,
           branch
@@ -119,10 +121,10 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
         console.log('✅ Cloned to workspace:', result)
         onConnect(selectedRepo)
         onClose()
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to clone repository'
+      } catch (err: any) {
+        const errorMessage = err?.message || err?.toString() || 'Failed to clone repository'
         setWorkspaceError(errorMessage)
-        console.error('❌ Error cloning repo:', errorMessage)
+        console.error('❌ Error cloning repo:', err)
       } finally {
         setWorkspaceLoading(false)
       }
@@ -241,6 +243,11 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
                 <p className="text-xs text-gray-400 mt-2">
                   Showing {filteredRepos.length} of {repos.length} repositories
                 </p>
+              )}
+              {workspaceError && (
+                <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-xs text-red-400">{workspaceError}</p>
+                </div>
               )}
             </div>
           )}
@@ -374,20 +381,23 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
               )}
             </div>
             <div className="flex space-x-3">
-              {mode !== 'select' && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (mode !== 'select') {
+                    // If in clone or local mode, go back to select mode
                     setMode('select')
                     setSelectedRepo(null)
                     setLocalPath('')
                     setWorkspaceError(null)
-                  }}
-                >
-                  Back
-                </Button>
-              )}
-              <Button variant="outline" onClick={onClose}>Cancel</Button>
+                  } else {
+                    // If in select mode, close the modal
+                    onClose()
+                  }
+                }}
+              >
+                {mode !== 'select' ? 'Back' : 'Cancel'}
+              </Button>
               {mode !== 'select' && (
                 <Button
                   onClick={handleConnect}
