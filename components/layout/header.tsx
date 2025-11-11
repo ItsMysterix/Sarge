@@ -40,7 +40,7 @@ export function Header() {
   }, [])
 
   return (
-    <header className="glass-card border-b border-white/10 px-4 sm:px-6 py-4 sm:py-5 sticky top-0 z-50 backdrop-blur-xl">
+  <header className="glass-card border-b border-white/10 px-4 sm:px-6 py-2 sm:py-3 sticky top-0 z-50 backdrop-blur-xl">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           {/* Brand is always visible */}
