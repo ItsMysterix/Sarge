@@ -163,147 +163,135 @@ export default function MetricsPage() {
 
   return (
     <AppShell>
-      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
-          {/* Show empty state if no data */}
-          {!hasData ? (
-            <EmptyState
-              icon={Activity}
-              title="No Metrics Yet"
-              description="Deploy your first project to start tracking performance metrics, resource usage, and service health in real-time."
-              actionLabel="Deploy a Project"
-              onAction={() => router.push('/oneclick')}
-              secondaryActionLabel="View Documentation"
-              onSecondaryAction={() => router.push('/docs')}
+      <motion.main 
+        className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Show empty state if no data */}
+        {!hasData ? (
+          <EmptyState
+            icon={Activity}
+            title="No Metrics Yet"
+            description="Deploy your first project to start tracking performance metrics, resource usage, and service health in real-time."
+            actionLabel="Deploy a Project"
+            onAction={() => router.push('/oneclick')}
+            secondaryActionLabel="View Documentation"
+            onSecondaryAction={() => router.push('/docs')}
+          >
+            <OnboardingSteps
+              steps={[
+                {
+                  number: 1,
+                  title: "Add a workspace",
+                  description: "Clone a GitHub repository or register a local project folder in the One-Click Deploy page.",
+                },
+                {
+                  number: 2,
+                  title: "Deploy your services",
+                  description: "Select your workspace and click deploy. Sarge will automatically detect services, install dependencies, and start them.",
+                },
+                {
+                  number: 3,
+                  title: "Monitor performance",
+                  description: "Once deployed, real-time metrics will appear here showing CPU, memory, latency, and service health.",
+                },
+              ]}
+            />
+          </EmptyState>
+        ) : (
+          <>
+            {/* Quick Stats */}
+            <motion.div
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <OnboardingSteps
-                steps={[
-                  {
-                    number: 1,
-                    title: "Add a workspace",
-                    description: "Clone a GitHub repository or register a local project folder in the One-Click Deploy page.",
-                  },
-                  {
-                    number: 2,
-                    title: "Deploy your services",
-                    description: "Select your workspace and click deploy. Sarge will automatically detect services, install dependencies, and start them.",
-                  },
-                  {
-                    number: 3,
-                    title: "Monitor performance",
-                    description: "Once deployed, real-time metrics will appear here showing CPU, memory, latency, and service health.",
-                  },
-                ]}
+              <QuickStatCard
+                title="CPU"
+                value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
+                icon={Cpu}
+                subtitle="Avg usage"
+                color="warning"
+                delay={0}
               />
-            </EmptyState>
-          ) : (
-            <>
+              <QuickStatCard
+                title="Memory"
+                value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
+                icon={Gauge}
+                subtitle="Working set"
+                color="accent"
+                delay={0.1}
+              />
+              <QuickStatCard
+                title="Latency"
+                value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
+                icon={Rocket}
+                subtitle="P95 response"
+                color="success"
+                delay={0.2}
+              />
+              <QuickStatCard
+                title="Services"
+                value={services.length.toString()}
+                icon={Server}
+                subtitle="Tracked" 
+                color="accent"
+                delay={0.3}
+              />
+            </motion.div>
+
+            {/* Health Score Banner - Only on Overview */}
+            {activeTab === 'overview' && (
               <motion.div
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="mb-6 sm:mb-8"
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="mb-6"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  {/* Time Range Selector */}
-                  <div className="flex gap-2">
-                    {(['1h', '24h', '7d'] as const).map((range) => (
-                      <button
-                        key={range}
-                        onClick={() => setTimeRange(range)}
-                        className={`
-                          px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all
-                          ${timeRange === range
-                            ? 'bg-accent/20 text-accent border border-accent/30'
-                            : 'glass-card text-gray-400 hover:text-white border border-white/10'
-                          }
-                        `}
-                      >
-                        {range.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tabs Navigation */}
-                <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-              </motion.div>
-
-              {/* Health Score Banner - Only on Overview */}
-              {activeTab === 'overview' && (
                 <HealthBanner 
                   healthScore={healthScore} 
                   healthStatus={healthStatus} 
                   healthGrade={healthGrade} 
                 />
-              )}
-
-              {/* Top Quick Stats Row (unified design) */}
-              <motion.div
-                initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
-              >
-                <QuickStatCard
-                  title="CPU"
-                  value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
-                  icon={Cpu}
-                  subtitle="Avg usage"
-                  color="warning"
-                  delay={0}
-                />
-                <QuickStatCard
-                  title="Memory"
-                  value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
-                  icon={Gauge}
-                  subtitle="Working set"
-                  color="accent"
-                  delay={0.1}
-                />
-                <QuickStatCard
-                  title="Latency"
-                  value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
-                  icon={Rocket}
-                  subtitle="P95 response"
-                  color="success"
-                  delay={0.2}
-                />
-                <QuickStatCard
-                  title="Services"
-                  value={services.length.toString()}
-                  icon={Server}
-                  subtitle="Tracked" 
-                  color="accent"
-                  delay={0.3}
-                />
               </motion.div>
+            )}
 
-              {/* Selector + Tabs */}
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
-              >
-                <div className="flex gap-2">
-                  {(['1h', '24h', '7d'] as const).map((range) => (
-                    <button
-                      key={range}
-                      onClick={() => setTimeRange(range)}
-                      className={`px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all ${timeRange === range
+            {/* Time Range Selector + Tabs */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+            >
+              <div className="flex gap-2">
+                {(['1h', '24h', '7d'] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setTimeRange(range)}
+                    className={`px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all ${
+                      timeRange === range
                         ? 'bg-accent/20 text-accent border border-accent/30'
-                        : 'glass-card text-gray-400 hover:text-white border border-white/10'}`}
-                    >
-                      {range.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex-1 sm:flex-none">
-                  <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-                </div>
-              </motion.div>
+                        : 'glass-card text-gray-400 hover:text-white border border-white/10'
+                    }`}
+                  >
+                    {range.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 sm:flex-none">
+                <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+              </div>
+            </motion.div>
 
-              {/* Tab Content */}
+            {/* Tab Content */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
               {activeTab === 'overview' && (
                 <OverviewTab
                   displayData={metricsHistory}
@@ -340,9 +328,10 @@ export default function MetricsPage() {
                   serviceData={serviceData}
                 />
               )}
-            </>
-          )}
-      </main>
+            </motion.div>
+          </>
+        )}
+      </motion.main>
     </AppShell>
   )
 }
