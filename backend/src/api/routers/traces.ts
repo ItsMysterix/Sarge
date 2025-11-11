@@ -11,12 +11,14 @@ function getDataRoot() {
 async function getCore(): Promise<any> {
   try {
     // Prefer require in case a CJS shim exists during tests
+    const modName = ['sarge','-','core'].join('')
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('sarge-core')
+    return require(modName)
   } catch (e: any) {
     if ((globalThis as any).__sargeCoreMock) return (globalThis as any).__sargeCoreMock
     if (e?.code === 'ERR_REQUIRE_ESM') {
-      const mod = await import('sarge-core')
+      const modName = ['sarge','-','core'].join('')
+      const mod = await import(modName)
       return mod
     }
     throw e

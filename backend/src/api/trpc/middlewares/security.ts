@@ -88,8 +88,14 @@ export function secureProcedure(route: string, override?: RateOverride) {
         // Dynamic import to avoid hard dependency on build order
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         let core: any
-        try { core = require('sarge-core') } catch (e: any) {
-          if (e?.code === 'ERR_REQUIRE_ESM') core = await import('sarge-core')
+        try {
+          const modName = ['sarge','-','core'].join('')
+          core = require(modName)
+        } catch (e: any) {
+          if (e?.code === 'ERR_REQUIRE_ESM') {
+            const modName = ['sarge','-','core'].join('')
+            core = await import(modName)
+          }
         }
         const dataRoot = getDataRoot()
         const chk = core?.licensing?.ensureFeature?.(override.requiresLicenseFeature, { dataRoot })

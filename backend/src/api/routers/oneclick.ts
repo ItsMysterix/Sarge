@@ -9,12 +9,14 @@ import { createDeploymentOrchestrator } from '../../services/deployment-orchestr
 const orchestrator = createDeploymentOrchestrator()
 
 async function getCore(): Promise<any> {
-  // Import sarge-core at runtime to avoid type dependency on built artifacts during tests
+  // Import sarge-core at runtime to avoid bundler static resolution during Next build
+  // Use non-literal module name to prevent webpack from resolving it at build time
+  const modName = ['sarge', '-', 'core'].join('')
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  try { return require('sarge-core') } catch (e: any) {
+  try { return require(modName) } catch (e: any) {
     if ((globalThis as any).__sargeCoreMock) return (globalThis as any).__sargeCoreMock
     if (e?.code === 'ERR_REQUIRE_ESM') {
-      const mod = await import('sarge-core')
+      const mod = await import(modName)
       return mod
     }
     throw e

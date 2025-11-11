@@ -11,10 +11,12 @@ import { servicesRouter as legacyServicesRouter } from "./services"
 import * as fs from 'fs'
 import * as path from 'path'
 async function getCore(): Promise<any> {
-  try { return require('sarge-core') } catch (e: any) {
+  // Avoid static resolution of sarge-core during Next build by obfuscating module name
+  const modName = ['sarge','-','core'].join('')
+  try { return require(modName) } catch (e: any) {
     if ((globalThis as any).__sargeCoreMock) return (globalThis as any).__sargeCoreMock
     if (e?.code === 'ERR_REQUIRE_ESM') {
-      const mod = await import('sarge-core')
+      const mod = await import(modName)
       return mod
     }
     throw e
