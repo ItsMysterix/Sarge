@@ -10,24 +10,27 @@ export const useMetrics = () => {
 }
 
 export const useLiveMetrics = () => {
-  const { data } = t.metrics.live.useSubscription(undefined, {
-    enabled: true,
+  const { data, isLoading } = t.metrics.latest.useQuery(undefined, {
+    refetchInterval: 3000,
+    refetchOnWindowFocus: false,
   })
-  return { data }
+  return { data, isLoading }
 }
 
 export const useLiveLogs = () => {
-  const { data } = t.logs.stream.useSubscription(undefined, {
-    enabled: true,
+  const { data, isLoading } = t.logs.recent.useQuery({ limit: 50 }, {
+    refetchInterval: 2000,
+    refetchOnWindowFocus: false,
   })
-  return { data }
+  return { data: data?.items ?? [], isLoading }
 }
 
 export const useDeploymentStatus = () => {
-  const { data } = t.deploy.subscribe.useSubscription(undefined, {
-    enabled: true,
+  const { data, isLoading } = t.deploy.getDeployments.useQuery(undefined, {
+    refetchInterval: 5000,
+    refetchOnWindowFocus: false,
   })
-  return { data }
+  return { data, isLoading }
 }
 
 export const useTriggerDeployment = () => {

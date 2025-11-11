@@ -18,7 +18,10 @@ import { OnboardingSteps } from '@/components/ui/onboarding-steps';
 
 export default function DeploymentsPage() {
   const t = trpc as any;
-  const { data, isLoading } = t.deploy.getDeployments.useQuery();
+  const { data, isLoading } = t.deploy.getDeployments.useQuery(undefined, {
+    refetchInterval: 5000,
+    refetchOnWindowFocus: false,
+  });
   const router = useRouter();
   const { addToast, ToastContainer } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,16 +37,7 @@ export default function DeploymentsPage() {
   ]);
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
 
-  t.deploy.subscribe.useSubscription(undefined, {
-    onData(ev: any) {
-      if (ev?.type === 'ready') return;
-      if (ev?.status === 'success') addToast({ type: 'success', title: 'Deploy succeeded', description: `#${ev.id}` });
-      if (ev?.status === 'failed') addToast({ type: 'error', title: 'Deploy failed', description: `#${ev.id}` });
-    },
-    onError(err: any) {
-      addToast({ type: 'warning', title: 'Realtime disconnected', description: err.message });
-    },
-  });
+  // Subscription removed for Vercel compatibility; list is polled above.
 
   const handleFilterToggle = (filterId: string) => {
     setFilters(filters.map(f => f.id === filterId ? { ...f, active: !f.active } : f))
