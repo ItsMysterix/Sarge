@@ -35,7 +35,10 @@ export default function MetricsPage() {
   const [workspaceHealth, setWorkspaceHealth] = useState<any[]>([])
   
   const t = trpc as any
-  const metricsQuery = t.metrics.latest.useQuery()
+  const metricsQuery = t.metrics.latest.useQuery(undefined, {
+    refetchInterval: 3000,
+    refetchOnWindowFocus: false,
+  })
   const servicesSummaryQuery = t.sarge.metrics.getServicesSummary.useQuery()
   const workspaceHealthQuery = t.sarge.metrics.getWorkspaceHealth.useQuery({})
   
@@ -80,29 +83,26 @@ export default function MetricsPage() {
     }
   }, [metricsQuery.data, timeRange])
 
-  // Subscribe to live metrics
-  t.metrics.live.useSubscription(undefined, {
-    onData(data: any) {
-      if (data) {
-        setCurrentMetrics(data)
-        
-        const newPoint: MetricDataPoint = {
-          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          cpu: data.cpu_percent || data.cpu || 0,
-          memory: data.memory_mb || data.memory || 0,
-          latency: data.avg_response_ms || data.latency || 0,
-          requests: data.request_count || 0,
-          errors: data.error_count || 0,
-        }
-        
-        setMetricsHistory(prev => {
-          const updated = [...prev, newPoint]
-          const maxPoints = timeRange === '1h' ? 60 : timeRange === '24h' ? 144 : 168
-          return updated.slice(-maxPoints)
-        })
+  // Poll for latest metrics to simulate live updates without WebSockets
+  useEffect(() => {
+    if (metricsQuery.data) {
+      const data = metricsQuery.data
+      setCurrentMetrics(data)
+      const newPoint: MetricDataPoint = {
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        cpu: data.cpu_percent || data.cpu || 0,
+        memory: data.memory_mb || data.memory || 0,
+        latency: data.avg_response_ms || data.latency || 0,
+        requests: data.request_count || 0,
+        errors: data.error_count || 0,
       }
-    },
-  })
+      setMetricsHistory(prev => {
+        const updated = [...prev, newPoint]
+        const maxPoints = timeRange === '1h' ? 60 : timeRange === '24h' ? 144 : 168
+        return updated.slice(-maxPoints)
+      })
+    }
+  }, [metricsQuery.data, timeRange])
 
   // Derive services data from real metrics via tRPC only
   useEffect(() => {

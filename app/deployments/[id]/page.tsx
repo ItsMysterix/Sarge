@@ -15,10 +15,11 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
   const { addToast, ToastContainer } = useToast();
   const router = useRouter();
   const t = trpc as any;
-  const list = t.deploy.getDeployments.useQuery(undefined, { refetchOnWindowFocus: false });
+  const list = t.deploy.getDeployments.useQuery(undefined, { refetchOnWindowFocus: false, refetchInterval: 5000 });
   const logsQuery = t.deploy.getLogs.useQuery({ deploymentId: id }, { 
     enabled: !!id,
-    refetchOnWindowFocus: false 
+    refetchOnWindowFocus: false,
+    refetchInterval: 2000,
   });
   const [lines, setLines] = useState<LogLine[]>([]);
   const [meta, setMeta] = useState<any | null>(null);
@@ -36,16 +37,7 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
     }
   }, [logsQuery.data]);
 
-  t.deploy.subscribe.useSubscription({ deploymentId: id }, {
-    onData(ev: any) {
-      if (!ev || ev.type === 'ready') return;
-      if (ev.message) {
-        setLines((prev) => [...prev, { id: prev.length, text: String(ev.message), ts: ev.timestamp ?? ev.created_at, step: ev.step }]);
-      }
-      if (ev.status) setMeta((m: any) => ({ ...(m ?? {}), status: ev.status, updated_at: ev.updated_at ?? new Date().toISOString() }));
-    },
-    onError(err: any) { addToast({ type: 'warning', title: 'Realtime disconnected', description: err.message }); },
-  });
+  // Subscription removed; rely on polling queries above for updates.
 
   const initial = useMemo(() => (list.data ?? []).find((d: any) => String(d.id) === id), [list.data, id]);
   useEffect(() => { if (initial) setMeta(initial); }, [initial]);

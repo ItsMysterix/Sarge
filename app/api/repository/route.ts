@@ -64,10 +64,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-  const { owner, repo, description, projectSlug } = await req.json()
+    const { owner, repo, description, projectSlug } = await req.json()
 
     if (!owner || !repo) {
       return NextResponse.json({ error: "Owner and repo are required" }, { status: 400 })
+    }
+
+    // Check if database is configured
+    if (!process.env.DATABASE_URL) {
+      console.warn('[Repository] DATABASE_URL not set - returning mock success')
+      // Return success without saving to DB (for demo/dev without DB)
+      return NextResponse.json({ 
+        repository: {
+          id: Date.now(),
+          owner,
+          repo,
+          full_name: `${owner}/${repo}`,
+          description: description || '',
+          is_primary: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      })
     }
 
     try {
