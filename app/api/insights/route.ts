@@ -7,17 +7,7 @@ const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as 
 export async function GET() {
   try {
     if (!sql) {
-      return NextResponse.json({
-        id: "1",
-        date: new Date().toISOString().split("T")[0],
-        grade: "A",
-        tips: [
-          "Consider scaling database instance - memory usage at 83%",
-          "Update Node.js dependencies - 3 security vulnerabilities detected",
-          "Enable compression on API responses - could reduce bandwidth by 30%",
-        ],
-        created_at: new Date().toISOString(),
-      })
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 })
     }
     const insights = await sql`
       SELECT * FROM insights 
@@ -26,35 +16,12 @@ export async function GET() {
     `
 
     if (insights.length === 0) {
-      // Return mock data if no insights found
-      return NextResponse.json({
-        id: "1",
-        date: new Date().toISOString().split("T")[0],
-        grade: "A",
-        tips: [
-          "Consider scaling database instance - memory usage at 83%",
-          "Update Node.js dependencies - 3 security vulnerabilities detected",
-          "Enable compression on API responses - could reduce bandwidth by 30%",
-        ],
-        created_at: new Date().toISOString(),
-      })
+      return NextResponse.json({ error: "No insights available" }, { status: 404 })
     }
 
     return NextResponse.json(insights[0])
   } catch (error) {
     console.error("Failed to fetch insights:", error)
-
-    // Return mock data if database error (table doesn't exist, etc.)
-    return NextResponse.json({
-      id: "1",
-      date: new Date().toISOString().split("T")[0],
-      grade: "A",
-      tips: [
-        "Consider scaling database instance - memory usage at 83%",
-        "Update Node.js dependencies - 3 security vulnerabilities detected",
-        "Enable compression on API responses - could reduce bandwidth by 30%",
-      ],
-      created_at: new Date().toISOString(),
-    })
+    return NextResponse.json({ error: "Failed to fetch insights" }, { status: 500 })
   }
 }

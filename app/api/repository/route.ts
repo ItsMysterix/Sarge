@@ -32,7 +32,7 @@ export async function GET(req: Request) {
         }
       }
 
-      // Fallback: user's primary repository
+  // User's primary repository
       const result = await pool.query(
         `SELECT r.* FROM repositories r
          JOIN users u ON r.user_id = u.id
@@ -48,8 +48,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ repository: result.rows[0] })
     } catch (dbError) {
       console.error("Database error fetching repository:", dbError)
-      console.log("⚠️ Database unavailable, returning null repository")
-      return NextResponse.json({ repository: null })
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
   } catch (error) {
     console.error("Error fetching repository:", error)
@@ -141,22 +140,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ repository: result.rows[0] })
     } catch (dbError) {
       console.error("Database error saving repository:", dbError)
-      
-      // Return success with in-memory data if DB fails (development fallback)
-      const fallbackRepo = {
-        id: Date.now(),
-        user_id: session.user.email,
-        owner,
-        repo,
-        full_name: `${owner}/${repo}`,
-        description: description || '',
-        is_primary: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-      
-      console.log("⚠️ Using fallback repository storage (DB unavailable)")
-      return NextResponse.json({ repository: fallbackRepo })
+      return NextResponse.json({ error: 'Failed to save repository' }, { status: 500 })
     }
   } catch (error) {
     console.error("Error saving repository:", error)

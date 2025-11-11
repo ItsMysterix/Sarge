@@ -129,39 +129,37 @@ export default function Overview() {
 
     setDeploying(true)
     try {
-      // Use the last deployment's configuration
-      const response = await fetch('/api/deploy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          branch: lastDeployment.branch,
-          image: lastDeployment.image,
-          ports: lastDeployment.ports,
-        }),
+      // Use real backend tRPC to create a deployment record
+      const services = (lastDeployment.ports || []).map((p: number) => ({
+        name: `service-${p}`,
+        port: p,
+        url: `http://localhost:${p}`,
+        status: 'starting',
+      }))
+      const result = await triggerDeployment.mutateAsync({
+        branch: lastDeployment.branch || 'main',
+        commit: lastDeployment.commit || undefined,
+        summary: lastDeployment.image
+          ? `Quick deploy: ${lastDeployment.image} on ports ${lastDeployment.ports?.join(', ')}`
+          : `Deployment triggered from ${lastDeployment.branch || 'main'}`,
+        services,
       })
 
-      const result = await response.json()
-      
-      if (result.success) {
-        // Update last deployment with new status
-        setLastDeployment({
-          id: result.deployment.id,
-          branch: result.deployment.branch,
-          commit: result.deployment.commit,
-          status: result.deployment.status,
-          image: lastDeployment.image,
-          ports: lastDeployment.ports,
-          timestamp: new Date().toISOString(),
-        })
+      setLastDeployment({
+        id: result.id,
+        branch: result.branch || lastDeployment.branch || 'main',
+        commit: result.commit || lastDeployment.commit || '',
+        status: result.status || 'running',
+        image: lastDeployment.image,
+        ports: lastDeployment.ports,
+        timestamp: new Date().toISOString(),
+      })
 
-        addToast({
-          type: result.deployment.status === 'success' ? "success" : "error",
-          title: result.deployment.status === 'success' ? "Deployment Started" : "Deployment Failed",
-          description: result.message,
-        })
-      } else {
-        throw new Error(result.error || 'Deployment failed')
-      }
+      addToast({
+        type: 'success',
+        title: 'Deployment Started',
+        description: result.summary || 'Deployment kicked off',
+      })
     } catch (error) {
       addToast({
         type: "error",
@@ -215,40 +213,38 @@ export default function Overview() {
   const handleTestDeploy = async () => {
     setDeploying(true)
     try {
-      const response = await fetch('/api/deploy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          branch: 'main',
-          image: 'my-app:latest',
-          ports: [3000, 8080],
-        }),
+      const services = [3000, 8080].map((p) => ({
+        name: `service-${p}`,
+        port: p,
+        url: `http://localhost:${p}`,
+        status: 'starting',
+      }))
+      const result = await triggerDeployment.mutateAsync({
+        branch: 'main',
+        summary: 'Test deployment via tRPC',
+        services,
       })
 
-      const result = await response.json()
-      
-      if (result.success) {
-        setLastDeployment({
-          id: result.deployment.id,
-          branch: result.deployment.branch,
-          commit: result.deployment.commit,
-          status: result.deployment.status,
-          image: 'my-app:latest',
-          ports: [3000, 8080],
-          timestamp: new Date().toISOString(),
-        })
+      setLastDeployment({
+        id: result.id,
+        branch: result.branch || 'main',
+        commit: result.commit || '',
+        status: result.status || 'running',
+        image: 'my-app:latest',
+        ports: [3000, 8080],
+        timestamp: new Date().toISOString(),
+      })
 
-        addToast({
-          type: result.deployment.status === 'success' ? "success" : "error",
-          title: result.deployment.status === 'success' ? "Test Deployment Successful" : "Test Deployment Failed",
-          description: "You can now use Quick Deploy to redeploy this image",
-        })
-      }
+      addToast({
+        type: 'success',
+        title: 'Test Deployment Created',
+        description: 'You can now use Quick Deploy to redeploy this image',
+      })
     } catch (error) {
       addToast({
         type: "error",
         title: "Test Deploy Error",
-        description: "Failed to create test deployment",
+        description: error instanceof Error ? error.message : "Failed to create test deployment",
       })
     } finally {
       setTimeout(() => setDeploying(false), 1000)

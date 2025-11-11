@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node dist/scripts/migrate.js",
-  "db:migrate": "ts-node --transpile-only scripts/migrate.ts",
+    "db:migrate": "ts-node --transpile-only scripts/migrate.ts",
     "start:ws": "node --enable-source-maps dist/ws-server.js",
     "start:metrics": "node --enable-source-maps dist/http/metrics-server.js",
     "metrics:check": "node scripts/check-metrics.js",
@@ -19,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@neondatabase/serverless": "^1.0.2",
+    "@octokit/rest": "^22.0.1",
     "dotenv": "^16.3.1",
     "pg": "^8.11.3",
     "prom-client": "^15.1.3",

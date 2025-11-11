@@ -9,27 +9,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type")
 
-    let logs
     if (!sql) {
-      // Return mock data if database disabled
-      const mockLogs = [
-        {
-          id: "1",
-          type: "error",
-          message: "Authentication failed for user ID 12345",
-          service: "api-gateway",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          type: "warn",
-          message: "High memory usage detected: 85% of allocated memory in use",
-          service: "worker-queue",
-          timestamp: new Date(Date.now() - 60000).toISOString(),
-        },
-      ]
-      return NextResponse.json(type && type !== "all" ? mockLogs.filter((log) => log.type === type) : mockLogs)
-    } else if (type && type !== "all") {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 })
+    }
+
+    let logs
+    if (type && type !== "all") {
       logs = await sql`
         SELECT * FROM logs 
         WHERE type = ${type}
@@ -44,53 +29,42 @@ export async function GET(request: Request) {
       `
     }
 
-    if (logs.length === 0) {
-      // Return mock data if no logs found
-      const mockLogs = [
-        {
-          id: "1",
-          type: "error",
-          message: "Authentication failed for user ID 12345",
-          service: "api-gateway",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          type: "warn",
-          message: "High memory usage detected: 85% of allocated memory in use",
-          service: "worker-queue",
-          timestamp: new Date(Date.now() - 60000).toISOString(),
-        },
-      ]
-
-      return NextResponse.json(type && type !== "all" ? mockLogs.filter((log) => log.type === type) : mockLogs)
-    }
-
     return NextResponse.json(logs)
   } catch (error) {
     console.error("Failed to fetch logs:", error)
+    return NextResponse.json({ error: "Failed to fetch logs" }, { status: 500 })
+  }
+}
 
-    // Return mock data if database error (table doesn't exist, etc.)
-    const mockLogs = [
-      {
-        id: "1",
-        type: "error",
-        message: "Authentication failed for user ID 12345",
-        service: "api-gateway",
-        timestamp: new Date().toISOString(),
-      },
-      {
-        id: "2",
-        type: "warn",
-        message: "High memory usage detected: 85% of allocated memory in use",
-        service: "worker-queue",
-        timestamp: new Date(Date.now() - 60000).toISOString(),
-      },
-    ]
+export async function POST(request: Request) {
+  try {
+    if (!sql) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 })
+    }
 
-    const { searchParams } = new URL(request.url)
-    const type = searchParams.get("type")
+    const body = await request.json()
+    const items: Array<{ type: string; message: string; service: string; timestamp?: string }>
+      = Array.isArray(body) ? body : [body]
 
-    return NextResponse.json(type && type !== "all" ? mockLogs.filter((log) => log.type === type) : mockLogs)
+    // Basic validation
+    const rows = items.map((l) => ({
+      type: String(l.type || 'info'),
+      message: String(l.message || ''),
+      service: String(l.service || 'unknown'),
+      timestamp: l.timestamp ? new Date(l.timestamp).toISOString() : new Date().toISOString(),
+    }))
+
+    // Bulk insert
+    const values = rows.map((r) => `('${r.type}', '${r.message.replace(/'/g, "''")}', '${r.service.replace(/'/g, "''")}', '${r.timestamp}')`).join(',')
+    await sql.raw?.(`INSERT INTO logs (type, message, service, timestamp) VALUES ${values}`)
+      ?? await Promise.all(rows.map((r) => sql`
+          INSERT INTO logs (type, message, service, timestamp)
+          VALUES (${r.type}, ${r.message}, ${r.service}, ${r.timestamp})
+        `))
+
+    return NextResponse.json({ success: true, inserted: rows.length })
+  } catch (error) {
+    console.error('Failed to insert logs:', error)
+    return NextResponse.json({ error: 'Failed to insert logs' }, { status: 500 })
   }
 }

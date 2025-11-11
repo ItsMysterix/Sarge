@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { trpc } from '@/lib/trpc'
 
 interface StepDetectProps {
@@ -8,11 +9,10 @@ interface StepDetectProps {
 }
 
 export function StepDetect({ onNext }: StepDetectProps) {
-  const [path, setPath] = useState('')
-  const [useConnectedRepo, setUseConnectedRepo] = useState(true)
-  const [isEditing, setIsEditing] = useState(false)
-  const [blueprint, setBlueprint] = useState<any>(null)
+  const { data: session } = useSession()
   const [connectedRepo, setConnectedRepo] = useState<any>(null)
+  const [blueprint, setBlueprint] = useState<any>(null)
+  const [isEditing, setIsEditing] = useState(false)
 
   const detectMutation = (trpc.sarge as any).oneclick.detectRepo.useMutation()
 
@@ -25,8 +25,6 @@ export function StepDetect({ onNext }: StepDetectProps) {
           const data = await response.json()
           if (data.repository) {
             setConnectedRepo(data.repository)
-            // Auto-fill with connected repo
-            setPath(`github:${data.repository.owner}/${data.repository.repo}`)
           }
         }
       } catch (err) {
@@ -37,12 +35,30 @@ export function StepDetect({ onNext }: StepDetectProps) {
   }, [])
 
   const handleDetect = async () => {
+    if (!connectedRepo) {
+      alert('Please connect a repository first')
+      return
+    }
+
+    if (!session?.accessToken) {
+      alert('GitHub access token not found. Please sign in again.')
+      return
+    }
+
     try {
-      const bp = await detectMutation.mutateAsync({ path })
+      console.log('🔍 Scanning repository via GitHub API (no cloning!)...')
+      const bp = await detectMutation.mutateAsync({
+        owner: connectedRepo.owner,
+        repo: connectedRepo.repo,
+        branch: connectedRepo.default_branch || 'main',
+        accessToken: session.accessToken,
+      })
+      console.log('✅ Scan complete:', bp)
       setBlueprint(bp)
       setIsEditing(true)
     } catch (err: any) {
       console.error('Detection failed:', err)
+      alert(`Detection failed: ${err.message}`)
     }
   }
 
@@ -55,14 +71,14 @@ export function StepDetect({ onNext }: StepDetectProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="mb-4 text-xl font-semibold">1. Detect Stack</h2>
+        <h2 className="mb-4 text-xl font-semibold">1. Detect Stack (AI-Powered GitHub Scan)</h2>
         <p className="mb-6 text-sm text-muted-foreground">
-          Point to your repo—we'll scan for services, AWS resources (S3, DynamoDB, Lambda), ports, and env keys. No cloud account needed.
+          AI will scan your connected repository via GitHub API—no cloning needed! Detects services, databases, monitoring tools, and more.
         </p>
 
         <div className="space-y-4">
           {/* Connected Repository Info */}
-          {connectedRepo && (
+          {connectedRepo ? (
             <div className="rounded-lg border border-blue-500/50 bg-blue-500/10 p-4">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-blue-500/20 p-2 text-blue-500">
@@ -71,53 +87,37 @@ export function StepDetect({ onNext }: StepDetectProps) {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">Connected Repository Detected</p>
+                  <p className="text-sm font-semibold">Connected Repository Ready</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    <span className="font-mono">{connectedRepo.full_name}</span> is ready for one-click deployment
+                    <span className="font-mono">{connectedRepo.full_name}</span>
                   </p>
-                  <button
-                    onClick={() => setUseConnectedRepo(!useConnectedRepo)}
-                    className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
-                  >
-                    {useConnectedRepo ? 'Use different path' : 'Use connected repository'}
-                  </button>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Branch: <span className="font-mono">{connectedRepo.default_branch || 'main'}</span>
+                  </p>
                 </div>
               </div>
             </div>
+          ) : (
+            <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
+              <p className="text-sm">
+                ⚠️ No repository connected. Please go back and connect a GitHub repository first.
+              </p>
+            </div>
           )}
 
-          <div>
-            <label htmlFor="repo-path" className="mb-2 block text-sm font-medium">
-              Repository Path {useConnectedRepo && connectedRepo && <span className="text-muted-foreground">(auto-filled)</span>}
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="repo-path"
-                type="text"
-                value={path}
-                onChange={(e) => setPath(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleDetect()}
-                disabled={useConnectedRepo && !!connectedRepo}
-                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="github:owner/repo or /path/to/your/repo"
-                aria-label="Repository path"
-              />
-              <button
-                onClick={handleDetect}
-                disabled={detectMutation.isPending || !path}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-              >
-                {detectMutation.isPending ? 'Detecting...' : 'Detect'}
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Supports local paths, GitHub repos (github:owner/repo), or connected repositories
-            </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDetect}
+              disabled={detectMutation.isPending || !connectedRepo}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {detectMutation.isPending ? 'Scanning via GitHub API...' : '🔍 Scan Repository'}
+            </button>
           </div>
 
           {detectMutation.isError && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              Detection failed. Verify the path exists and contains a recognized project manifest (package.json, docker-compose.yml, etc.).
+              Detection failed. Please check your repository connection and try again.
             </div>
           )}
 
