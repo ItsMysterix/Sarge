@@ -55,17 +55,17 @@ export function Sidebar() {
       <div
         className={`
         fixed inset-y-0 left-0 z-40 ${state.collapsed ? 'w-16' : 'w-64'} glass-card border-r border-white/10
-        transform transition-transform duration-300 ease-in-out
+        transform transition-all duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0 lg:static lg:inset-0
       `}
       >
-        <div className="flex flex-col h-full p-4">
+        <div className="flex flex-col h-full p-2 sm:p-4 overflow-y-auto">
           {/* Top spacing (brand removed per new global header design) */}
-          <div className="mb-4 pt-8 lg:pt-0 flex items-center justify-between">
+          <div className="mb-3 sm:mb-4 pt-4 sm:pt-8 lg:pt-0 flex items-center justify-between">
             <button
               onClick={() => toggleCollapsed(projectId)}
-              className="glass-card border border-white/10 px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
+              className="glass-card border border-white/10 px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors touch-manipulation"
               title={state.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {state.collapsed ? '>>' : '<<'}
@@ -84,7 +84,7 @@ export function Sidebar() {
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={`
-                        group flex items-center ${state.collapsed ? 'justify-center px-2' : 'px-4'} py-3 rounded-lg transition-all duration-200
+                        group flex items-center ${state.collapsed ? 'justify-center px-2' : 'px-3 sm:px-4'} py-2.5 sm:py-3 rounded-lg transition-all duration-200 touch-manipulation
                         ${
                           isActive
                             ? "bg-accent/20 text-accent border border-accent/30 glow-accent"
@@ -93,7 +93,7 @@ export function Sidebar() {
                       `}
                       title={state.collapsed ? item.name : undefined}
                     >
-                      <item.icon className={`w-5 h-5 ${state.collapsed ? '' : 'mr-3'}`} />
+                      <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${state.collapsed ? '' : 'mr-2 sm:mr-3'}`} />
                       {!state.collapsed && (
                         <span className="font-medium flex-1">{item.name}</span>
                       )}
@@ -116,9 +116,9 @@ export function Sidebar() {
 
           {/* Pinned section */}
           {!state.collapsed && state.pinnedRoutes.length > 0 && (
-            <div className="mt-4">
-              <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Pinned</div>
-              <ul className="space-y-2 mt-1">
+            <div className="mt-3 sm:mt-4">
+              <div className="px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Pinned</div>
+              <ul className="space-y-1.5 sm:space-y-2 mt-1">
                 {state.pinnedRoutes.map((href) => {
                   const item = navigation.find(n => n.href === href)
                   if (!item) return null
@@ -129,12 +129,12 @@ export function Sidebar() {
                         href={item.href}
                         onClick={() => setIsOpen(false)}
                         className={`
-                          flex items-center px-4 py-2 rounded-lg transition-all duration-200 border
+                          flex items-center px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 border touch-manipulation
                           ${isActive ? 'bg-accent/10 border-accent/30 text-accent' : 'border-white/10 hover:bg-white/5'}
                         `}
                       >
-                        <item.icon className="w-4 h-4 mr-3" />
-                        <span className="text-sm">{item.name}</span>
+                        <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-3" />
+                        <span className="text-xs sm:text-sm">{item.name}</span>
                       </Link>
                     </li>
                   )
@@ -144,17 +144,17 @@ export function Sidebar() {
           )}
 
           {/* Status indicator */}
-          <div className={`mt-auto p-4 glass-card ${state.collapsed ? 'px-2' : ''}`}>
+          <div className={`mt-auto p-3 sm:p-4 glass-card ${state.collapsed ? 'px-2' : ''}`}>
             {state.collapsed ? (
               <div className="flex justify-center" title={`System Status: ${statusConfig[systemStatus].label}`}>
-                <div className={`w-3 h-3 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''}`}></div>
+                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''}`}></div>
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">System Status</span>
+                <span className="text-xs sm:text-sm text-gray-400">System Status</span>
                 <div className="flex items-center">
-                  <div className={`w-2 h-2 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''} mr-2`}></div>
-                  <span className={`text-sm ${statusConfig[systemStatus].textColor}`}>{statusConfig[systemStatus].label}</span>
+                  <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''} mr-1.5 sm:mr-2`}></div>
+                  <span className={`text-xs sm:text-sm ${statusConfig[systemStatus].textColor}`}>{statusConfig[systemStatus].label}</span>
                 </div>
               </div>
             )}
