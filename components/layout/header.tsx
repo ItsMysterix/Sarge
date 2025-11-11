@@ -55,19 +55,6 @@ export function Header() {
           {/* version badge removed per design */}
         </div>
         <div className="flex items-center space-x-3 sm:space-x-6">
-          {/* Connect Repository Button */}
-          {!isProjectsListing && hasRealProjects && (
-            <motion.button
-              onClick={() => setShowConnectModal(true)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-medium transition-colors flex items-center gap-2 hover:bg-blue-500/30 text-sm"
-            >
-              <GitBranch className="h-4 w-4" />
-              <span className="hidden sm:inline">Connect Repository</span>
-            </motion.button>
-          )}
-          
           <div className="px-2 sm:px-3 py-1.5 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">
             AI Co-Pilot
           </div>
