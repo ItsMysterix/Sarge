@@ -21,11 +21,11 @@ export function AppShell({ children, showSidebar }: AppShellProps) {
   const shouldShowSidebar = typeof showSidebar === 'boolean' ? showSidebar : autoShow
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] overflow-hidden flex flex-col">
+    <div className="h-screen bg-[#0f0f0f] overflow-hidden flex flex-col">
       <Header />
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {shouldShowSidebar && <Sidebar />}
-        <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex-1 min-w-0 overflow-y-auto">
           {children}
         </div>
       </div>

@@ -226,11 +226,18 @@ export default function Overview() {
       <AppShell>
         <ToastContainer />
         <motion.main 
-          className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
+          className="flex-1 p-3 sm:p-4 md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
         >
+            {/* Connect Repository Section */}
+            <GitHubActivity 
+              repository={repository} 
+              loading={repoLoading}
+              onConnectClick={() => setShowConnectModal(true)}
+            />
+
             {/* Quick Stats Overview - Responsive Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -331,11 +338,6 @@ export default function Overview() {
             </motion.div>
 
             <MetricsCard metrics={metrics} loading={metricsLoading || isRefreshing} />
-            <GitHubActivity 
-              repository={repository} 
-              loading={repoLoading}
-              onConnectClick={() => setShowConnectModal(true)}
-            />
             <LiveLogs logs={logs} />
         </motion.main>
       </AppShell>
