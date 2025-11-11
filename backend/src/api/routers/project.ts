@@ -172,7 +172,8 @@ export const projectRouter = router({
           // Run AI detection on workspace
           if (workspace) {
             try {
-              const core = require('sarge-core')
+              const modName = ['sarge','-','core'].join('')
+              const core = require(modName)
               const detection = await core.detector.detectStack(workspace.path)
               detectedInfo = {
                 detected_framework: detection.name,
