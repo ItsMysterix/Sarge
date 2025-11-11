@@ -4,6 +4,7 @@ import { authOptions } from "../auth/[...nextauth]/route"
 import { getDbPool } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
 
 export async function GET(req: Request) {
   try {
