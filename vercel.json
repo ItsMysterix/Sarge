@@ -6,6 +6,10 @@
   "outputDirectory": ".next",
   "regions": ["iad1"],
   "functions": {
+    "app/api/trpc/[trpc]/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
     "app/api/**/*.ts": {
       "maxDuration": 10
     }
