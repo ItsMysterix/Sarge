@@ -48,7 +48,8 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "yaml": "^2.8.0",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "sarge-core": "workspace:*"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
