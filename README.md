@@ -1,5 +1,6 @@
 # Sarge
 
+<!-- chore: trigger vercel build (2025-11-11) -->
 [![CI](https://github.com/ItsMysterix/Sarge/actions/workflows/ci.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/ci.yml)
 [![Release](https://github.com/ItsMysterix/Sarge/actions/workflows/release.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
