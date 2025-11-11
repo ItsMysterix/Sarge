@@ -18,38 +18,24 @@ export async function POST(request: Request) {
       ? `Quick deploy: ${image} on ports ${ports?.join(', ') || 'default'}` 
       : `Deployment triggered from ${branch} branch`
 
+    if (!sql) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 })
+    }
+
     try {
-      // Try to insert deployment record
-      if (!sql) {
-        throw new Error('db-disabled')
-      }
       const deployment = await sql`
         INSERT INTO deployments (branch, commit, status, summary, created_at)
         VALUES (${branch}, ${commit}, ${status}, ${summary}, ${new Date().toISOString()})
         RETURNING *
       `
-
       return NextResponse.json({
         success: true,
         deployment: deployment[0],
         message: `Deployment ${deployment[0].id} ${status}`,
       })
     } catch (dbError) {
-      // If database insert fails, return mock deployment
-      const mockDeployment = {
-        id: Math.random().toString(36).substring(2, 9),
-        branch,
-        commit,
-        status,
-        summary,
-        created_at: new Date().toISOString(),
-      }
-
-      return NextResponse.json({
-        success: true,
-        deployment: mockDeployment,
-        message: `Deployment ${mockDeployment.id} ${status}`,
-      })
+      console.error("Database insert failed for deployment:", dbError)
+      return NextResponse.json({ success: false, error: "Deployment persistence failed" }, { status: 500 })
     }
   } catch (error) {
     console.error("Deployment failed:", error)

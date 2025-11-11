@@ -104,40 +104,20 @@ export default function MetricsPage() {
     },
   })
 
-  // Fetch services data from real metrics
+  // Derive services data from real metrics via tRPC only
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res = await fetch('/api/services')
-        if (res.ok) {
-          const data = await res.json()
-          const servicesList = data.services || []
-          
-          // Merge with metrics data if available
-          if (servicesSummaryQuery.data && servicesSummaryQuery.data.length > 0) {
-            setServices(servicesSummaryQuery.data.map((metric: any) => ({
-              name: metric.service_name,
-              status: metric.status,
-              port: metric.port,
-              avgCpu: parseFloat(metric.avg_cpu || 0),
-              avgMemory: parseFloat(metric.avg_memory || 0),
-              totalRequests: parseInt(metric.total_requests || 0),
-              totalErrors: parseInt(metric.total_errors || 0),
-              avgResponse: parseFloat(metric.avg_response || 0),
-            })))
-          } else if (servicesList.length > 0) {
-            setServices(servicesList)
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching services:', error)
-        // Use metrics summary data if available
-        if (servicesSummaryQuery.data) {
-          setServices(servicesSummaryQuery.data)
-        }
-      }
+    if (servicesSummaryQuery.data && servicesSummaryQuery.data.length > 0) {
+      setServices(servicesSummaryQuery.data.map((metric: any) => ({
+        name: metric.service_name,
+        status: metric.status,
+        port: metric.port,
+        avgCpu: parseFloat(metric.avg_cpu || 0),
+        avgMemory: parseFloat(metric.avg_memory || 0),
+        totalRequests: parseInt(metric.total_requests || 0),
+        totalErrors: parseInt(metric.total_errors || 0),
+        avgResponse: parseFloat(metric.avg_response || 0),
+      })))
     }
-    fetchServices()
   }, [servicesSummaryQuery.data])
 
   // Calculate statistics from real data only
