@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "pnpm -r --filter sarge-core build",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "next dev",
     "dev:backend": "ts-node backend/src/api/ws-server.ts",
@@ -49,7 +50,7 @@
     "tailwindcss-animate": "^1.0.7",
     "yaml": "^2.8.0",
     "zustand": "^5.0.5",
-    "sarge-core": "workspace:*"
+    "sarge-core": "file:packages/sarge-core"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
