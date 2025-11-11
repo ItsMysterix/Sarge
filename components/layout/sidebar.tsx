@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen, Pin, PinOff } from "lucide-react"
 import { useProject } from "@/lib/project-context"
 import { useSidebarStore } from "@/lib/sidebar-store"
+import { useAppStore } from "@/lib/store"
 
 const navigation = [
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
@@ -26,12 +27,19 @@ export function Sidebar() {
   const projectId = currentProject?.id ?? null
   const { getStateFor, toggleCollapsed, togglePinnedRoute, hydrate } = useSidebarStore()
   const state = getStateFor(projectId)
+  const systemStatus = useAppStore((state) => state.getSystemStatus())
 
   useEffect(() => {
     hydrate(projectId)
   }, [projectId, hydrate])
 
   const pinnedSet = useMemo(() => new Set(state.pinnedRoutes), [state.pinnedRoutes])
+
+  const statusConfig = {
+    online: { color: 'bg-green-500', label: 'ONLINE', textColor: 'text-green-500' },
+    error: { color: 'bg-red-500', label: 'ERROR', textColor: 'text-red-500' },
+    stale: { color: 'bg-white', label: 'STALE', textColor: 'text-white' }
+  }
 
   return (
     <>
@@ -76,15 +84,16 @@ export function Sidebar() {
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={`
-                        group flex items-center px-4 py-3 rounded-lg transition-all duration-200
+                        group flex items-center ${state.collapsed ? 'justify-center px-2' : 'px-4'} py-3 rounded-lg transition-all duration-200
                         ${
                           isActive
                             ? "bg-accent/20 text-accent border border-accent/30 glow-accent"
                             : "hover:bg-white/5 hover:text-accent"
                         }
                       `}
+                      title={state.collapsed ? item.name : undefined}
                     >
-                      <item.icon className="w-5 h-5 mr-3" />
+                      <item.icon className={`w-5 h-5 ${state.collapsed ? '' : 'mr-3'}`} />
                       {!state.collapsed && (
                         <span className="font-medium flex-1">{item.name}</span>
                       )}
@@ -135,14 +144,20 @@ export function Sidebar() {
           )}
 
           {/* Status indicator */}
-          <div className="mt-auto p-4 glass-card">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">System Status</span>
-              <div className="flex items-center">
-                <div className="w-2 h-2 bg-accent rounded-full animate-pulse mr-2"></div>
-                <span className="text-sm text-accent">ONLINE</span>
+          <div className={`mt-auto p-4 glass-card ${state.collapsed ? 'px-2' : ''}`}>
+            {state.collapsed ? (
+              <div className="flex justify-center" title={`System Status: ${statusConfig[systemStatus].label}`}>
+                <div className={`w-3 h-3 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''}`}></div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">System Status</span>
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''} mr-2`}></div>
+                  <span className={`text-sm ${statusConfig[systemStatus].textColor}`}>{statusConfig[systemStatus].label}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
