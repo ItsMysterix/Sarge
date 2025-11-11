@@ -43,7 +43,14 @@ export default function Overview() {
 
   const t = trpc as any
   const triggerDeployment = t.deploy.create.useMutation()
-  const metricsQuery = t.metrics.latest.useQuery()
+  const metricsQuery = t.metrics.latest.useQuery(undefined, {
+    refetchInterval: 3000,
+    refetchOnWindowFocus: false,
+  })
+  const logsQuery = t.logs.recent.useQuery({ limit: 50 }, {
+    refetchInterval: 2000,
+    refetchOnWindowFocus: false,
+  })
 
   // Fetch connected repository for current project (or fallback to user's primary)
   useEffect(() => {
@@ -77,18 +84,11 @@ export default function Overview() {
     }
   }, [metricsQuery.data, metricsQuery.isLoading, metricsQuery.isError])
 
-  t.metrics.live.useSubscription(undefined, {
-    onData(data: any) {
-      setMetrics(data)
-      setMetricsLoading(false)
-    },
-  })
-
-  t.logs.stream.useSubscription(undefined, {
-    onData(log: any) {
-      setLogs((prev) => [log, ...prev.slice(0, 49)])
-    },
-  })
+  useEffect(() => {
+    if (logsQuery.data?.items) {
+      setLogs(logsQuery.data.items)
+    }
+  }, [logsQuery.data])
 
   useEffect(() => {
     // Redirect to landing if user is not signed in
