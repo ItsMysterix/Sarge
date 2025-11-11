@@ -28,7 +28,7 @@ import { QuickStatCard } from "@/components/ui/quick-stat-card"
 export default function Overview() {
   const { isLoaded, isSignedIn, user } = useUser()
   const router = useRouter()
-  const { isDeploying, setDeploying } = useAppStore()
+  const { isDeploying, setDeploying, lastDeployment, setLastDeployment } = useAppStore()
   const { addToast, ToastContainer } = useToast()
   const userRole = useUserRole()
   const { currentProject } = useProject()
@@ -106,15 +106,71 @@ export default function Overview() {
   // Show loading/auth check
   if (!isLoaded || !isSignedIn) return <AuthLoading />
 
-  const handleQuickDeploy = () => {
+  const handleQuickDeploy = async () => {
+    // Check if there's a last successful deployment
+    if (!lastDeployment || !lastDeployment.image) {
+      addToast({
+        type: "error",
+        title: "No Previous Deployment",
+        description: "Please deploy an image first before using Quick Deploy",
+      })
+      return
+    }
+
+    // Check if last deployment was successful
+    if (lastDeployment.status === 'failed') {
+      addToast({
+        type: "warning",
+        title: "Last Deployment Failed",
+        description: "The previous deployment failed. Please check logs before retrying.",
+      })
+      return
+    }
+
     setDeploying(true)
-    triggerDeployment.mutate({ branch: "main" })
-    addToast({
-      type: "success",
-      title: "Deployment Started",
-      description: "Deployment has been triggered and is now in progress",
-    })
-    setTimeout(() => setDeploying(false), 1000)
+    try {
+      // Use the last deployment's configuration
+      const response = await fetch('/api/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branch: lastDeployment.branch,
+          image: lastDeployment.image,
+          ports: lastDeployment.ports,
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        // Update last deployment with new status
+        setLastDeployment({
+          id: result.deployment.id,
+          branch: result.deployment.branch,
+          commit: result.deployment.commit,
+          status: result.deployment.status,
+          image: lastDeployment.image,
+          ports: lastDeployment.ports,
+          timestamp: new Date().toISOString(),
+        })
+
+        addToast({
+          type: result.deployment.status === 'success' ? "success" : "error",
+          title: result.deployment.status === 'success' ? "Deployment Started" : "Deployment Failed",
+          description: result.message,
+        })
+      } else {
+        throw new Error(result.error || 'Deployment failed')
+      }
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Deployment Error",
+        description: error instanceof Error ? error.message : "Failed to trigger deployment",
+      })
+    } finally {
+      setTimeout(() => setDeploying(false), 1000)
+    }
   }
 
   const handleRollback = () => {
@@ -152,6 +208,50 @@ export default function Overview() {
         setIsRefreshing(false)
         setMetricsLoading(false)
       }, 500)
+    }
+  }
+
+  // Test function to set a mock deployment (for development)
+  const handleTestDeploy = async () => {
+    setDeploying(true)
+    try {
+      const response = await fetch('/api/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branch: 'main',
+          image: 'my-app:latest',
+          ports: [3000, 8080],
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setLastDeployment({
+          id: result.deployment.id,
+          branch: result.deployment.branch,
+          commit: result.deployment.commit,
+          status: result.deployment.status,
+          image: 'my-app:latest',
+          ports: [3000, 8080],
+          timestamp: new Date().toISOString(),
+        })
+
+        addToast({
+          type: result.deployment.status === 'success' ? "success" : "error",
+          title: result.deployment.status === 'success' ? "Test Deployment Successful" : "Test Deployment Failed",
+          description: "You can now use Quick Deploy to redeploy this image",
+        })
+      }
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Test Deploy Error",
+        description: "Failed to create test deployment",
+      })
+    } finally {
+      setTimeout(() => setDeploying(false), 1000)
     }
   }
 
@@ -290,6 +390,29 @@ export default function Overview() {
               onViewLogs={handleViewLogs}
               onRefresh={handleRefresh}
             />
+
+            {/* Dev-only: Test deployment button */}
+            {process.env.NODE_ENV === 'development' && !lastDeployment && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-blue-400">Development Mode</h3>
+                    <p className="text-xs text-gray-400">Create a test deployment to enable Quick Deploy</p>
+                  </div>
+                  <button
+                    onClick={handleTestDeploy}
+                    disabled={isDeploying}
+                    className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+                  >
+                    {isDeploying ? 'Creating...' : 'Create Test Deployment'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
             <motion.div 
               className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8"
