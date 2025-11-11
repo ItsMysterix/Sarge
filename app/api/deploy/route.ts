@@ -6,13 +6,17 @@ const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as 
 
 export async function POST(request: Request) {
   try {
-    const { branch = "main" } = await request.json()
+    const { branch = "main", image, ports } = await request.json()
 
     // Simulate deployment time
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     const commit = Math.random().toString(36).substring(2, 9)
     const status = Math.random() > 0.2 ? "success" : "failed"
+    
+    const summary = image 
+      ? `Quick deploy: ${image} on ports ${ports?.join(', ') || 'default'}` 
+      : `Deployment triggered from ${branch} branch`
 
     try {
       // Try to insert deployment record
@@ -21,7 +25,7 @@ export async function POST(request: Request) {
       }
       const deployment = await sql`
         INSERT INTO deployments (branch, commit, status, summary, created_at)
-        VALUES (${branch}, ${commit}, ${status}, ${`Deployment triggered from ${branch} branch`}, ${new Date().toISOString()})
+        VALUES (${branch}, ${commit}, ${status}, ${summary}, ${new Date().toISOString()})
         RETURNING *
       `
 
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
         branch,
         commit,
         status,
-        summary: `Deployment triggered from ${branch} branch`,
+        summary,
         created_at: new Date().toISOString(),
       }
 
