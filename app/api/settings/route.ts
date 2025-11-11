@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { getServerSession } from "next-auth"
 
-// Lazily and safely create a SQL client; in dev or during builds without env, fall back to mock responses
+// Lazily and safely create a SQL client; require DB for real responses
 const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as any
 const DEV_USER_ID = "dev-mode"
 
@@ -13,24 +13,7 @@ export async function GET() {
     const userId = session?.user?.email || DEV_USER_ID
     
     if (!sql) {
-      return NextResponse.json({
-        id: "1",
-        user_id: userId,
-        slack_alerts: true,
-        auto_rebuild: false,
-        enable_animations: true,
-        theme_mode: "dark",
-        notifications: {
-          deploySuccess: true,
-          deployFailure: true,
-          serviceDown: true,
-          highCpu: true,
-          highMemory: false,
-          securityAlerts: true,
-          emailNotifications: false,
-          slackNotifications: true,
-        }
-      })
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
     
     const settings = await sql`
@@ -64,26 +47,7 @@ export async function GET() {
     return NextResponse.json(settings[0])
   } catch (error) {
     console.error("Failed to fetch settings:", error)
-
-    // Return default settings if database error
-    return NextResponse.json({
-      id: "1",
-      user_id: DEV_USER_ID,
-      slack_alerts: true,
-      auto_rebuild: false,
-      enable_animations: true,
-      theme_mode: "dark",
-      notifications: {
-        deploySuccess: true,
-        deployFailure: true,
-        serviceDown: true,
-        highCpu: true,
-        highMemory: false,
-        securityAlerts: true,
-        emailNotifications: false,
-        slackNotifications: true,
-      }
-    })
+    return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
   }
 }
 
@@ -95,11 +59,7 @@ export async function PATCH(request: Request) {
     const userId = session?.user?.email || DEV_USER_ID
     
     if (!sql) {
-      return NextResponse.json({
-        id: "1",
-        user_id: userId,
-        ...updates,
-      })
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
     
     // Build dynamic update fields
@@ -159,12 +119,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json(settings[0])
   } catch (error) {
     console.error("Failed to update settings:", error)
-
-    // Return mock data if database error
-    return NextResponse.json({
-      id: "1",
-      user_id: DEV_USER_ID,
-      ...updates,
-    })
+    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
   }
 }

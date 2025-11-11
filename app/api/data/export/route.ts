@@ -11,27 +11,7 @@ export async function GET() {
     const userId = session?.user?.email || "dev-mode"
     
     if (!sql) {
-      // Mock data export
-      const mockData = {
-        settings: {
-          user_id: userId,
-          slack_alerts: true,
-          auto_rebuild: false,
-        },
-        repositories: [],
-        deployments: [],
-        services: [],
-        metrics: [],
-        logs: [],
-        exported_at: new Date().toISOString(),
-      }
-      
-      return new NextResponse(JSON.stringify(mockData, null, 2), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="sarge-export-${Date.now()}.json"`,
-        },
-      })
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
     // Fetch all user data
@@ -62,9 +42,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Failed to export data:", error)
-    return NextResponse.json(
-      { error: "Failed to export data" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to export data" }, { status: 500 })
   }
 }

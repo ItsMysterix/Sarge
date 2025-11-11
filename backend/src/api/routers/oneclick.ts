@@ -2,6 +2,11 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { workspaceManager } from '../../services/workspace-manager'
+import { createGitHubScanner } from '../../services/github-scanner'
+import { createDeploymentOrchestrator } from '../../services/deployment-orchestrator'
+
+// Global orchestrator instance
+const orchestrator = createDeploymentOrchestrator()
 
 async function getCore(): Promise<any> {
   // Import sarge-core at runtime to avoid type dependency on built artifacts during tests
@@ -122,33 +127,108 @@ export const oneclickRouter = router({
       }),
   }),
 
-  // Detect services in workspace
+  // Detect services in repository (via GitHub API - NO CLONING!)
+  // Uses Claude AI if ANTHROPIC_API_KEY is set, otherwise falls back to pattern matching
   detectRepo: secureProcedure('sarge.oneclick.detectRepo')
     .input(z.object({
-      path: z.string().optional(),
-      workspaceId: z.string().optional(),
+      owner: z.string().min(1),
+      repo: z.string().min(1),
+      branch: z.string().default('main'),
+      accessToken: z.string().min(1),
     }))
     .mutation(async ({ input }) => {
-      let repoPath: string
-
-      if (input.workspaceId) {
-        // Use workspace
-        const workspace = workspaceManager.getWorkspace(input.workspaceId)
-        if (!workspace) {
-          throw new Error(`Workspace not found: ${input.workspaceId}`)
-        }
-        repoPath = workspace.path
-      } else if (input.path) {
-        // Use provided path
-        repoPath = input.path
-      } else {
-        // Default to current directory
-        repoPath = process.cwd()
+      console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
+      
+      const useAI = !!process.env.ANTHROPIC_API_KEY
+      console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
+      
+      // Use GitHub scanner with AI support
+      const scanner = createGitHubScanner(input.accessToken, useAI)
+      const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
+      
+      console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
+      
+      // Convert to legacy blueprint format for compatibility
+      return {
+        services: blueprint.services.map(s => ({
+          name: s.name,
+          type: s.type,
+          cwd: s.cwd,
+          startCommand: s.startCommand,
+          buildCommand: s.buildCommand,
+          ports: s.ports,
+          envKeys: s.envKeys,
+          framework: s.framework,
+        })),
+        resources: {
+          s3Buckets: [],
+          dynamoTables: [],
+          lambdaFunctions: [],
+        },
+        ports: blueprint.services.flatMap(s => s.ports),
+        envKeys: blueprint.envKeys,
+        docker: blueprint.docker,
+        awsSdks: [],
+        // Add metadata about external services
+        externalServices: blueprint.externalServices,
+        projectType: blueprint.projectType,
+        packageManager: blueprint.packageManager,
+        framework: blueprint.framework,
       }
+    }),
 
-      const core = await getCore()
-      const bp = await core.detector.detectStack(repoPath)
-      return bp
+  // Deploy services without cloning!
+  deployFromGitHub: secureProcedure('sarge.oneclick.deployFromGitHub')
+    .input(z.object({
+      owner: z.string().min(1),
+      repo: z.string().min(1),
+      branch: z.string().default('main'),
+      accessToken: z.string().min(1),
+      blueprint: z.any(), // Blueprint from detectRepo
+    }))
+    .mutation(async ({ input }) => {
+      console.log(`[OneClick] Deploying ${input.owner}/${input.repo} from GitHub (no cloning!)`)
+
+      const instances = await orchestrator.deploy({
+        owner: input.owner,
+        repo: input.repo,
+        branch: input.branch,
+        accessToken: input.accessToken,
+        services: input.blueprint.services || [],
+        externalServices: input.blueprint.externalServices || [],
+      })
+
+      const result = Array.from(instances.values()).map(i => ({
+        name: i.name,
+        status: i.status,
+        port: i.port,
+        url: i.url,
+      }))
+
+      console.log(`[OneClick] Deployed ${result.length} services`)
+      return { services: result, status: 'deployed' }
+    }),
+
+  // Stop all running services
+  stopAll: secureProcedure('sarge.oneclick.stopAll')
+    .mutation(async () => {
+      await orchestrator.stopAll()
+      return { success: true }
+    }),
+
+  // Get deployment status
+  getDeploymentStatus: secureProcedure('sarge.oneclick.getDeploymentStatus')
+    .query(async () => {
+      const instances = orchestrator.getAllInstances()
+      return {
+        services: instances.map(i => ({
+          name: i.name,
+          status: i.status,
+          port: i.port,
+          url: i.url,
+          logs: i.logs.slice(-50), // Last 50 log lines
+        })),
+      }
     }),
 
   plan: secureProcedure('sarge.oneclick.plan')
