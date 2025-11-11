@@ -326,7 +326,7 @@ export default function Overview() {
       <AppShell>
         <ToastContainer />
         <motion.main 
-          className="flex-1 p-3 sm:p-4 md:p-6"
+          className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
@@ -343,7 +343,7 @@ export default function Overview() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+              className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6"
             >
               <QuickStatCard
                 title="System Health"
@@ -396,17 +396,17 @@ export default function Overview() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
+                className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-blue-400">Development Mode</h3>
+                    <h3 className="text-xs sm:text-sm font-semibold text-blue-400">Development Mode</h3>
                     <p className="text-xs text-gray-400">Create a test deployment to enable Quick Deploy</p>
                   </div>
                   <button
                     onClick={handleTestDeploy}
                     disabled={isDeploying}
-                    className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-50 whitespace-nowrap"
                   >
                     {isDeploying ? 'Creating...' : 'Create Test Deployment'}
                   </button>
@@ -415,22 +415,22 @@ export default function Overview() {
             )}
 
             <motion.div 
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
               <div>
-                <div className="flex items-center space-x-3 mb-2">
+                <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
                   <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
-                    <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
+                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />
                   </motion.div>
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Workspace Overview</h1>
+                  <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">Workspace Overview</h1>
                 </div>
-                <p className="text-sm sm:text-base text-gray-400">Your local infrastructure runtime—offline, deterministic, and production-ready</p>
+                <p className="text-xs sm:text-sm text-gray-400">Your local infrastructure runtime—offline, deterministic, and production-ready</p>
               </div>
 
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 w-full sm:w-auto">
                 <motion.button 
                   onClick={handleRefresh}
                   disabled={isRefreshing}
@@ -438,23 +438,23 @@ export default function Overview() {
                   whileHover={{ scale: 1.1, rotate: 180 }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ duration: 0.3 }}
-                  className="p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                 >
                   <RefreshCcw className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-white ${isRefreshing ? 'animate-spin' : ''}`} />
                 </motion.button>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  className="flex-1 sm:flex-initial"
                 >
                   <LoadingButton
                     loading={isDeploying}
                     loadingText="Deploying..."
                     onClick={handleQuickDeploy}
-                    className="px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center font-medium backdrop-blur-sm"
+                    className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-xs sm:text-sm md:text-base text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center justify-center font-medium backdrop-blur-sm"
                   >
-                    <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">Quick Deploy</span>
-                    <span className="sm:hidden">Deploy</span>
+                    <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
+                    <span>Quick Deploy</span>
                   </LoadingButton>
                 </motion.div>
               </div>

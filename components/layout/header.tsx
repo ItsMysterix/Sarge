@@ -40,29 +40,31 @@ export function Header() {
   }, [])
 
   return (
-  <header className="glass-card border-b border-white/10 px-4 sm:px-6 py-2 sm:py-3 sticky top-0 z-50 backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
+  <header className="glass-card border-b border-white/10 px-3 sm:px-4 md:px-6 py-2 sm:py-3 sticky top-0 z-50 backdrop-blur-xl">
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           {/* Brand is always visible */}
-          <div className="flex items-center">
-            <div className="text-2xl sm:text-3xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
-            <div className="ml-2 w-2.5 h-2.5 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
+          <div className="flex items-center flex-shrink-0">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
+            <div className="ml-1 sm:ml-2 w-2 sm:w-2.5 h-2 sm:h-2.5 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
           </div>
           {/* Project switcher: hide on Profile, on Projects listing, or when there are no real projects */}
           {!isProfilePage && !isProjectsListing && hasRealProjects && (
-            <ProjectSwitcher />
+            <div className="hidden sm:block min-w-0">
+              <ProjectSwitcher />
+            </div>
           )}
           {/* version badge removed per design */}
         </div>
-        <div className="flex items-center space-x-3 sm:space-x-6">
-          <div className="px-2 sm:px-3 py-1.5 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">
+        <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-6 flex-shrink-0">
+          <div className="hidden md:block px-2 sm:px-3 py-1.5 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">
             AI Co-Pilot
           </div>
-          <div className="hidden sm:block terminal-text text-accent text-sm font-mono opacity-70" aria-label="clock">
+          <div className="hidden sm:block terminal-text text-accent text-xs sm:text-sm font-mono opacity-70" aria-label="clock">
             {time}
           </div>
           <UserProfile />
-          <div className="w-3 h-3 bg-accent rounded-full animate-pulse-glow" aria-label="system-status" />
+          <div className="hidden sm:block w-2 sm:w-3 h-2 sm:h-3 bg-accent rounded-full animate-pulse-glow" aria-label="system-status" />
         </div>
       </div>
     </header>

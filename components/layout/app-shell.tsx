@@ -23,11 +23,11 @@ export function AppShell({ children, showSidebar }: AppShellProps) {
   return (
     <div className="h-screen bg-[#0f0f0f] overflow-hidden flex flex-col">
       <Header />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {shouldShowSidebar && <Sidebar />}
-        <div className="flex-1 min-w-0 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   )
