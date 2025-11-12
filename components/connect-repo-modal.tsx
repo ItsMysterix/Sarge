@@ -98,7 +98,8 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to connect repository')
+        const errorDetails = data.details ? ` (${data.details})` : ''
+        throw new Error(data.error + errorDetails || 'Failed to connect repository')
       }
 
       console.log('✅ Connected repository:', selectedRepo.full_name)
