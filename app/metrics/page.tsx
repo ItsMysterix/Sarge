@@ -171,80 +171,86 @@ export default function MetricsPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
+        {/* Quick Stats - Always show even with empty state */}
+        <motion.div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <QuickStatCard
+            title="CPU"
+            value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
+            icon={Cpu}
+            subtitle="Avg usage"
+            color="warning"
+            delay={0}
+          />
+          <QuickStatCard
+            title="Memory"
+            value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
+            icon={Gauge}
+            subtitle="Working set"
+            color="accent"
+            delay={0.1}
+          />
+          <QuickStatCard
+            title="Latency"
+            value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
+            icon={Rocket}
+            subtitle="P95 response"
+            color="success"
+            delay={0.2}
+          />
+          <QuickStatCard
+            title="Services"
+            value={services.length.toString()}
+            icon={Server}
+            subtitle="Tracked" 
+            color="accent"
+            delay={0.3}
+          />
+        </motion.div>
+
         {/* Show empty state if no data */}
         {!hasData ? (
-          <EmptyState
-            icon={Activity}
-            title="No Metrics Yet"
-            description="Deploy your first project to start tracking performance metrics, resource usage, and service health in real-time."
-            actionLabel="Deploy a Project"
-            onAction={() => router.push('/oneclick')}
-            secondaryActionLabel="View Documentation"
-            onSecondaryAction={() => router.push('/docs')}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <OnboardingSteps
-              steps={[
-                {
-                  number: 1,
-                  title: "Add a workspace",
-                  description: "Clone a GitHub repository or register a local project folder in the One-Click Deploy page.",
-                },
-                {
-                  number: 2,
-                  title: "Deploy your services",
-                  description: "Select your workspace and click deploy. Sarge will automatically detect services, install dependencies, and start them.",
-                },
-                {
-                  number: 3,
-                  title: "Monitor performance",
-                  description: "Once deployed, real-time metrics will appear here showing CPU, memory, latency, and service health.",
-                },
-              ]}
-            />
-          </EmptyState>
+            <EmptyState
+              icon={Activity}
+              title="No Metrics Yet"
+              description="Deploy your first project to start tracking performance metrics, resource usage, and service health in real-time."
+              actionLabel="Deploy a Project"
+              onAction={() => router.push('/oneclick')}
+              secondaryActionLabel="View Documentation"
+              onSecondaryAction={() => router.push('/docs')}
+            >
+              <OnboardingSteps
+                steps={[
+                  {
+                    number: 1,
+                    title: "Add a workspace",
+                    description: "Clone a GitHub repository or register a local project folder in the One-Click Deploy page.",
+                  },
+                  {
+                    number: 2,
+                    title: "Deploy your services",
+                    description: "Select your workspace and click deploy. Sarge will automatically detect services, install dependencies, and start them.",
+                  },
+                  {
+                    number: 3,
+                    title: "Monitor performance",
+                    description: "Once deployed, real-time metrics will appear here showing CPU, memory, latency, and service health.",
+                  },
+                ]}
+              />
+            </EmptyState>
+          </motion.div>
         ) : (
           <>
-            {/* Quick Stats */}
-            <motion.div
-              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <QuickStatCard
-                title="CPU"
-                value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
-                icon={Cpu}
-                subtitle="Avg usage"
-                color="warning"
-                delay={0}
-              />
-              <QuickStatCard
-                title="Memory"
-                value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
-                icon={Gauge}
-                subtitle="Working set"
-                color="accent"
-                delay={0.1}
-              />
-              <QuickStatCard
-                title="Latency"
-                value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
-                icon={Rocket}
-                subtitle="P95 response"
-                color="success"
-                delay={0.2}
-              />
-              <QuickStatCard
-                title="Services"
-                value={services.length.toString()}
-                icon={Server}
-                subtitle="Tracked" 
-                color="accent"
-                delay={0.3}
-              />
-            </motion.div>
-
             {/* Health Score Banner - Only on Overview */}
             {activeTab === 'overview' && (
               <motion.div
