@@ -179,6 +179,12 @@ export async function DELETE() {
     }
 
     const pool = getDbPool()
+    // Ensure schema exists so DELETE doesn't fail on first-run
+    try {
+      await ensureCoreSchema(pool)
+    } catch (e) {
+      console.error("Schema ensure failed during delete:", e)
+    }
     
     // Delete user's primary repository
     await pool.query(
