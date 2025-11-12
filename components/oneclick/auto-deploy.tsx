@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { trpc } from '@/lib/trpc'
-import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-react'
+import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, RefreshCw, Terminal } from 'lucide-react'
 
 interface AutoDeployProps {
   onComplete?: () => void
@@ -23,7 +23,9 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [analysisComplete, setAnalysisComplete] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
   const [terminalLines, setTerminalLines] = useState<any[]>([])
-  const [showTerminal, setShowTerminal] = useState<boolean>(true)
+  const [showTerminal, setShowTerminal] = useState<boolean>(false)
+  const [terminalHeight, setTerminalHeight] = useState<number>(400)
+  const [isResizing, setIsResizing] = useState(false)
   const [selectedPackageManager, setSelectedPackageManager] = useState<string | null>(null)
   const [selectedPort, setSelectedPort] = useState<number>(3000)
   const [availablePorts, setAvailablePorts] = useState<number[]>([])
@@ -125,6 +127,31 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       setConnectedDeploying(false)
     }
   }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true)
+  }
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return
+      const newHeight = window.innerHeight - e.clientY
+      if (newHeight >= 200 && newHeight <= window.innerHeight * 0.8) {
+        setTerminalHeight(newHeight)
+      }
+    }
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
 
   const fetchWorkspaces = async () => {
     try {
@@ -712,21 +739,56 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
           <p className="text-red-400 text-sm">{error}</p>
         </motion.div>
       )}
-    {/* Thin Footer with Terminal Toggle */}
-    <div className="fixed bottom-0 right-0 left-0 h-8 bg-black/60 border-t border-white/10 flex items-center justify-end px-4 text-xs">
-      <button onClick={()=> setShowTerminal(!showTerminal)} className="px-2 py-1 border border-white/15 rounded bg-black/40 hover:border-accent/50 transition-colors">
-        {showTerminal? 'Close Terminal' : 'Open Terminal'}
+
+    {/* Resizable Terminal Drop-up */}
+    <AnimatePresence>
+      {showTerminal && (
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          className="fixed bottom-0 left-0 right-0 bg-black/95 border-t border-white/20 shadow-2xl flex flex-col z-50"
+          style={{ height: `${terminalHeight}px` }}
+        >
+          {/* Resize Handle */}
+          <div
+            onMouseDown={handleMouseDown}
+            className="h-1.5 bg-white/10 hover:bg-accent/50 cursor-ns-resize transition-colors flex items-center justify-center"
+          >
+            <div className="w-12 h-0.5 bg-white/30 rounded-full" />
+          </div>
+
+          {/* Terminal Header */}
+          <div className="flex items-center justify-between px-4 py-2 bg-black/60 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-accent" />
+              <span className="text-sm font-semibold">Project Terminal</span>
+            </div>
+            <button
+              onClick={() => setShowTerminal(false)}
+              className="text-gray-400 hover:text-accent transition-colors"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Terminal Content */}
+          <TerminalEmulator />
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* Footer with Terminal Icon - Higher z-index */}
+    <div className="fixed bottom-0 right-0 left-0 h-10 bg-black/80 backdrop-blur-sm border-t border-white/10 flex items-center justify-end px-4 text-xs z-[60]">
+      <button
+        onClick={() => setShowTerminal(!showTerminal)}
+        className="p-2 border border-white/15 rounded bg-black/40 hover:border-accent/50 hover:bg-accent/10 transition-all flex items-center gap-2"
+      >
+        <Terminal className="w-4 h-4" />
+        {showTerminal && <span className="text-xs">Hide</span>}
       </button>
     </div>
-    {showTerminal && (
-      <div className="fixed bottom-8 right-4 w-96 h-56 bg-black/85 border border-white/20 rounded shadow-lg flex flex-col">
-        <div className="flex items-center justify-between px-2 py-1 text-xs bg-black/60 border-b border-white/10">
-          <span>Project Terminal (bash)</span>
-          <button onClick={()=> setShowTerminal(false)} className="text-gray-400 hover:text-accent">×</button>
-        </div>
-        <TerminalEmulator />
-      </div>
-    )}
   </div>
   )
 }
