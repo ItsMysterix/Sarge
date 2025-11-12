@@ -11,7 +11,6 @@ import { useAppStore } from "@/lib/store"
 const navigation = [
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
   { name: "One-Click Deploy", href: "/oneclick", icon: Zap, description: "Detect, plan & deploy in 3 steps" },
-  { name: "Workspaces", href: "/workspaces", icon: FolderOpen, description: "Manage local dev workspaces" },
   { name: "Stacks", href: "/stacks", icon: Layers, description: "Compose services into applications" },
   { name: "AWS Emulation", href: "/aws", icon: Cloud, description: "S3, DynamoDB, Lambda & more—offline" },
   { name: "Metrics", href: "/metrics", icon: Activity, description: "Real-time performance data" },
