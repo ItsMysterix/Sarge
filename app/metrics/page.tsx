@@ -2,10 +2,9 @@
 export const dynamic = 'force-dynamic'
 
 import { AppShell } from "@/components/layout/app-shell"
-import { Activity, Rocket, TrendingUp, Cpu, Server, Gauge } from "lucide-react"
+import { Rocket, Cpu, Server, Gauge } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { trpc } from "@/lib/trpc"
 import { HealthBanner } from "@/components/metrics/health-banner"
 import { QuickStatCard } from "@/components/ui/quick-stat-card"
@@ -14,8 +13,6 @@ import { OverviewTab } from "@/components/metrics/overview-tab"
 import { PerformanceTab } from "@/components/metrics/performance-tab"
 import { InfrastructureTab } from "@/components/metrics/infrastructure-tab"
 import { ServicesTab } from "@/components/metrics/services-tab"
-import { EmptyState } from "@/components/ui/empty-state"
-import { OnboardingSteps } from "@/components/ui/onboarding-steps"
 import { BUILD_INFO } from "@/lib/build-info"
 
 interface MetricDataPoint {
@@ -28,7 +25,6 @@ interface MetricDataPoint {
 }
 
 export default function MetricsPage() {
-  const router = useRouter()
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d'>('24h')
   const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'infrastructure' | 'services'>('overview')
   const [metricsHistory, setMetricsHistory] = useState<MetricDataPoint[]>([])
@@ -44,7 +40,7 @@ export default function MetricsPage() {
   const servicesSummaryQuery = t.sarge.metrics.getServicesSummary.useQuery()
   const workspaceHealthQuery = t.sarge.metrics.getWorkspaceHealth.useQuery({})
   
-  // Check if we have any real data
+  // Check if we have any real data (kept for potential future use)
   const hasData = metricsHistory.length > 0 || services.length > 0 || workspaceHealth.length > 0
 
   // Fetch workspace health data
@@ -212,45 +208,8 @@ export default function MetricsPage() {
           />
         </motion.div>
 
-        {/* Show empty state if no data */}
-        {!hasData ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <EmptyState
-              icon={Activity}
-              title="No Metrics Yet"
-              description="Deploy your first project to start tracking performance metrics, resource usage, and service health in real-time."
-              actionLabel="Deploy a Project"
-              onAction={() => router.push('/oneclick')}
-              secondaryActionLabel="View Documentation"
-              onSecondaryAction={() => router.push('/docs')}
-            >
-              <OnboardingSteps
-                steps={[
-                  {
-                    number: 1,
-                    title: "Add a workspace",
-                    description: "Clone a GitHub repository or register a local project folder in the One-Click Deploy page.",
-                  },
-                  {
-                    number: 2,
-                    title: "Deploy your services",
-                    description: "Select your workspace and click deploy. Sarge will automatically detect services, install dependencies, and start them.",
-                  },
-                  {
-                    number: 3,
-                    title: "Monitor performance",
-                    description: "Once deployed, real-time metrics will appear here showing CPU, memory, latency, and service health.",
-                  },
-                ]}
-              />
-            </EmptyState>
-          </motion.div>
-        ) : (
-          <>
+        {/* Main content (visible even if there's no data) */}
+        <>
             {/* Health Score Banner - Only on Overview */}
             {activeTab === 'overview' && (
               <motion.div
@@ -338,7 +297,6 @@ export default function MetricsPage() {
               )}
             </motion.div>
           </>
-        )}
         
         {/* Build Version Indicator */}
         <div className="fixed bottom-2 right-2 text-[10px] text-zinc-600 bg-zinc-900/80 px-2 py-1 rounded border border-zinc-800">
