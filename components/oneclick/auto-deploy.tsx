@@ -455,17 +455,19 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                 <p className="text-xs text-gray-500">Branch: main</p>
               </div>
               {!analysisComplete && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={startAnalysis}
                   disabled={analyzing}
-                  className="px-4 py-2 bg-accent text-black rounded-lg font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity flex items-center gap-2"
+                  className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg text-sm backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {analyzing ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
                   ) : (
                     <><Zap className="w-4 h-4" /> Analyze Repository</>
                   )}
-                </button>
+                </motion.button>
               )}
             </div>
           </div>
