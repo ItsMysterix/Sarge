@@ -37,14 +37,31 @@ export async function ensureCoreSchema(pool: Pool) {
       id UUID PRIMARY KEY,
       user_id TEXT,
       name VARCHAR(255),
-      slug VARCHAR(255) NOT NULL,
+      slug VARCHAR(255),
       description TEXT,
       framework VARCHAR(50),
       repository_id INTEGER REFERENCES repositories(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(slug)
+      updated_at TIMESTAMPTZ DEFAULT NOW()
     );
+  `)
+  
+  // Add slug column if missing (for existing tables)
+  await pool.query(`
+    ALTER TABLE projects 
+    ADD COLUMN IF NOT EXISTS slug VARCHAR(255);
+  `)
+  
+  // Add unique constraint on slug if it doesn't exist
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'projects_slug_key'
+      ) THEN
+        ALTER TABLE projects ADD CONSTRAINT projects_slug_key UNIQUE (slug);
+      END IF;
+    END $$;
   `)
 
   // Helpful indexes
