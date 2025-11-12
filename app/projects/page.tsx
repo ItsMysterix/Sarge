@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { PageTitle } from '@/components/layout/page-title';
-import { FolderGit2, Plus } from 'lucide-react';
 import { ProjectWizard } from '@/components/projects/project-wizard';
 
 export default function ProjectsPage() {

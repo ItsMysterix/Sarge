@@ -14,7 +14,6 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { TimelineItem } from '@/components/ui/timeline-item';
 import { AppShell } from '@/components/layout/app-shell';
 import { PageTitle } from '@/components/layout/page-title';
-import { Rocket } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OnboardingSteps } from '@/components/ui/onboarding-steps';
 

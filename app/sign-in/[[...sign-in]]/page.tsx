@@ -1,10 +1,11 @@
 "use client"
 
-import { Brain, Shield, Zap } from "lucide-react"
+import { Brain, Shield, Zap, LogIn } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
+import { PageTitle } from '@/components/layout/page-title'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -67,7 +68,6 @@ export default function SignInPage() {
     try {
       console.log('🔵 Calling signIn("github") with callback: /')
       const result = await signIn("github", { callbackUrl: "/" })
-    import { PageTitle } from '@/components/layout/page-title';
       console.log('🔵 signIn result:', result)
       
       if (result?.error) {

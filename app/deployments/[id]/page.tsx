@@ -7,7 +7,8 @@ import { useToast } from '@/components/ui/toast';
 import { LogViewer, LogLine } from '@/components/logs/LogViewer';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { AppShell } from '@/components/layout/app-shell';
-import { ArrowLeft, RefreshCw, Download } from 'lucide-react';
+import { PageTitle } from '@/components/layout/page-title';
+import { ArrowLeft, RefreshCw, Download, GitBranch } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function DeployDetail({ params }: { params: { id: string } }) {
@@ -23,8 +24,6 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
   });
   const [lines, setLines] = useState<LogLine[]>([]);
   const [meta, setMeta] = useState<any | null>(null);
-  import { PageTitle } from '@/components/layout/page-title';
-  import { GitBranch } from 'lucide-react';
 
   // Load initial logs from database
   useEffect(() => {

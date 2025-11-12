@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FolderOpen, Github, Trash2, RefreshCw, PlayCircle, Plus } from 'lucide-react'
+import { FolderOpen, Github, Trash2, RefreshCw, PlayCircle, Plus, LayoutGrid } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
 import { PageTitle } from '@/components/layout/page-title'
-import { LayoutGrid, Plus } from 'lucide-react'
 
 interface Workspace {
   id: string
