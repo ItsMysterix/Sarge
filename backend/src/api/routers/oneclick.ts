@@ -179,6 +179,37 @@ export const oneclickRouter = router({
       }
     }),
 
+  // Combined convenience: use connected repository (from /api/repository) and deploy
+  deployConnected: secureProcedure('sarge.oneclick.deployConnected')
+    .input(z.object({
+      owner: z.string().min(1),
+      repo: z.string().min(1),
+      branch: z.string().default('main'),
+      accessToken: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // Emit progress logs via event emitter so client can subscribe
+      const topic = `oneclick:connected:${input.owner}/${input.repo}`
+      const emit = (msg: string) => { try { ctx.ee.emit(topic, { ts: Date.now(), line: msg }) } catch {} }
+      emit(`Starting connected deploy for ${input.owner}/${input.repo}`)
+      const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
+      emit('Scanning repository (no clone)...')
+      const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
+      emit(`Detected ${blueprint.services.length} service(s)`)      
+      const instances = await orchestrator.deploy({
+        owner: input.owner,
+        repo: input.repo,
+        branch: input.branch,
+        accessToken: input.accessToken,
+        services: blueprint.services || [],
+        externalServices: blueprint.externalServices || [],
+      })
+      emit('Services started locally')
+      const result = Array.from(instances.values()).map(i => ({ name: i.name, status: i.status, port: i.port, url: i.url }))
+      emit('Deployment complete')
+      return { services: result, blueprintSummary: { services: blueprint.services.length, projectType: blueprint.projectType, framework: blueprint.framework }, logTopic: topic }
+    }),
+
   // Deploy services without cloning!
   deployFromGitHub: secureProcedure('sarge.oneclick.deployFromGitHub')
     .input(z.object({
@@ -294,6 +325,12 @@ export const oneclickRouter = router({
       .subscription(({ input, ctx }) => {
         return createBufferedSubscription(ctx.ee, { topics: [`serviceLogs:${input.service}`], bufferSize: 200, perTickCap: 100 })()
       })
+    }),
+  streamConnected: secureProcedure('sarge.oneclick.streamConnected')
+    .input(z.object({ owner: z.string(), repo: z.string() }))
+    .subscription(({ input, ctx }) => {
+      const topic = `oneclick:connected:${input.owner}/${input.repo}`
+      return createBufferedSubscription(ctx.ee, { topics: [topic], bufferSize: 300, perTickCap: 50 })()
   }),
 
   toggleDocker: secureProcedure('sarge.oneclick.toggleDocker')
