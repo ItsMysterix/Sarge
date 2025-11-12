@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { router, secureProcedure } from '../../trpc'
+import { router } from '../../trpc'
+import { secureProcedure } from '../trpc/middlewares/security'
 import createBufferedSubscription from '../lib/realtime'
 import { spawn } from 'child_process'
 import { randomUUID } from 'crypto'
