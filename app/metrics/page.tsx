@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { AppShell } from "@/components/layout/app-shell"
+import { PageTitle } from '@/components/layout/page-title';
 import { Rocket, Cpu, Server, Gauge } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -167,6 +168,11 @@ export default function MetricsPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
+        <PageTitle
+          title="Metrics"
+          description="System performance and usage metrics"
+          icon={<Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
         {/* Quick Stats - Always show even with empty state */}
         <motion.div
           className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"

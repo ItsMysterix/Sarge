@@ -23,6 +23,8 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
   });
   const [lines, setLines] = useState<LogLine[]>([]);
   const [meta, setMeta] = useState<any | null>(null);
+  import { PageTitle } from '@/components/layout/page-title';
+  import { GitBranch } from 'lucide-react';
 
   // Load initial logs from database
   useEffect(() => {
@@ -78,6 +80,11 @@ export default function DeployDetail({ params }: { params: { id: string } }) {
   return (
     <AppShell>
       <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+        <PageTitle
+          title="Deployment Details"
+          description="Timeline and status for this deployment"
+          icon={<GitBranch className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
           <ToastContainer />
           
           {/* Back Button */}

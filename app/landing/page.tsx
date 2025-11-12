@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { PageTitle } from "@/components/layout/page-title"
 import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary"
 import { useUser } from "@/lib/clerk-safe"
 
@@ -212,6 +213,13 @@ export default function LandingPage() {
           </div>
         </div>
       </motion.nav>
+      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-6">
+        <PageTitle
+          title="Landing"
+          description="Welcome overview"
+          icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
+      </div>
 
       {/* Hero Section */}
       <section className="relative z-10 pt-20 pb-32">

@@ -1,6 +1,7 @@
 'use client'
 
 import { AppShell } from '@/components/layout/app-shell'
+import { PageTitle } from '@/components/layout/page-title'
 import { useEffect, useState } from 'react'
 import { useProject } from '@/lib/project-context'
 import { trpc } from '@/lib/trpc'
@@ -114,6 +115,11 @@ export default function AWSDetectionPage() {
             transition={{ duration: 0.5 }}
             className="mb-6 sm:mb-8"
           >
+            <PageTitle
+              title="AWS Detection"
+              description="Detected AWS resources and configuration"
+              icon={<Eye className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+            />
             <div className="flex items-center justify-between">
               <button
                 onClick={handleDetect}

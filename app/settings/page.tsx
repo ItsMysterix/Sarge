@@ -15,7 +15,9 @@ import { NotificationsTab } from "@/components/settings/notifications-tab"
 import { IntegrationsTab } from "@/components/settings/integrations-tab"
 import { SecurityTab } from "@/components/settings/security-tab"
 import { ShortcutsTab } from "@/components/settings/shortcuts-tab"
-import { AppShell } from "@/components/layout/app-shell"
+import { AppShell } from '@/components/layout/app-shell';
+import { PageTitle } from '@/components/layout/page-title';
+import { Settings } from 'lucide-react';
 
 export default function Settings() {
   const { data: settings, loading, updateSettings } = useUserSettings()
@@ -185,6 +187,11 @@ export default function Settings() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
+        <PageTitle
+          title="Settings"
+          description="Application and environment settings"
+          icon={<Settings className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
         {/* Header */}
         <motion.div className="mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-2">

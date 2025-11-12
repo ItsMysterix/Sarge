@@ -6,6 +6,8 @@ import { FolderOpen, Github, Trash2, RefreshCw, PlayCircle, Plus } from 'lucide-
 import { trpc } from '@/lib/trpc'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
+import { PageTitle } from '@/components/layout/page-title'
+import { LayoutGrid, Plus } from 'lucide-react'
 
 interface Workspace {
   id: string
@@ -81,14 +83,18 @@ export default function WorkspacesPage() {
 
   return (
     <AppShell>
+      <PageTitle
+        title="Workspaces"
+        description="Organize projects into isolated workspaces"
+        icon={<LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        actions={
+          <button onClick={() => router.push('/oneclick')} className="px-4 py-2 bg-accent text-black rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-2">
+            <Plus className="w-5 h-5" /> Add Workspace
+          </button>
+        }
+      />
       <main className="flex-1 p-4 md:p-6 bg-dark">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-2xl font-bold">Workspaces</h1>
-            <button onClick={() => router.push('/oneclick')} className="px-4 py-2 bg-accent text-black rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-2">
-              <Plus className="w-5 h-5" /> Add Workspace
-            </button>
-          </div>
           {loading && (
             <div className="flex items-center justify-center py-20">
               <div className="w-12 h-12 border-b-2 border-accent rounded-full animate-spin" />

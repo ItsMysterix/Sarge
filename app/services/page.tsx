@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { AppShell } from "@/components/layout/app-shell"
+import { PageTitle } from "@/components/layout/page-title"
 import { Server, Database, Cpu, Globe, Zap, Brain, Play, Pause, RefreshCcw, Settings, TrendingUp, Activity, AlertTriangle } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { formatDistanceToNow } from "date-fns"
@@ -233,6 +234,11 @@ export default function Services() {
   if (loading) {
     return (
       <AppShell>
+        <PageTitle
+          title="Services"
+          description="Overview of running local services"
+          icon={<Server className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
         <main className="flex-1 p-6 flex items-center justify-center">
             <motion.div 
               className="text-center"
@@ -260,6 +266,11 @@ export default function Services() {
 
   return (
     <AppShell>
+      <PageTitle
+        title="Services"
+        description="Overview of running local services"
+        icon={<Server className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+      />
       <motion.main 
         className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
         initial={{ opacity: 0 }}
