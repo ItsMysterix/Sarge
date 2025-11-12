@@ -149,11 +149,16 @@ export async function POST(req: Request) {
 
       // If a projectSlug is provided, bind this repository to that project (one repo per project)
       if (projectSlug) {
-        await pool.query(
-          `UPDATE projects SET repository_id = $1, updated_at = NOW()
-           WHERE slug = $2`,
-          [result.rows[0].id, projectSlug]
-        )
+        try {
+          await pool.query(
+            `UPDATE projects SET repository_id = $1, updated_at = NOW()
+             WHERE slug = $2`,
+            [result.rows[0].id, projectSlug]
+          )
+        } catch (projErr) {
+          // Gracefully skip project binding if slug column doesn't exist yet
+          console.warn('Could not bind repository to project:', projErr)
+        }
       }
 
       return NextResponse.json({ repository: result.rows[0] })
