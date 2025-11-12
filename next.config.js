@@ -10,6 +10,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Disable static optimization for pages to ensure fresh builds
+  experimental: {
+    isrMemoryCacheSize: 0,
+  },
   async rewrites() {
     return [
       {
