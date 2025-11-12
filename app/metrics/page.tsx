@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = 'force-dynamic'
 
 import { AppShell } from "@/components/layout/app-shell"
 import { Activity, Rocket, TrendingUp, Cpu, Server, Gauge } from "lucide-react"
