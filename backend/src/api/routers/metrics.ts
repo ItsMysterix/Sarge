@@ -7,24 +7,31 @@ import { z } from "zod";
 export const metricsRouter = router({
   latest: secureProcedure('metrics.latest').query(async ({ ctx }) => {
     const end = startQueryTimer('metrics.latest');
-    const result = await ctx.db.query(
-      `SELECT id, project_id, workspace_id, deployment_id, service_name,
-              cpu_usage as cpu, memory_usage as memory, latency_ms as latency, 
-              cost_daily as cost, uptime_percent, "timestamp"
-       FROM metrics
-       ORDER BY "timestamp" DESC
-       LIMIT 1`
-    );
-    end();
-    const row = result.rows[0] ?? null;
-    if (row) {
-      if (row.project_id) {
-        if (typeof row.cpu === 'number') setServiceCpu(String(row.project_id), Number(row.cpu));
-        if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.project_id), Number(row.memory));
-        if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.project_id), Number(row.latency));
+    try {
+      const result = await ctx.db.query(
+        `SELECT id, project_id, workspace_id, deployment_id, service_name,
+                cpu_usage as cpu, memory_usage as memory, latency_ms as latency, 
+                cost_daily as cost, uptime_percent, "timestamp"
+         FROM metrics
+         ORDER BY "timestamp" DESC
+         LIMIT 1`
+      );
+      const row = result.rows[0] ?? null;
+      if (row) {
+        if (row.project_id) {
+          if (typeof row.cpu === 'number') setServiceCpu(String(row.project_id), Number(row.cpu));
+          if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.project_id), Number(row.memory));
+          if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.project_id), Number(row.latency));
+        }
       }
+      return row;
+    } catch (e) {
+      // If table is missing or DB unavailable, degrade gracefully
+      try { console.warn('[metrics.latest] returning null:', (e as Error).message) } catch {}
+      return null;
+    } finally {
+      end();
     }
-    return row;
   }),
 
   // Get metrics for a specific workspace
@@ -34,14 +41,19 @@ export const metricsRouter = router({
       limit: z.number().default(100),
     }))
     .query(async ({ ctx, input }) => {
-      const result = await ctx.db.query(
-        `SELECT * FROM service_metrics
-         WHERE workspace_id = $1
-         ORDER BY updated_at DESC
-         LIMIT $2`,
-        [input.workspaceId, input.limit]
-      );
-      return result.rows;
+      try {
+        const result = await ctx.db.query(
+          `SELECT * FROM service_metrics
+           WHERE workspace_id = $1
+           ORDER BY updated_at DESC
+           LIMIT $2`,
+          [input.workspaceId, input.limit]
+        );
+        return result.rows;
+      } catch (e) {
+        try { console.warn('[metrics.workspace] returning []:', (e as Error).message) } catch {}
+        return [] as any[];
+      }
     }),
 
   // Get workspace health score
@@ -50,18 +62,23 @@ export const metricsRouter = router({
       workspaceId: z.string().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      if (input.workspaceId) {
-        const result = await ctx.db.query(
-          `SELECT * FROM workspace_health WHERE workspace_id = $1`,
-          [input.workspaceId]
-        );
-        return result.rows[0] || null;
-      } else {
-        // Get all workspace health scores
-        const result = await ctx.db.query(
-          `SELECT * FROM workspace_health ORDER BY grade_score DESC`
-        );
-        return result.rows;
+      try {
+        if (input.workspaceId) {
+          const result = await ctx.db.query(
+            `SELECT * FROM workspace_health WHERE workspace_id = $1`,
+            [input.workspaceId]
+          );
+          return result.rows[0] || null;
+        } else {
+          // Get all workspace health scores
+          const result = await ctx.db.query(
+            `SELECT * FROM workspace_health ORDER BY grade_score DESC`
+          );
+          return result.rows;
+        }
+      } catch (e) {
+        try { console.warn('[metrics.workspaceHealth] returning fallback:', (e as Error).message) } catch {}
+        return input.workspaceId ? null : [] as any[];
       }
     }),
 
@@ -156,25 +173,30 @@ export const metricsRouter = router({
   // Get all service metrics summary
   getServicesSummary: secureProcedure('metrics.servicesSummary')
     .query(async ({ ctx }) => {
-      const result = await ctx.db.query(
-        `SELECT 
-          sm.workspace_id,
-          sm.service_name,
-          sm.port,
-          sm.status,
-          AVG(sm.cpu_percent) as avg_cpu,
-          AVG(sm.memory_mb) as avg_memory,
-          SUM(sm.request_count) as total_requests,
-          SUM(sm.error_count) as total_errors,
-          AVG(sm.avg_response_ms) as avg_response,
-          MAX(sm.updated_at) as last_updated
-         FROM service_metrics sm
-         WHERE sm.updated_at > NOW() - INTERVAL '24 hours'
-         GROUP BY sm.workspace_id, sm.service_name, sm.port, sm.status
-         ORDER BY sm.workspace_id, sm.service_name`
-      );
-      
-      return result.rows;
+      try {
+        const result = await ctx.db.query(
+          `SELECT 
+            sm.workspace_id,
+            sm.service_name,
+            sm.port,
+            sm.status,
+            AVG(sm.cpu_percent) as avg_cpu,
+            AVG(sm.memory_mb) as avg_memory,
+            SUM(sm.request_count) as total_requests,
+            SUM(sm.error_count) as total_errors,
+            AVG(sm.avg_response_ms) as avg_response,
+            MAX(sm.updated_at) as last_updated
+           FROM service_metrics sm
+           WHERE sm.updated_at > NOW() - INTERVAL '24 hours'
+           GROUP BY sm.workspace_id, sm.service_name, sm.port, sm.status
+           ORDER BY sm.workspace_id, sm.service_name`
+        );
+        
+        return result.rows;
+      } catch (e) {
+        try { console.warn('[metrics.servicesSummary] returning []:', (e as Error).message) } catch {}
+        return [] as any[];
+      }
     }),
 
   live: secureProcedure('metrics.live').subscription(

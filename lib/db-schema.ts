@@ -31,13 +31,10 @@ export async function ensureCoreSchema(pool: Pool) {
     );
   `)
 
-  // Projects table (slimmed version compatible with migrate-to-multi-project.sql)
-  await pool.query(`
-    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-  `)
+  // Projects table (slimmed). Avoid requiring extensions; omit UUID default.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS projects (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      id UUID PRIMARY KEY,
       user_id TEXT,
       name VARCHAR(255),
       slug VARCHAR(255) NOT NULL,
