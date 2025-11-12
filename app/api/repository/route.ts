@@ -159,7 +159,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ repository: result.rows[0] })
     } catch (dbError) {
       console.error("Database error saving repository:", dbError)
-      return NextResponse.json({ error: 'Failed to save repository' }, { status: 500 })
+      const dbErrorMsg = dbError instanceof Error ? dbError.message : String(dbError)
+      return NextResponse.json({ 
+        error: 'Failed to save repository', 
+        details: dbErrorMsg,
+        hint: 'Check DATABASE_URL is set and user/repo tables exist'
+      }, { status: 500 })
     }
   } catch (error) {
     console.error("Error saving repository:", error)
