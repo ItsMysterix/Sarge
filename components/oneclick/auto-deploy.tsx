@@ -16,6 +16,10 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [stage, setStage] = useState<Stage>('select')
   const [workspaces, setWorkspaces] = useState<any[]>([])
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null)
+  const [connectedRepo, setConnectedRepo] = useState<any>(null)
+  const [connectedDeploying, setConnectedDeploying] = useState(false)
+  const [connectedLogs, setConnectedLogs] = useState<string[]>([])
+  const [connectedTopic, setConnectedTopic] = useState<string | null>(null)
   const [selectedPort, setSelectedPort] = useState<number>(3000)
   const [availablePorts, setAvailablePorts] = useState<number[]>([])
   const [scanningPorts, setScanningPorts] = useState(false)
@@ -30,7 +34,53 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   useEffect(() => {
     fetchWorkspaces()
     scanAvailablePorts()
+    fetchConnectedRepo()
   }, [])
+
+  // Subscribe to connected deploy logs when topic set
+  trpc.sarge.oneclick.streamConnected.useSubscription(
+    connectedTopic ? { owner: connectedRepo?.owner, repo: connectedRepo?.repo } : undefined,
+    {
+      enabled: !!connectedTopic && !!connectedRepo,
+      onData(data: any) {
+        if (data?.line) setConnectedLogs(prev => [...prev, data.line])
+      }
+    }
+  )
+  const fetchConnectedRepo = async () => {
+    try {
+      const res = await fetch('/api/repository')
+      if (res.ok) {
+        const data = await res.json()
+        setConnectedRepo(data.repository)
+      }
+    } catch (e) {
+      console.warn('No connected repository found')
+    }
+  }
+
+  const startConnectedDeploy = async () => {
+    if (!connectedRepo) return
+    setConnectedDeploying(true)
+    setConnectedLogs([])
+    setError(null)
+    try {
+      // Need GitHub access token (assume stored in env or session; placeholder here)
+      const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN || ''
+      if (!token) throw new Error('Missing GitHub token for analysis')
+      const resp = await t.sarge.oneclick.deployConnected.mutate({
+        owner: connectedRepo.owner,
+        repo: connectedRepo.repo,
+        branch: 'main',
+        accessToken: token,
+      })
+      setConnectedTopic(resp.logTopic)
+    } catch (e: any) {
+      setError(e.message || 'Connected deploy failed')
+    } finally {
+      setConnectedDeploying(false)
+    }
+  }
 
   const fetchWorkspaces = async () => {
     try {
@@ -322,14 +372,40 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         )}
       </div>
 
-      {/* Selection Stage */}
-      {stage === 'select' && (
+      {/* If connected repo exists, show simplified deploy UI */}
+      {connectedRepo && stage === 'select' && (
+        <div className="space-y-4 p-4 glass-card border border-white/10 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">Connected Repository</h3>
+              <p className="text-sm text-gray-400">{connectedRepo.full_name}</p>
+            </div>
+            <button
+              onClick={startConnectedDeploy}
+              disabled={connectedDeploying}
+              className="px-4 py-2 bg-accent text-black rounded-lg disabled:opacity-50"
+            >
+              {connectedDeploying ? 'Deploying...' : 'One-Click Deploy'}
+            </button>
+          </div>
+          {/* Terminal */}
+          <div className="mt-4 h-48 overflow-auto rounded bg-black/40 p-2 text-xs font-mono border border-white/10">
+            {connectedLogs.length === 0 && <div className="text-gray-500">Logs will appear here...</div>}
+            {connectedLogs.map((l, i) => (
+              <div key={i}>{l}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Legacy workspace selection if no connected repo */}
+      {!connectedRepo && stage === 'select' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          {/* Workspace Selection */}
+          {/* Workspace Selection (legacy mode) */}
           <div>
             <label className="block text-sm font-medium mb-2">Select Workspace</label>
             {workspaces.length === 0 ? (
