@@ -1,9 +1,9 @@
 import type { Pool } from "@neondatabase/serverless"
 
-// Ensure the minimum set of tables used by repository connect exist.
-// Safe to run on every request; uses IF NOT EXISTS and minimal indexes.
+// Ensure the minimum set of columns needed by repository connect exist.
+// Safe to run on every request; only adds missing columns to existing tables.
 export async function ensureCoreSchema(pool: Pool) {
-  // Users table (basic fields used by /api/repository route)
+  // Users table - should already exist from NextAuth
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -14,7 +14,7 @@ export async function ensureCoreSchema(pool: Pool) {
     );
   `)
 
-  // Repositories table
+  // Repositories table - add missing columns if needed
   await pool.query(`
     CREATE TABLE IF NOT EXISTS repositories (
       id SERIAL PRIMARY KEY,
@@ -31,42 +31,44 @@ export async function ensureCoreSchema(pool: Pool) {
     );
   `)
 
-  // Projects table (slimmed). Avoid requiring extensions; omit UUID default.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS projects (
-      id UUID PRIMARY KEY,
-      user_id TEXT,
-      name VARCHAR(255),
-      slug VARCHAR(255),
-      description TEXT,
-      framework VARCHAR(50),
-      repository_id INTEGER REFERENCES repositories(id) ON DELETE SET NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `)
-  
-  // Add slug column if missing (for existing tables)
-  await pool.query(`
-    ALTER TABLE projects 
-    ADD COLUMN IF NOT EXISTS slug VARCHAR(255);
-  `)
-  
-  // Add unique constraint on slug if it doesn't exist
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'projects_slug_key'
-      ) THEN
-        ALTER TABLE projects ADD CONSTRAINT projects_slug_key UNIQUE (slug);
-      END IF;
-    END $$;
-  `)
+  // Add missing columns to repositories if they don't exist
+  await pool.query(`ALTER TABLE repositories ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT false;`)
+  await pool.query(`ALTER TABLE repositories ADD COLUMN IF NOT EXISTS branch VARCHAR(255) DEFAULT 'main';`)
+
+  // Projects table - add repository_id column if missing (multi-project migration)
+  // Don't try to create the table since it exists in production
+  try {
+    await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS repository_id INTEGER;`)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints 
+          WHERE constraint_name = 'projects_repository_id_fkey'
+        ) THEN
+          ALTER TABLE projects ADD CONSTRAINT projects_repository_id_fkey 
+          FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `)
+  } catch (e) {
+    // Projects table might not exist in some setups; that's ok
+    console.warn('[schema] Could not add repository_id to projects:', e)
+  }
+
+  // Add slug column to projects if missing
+  try {
+    await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS slug VARCHAR(255);`)
+  } catch (e) {
+    console.warn('[schema] Could not add slug to projects:', e)
+  }
 
   // Helpful indexes
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_repositories_user_id ON repositories(user_id);`)
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_repositories_primary ON repositories(user_id, is_primary) WHERE is_primary = true;`)
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);`)
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_repository_id ON projects(repository_id);`)
+  try {
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_repository_id ON projects(repository_id);`)
+  } catch (e) {
+    // Projects table might not exist; ignore
+  }
 }
