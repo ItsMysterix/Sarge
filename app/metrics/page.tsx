@@ -16,6 +16,7 @@ import { InfrastructureTab } from "@/components/metrics/infrastructure-tab"
 import { ServicesTab } from "@/components/metrics/services-tab"
 import { EmptyState } from "@/components/ui/empty-state"
 import { OnboardingSteps } from "@/components/ui/onboarding-steps"
+import { BUILD_INFO } from "@/lib/build-info"
 
 interface MetricDataPoint {
   time: string
@@ -332,6 +333,11 @@ export default function MetricsPage() {
             </motion.div>
           </>
         )}
+        
+        {/* Build Version Indicator */}
+        <div className="fixed bottom-2 right-2 text-[10px] text-zinc-600 bg-zinc-900/80 px-2 py-1 rounded border border-zinc-800">
+          Build: {BUILD_INFO.buildId.slice(-8)} | {new Date(BUILD_INFO.timestamp).toLocaleTimeString()}
+        </div>
       </motion.main>
     </AppShell>
   )
