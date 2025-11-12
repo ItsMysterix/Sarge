@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { getDbPool } from "@/lib/db"
+import { ensureCoreSchema } from "@/lib/db-schema"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -14,8 +15,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        { error: "Database not configured", details: "Set DATABASE_URL in your environment to enable repository features." },
+        { status: 500 }
+      )
+    }
+
     try {
       const pool = getDbPool()
+      await ensureCoreSchema(pool)
       const url = new URL(req.url)
       const projectSlug = url.searchParams.get('projectSlug')
       
@@ -71,26 +80,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Owner and repo are required" }, { status: 400 })
     }
 
-    // Check if database is configured
+    // Require real database
     if (!process.env.DATABASE_URL) {
-      console.warn('[Repository] DATABASE_URL not set - returning mock success')
-      // Return success without saving to DB (for demo/dev without DB)
-      return NextResponse.json({ 
-        repository: {
-          id: Date.now(),
-          owner,
-          repo,
-          full_name: `${owner}/${repo}`,
-          description: description || '',
-          is_primary: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-      })
+      return NextResponse.json(
+        { error: 'Database not configured', details: 'Set DATABASE_URL in your environment to save repositories.' },
+        { status: 500 }
+      )
     }
 
     try {
       const pool = getDbPool()
+      await ensureCoreSchema(pool)
       
       // Get user ID
       const userResult = await pool.query(
