@@ -5,6 +5,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { trpc } from '@/lib/trpc'
 import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, RefreshCw, Terminal } from 'lucide-react'
 
+// Lightweight helper to obtain a GitHub access token from the secure API route.
+// Returns null if unavailable (caller should surface a friendly error / fallback).
+async function fetchAccessToken(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/github/access-token')
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.token || null
+  } catch (e) {
+    console.error('fetchAccessToken failed', e)
+    return null
+  }
+}
+
 interface AutoDeployProps {
   onComplete?: () => void
 }
