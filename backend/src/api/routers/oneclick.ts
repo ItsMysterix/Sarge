@@ -190,7 +190,14 @@ export const oneclickRouter = router({
     .mutation(async ({ input, ctx }) => {
       // Emit progress logs via event emitter so client can subscribe
       const topic = `oneclick:connected:${input.owner}/${input.repo}`
-      const emit = (msg: string) => { try { ctx.ee.emit(topic, { ts: Date.now(), line: msg }) } catch {} }
+      const classify = (msg: string): string => {
+        const m = msg.toLowerCase()
+        if (m.includes('error') || m.startsWith('❌')) return 'error'
+        if (m.includes('deploying') || m.includes('starting')) return 'progress'
+        if (m.includes('complete') || m.startsWith('✅')) return 'success'
+        return 'info'
+      }
+      const emit = (msg: string) => { try { ctx.ee.emit(topic, { ts: Date.now(), line: msg, level: classify(msg) }) } catch {} }
       emit(`Starting connected deploy for ${input.owner}/${input.repo}`)
       const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
       emit('Scanning repository (no clone)...')
