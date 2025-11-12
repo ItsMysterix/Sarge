@@ -4,6 +4,8 @@ export const dynamic = 'force-dynamic'
 import type React from "react";
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { PageTitle } from "@/components/layout/page-title";
+import { ScrollText } from "lucide-react";
 import {
   Search,
   Download,
@@ -241,6 +243,11 @@ export default function Logs() {
     return (
       <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
         <AppShell>
+          <PageTitle
+            title="Live Logs"
+            description="Streaming runtime logs across services"
+            icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          />
           <main className="flex-1 p-6 flex items-center justify-center">
             <div className="text-center">
                 <motion.div 
@@ -266,6 +273,11 @@ export default function Logs() {
     <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
       <AppShell>
         <ToastContainer />
+        <PageTitle
+          title="Live Logs"
+          description="Streaming runtime logs across services"
+          icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
         <motion.main 
           className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
           initial={{ opacity: 0 }}

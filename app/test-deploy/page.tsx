@@ -1,6 +1,8 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { RealDeployForm } from "@/components/deploy/real-deploy-form"
+import { PageTitle } from "@/components/layout/page-title"
+import { FlaskConical } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Test Real Deployment | Sarge",
@@ -11,6 +13,11 @@ export default function TestDeployPage() {
   return (
     <div className="container max-w-4xl py-10">
       <div className="space-y-6">
+        <PageTitle
+          title="Test Deploy"
+          description="Create and validate test deployment"
+          icon={<FlaskConical className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Test Real Deployment</h1>
           <p className="text-muted-foreground mt-2">

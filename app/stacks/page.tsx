@@ -1,6 +1,7 @@
 "use client"
 
 import { AppShell } from "@/components/layout/app-shell"
+import { PageTitle } from '@/components/layout/page-title';
 import { Layers, Plus, Archive, Play, Pause, StopCircle, AlertCircle, CheckCircle2, Cpu, Database as DatabaseIcon } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -75,6 +76,11 @@ export default function StacksPage() {
     <AppShell>
       <ToastContainer />
       <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+        <PageTitle
+          title="Stacks"
+          description="Infrastructure and service stacks"
+          icon={<Layers className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}

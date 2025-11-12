@@ -67,6 +67,7 @@ export default function SignInPage() {
     try {
       console.log('🔵 Calling signIn("github") with callback: /')
       const result = await signIn("github", { callbackUrl: "/" })
+    import { PageTitle } from '@/components/layout/page-title';
       console.log('🔵 signIn result:', result)
       
       if (result?.error) {

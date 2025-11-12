@@ -1,6 +1,7 @@
 "use client"
 
 import { AppShell } from "@/components/layout/app-shell"
+import { PageTitle } from "@/components/layout/page-title"
 import { Cloud, Database, Zap, Shield, Activity, Plus, Trash2, Eye } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -73,6 +74,11 @@ export default function AWSEmulationPage() {
 
   return (
     <AppShell>
+      <PageTitle
+        title="AWS Overview"
+        description="Simulated AWS environment & resource detection"
+        icon={<Cloud className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+      />
       <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           {/* Tabs for AWS Services */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
