@@ -13,6 +13,8 @@ import {
   Check
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { PageTitle } from '@/components/layout/page-title';
+import { FolderGit2, Plus } from 'lucide-react';
 import { ProjectWizard } from '@/components/projects/project-wizard';
 
 export default function ProjectsPage() {
@@ -143,6 +145,11 @@ export default function ProjectsPage() {
   if (isLoading) {
     return (
       <AppShell showSidebar={false}>
+        <PageTitle
+          title="Projects"
+          description="Manage application projects and repositories"
+          icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
         <div className="flex flex-1 p-8 items-center justify-center">
           <div className="text-center">
             <div className="glass-card p-8 rounded-lg border border-white/10 inline-block">
@@ -162,26 +169,23 @@ export default function ProjectsPage() {
 
   return (
     <AppShell showSidebar={false}>
+      <PageTitle
+        title="Projects"
+        description="Manage application projects and repositories"
+        icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        actions={projects.length > 0 ? (
+          <motion.button
+            onClick={handleCreateProject}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
+          >
+            <Plus className="h-5 w-5" />
+            Create Project
+          </motion.button>
+        ) : null}
+      />
       <div className="max-w-7xl mx-auto p-8 flex-1">
-        {/* Header - Thicker to match site-wide header */}
-        <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
-          <div>
-            <h1 className="text-4xl font-bold mb-3">Projects</h1>
-            <p className="text-gray-400 text-lg">Manage your projects and deployments</p>
-          </div>
-          {/* Only show create button when projects exist */}
-          {projects.length > 0 && (
-            <motion.button
-              onClick={handleCreateProject}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
-            >
-              <Plus className="h-5 w-5" />
-              Create Project
-            </motion.button>
-          )}
-        </div>
 
         {/* Search Bar */}
         <div className="mb-6 relative">

@@ -3,6 +3,11 @@ import { ExplainStackCard } from '@/components/explain/explain-stack-card'
 export default function ExplainStackDemo() {
   return (
     <div className="container mx-auto py-8 px-4">
+      <PageTitle
+        title="Explain"
+        description="AI-powered code and infrastructure explanations"
+        icon={<Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+      />
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Explain My Stack</h1>
         <p className="text-zinc-400 mt-2">
