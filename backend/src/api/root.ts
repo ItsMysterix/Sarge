@@ -10,6 +10,7 @@ import { githubRouter } from './routers/github';
 import { stacksRouter } from './routers/stacks';
 import { awsRouter } from './routers/aws';
 import { projectRouter } from './routers/project';
+import { terminalRouter } from './routers/terminal';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -23,6 +24,7 @@ export const appRouter = router({
   stacks: stacksRouter,
   aws: awsRouter,
   project: projectRouter,
+  terminal: terminalRouter,
 });
 
 export type AppRouter = typeof appRouter;

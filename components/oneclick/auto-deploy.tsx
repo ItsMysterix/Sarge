@@ -18,8 +18,14 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null)
   const [connectedRepo, setConnectedRepo] = useState<any>(null)
   const [connectedDeploying, setConnectedDeploying] = useState(false)
-  const [connectedLogs, setConnectedLogs] = useState<string[]>([])
-  const [connectedTopic, setConnectedTopic] = useState<string | null>(null)
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState<number>(0)
+  const steps = ['Repository', 'Package Manager', 'Ports', 'Monitoring', 'MCP Servers', 'Summary']
+  const [selectedPackageManager, setSelectedPackageManager] = useState<string | null>(null)
+  const [enableGrafana, setEnableGrafana] = useState<boolean>(true)
+  const [enablePrometheus, setEnablePrometheus] = useState<boolean>(true)
+  const [selectedMcpServers, setSelectedMcpServers] = useState<string[]>([])
+  const [showTerminal, setShowTerminal] = useState<boolean>(false)
   const [selectedPort, setSelectedPort] = useState<number>(3000)
   const [availablePorts, setAvailablePorts] = useState<number[]>([])
   const [scanningPorts, setScanningPorts] = useState(false)
@@ -38,15 +44,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   }, [])
 
   // Subscribe to connected deploy logs when topic set
-  trpc.sarge.oneclick.streamConnected.useSubscription(
-    connectedTopic ? { owner: connectedRepo?.owner, repo: connectedRepo?.repo } : undefined,
-    {
-      enabled: !!connectedTopic && !!connectedRepo,
-      onData(data: any) {
-        if (data?.line) setConnectedLogs(prev => [...prev, data.line])
-      }
-    }
-  )
+  // (Removed log subscription from wizard interface; terminal may attach later if desired)
   const fetchConnectedRepo = async () => {
     try {
       const res = await fetch('/api/repository')
@@ -59,22 +57,38 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     }
   }
 
+  const fetchAccessToken = async (): Promise<string | null> => {
+    try {
+      const r = await fetch('/api/github/access-token')
+      if (r.status === 200) {
+        const j = await r.json()
+        return j.token || null
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
   const startConnectedDeploy = async () => {
     if (!connectedRepo) return
     setConnectedDeploying(true)
     setConnectedLogs([])
     setError(null)
     try {
-      // Need GitHub access token (assume stored in env or session; placeholder here)
-      const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN || ''
-      if (!token) throw new Error('Missing GitHub token for analysis')
+      const token = await fetchAccessToken()
+      if (!token) {
+        setError('Missing GitHub access token (set GITHUB_ACCESS_TOKEN or user token).')
+        setConnectedLogs(prev => [...prev, { ts: Date.now(), line: '❌ Missing GitHub access token. Set env or user token.', level: 'error' }])
+        return
+      }
       const resp = await t.sarge.oneclick.deployConnected.mutate({
         owner: connectedRepo.owner,
         repo: connectedRepo.repo,
         branch: 'main',
         accessToken: token,
       })
-      setConnectedTopic(resp.logTopic)
+      // Deployment started; terminal can optionally subscribe using resp.logTopic later
     } catch (e: any) {
       setError(e.message || 'Connected deploy failed')
     } finally {
@@ -372,28 +386,114 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         )}
       </div>
 
-      {/* If connected repo exists, show simplified deploy UI */}
+      {/* Wizard Interface */}
       {connectedRepo && stage === 'select' && (
-        <div className="space-y-4 p-4 glass-card border border-white/10 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold">Connected Repository</h3>
-              <p className="text-sm text-gray-400">{connectedRepo.full_name}</p>
-            </div>
-            <button
-              onClick={startConnectedDeploy}
-              disabled={connectedDeploying}
-              className="px-4 py-2 bg-accent text-black rounded-lg disabled:opacity-50"
-            >
-              {connectedDeploying ? 'Deploying...' : 'One-Click Deploy'}
-            </button>
-          </div>
-          {/* Terminal */}
-          <div className="mt-4 h-48 overflow-auto rounded bg-black/40 p-2 text-xs font-mono border border-white/10">
-            {connectedLogs.length === 0 && <div className="text-gray-500">Logs will appear here...</div>}
-            {connectedLogs.map((l, i) => (
-              <div key={i}>{l}</div>
+        <div className="space-y-6 p-4 glass-card border border-white/10 rounded-lg">
+          {/* Stepper */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {steps.map((s, idx) => (
+              <button
+                key={s}
+                onClick={() => setWizardStep(idx)}
+                className={`px-3 py-1 rounded text-xs border transition-colors ${wizardStep === idx ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
+              >
+                {idx + 1}. {s}
+              </button>
             ))}
+          </div>
+
+          {/* Step Content */}
+          <div className="border border-white/10 rounded-lg p-4 bg-black/30">
+            {wizardStep === 0 && (
+              <div className="space-y-2">
+                <h3 className="font-semibold">Repository</h3>
+                <p className="text-sm text-gray-400">{connectedRepo.full_name}</p>
+                <p className="text-xs text-gray-500">Branch: main (editable later)</p>
+                <button
+                  onClick={() => setWizardStep(wizardStep + 1)}
+                  className="mt-2 px-3 py-1 bg-accent text-black rounded text-sm"
+                >Next: Package Manager →</button>
+              </div>
+            )}
+            {wizardStep === 1 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Package Manager</h3>
+                <div className="flex gap-2 flex-wrap">
+                  {['pnpm','npm','yarn','bun'].map(pm => (
+                    <button
+                      key={pm}
+                      onClick={() => setSelectedPackageManager(pm)}
+                      className={`px-3 py-1 rounded border text-xs ${selectedPackageManager === pm ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
+                    >{pm}</button>
+                  ))}
+                </div>
+                <div className="flex justify-between">
+                  <button onClick={() => setWizardStep(wizardStep - 1)} className="text-xs text-gray-400 hover:text-accent">← Back</button>
+                  <button disabled={!selectedPackageManager} onClick={() => setWizardStep(wizardStep + 1)} className="text-xs bg-accent text-black px-3 py-1 rounded disabled:opacity-40">Next: Ports →</button>
+                </div>
+              </div>
+            )}
+            {wizardStep === 2 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Ports</h3>
+                <p className="text-xs text-gray-500">Scanned starting port: {selectedPort}. Consecutive allocation for detected services.</p>
+                <div className="flex items-center gap-2">
+                  <input type="number" value={selectedPort} onChange={e => setSelectedPort(parseInt(e.target.value)||3000)} className="bg-black/40 border border-white/10 rounded px-2 py-1 text-xs w-24" />
+                  <button onClick={scanAvailablePorts} className="text-xs text-accent">Rescan</button>
+                </div>
+                <div className="flex justify-between">
+                  <button onClick={() => setWizardStep(wizardStep - 1)} className="text-xs text-gray-400 hover:text-accent">← Back</button>
+                  <button onClick={() => setWizardStep(wizardStep + 1)} className="text-xs bg-accent text-black px-3 py-1 rounded">Next: Monitoring →</button>
+                </div>
+              </div>
+            )}
+            {wizardStep === 3 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Monitoring</h3>
+                <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={enableGrafana} onChange={e=>setEnableGrafana(e.target.checked)} /> Enable Grafana dashboard</label>
+                <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={enablePrometheus} onChange={e=>setEnablePrometheus(e.target.checked)} /> Enable Prometheus metrics</label>
+                <div className="flex justify-between">
+                  <button onClick={() => setWizardStep(wizardStep - 1)} className="text-xs text-gray-400 hover:text-accent">← Back</button>
+                  <button onClick={() => setWizardStep(wizardStep + 1)} className="text-xs bg-accent text-black px-3 py-1 rounded">Next: MCP Servers →</button>
+                </div>
+              </div>
+            )}
+            {wizardStep === 4 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">MCP Servers</h3>
+                <p className="text-xs text-gray-500">Select optional Model Context Protocol servers to launch.</p>
+                <div className="flex flex-wrap gap-2">
+                  {['code-intel','secrets','llm','events'].map(s => {
+                    const active = selectedMcpServers.includes(s)
+                    return (
+                      <button key={s} onClick={()=> setSelectedMcpServers(active? selectedMcpServers.filter(x=>x!==s): [...selectedMcpServers,s])} className={`px-3 py-1 rounded text-xs border ${active? 'bg-accent text-black border-accent':'border-white/15 hover:border-accent/40'}`}>{s}</button>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-between">
+                  <button onClick={() => setWizardStep(wizardStep - 1)} className="text-xs text-gray-400 hover:text-accent">← Back</button>
+                  <button onClick={() => setWizardStep(wizardStep + 1)} className="text-xs bg-accent text-black px-3 py-1 rounded">Next: Summary →</button>
+                </div>
+              </div>
+            )}
+            {wizardStep === 5 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Summary</h3>
+                <ul className="text-xs space-y-1 text-gray-300">
+                  <li>Repository: {connectedRepo.full_name}</li>
+                  <li>Package Manager: {selectedPackageManager || 'none selected'}</li>
+                  <li>Starting Port: {selectedPort}</li>
+                  <li>Grafana: {enableGrafana? 'enabled':'disabled'}</li>
+                  <li>Prometheus: {enablePrometheus? 'enabled':'disabled'}</li>
+                  <li>MCP Servers: {selectedMcpServers.length? selectedMcpServers.join(', '): 'none'}</li>
+                </ul>
+                <div className="flex justify-between items-center">
+                  <button onClick={() => setWizardStep(wizardStep - 1)} className="text-xs text-gray-400 hover:text-accent">← Back</button>
+                  <button onClick={startConnectedDeploy} disabled={connectedDeploying || !selectedPackageManager} className="text-xs bg-green-500 text-black px-3 py-1 rounded disabled:opacity-40">{connectedDeploying? 'Deploying...' : 'Start Deployment'}</button>
+                </div>
+                {error && <p className="text-xs text-red-400">{error}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -561,32 +661,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         </motion.div>
       )}
 
-      {/* Logs Display */}
-      {stage !== 'select' && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 glass-card border border-white/10 rounded-lg"
-        >
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            Deployment Logs
-          </h3>
-          <div className="bg-black/50 rounded-lg p-4 font-mono text-xs max-h-96 overflow-y-auto space-y-1">
-            {logs.map((log, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="text-gray-300"
-              >
-                {log}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+      {/* Removed inline logs section per new wizard design */}
 
       {/* Running Services */}
       {stage === 'running' && serviceUrls.length > 0 && (
@@ -634,6 +709,69 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
           <p className="text-red-400 text-sm">{error}</p>
         </motion.div>
       )}
+    {/* Thin Footer with Terminal Toggle */}
+    <div className="fixed bottom-0 right-0 left-0 h-8 bg-black/60 border-t border-white/10 flex items-center justify-end px-4 text-xs">
+      <button onClick={()=> setShowTerminal(!showTerminal)} className="px-2 py-1 border border-white/15 rounded bg-black/40 hover:border-accent/50 transition-colors">
+        {showTerminal? 'Close Terminal' : 'Open Terminal'}
+      </button>
+    </div>
+    {showTerminal && (
+      <div className="fixed bottom-8 right-4 w-96 h-56 bg-black/85 border border-white/20 rounded shadow-lg flex flex-col">
+        <div className="flex items-center justify-between px-2 py-1 text-xs bg-black/60 border-b border-white/10">
+          <span>Project Terminal (bash)</span>
+          <button onClick={()=> setShowTerminal(false)} className="text-gray-400 hover:text-accent">×</button>
+        </div>
+        <TerminalEmulator />
+      </div>
+    )}
+  </div>
+  )
+}
+
+// Simple in-component terminal emulator (no backend exec yet)
+function TerminalEmulator() {
+  const t = trpc as any
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [lines, setLines] = useState<any[]>([])
+  const [topicReady, setTopicReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const start = async () => {
+      try {
+        const resp = await t.terminal.startDevSession.mutate()
+        if (!cancelled) {
+          setSessionId(resp.sessionId)
+          setTopicReady(true)
+        }
+      } catch (e) {
+        if (!cancelled) setLines([{ ts: Date.now(), line: 'Failed to start dev session', level: 'error' }])
+      }
+    }
+    start()
+    return () => { cancelled = true }
+  }, [])
+
+  t.terminal.streamSession.useSubscription(sessionId ? { sessionId } : undefined, {
+    enabled: !!sessionId && topicReady,
+    onData(data: any) {
+      if (data?.line) setLines(prev => [...prev, data])
+    }
+  })
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex-1 overflow-auto px-2 py-1 font-mono text-[11px] text-gray-200 space-y-0.5">
+        {lines.length === 0 && <div className="text-gray-500">Starting dev session...</div>}
+        {lines.map((l, i) => {
+          const level = l.level || 'info'
+          const color = level === 'error' ? 'text-red-400' : level === 'success' ? 'text-green-400' : level === 'progress' ? 'text-blue-400' : 'text-gray-200'
+          return (
+            <div key={i} className={color}>{l.line}</div>
+          )
+        })}
+      </div>
+      <div className="border-t border-white/10 px-2 py-1 text-[10px] text-gray-500 font-mono">Read-only dev output</div>
     </div>
   )
 }
