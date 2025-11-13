@@ -10,7 +10,11 @@ import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, Re
 async function fetchAccessToken(): Promise<string | null> {
   try {
     const res = await fetch('/api/github/access-token')
-    if (!res.ok) return null
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+      console.error('GitHub token fetch failed:', res.status, errorData)
+      return null
+    }
     const data = await res.json()
     return data.token || null
   } catch (e) {
@@ -85,8 +89,11 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       addTerminalLine('🔍 Starting AI-powered repository analysis...', 'progress')
       const token = await fetchAccessToken()
       if (!token) {
-        setError('Missing GitHub access token')
-        addTerminalLine('❌ Missing GitHub access token', 'error')
+        const errorMsg = 'GitHub authentication required'
+        setError(errorMsg)
+        addTerminalLine('❌ ' + errorMsg, 'error')
+        addTerminalLine('💡 Sign in with GitHub to analyze repositories', 'info')
+        addTerminalLine('   Or set GITHUB_ACCESS_TOKEN in .env for admin access', 'info')
         return
       }
       addTerminalLine(`📂 Scanning ${connectedRepo.owner}/${connectedRepo.repo}...`, 'info')
