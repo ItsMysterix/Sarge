@@ -85,17 +85,17 @@ export default function DeploymentsPage() {
 
   return (
     <AppShell>
-      <PageTitle
-        title="Deployments"
-        description="Track, monitor, and analyze deployment history"
-        icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-      />
       <motion.main 
         className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
+          <PageTitle
+            title="Deployments"
+            description="Track, monitor, and analyze deployment history"
+            icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          />
           <ToastContainer />
 
           {/* Quick Stats */}
