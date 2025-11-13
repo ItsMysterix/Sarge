@@ -144,13 +144,12 @@ export default function ProjectsPage() {
   if (isLoading) {
     return (
       <AppShell showSidebar={false}>
-        <main className="flex-1 p-8">
-          <PageTitle
-            title="Projects"
-            description="Manage application projects and repositories"
-            icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          />
-        <div className="flex items-center justify-center">
+        <PageTitle
+          title="Projects"
+          description="Manage application projects and repositories"
+          icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
+        <div className="flex flex-1 p-8 items-center justify-center">
           <div className="text-center">
             <div className="glass-card p-8 rounded-lg border border-white/10 inline-block">
               <FolderGit2 className="h-12 w-12 text-accent mx-auto mb-4 animate-pulse" />
@@ -163,31 +162,29 @@ export default function ProjectsPage() {
             </div>
           </div>
         </div>
-        </main>
       </AppShell>
     );
   }
 
   return (
     <AppShell showSidebar={false}>
-      <main className="flex-1 p-8">
-        <div className="max-w-7xl mx-auto">
-          <PageTitle
-            title="Projects"
-            description="Manage application projects and repositories"
-            icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-            actions={projects.length > 0 ? (
-              <motion.button
-                onClick={handleCreateProject}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
-              >
-                <Plus className="h-5 w-5" />
-                Create Project
-              </motion.button>
-            ) : null}
-          />
+      <PageTitle
+        title="Projects"
+        description="Manage application projects and repositories"
+        icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        actions={projects.length > 0 ? (
+          <motion.button
+            onClick={handleCreateProject}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
+          >
+            <Plus className="h-5 w-5" />
+            Create Project
+          </motion.button>
+        ) : null}
+      />
+      <div className="max-w-7xl mx-auto p-8 flex-1">
 
         {/* Search Bar */}
         <div className="mb-6 relative">
