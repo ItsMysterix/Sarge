@@ -234,13 +234,12 @@ export default function Services() {
   if (loading) {
     return (
       <AppShell>
-        <main className="flex-1 p-6">
-          <PageTitle
-            title="Services"
-            description="Overview of running local services"
-            icon={<Server className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          />
-          <div className="flex items-center justify-center">
+        <PageTitle
+          title="Services"
+          description="Overview of running local services"
+          icon={<Server className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
+        <main className="flex-1 p-6 flex items-center justify-center">
             <motion.div 
               className="text-center"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -260,7 +259,6 @@ export default function Services() {
                 Loading services...
               </motion.p>
             </motion.div>
-          </div>
         </main>
       </AppShell>
     )
@@ -268,17 +266,17 @@ export default function Services() {
 
   return (
     <AppShell>
+      <PageTitle
+        title="Services"
+        description="Overview of running local services"
+        icon={<Server className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+      />
       <motion.main 
         className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-          <PageTitle
-            title="Services"
-            description="Overview of running local services"
-            icon={<Server className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          />
           {/* Actions Row (Removed large page heading for unified header design) */}
           <motion.div 
             className="flex justify-end mb-4 sm:mb-6"
