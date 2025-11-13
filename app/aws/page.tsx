@@ -74,12 +74,12 @@ export default function AWSEmulationPage() {
 
   return (
     <AppShell>
-      <PageTitle
-        title="AWS Overview"
-        description="Simulated AWS environment & resource detection"
-        icon={<Cloud className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-      />
       <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+          <PageTitle
+            title="AWS Overview"
+            description="Simulated AWS environment & resource detection"
+            icon={<Cloud className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          />
           {/* Tabs for AWS Services */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="glass-card border border-white/10 p-1 mb-6 flex-wrap h-auto">
