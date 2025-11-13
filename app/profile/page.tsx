@@ -163,13 +163,13 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
+      <PageTitle
+        title="Profile"
+        description="Manage account profile and credentials"
+        icon={<User className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+      />
       <ToastContainer />
       <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
-          <PageTitle
-            title="Profile"
-            description="Manage account profile and credentials"
-            icon={<User className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Profile Card */}
