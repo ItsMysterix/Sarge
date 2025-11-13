@@ -14,11 +14,13 @@ export interface LocalWorkspace {
   id: string
   name: string
   path: string
-  source: 'github' | 'local'
+  // 'remote' indicates a logical workspace pointing to a repo that has not been cloned locally
+  source: 'github' | 'local' | 'remote'
   repoUrl?: string
   branch?: string
   createdAt: Date
   lastUsed: Date
+  description?: string
 }
 
 export class WorkspaceManager {
@@ -93,6 +95,34 @@ export class WorkspaceManager {
     this.workspaces.set(workspaceId, workspace)
     this.saveWorkspaces()
 
+    return workspace
+  }
+
+  /**
+   * Register a remote repository as a lightweight workspace without cloning.
+   * This persists metadata so the workspace list survives refreshes and restarts.
+   */
+  registerRemote(owner: string, repo: string, branch: string = 'main', description?: string): LocalWorkspace {
+    const existing = Array.from(this.workspaces.values()).find(w => w.source === 'remote' && w.repoUrl === `https://github.com/${owner}/${repo}`)
+    if (existing) {
+      existing.lastUsed = new Date()
+      this.saveWorkspaces()
+      return existing
+    }
+    const workspaceId = `remote-${owner}-${repo}`
+    const workspace: LocalWorkspace = {
+      id: workspaceId,
+      name: repo,
+      path: '', // no local path
+      source: 'remote',
+      repoUrl: `https://github.com/${owner}/${repo}`,
+      branch,
+      description,
+      createdAt: new Date(),
+      lastUsed: new Date(),
+    }
+    this.workspaces.set(workspaceId, workspace)
+    this.saveWorkspaces()
     return workspace
   }
 

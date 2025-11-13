@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { getDbPool } from "@/lib/db"
 import { ensureCoreSchema } from "@/lib/db-schema"
+import { workspaceManager } from '@/backend/src/services/workspace-manager'
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -55,6 +56,13 @@ export async function GET(req: Request) {
         return NextResponse.json({ repository: null })
       }
 
+      // Persist a lightweight remote workspace for visibility in Workspaces page
+      try {
+        const w = workspaceManager.registerRemote(owner, repo, 'main', description || '')
+        console.log('[Repository] Registered remote workspace', w.id)
+      } catch (e) {
+        console.warn('[Repository] Failed to register remote workspace:', e)
+      }
       return NextResponse.json({ repository: result.rows[0] })
     } catch (dbError) {
       console.error("Database error fetching repository:", dbError)
@@ -122,6 +130,12 @@ export async function POST(req: Request) {
           [userId, owner, repo, `${owner}/${repo}`, description || '']
         )
 
+        try {
+          const w = workspaceManager.registerRemote(owner, repo, 'main', description || '')
+          console.log('[Repository] Registered remote workspace', w.id)
+        } catch (e) {
+          console.warn('[Repository] Failed to register remote workspace:', e)
+        }
         return NextResponse.json({ repository: result.rows[0] })
       }
 
