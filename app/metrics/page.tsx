@@ -63,93 +63,102 @@ export default function MetricsPage() {
             {/* Quick Stats */}
             <motion.div
               className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <QuickStatCard
-                title="CPU"
-                value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
-                icon={Cpu}
-                subtitle="Avg usage"
-                color="warning"
-                delay={0}
-              />
-              <QuickStatCard
-                title="Memory"
-                value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
-                icon={Gauge}
-                subtitle="Working set"
-                color="warning"
-                delay={0.1}
-              />
-              <QuickStatCard
-                title="Latency"
-                value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
-                icon={Server}
-                subtitle="Avg response"
-                color="warning"
-                delay={0.2}
-              />
-              <QuickStatCard
-                title="Errors"
-                value={totalErrors}
-                icon={Rocket}
-                subtitle="Total errors"
-                color="danger"
-                delay={0.3}
-              />
-            </motion.div>
-            {/* Health Banner */}
-            <HealthBanner score={healthScore} grade={healthGrade} status={healthStatus} className="mb-6" />
-            {/* Tabs Navigation */}
-            <TabsNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
-            {/* Tab Content */}
-            <div className="mt-4">
-              {activeTab === 'overview' && <OverviewTab metricsHistory={metricsHistory} />}
-              {activeTab === 'performance' && <PerformanceTab metricsHistory={metricsHistory} />}
-              {activeTab === 'infrastructure' && <InfrastructureTab services={services} />}
-              {activeTab === 'services' && <ServicesTab services={services} />}
-            </div>
-          </>
-        )}
-      </main>
-      {/* Footer with Terminal Button */}
-      <footer className="fixed bottom-0 right-0 z-50 p-6">
-        <button
-          className="glass-card rounded-full p-4 shadow-lg border border-white/10 flex items-center justify-center hover:bg-accent/10 transition-all"
-          aria-label="Open Terminal"
-          onClick={() => window.open('/terminal', '_blank')}
-        >
-          <Terminal className="w-6 h-6 text-accent" />
-        </button>
-      </footer>
-    </AppShell>
-  )
-  // End of component
-
-  // Calculate statistics from real data only
-  const avgCpu = metricsHistory.length > 0 
-    ? metricsHistory.reduce((sum, d) => sum + d.cpu, 0) / metricsHistory.length 
-    : 0
-  const avgMemory = metricsHistory.length > 0 
-    ? metricsHistory.reduce((sum, d) => sum + d.memory, 0) / metricsHistory.length 
-    : 0
-  const avgLatency = metricsHistory.length > 0 
-    ? metricsHistory.reduce((sum, d) => sum + d.latency, 0) / metricsHistory.length 
-    : 0
-  const totalRequests = metricsHistory.reduce((sum, d) => sum + (d.requests || 0), 0)
-  const totalErrors = metricsHistory.reduce((sum, d) => sum + (d.errors || 0), 0)
-  const errorRate = totalRequests > 0 ? (totalErrors / totalRequests) * 100 : 0
-
-  // Service distribution data from real metrics only
-  const serviceData = services.length > 0 
-    ? services.map(s => ({ 
-        name: s.service_name || s.name, 
-        value: s.total_requests || s.avgCpu || 0
-      }))
-    : workspaceHealth.length > 0
-    ? workspaceHealth.map(w => ({
+              return (
+                <AppShell>
+                  <main className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-[100vw]">
+                    <PageTitle
+                      title="Metrics"
+                      description="System performance and usage metrics"
+                      icon={<Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+                      className="mb-6"
+                    />
+                    {(!metricsHistory.length && !services.length && !workspaceHealth.length) ? (
+                      <div className="glass-card p-8 sm:p-12 text-center border border-white/10 rounded-lg mx-auto max-w-xl">
+                        <div className="flex justify-center mb-6">
+                          <div className="p-4 glass-card rounded-full border border-accent/30">
+                            <Gauge className="w-12 h-12 text-accent" />
+                          </div>
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-bold mb-3">No metrics available yet</h2>
+                        <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                          Metrics will appear after you deploy, analyze, or interact with your services. Connect a repository or trigger a deployment to start collecting performance data.
+                        </p>
+                        <a href="/deployments" className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
+                          <Rocket className="w-5 h-5 mr-2" />
+                          Go to Deployments
+                        </a>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Quick Stats */}
+                        <motion.div
+                          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                          <QuickStatCard
+                            title="CPU"
+                            value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
+                            icon={Cpu}
+                            subtitle="Avg usage"
+                            color="warning"
+                            delay={0}
+                          />
+                          <QuickStatCard
+                            title="Memory"
+                            value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
+                            icon={Gauge}
+                            subtitle="Working set"
+                            color="warning"
+                            delay={0.1}
+                          />
+                          <QuickStatCard
+                            title="Latency"
+                            value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
+                            icon={Server}
+                            subtitle="Avg response"
+                            color="warning"
+                            delay={0.2}
+                          />
+                          <QuickStatCard
+                            title="Errors"
+                            value={totalErrors}
+                            icon={Rocket}
+                            subtitle="Total errors"
+                            color="danger"
+                            delay={0.3}
+                          />
+                        </motion.div>
+                        {/* Health Banner */}
+                        <HealthBanner score={healthScore} grade={healthGrade} status={healthStatus} className="mb-6" />
+                        {/* Tabs Navigation */}
+                        <TabsNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+                        {/* Tab Content */}
+                        <div className="mt-4">
+                          {activeTab === 'overview' && <OverviewTab metricsHistory={metricsHistory} />}
+                          {activeTab === 'performance' && <PerformanceTab metricsHistory={metricsHistory} />}
+                          {activeTab === 'infrastructure' && <InfrastructureTab services={services} />}
+                          {activeTab === 'services' && <ServicesTab services={services} />}
+                        </div>
+                      </>
+                    )}
+                  </main>
+                  {/* Footer with Terminal Button and Build Version */}
+                  <footer className="fixed bottom-0 right-0 z-50 p-6 flex flex-col items-end gap-2">
+                    <button
+                      className="glass-card rounded-full p-4 shadow-lg border border-white/10 flex items-center justify-center hover:bg-accent/10 transition-all"
+                      aria-label="Open Terminal"
+                      onClick={() => window.open('/terminal', '_blank')}
+                    >
+                      <Terminal className="w-6 h-6 text-accent" />
+                    </button>
+                    <div className="text-[10px] text-zinc-600 bg-zinc-900/80 px-2 py-1 rounded border border-zinc-800">
+                      Build: {BUILD_INFO.buildId.slice(-8)} | {new Date(BUILD_INFO.timestamp).toLocaleTimeString()}
+                    </div>
+                  </footer>
+                </AppShell>
+              )
         name: w.workspace_name || 'Workspace',
         value: w.active_services || 0
       }))
