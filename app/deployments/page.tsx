@@ -272,6 +272,8 @@ export default function DeploymentsPage() {
                       </main>
                     </AppShell>
                   </>
+                );
+                  </>
                             description={`Branch: ${deployment.branch || 'unknown'} • Commit: ${deployment.commit?.slice(0, 7) || 'N/A'}`}
                             timestamp={deployment.created_at}
                             icon={
