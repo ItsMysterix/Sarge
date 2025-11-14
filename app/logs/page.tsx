@@ -30,6 +30,7 @@ import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary
 import { useUserRole } from "@/hooks/useUserRole";
 import { QuickStatCard } from "@/components/ui/quick-stat-card";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function Logs() {
   const t = trpc as any;
