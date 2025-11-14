@@ -252,25 +252,26 @@ export default function DeploymentsPage() {
                         description="Track, monitor, and analyze deployment history"
                         icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
                       />
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <ToastContainer />
-                        {/* ...existing code... */}
-                      </motion.div>
-                    </main>
-                  </AppShell>
-                </>
-              );
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        {items.map((deployment: any, index: number) => (
-                          <TimelineItem
-                            key={deployment.id}
-                            title={deployment.summary || `Deployment #${deployment.id}`}
+                return (
+                  <>
+                    <AppShell>
+                      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
+                        <PageTitle
+                          title="Deployments"
+                          description="Track, monitor, and analyze deployment history"
+                          icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+                        />
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <ToastContainer />
+                          {/* ...existing code... */}
+                        </motion.div>
+                      </main>
+                    </AppShell>
+                  </>
                             description={`Branch: ${deployment.branch || 'unknown'} • Commit: ${deployment.commit?.slice(0, 7) || 'N/A'}`}
                             timestamp={deployment.created_at}
                             icon={
