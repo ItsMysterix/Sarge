@@ -126,9 +126,7 @@ export default function MetricsPage() {
       </footer>
     </AppShell>
   )
-      })))
-    }
-  }, [servicesSummaryQuery.data])
+  // End of component
 
   // Calculate statistics from real data only
   const avgCpu = metricsHistory.length > 0 
