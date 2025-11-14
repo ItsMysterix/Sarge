@@ -36,16 +36,16 @@ export function EmptyState({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-        className="mb-6 p-6 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20"
+        className="mb-6 p-6 rounded-full bg-muted border border-muted-foreground"
       >
-        <Icon className="w-16 h-16 text-blue-500" />
+        <Icon className="w-16 h-16 text-muted-foreground" />
       </motion.div>
 
       <motion.h2
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
+        className="text-3xl font-bold mb-3 text-foreground"
       >
         {title}
       </motion.h2>
@@ -54,7 +54,7 @@ export function EmptyState({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="text-gray-400 max-w-md mb-8 text-lg"
+        className="text-muted-foreground max-w-md mb-8 text-lg"
       >
         {description}
       </motion.p>
