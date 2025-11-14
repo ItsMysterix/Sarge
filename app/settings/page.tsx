@@ -187,12 +187,23 @@ export default function Settings() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <PageTitle
-          title="Settings"
-          description="Application and environment settings"
-          icon={<SettingsIconAlt className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-        />
-        {/* Header removed as requested */}
+        {/* Restored original styled header */}
+        <motion.div 
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <div>
+            <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+              <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
+                <SettingsIconAlt className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />
+              </motion.div>
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">Settings</h1>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-400">Application and environment settings</p>
+          </div>
+        </motion.div>
 
         {/* Tabs Navigation */}
         <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
