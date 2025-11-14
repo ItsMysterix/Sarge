@@ -192,16 +192,7 @@ export default function Settings() {
           description="Application and environment settings"
           icon={<SettingsIconAlt className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
         />
-        {/* Header */}
-        <motion.div className="mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-3 mb-2">
-            <SettingsIcon className="w-8 h-8 text-accent" />
-            <h1 className="text-3xl font-bold">Settings</h1>
-          </div>
-          <p className="text-gray-400">
-            Configure workspace, snapshots, integrations, and notifications
-          </p>
-        </motion.div>
+        {/* Header removed as requested */}
 
         {/* Tabs Navigation */}
         <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
