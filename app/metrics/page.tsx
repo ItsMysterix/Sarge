@@ -33,89 +33,99 @@ export default function MetricsPage() {
   const [currentMetrics, setCurrentMetrics] = useState<any>(null)
   const [services, setServices] = useState<any[]>([])
   const [workspaceHealth, setWorkspaceHealth] = useState<any[]>([])
-  
-  const t = trpc as any
-  const metricsQuery = t.metrics.latest.useQuery(undefined, {
-    refetchInterval: 3000,
-    refetchOnWindowFocus: false,
-  })
-  const servicesSummaryQuery = t.sarge.metrics.getServicesSummary.useQuery()
-  const workspaceHealthQuery = t.sarge.metrics.getWorkspaceHealth.useQuery({})
-  
-  // Check if we have any real data (kept for potential future use)
-  const hasData = metricsHistory.length > 0 || services.length > 0 || workspaceHealth.length > 0
-
-  // Fetch workspace health data
-  useEffect(() => {
-    if (workspaceHealthQuery.data) {
-      setWorkspaceHealth(Array.isArray(workspaceHealthQuery.data) ? workspaceHealthQuery.data : [workspaceHealthQuery.data])
-    }
-  }, [workspaceHealthQuery.data])
-
-  // Fetch services summary
-  useEffect(() => {
-    if (servicesSummaryQuery.data && Array.isArray(servicesSummaryQuery.data)) {
-      setServices(servicesSummaryQuery.data)
-    }
-  }, [servicesSummaryQuery.data])
-
-  // Fetch initial data
-  useEffect(() => {
-    if (metricsQuery.data) {
-      setCurrentMetrics(metricsQuery.data)
-      
-      // Add to history
-      const newPoint: MetricDataPoint = {
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        cpu: metricsQuery.data.cpu || 0,
-        memory: metricsQuery.data.memory || 0,
-        latency: metricsQuery.data.latency || 0,
-        requests: 0, // Will be aggregated from service metrics
-        errors: 0,
-      }
-      
-      setMetricsHistory(prev => {
-        const updated = [...prev, newPoint]
-        // Keep only last N points based on time range
-        const maxPoints = timeRange === '1h' ? 60 : timeRange === '24h' ? 144 : 168
-        return updated.slice(-maxPoints)
-      })
-    }
-  }, [metricsQuery.data, timeRange])
-
-  // Poll for latest metrics to simulate live updates without WebSockets
-  useEffect(() => {
-    if (metricsQuery.data) {
-      const data = metricsQuery.data
-      setCurrentMetrics(data)
-      const newPoint: MetricDataPoint = {
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        cpu: data.cpu_percent || data.cpu || 0,
-        memory: data.memory_mb || data.memory || 0,
-        latency: data.avg_response_ms || data.latency || 0,
-        requests: data.request_count || 0,
-        errors: data.error_count || 0,
-      }
-      setMetricsHistory(prev => {
-        const updated = [...prev, newPoint]
-        const maxPoints = timeRange === '1h' ? 60 : timeRange === '24h' ? 144 : 168
-        return updated.slice(-maxPoints)
-      })
-    }
-  }, [metricsQuery.data, timeRange])
-
-  // Derive services data from real metrics via tRPC only
-  useEffect(() => {
-    if (servicesSummaryQuery.data && servicesSummaryQuery.data.length > 0) {
-      setServices(servicesSummaryQuery.data.map((metric: any) => ({
-        name: metric.service_name,
-        status: metric.status,
-        port: metric.port,
-        avgCpu: parseFloat(metric.avg_cpu || 0),
-        avgMemory: parseFloat(metric.avg_memory || 0),
-        totalRequests: parseInt(metric.total_requests || 0),
-        totalErrors: parseInt(metric.total_errors || 0),
-        avgResponse: parseFloat(metric.avg_response || 0),
+  return (
+    <AppShell>
+      <main className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-[100vw]">
+        <PageTitle
+          title="Metrics"
+          description="System performance and usage metrics"
+          icon={<Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          className="mb-6"
+        />
+        {(!metricsHistory.length && !services.length && !workspaceHealth.length) ? (
+          <div className="glass-card p-8 sm:p-12 text-center border border-white/10 rounded-lg mx-auto max-w-xl">
+            <div className="flex justify-center mb-6">
+              <div className="p-4 glass-card rounded-full border border-accent/30">
+                <Gauge className="w-12 h-12 text-accent" />
+              </div>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-3">No metrics available yet</h2>
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              Metrics will appear after you deploy, analyze, or interact with your services. Connect a repository or trigger a deployment to start collecting performance data.
+            </p>
+            <a href="/deployments" className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
+              <Rocket className="w-5 h-5 mr-2" />
+              Go to Deployments
+            </a>
+          </div>
+        ) : (
+          <>
+            {/* Quick Stats */}
+            <motion.div
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <QuickStatCard
+                title="CPU"
+                value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
+                icon={Cpu}
+                subtitle="Avg usage"
+                color="warning"
+                delay={0}
+              />
+              <QuickStatCard
+                title="Memory"
+                value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
+                icon={Gauge}
+                subtitle="Working set"
+                color="warning"
+                delay={0.1}
+              />
+              <QuickStatCard
+                title="Latency"
+                value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
+                icon={Server}
+                subtitle="Avg response"
+                color="warning"
+                delay={0.2}
+              />
+              <QuickStatCard
+                title="Errors"
+                value={totalErrors}
+                icon={Rocket}
+                subtitle="Total errors"
+                color="danger"
+                delay={0.3}
+              />
+            </motion.div>
+            {/* Health Banner */}
+            <HealthBanner score={healthScore} grade={healthGrade} status={healthStatus} className="mb-6" />
+            {/* Tabs Navigation */}
+            <TabsNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+            {/* Tab Content */}
+            <div className="mt-4">
+              {activeTab === 'overview' && <OverviewTab metricsHistory={metricsHistory} />}
+              {activeTab === 'performance' && <PerformanceTab metricsHistory={metricsHistory} />}
+              {activeTab === 'infrastructure' && <InfrastructureTab services={services} />}
+              {activeTab === 'services' && <ServicesTab services={services} />}
+            </div>
+          </>
+        )}
+      </main>
+      {/* Footer with Terminal Button */}
+      <footer className="fixed bottom-0 right-0 z-50 p-6">
+        <button
+          className="glass-card rounded-full p-4 shadow-lg border border-white/10 flex items-center justify-center hover:bg-accent/10 transition-all"
+          aria-label="Open Terminal"
+          onClick={() => window.open('/terminal', '_blank')}
+        >
+          <Terminal className="w-6 h-6 text-accent" />
+        </button>
+      </footer>
+    </AppShell>
+  )
       })))
     }
   }, [servicesSummaryQuery.data])
