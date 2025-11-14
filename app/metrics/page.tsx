@@ -318,7 +318,7 @@ export default function MetricsPage() {
         <div className="fixed bottom-2 right-2 text-[10px] text-zinc-600 bg-zinc-900/80 px-2 py-1 rounded border border-zinc-800">
           Build: {BUILD_INFO.buildId.slice(-8)} | {new Date(BUILD_INFO.timestamp).toLocaleTimeString()}
         </div>
-      </motion.main>
+      </main>
     </AppShell>
   )
 }
