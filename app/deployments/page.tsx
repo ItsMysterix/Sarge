@@ -243,25 +243,27 @@ export default function DeploymentsPage() {
                     </motion.div>
                   </CardBody>
                 </Card>
-              ) : (
-                <Card>
-                  <CardBody>
-                    {viewMode === "list" ? (
-                      <motion.div
+              return (
+                <>
+                  <AppShell>
+                    <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
+                      <PageTitle
+                        title="Deployments"
+                        description="Track, monitor, and analyze deployment history"
+                        icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+                      />
+                      <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
                       >
-                        <ListView
-                          items={items as any[]}
-                          onView={(id) => router.push(`/deployments/${id}`)}
-                          onLogs={(id) => router.push(`/deployments/${id}#logs`)}
-                        />
+                        <ToastContainer />
+                        {/* ...existing code... */}
                       </motion.div>
-                    ) : (
-                      <motion.div
-                        className="space-y-4 p-4"
-                        initial={{ opacity: 0 }}
+                    </main>
+                  </AppShell>
+                </>
+              );
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                       >
