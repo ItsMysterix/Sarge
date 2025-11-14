@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = 'force-dynamic'
 
+import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary";
 import type React from "react";
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -26,7 +27,6 @@ import { useToast } from "@/components/ui/toast";
 import { formatDistanceToNow } from "date-fns";
 import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
-import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary";
 import { useUserRole } from "@/hooks/useUserRole";
 import { QuickStatCard } from "@/components/ui/quick-stat-card";
 import { FilterBar } from "@/components/ui/filter-bar";
