@@ -33,8 +33,7 @@ export default function MetricsPage() {
   const [currentMetrics, setCurrentMetrics] = useState<any>(null)
   const [services, setServices] = useState<any[]>([])
   const [workspaceHealth, setWorkspaceHealth] = useState<any[]>([])
-  // ...existing hooks and logic...
-  // Only one return statement below
+  /* existing hooks and logic */
   return (
     <AppShell>
       <main className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-[100vw]">
