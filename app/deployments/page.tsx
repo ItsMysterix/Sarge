@@ -85,17 +85,17 @@ export default function DeploymentsPage() {
 
   return (
     <AppShell>
-      <PageTitle
-        title="Deployments"
-        description="Track, monitor, and analyze deployment history"
-        icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-      />
-      <motion.main 
-        className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
+        <PageTitle
+          title="Deployments"
+          description="Track, monitor, and analyze deployment history"
+          icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+        />
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
           <ToastContainer />
 
           {/* Quick Stats */}
@@ -193,9 +193,9 @@ export default function DeploymentsPage() {
                   title="No Deployments Yet"
                   description="Start deploying your applications with automated setup, dependency installation, and service management."
                   actionLabel="Start Deploying"
-                  onAction={() => router.push('/oneclick')}
+                  actionHref="/oneclick"
                   secondaryActionLabel="Learn More"
-                  onSecondaryAction={() => router.push('/docs')}
+                  secondaryActionHref="/docs"
                 >
                   <OnboardingSteps
                     steps={[
