@@ -163,31 +163,28 @@ export default function MetricsPage() {
 
   return (
     <AppShell>
-      <motion.main 
-        className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <main className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-[100vw]">
         <PageTitle
           title="Metrics"
           description="System performance and usage metrics"
           icon={<Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          className="mb-6"
         />
         {(!metricsHistory.length && !services.length && !workspaceHealth.length) ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Gauge className="w-16 h-16 mb-4 text-accent/30" />
-            <h2 className="text-2xl font-bold mb-2 text-white">No Metrics Yet</h2>
-            <p className="text-gray-400 mb-4 max-w-md text-center">
-              Metrics will appear here after you deploy, analyze, or interact with your services.<br />
-              Connect a repository or trigger a deployment to start collecting performance data.
+          <div className="glass-card p-8 sm:p-12 text-center border border-white/10 rounded-lg mx-auto max-w-xl">
+            <div className="flex justify-center mb-6">
+              <div className="p-4 glass-card rounded-full border border-accent/30">
+                <Gauge className="w-12 h-12 text-accent" />
+              </div>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-3">No metrics available yet</h2>
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              Metrics will appear after you deploy, analyze, or interact with your services. Connect a repository or trigger a deployment to start collecting performance data.
             </p>
-            <button
-              className="px-6 py-3 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition"
-              onClick={() => window.location.href = '/deployments'}
-            >
+            <a href="/deployments" className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
+              <Rocket className="w-5 h-5 mr-2" />
               Go to Deployments
-            </button>
+            </a>
           </div>
         ) : (
           <>
