@@ -328,152 +328,138 @@ export default function Overview() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
         >
-            {/* Page title for Workspace Overview - placed above connect banner */}
-            <PageTitle
-              title="Workspace Overview"
-              description="Your local infrastructure runtime—offline, deterministic, and production-ready"
-              icon={<Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-              actions={
-                <div className="flex items-center gap-3">
-                  <button onClick={handleRefresh} className="px-3 py-2 rounded-lg glass-card text-accent hover:bg-accent/20">⟲</button>
-                  <button onClick={handleQuickDeploy} className="px-4 py-2 bg-accent text-black rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-2">
-                    <Play className="w-4 h-4" /> Quick Deploy
-                  </button>
-                </div>
-              }
-            />
-
-            {/* Connect Repository Section (kept below title) */}
-            <GitHubActivity 
-              repository={repository} 
-              loading={repoLoading}
-              onConnectClick={() => setShowConnectModal(true)}
-            />
-
-            {/* Quick Stats Overview - Responsive Grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6"
-            >
-              <QuickStatCard
-                title="System Health"
-                value="—"
-                icon={Shield}
-                color="success"
-                subtitle="Coming Soon"
-                onClick={() => router.push("/services")}
-                delay={0.1}
-              />
-              <QuickStatCard
-                title="Active Services"
-                value="—"
-                icon={Server}
-                color="accent"
-                subtitle="Deploy to track"
-                onClick={() => router.push("/services")}
-                delay={0.15}
-              />
-              <QuickStatCard
-                title="Deployments Today"
-                value="0"
-                icon={Zap}
-                color="warning"
-                subtitle="Start your first deploy"
-                onClick={() => router.push("/deployments")}
-                delay={0.2}
-              />
-              <QuickStatCard
-                title="API Latency"
-                value="—"
-                icon={Activity}
-                color="success"
-                subtitle="Metrics coming soon"
-                onClick={() => router.push("/logs")}
-                delay={0.25}
-              />
-            </motion.div>
-
-            <QuickActionsPanel
-              userRole={userRole}
-              onDeploy={handleQuickDeploy}
-              onRollback={handleRollback}
-              onViewLogs={handleViewLogs}
-              onRefresh={handleRefresh}
-            />
-
-            {/* Dev-only: Test deployment button */}
-            {process.env.NODE_ENV === 'development' && !lastDeployment && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
-              >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-blue-400">Development Mode</h3>
-                    <p className="text-xs text-gray-400">Create a test deployment to enable Quick Deploy</p>
-                  </div>
-                  <button
-                    onClick={handleTestDeploy}
-                    disabled={isDeploying}
-                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {isDeploying ? 'Creating...' : 'Create Test Deployment'}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            <motion.div 
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              <div>
-                <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                  <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
-                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />
-                  </motion.div>
-                  <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">Workspace Overview</h1>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-400">Your local infrastructure runtime—offline, deterministic, and production-ready</p>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 w-full sm:w-auto">
-                <motion.button 
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  title="Refresh Metrics"
-                  whileHover={{ scale: 1.1, rotate: 180 }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
-                  className="p-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                >
-                  <RefreshCcw className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-white ${isRefreshing ? 'animate-spin' : ''}`} />
-                </motion.button>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex-1 sm:flex-initial"
-                >
-                  <LoadingButton
-                    loading={isDeploying}
-                    loadingText="Deploying..."
-                    onClick={handleQuickDeploy}
-                    className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-xs sm:text-sm md:text-base text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center justify-center font-medium backdrop-blur-sm"
-                  >
-                    <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
-                    <span>Quick Deploy</span>
-                  </LoadingButton>
+          {/* Workspace Overview header moved to top, above connect repo */}
+          <motion.div 
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div>
+              <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
+                  <Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />
                 </motion.div>
+                <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">Workspace Overview</h1>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-400">Your local infrastructure runtime—offline, deterministic, and production-ready</p>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 w-full sm:w-auto">
+              <motion.button 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                title="Refresh Metrics"
+                whileHover={{ scale: 1.1, rotate: 180 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ duration: 0.3 }}
+                className="p-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                <RefreshCcw className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+              </motion.button>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex-1 sm:flex-initial"
+              >
+                <LoadingButton
+                  loading={isDeploying}
+                  loadingText="Deploying..."
+                  onClick={handleQuickDeploy}
+                  className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-xs sm:text-sm md:text-base text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center justify-center font-medium backdrop-blur-sm"
+                >
+                  <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
+                  <span>Quick Deploy</span>
+                </LoadingButton>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Connect Repository Section (kept below title) */}
+          <GitHubActivity 
+            repository={repository} 
+            loading={repoLoading}
+            onConnectClick={() => setShowConnectModal(true)}
+          />
+
+          {/* Quick Stats Overview - Responsive Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6"
+          >
+            <QuickStatCard
+              title="System Health"
+              value="—"
+              icon={Shield}
+              color="success"
+              subtitle="Coming Soon"
+              onClick={() => router.push("/services")}
+              delay={0.1}
+            />
+            <QuickStatCard
+              title="Active Services"
+              value="—"
+              icon={Server}
+              color="accent"
+              subtitle="Deploy to track"
+              onClick={() => router.push("/services")}
+              delay={0.15}
+            />
+            <QuickStatCard
+              title="Deployments Today"
+              value="0"
+              icon={Zap}
+              color="warning"
+              subtitle="Start your first deploy"
+              onClick={() => router.push("/deployments")}
+              delay={0.2}
+            />
+            <QuickStatCard
+              title="API Latency"
+              value="—"
+              icon={Activity}
+              color="success"
+              subtitle="Metrics coming soon"
+              onClick={() => router.push("/logs")}
+              delay={0.25}
+            />
+          </motion.div>
+
+          <QuickActionsPanel
+            userRole={userRole}
+            onDeploy={handleQuickDeploy}
+            onRollback={handleRollback}
+            onViewLogs={handleViewLogs}
+            onRefresh={handleRefresh}
+          />
+
+          {/* Dev-only: Test deployment button */}
+          {process.env.NODE_ENV === 'development' && !lastDeployment && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold text-blue-400">Development Mode</h3>
+                  <p className="text-xs text-gray-400">Create a test deployment to enable Quick Deploy</p>
+                </div>
+                <button
+                  onClick={handleTestDeploy}
+                  disabled={isDeploying}
+                  className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  {isDeploying ? 'Creating...' : 'Create Test Deployment'}
+                </button>
               </div>
             </motion.div>
+          )}
 
-            <MetricsCard metrics={metrics} loading={metricsLoading || isRefreshing} />
-            <LiveLogs logs={logs} />
+          <MetricsCard metrics={metrics} loading={metricsLoading || isRefreshing} />
+          <LiveLogs logs={logs} />
         </motion.main>
       </AppShell>
       <KeyboardShortcuts shortcuts={keyboardShortcuts} />
