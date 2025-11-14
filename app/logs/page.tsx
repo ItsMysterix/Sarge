@@ -1,7 +1,6 @@
 "use client";
 export const dynamic = 'force-dynamic'
 
-import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary";
 import type React from "react";
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -27,6 +26,7 @@ import { useToast } from "@/components/ui/toast";
 import { formatDistanceToNow } from "date-fns";
 import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
+import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary";
 import { useUserRole } from "@/hooks/useUserRole";
 import { QuickStatCard } from "@/components/ui/quick-stat-card";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -514,25 +514,25 @@ export default function Logs() {
                         </label>
                       </div>
                     </motion.div>
-                  return (
-                    <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
-                      <AppShell>
-                        <ToastContainer />
-                        <PageTitle
-                          title="Logs"
-                          description="View, filter, and export logs from your local runtime"
-                          icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-                        />
-                        <motion.main
-                          className="flex-1 overflow-auto"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.5 }}
-                        >
-                          {/* ...existing code... */}
-                        </motion.main>
-                      </AppShell>
-                    </AnimationErrorBoundary>
+                  ) : (
+                    <motion.div 
+                      className="space-y-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {filteredLogs.map((log: any, i: number) => {
+                        const isBookmarked = bookmarkedLogs.has(log.id);
+                        return (
+                          <motion.div
+                            key={log.id || i}
+                            className={`glass-card border-l-4 ${getLevelBorderColor(log.type)} p-3 hover:bg-white/5 transition-colors group relative`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3, delay: Math.min(i * 0.02, 0.5) }}
+                            whileHover={{ scale: 1.01, x: 2 }}
+                          >
                             <div className="flex items-start justify-between space-x-3">
                               <div className="flex items-start space-x-3 flex-1">
                                 <div className="flex items-center space-x-2 w-20 flex-shrink-0">
