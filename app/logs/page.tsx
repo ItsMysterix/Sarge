@@ -268,15 +268,14 @@ export default function Logs() {
     <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
       <AppShell>
         <ToastContainer />
-        <div className="mb-6">
-          <PageTitle
-            title="Live Logs"
-            description="Streaming runtime logs across services"
-            icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          />
-        </div>
+        <PageTitle
+          title="Live Logs"
+          description="Streaming runtime logs across services"
+          icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          className="mb-6"
+        />
         <motion.main 
-          className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
+          className="flex-1 p-3 sm:p-4 md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
@@ -451,8 +450,7 @@ export default function Logs() {
 
             {/* Log Display */}
             <motion.div 
-              className="flex-1 glass-card border border-white/10 rounded-lg overflow-hidden flex flex-col"
-              style={{ height: "calc(100vh - 550px)", minHeight: "400px" }}
+              className="glass-card border border-white/10 rounded-lg flex flex-col"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
