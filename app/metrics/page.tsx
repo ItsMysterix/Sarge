@@ -312,7 +312,7 @@ export default function MetricsPage() {
                     currentMetrics={currentMetrics}
                     avgCpu={avgCpu}
                     avgMemory={avgMemory}
-                  />
+            }
                 )}
                 {activeTab === 'services' && (
                   <ServicesTab
