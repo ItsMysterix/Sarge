@@ -30,87 +30,58 @@ export default function AWSEmulationPage() {
   }, [])
 
   const services = [
-    { 
-      id: "s3", 
-      name: "S3", 
-      icon: Database, 
-      description: "Object storage—buckets, objects, versioning",
-      count: summaryQuery.data?.s3?.bucketCount || 0,
-      detail: `${formatBytes(summaryQuery.data?.s3?.totalSizeBytes || 0)} total`
-    },
-    { 
-      id: "dynamo", 
-      name: "DynamoDB", 
-      icon: Database, 
-      description: "NoSQL tables with key-value & document models",
-      count: summaryQuery.data?.dynamodb?.tableCount || 0,
-      detail: `${summaryQuery.data?.dynamodb?.totalItems || 0} items`
-    },
-    { 
-      id: "lambda", 
-      name: "Lambda", 
-      icon: Zap, 
-      description: "Run functions locally—invoke, logs, cold starts",
-      count: summaryQuery.data?.lambda?.functionCount || 0,
-      detail: `${summaryQuery.data?.lambda?.invocationsLast24h || 0} invocations (24h)`
-    },
-    { 
-      id: "iam", 
-      name: "IAM", 
-      icon: Shield, 
-      description: "Policy evaluation—deny-by-default access control",
-      count: summaryQuery.data?.iam?.roleCount || 0,
-      detail: "Roles & policies"
-    },
-    { 
-      id: "cloudwatch", 
-      name: "CloudWatch", 
-      icon: Activity, 
-      description: "Logs & metrics sink for all services",
-      count: summaryQuery.data?.cloudwatch?.logGroupCount || 0,
-      detail: "Log groups"
-    },
-  ]
+    // ...existing code...
+  ];
 
   return (
     <AppShell>
-      <PageTitle
-        title="AWS Overview"
-        description="Simulated AWS environment & resource detection"
-        icon={<Cloud className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-      />
-      <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
-          {/* Tabs for AWS Services */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="glass-card border border-white/10 p-1 mb-6 flex-wrap h-auto">
-              {services.map((svc) => (
-                <TabsTrigger
-                  key={svc.id}
-                  value={svc.id}
-                  className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent data-[state=active]:border-accent/30 flex items-center gap-2 px-3 sm:px-4 py-2"
-                >
-                  <svc.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{svc.name}</span>
-                  <span className="sm:hidden">{svc.id.toUpperCase()}</span>
-                  <span className="ml-1 text-xs bg-accent/20 px-1.5 py-0.5 rounded">{svc.count}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {/* S3 Tab */}
-            <TabsContent value="s3">
-              <S3Content buckets={s3Query.data || []} loading={s3Query.isLoading && !showEmptyStates} />
-            </TabsContent>
-
-            {/* DynamoDB Tab */}
-            <TabsContent value="dynamo">
-              <DynamoDBContent tables={dynamoQuery.data || []} loading={dynamoQuery.isLoading && !showEmptyStates} />
-            </TabsContent>
-
-            {/* Lambda Tab */}
-            <TabsContent value="lambda">
-              <LambdaContent functions={lambdaQuery.data || []} loading={lambdaQuery.isLoading && !showEmptyStates} />
-            </TabsContent>
+      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
+        <PageTitle
+          title="AWS Overview"
+          description="Simulated AWS environment & resource detection"
+          icon={<Cloud className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          className="mb-6"
+        />
+        {/* Tabs for AWS Services */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="glass-card border border-white/10 p-1 mb-6 flex-wrap h-auto">
+            {services.map((svc) => (
+              <TabsTrigger
+                key={svc.id}
+                value={svc.id}
+                className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent data-[state=active]:border-accent/30 flex items-center gap-2 px-3 sm:px-4 py-2"
+              >
+                <svc.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{svc.name}</span>
+                <span className="sm:hidden">{svc.id.toUpperCase()}</span>
+                <span className="ml-1 text-xs bg-accent/20 px-1.5 py-0.5 rounded">{svc.count}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {/* S3 Tab */}
+          <TabsContent value="s3">
+            <S3Content buckets={s3Query.data || []} loading={s3Query.isLoading && !showEmptyStates} />
+          </TabsContent>
+          {/* DynamoDB Tab */}
+          <TabsContent value="dynamo">
+            <DynamoDBContent tables={dynamoQuery.data || []} loading={dynamoQuery.isLoading && !showEmptyStates} />
+          </TabsContent>
+          {/* Lambda Tab */}
+          <TabsContent value="lambda">
+            <LambdaContent functions={lambdaQuery.data || []} loading={lambdaQuery.isLoading && !showEmptyStates} />
+          </TabsContent>
+          {/* IAM Tab */}
+          <TabsContent value="iam">
+            <IAMContent roles={iamQuery.data || []} loading={iamQuery.isLoading && !showEmptyStates} />
+          </TabsContent>
+          {/* CloudWatch Tab */}
+          <TabsContent value="cloudwatch">
+            <CloudWatchContent logGroups={cwQuery.data || []} loading={cwQuery.isLoading && !showEmptyStates} />
+          </TabsContent>
+        </Tabs>
+      </main>
+    </AppShell>
+  );
 
             {/* IAM Tab */}
             <TabsContent value="iam">

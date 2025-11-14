@@ -247,22 +247,16 @@ export default function Logs() {
             title="Live Logs"
             description="Streaming runtime logs across services"
             icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+            className="mb-6"
           />
-          <main className="flex-1 p-6 flex items-center justify-center">
-            <div className="text-center">
-                <motion.div 
-                  className="rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                />
-                <motion.p 
-                  className="text-gray-400"
-                  animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                >
-                  Loading logs...
-                </motion.p>
-            </div>
+          <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw] flex items-center justify-center">
+            <EmptyState 
+              service="Logs"
+              icon={ScrollText}
+              description="No logs found. Logs will appear after you deploy, analyze, or interact with your services. You can also upload log files or trigger a deployment to generate activity."
+              actionLabel="Go to Deployments"
+              actionHref="/deployments"
+            />
           </main>
         </AppShell>
       </AnimationErrorBoundary>
@@ -277,6 +271,7 @@ export default function Logs() {
           title="Live Logs"
           description="Streaming runtime logs across services"
           icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          className="mb-6"
         />
         <motion.main 
           className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"
@@ -478,42 +473,13 @@ export default function Logs() {
               <div className="flex-1 overflow-y-auto p-4 terminal-text text-sm bg-black/10">
                 <AnimatePresence mode="wait">
                   {filteredLogs.length === 0 ? (
-                    <motion.div 
-                      className="text-center text-gray-400 py-8 flex flex-col items-center justify-center"
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                    >
-                      <motion.div
-                        animate={{ y: [0, -10, 0] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="mb-4"
-                      >
-                        <ScrollText className="w-12 h-12 mx-auto text-accent/30" />
-                      </motion.div>
-                      <h2 className="text-lg font-semibold text-white mb-2">No logs found</h2>
-                      <p className="text-gray-400 mb-4 max-w-md mx-auto">
-                        Your workspace doesn't have any logs yet. Logs will appear here after you deploy, analyze, or interact with your services.<br />
-                        <span className="block mt-2">You can also upload log files or trigger a deployment to generate activity.</span>
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                        <button
-                          onClick={handleClearFilters}
-                          className="px-4 py-2 rounded bg-accent/10 text-accent hover:bg-accent/20 transition"
-                        >
-                          Clear filters
-                        </button>
-                        <label className="px-4 py-2 rounded bg-accent/10 text-accent hover:bg-accent/20 transition cursor-pointer">
-                          Upload logs
-                          <input
-                            type="file"
-                            accept=".json,.txt"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </motion.div>
+                    <EmptyState 
+                      service="Logs"
+                      icon={ScrollText}
+                      description="No logs found. Logs will appear after you deploy, analyze, or interact with your services. You can also upload log files or trigger a deployment to generate activity."
+                      actionLabel="Go to Deployments"
+                      actionHref="/deployments"
+                    />
                   ) : (
                     <motion.div 
                       className="space-y-2"
