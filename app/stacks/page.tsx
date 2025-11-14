@@ -80,23 +80,23 @@ export default function StacksPage() {
           title="Stacks"
           description="Infrastructure and service stacks"
           icon={<Layers className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          actions={
+            <button className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center ml-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Stack
+            </button>
+          }
         />
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-8"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <button className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center ml-auto">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Stack
-              </button>
-            </div>
-            <p className="text-sm sm:text-base text-gray-400">
-              {stacks.length} stack{stacks.length !== 1 ? 's' : ''}
-            </p>
-          </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-6 sm:mb-8"
+        >
+          <p className="text-sm sm:text-base text-gray-400">
+            {stacks.length} stack{stacks.length !== 1 ? 's' : ''}
+          </p>
+        </motion.div>
 
           {/* Loading State */}
           {stacksQuery.isLoading && !showEmptyState && (

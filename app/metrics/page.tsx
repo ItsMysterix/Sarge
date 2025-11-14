@@ -174,137 +174,149 @@ export default function MetricsPage() {
           description="System performance and usage metrics"
           icon={<Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
         />
-        {/* Quick Stats - Always show even with empty state */}
-        <motion.div
-          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <QuickStatCard
-            title="CPU"
-            value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
-            icon={Cpu}
-            subtitle="Avg usage"
-            color="warning"
-            delay={0}
-          />
-          <QuickStatCard
-            title="Memory"
-            value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
-            icon={Gauge}
-            subtitle="Working set"
-            color="accent"
-            delay={0.1}
-          />
-          <QuickStatCard
-            title="Latency"
-            value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
-            icon={Rocket}
-            subtitle="P95 response"
-            color="success"
-            delay={0.2}
-          />
-          <QuickStatCard
-            title="Services"
-            value={services.length.toString()}
-            icon={Server}
-            subtitle="Tracked" 
-            color="accent"
-            delay={0.3}
-          />
-        </motion.div>
-
-        {/* Main content (visible even if there's no data) */}
-        <>
-            {/* Health Score Banner - Only on Overview */}
-            {activeTab === 'overview' && (
+        {(!metricsHistory.length && !services.length && !workspaceHealth.length) ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Gauge className="w-16 h-16 mb-4 text-accent/30" />
+            <h2 className="text-2xl font-bold mb-2 text-white">No Metrics Yet</h2>
+            <p className="text-gray-400 mb-4 max-w-md text-center">
+              Metrics will appear here after you deploy, analyze, or interact with your services.<br />
+              Connect a repository or trigger a deployment to start collecting performance data.
+            </p>
+            <button
+              className="px-6 py-3 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition"
+              onClick={() => window.location.href = '/deployments'}
+            >
+              Go to Deployments
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Quick Stats */}
+            <motion.div
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <QuickStatCard
+                title="CPU"
+                value={`${currentMetrics?.cpu_percent || currentMetrics?.cpu || 0}%`}
+                icon={Cpu}
+                subtitle="Avg usage"
+                color="warning"
+                delay={0}
+              />
+              <QuickStatCard
+                title="Memory"
+                value={`${currentMetrics?.memory_mb || currentMetrics?.memory || 0}MB`}
+                icon={Gauge}
+                subtitle="Working set"
+                color="accent"
+                delay={0.1}
+              />
+              <QuickStatCard
+                title="Latency"
+                value={`${currentMetrics?.avg_response_ms || currentMetrics?.latency || 0}ms`}
+                icon={Rocket}
+                subtitle="P95 response"
+                color="success"
+                delay={0.2}
+              />
+              <QuickStatCard
+                title="Services"
+                value={services.length.toString()}
+                icon={Server}
+                subtitle="Tracked" 
+                color="accent"
+                delay={0.3}
+              />
+            </motion.div>
+            {/* Main content */}
+            <>
+              {/* Health Score Banner - Only on Overview */}
+              {activeTab === 'overview' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="mb-6"
+                >
+                  <HealthBanner 
+                    healthScore={healthScore} 
+                    healthStatus={healthStatus} 
+                    healthGrade={healthGrade} 
+                  />
+                </motion.div>
+              )}
+              {/* Time Range Selector + Tabs */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="mb-6"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
               >
-                <HealthBanner 
-                  healthScore={healthScore} 
-                  healthStatus={healthStatus} 
-                  healthGrade={healthGrade} 
-                />
+                <div className="flex gap-2">
+                  {(['1h', '24h', '7d'] as const).map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all ${
+                        timeRange === range
+                          ? 'bg-accent/20 text-accent border border-accent/30'
+                          : 'glass-card text-gray-400 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      {range.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex-1 sm:flex-none">
+                  <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+                </div>
               </motion.div>
-            )}
-
-            {/* Time Range Selector + Tabs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
-            >
-              <div className="flex gap-2">
-                {(['1h', '24h', '7d'] as const).map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setTimeRange(range)}
-                    className={`px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-all ${
-                      timeRange === range
-                        ? 'bg-accent/20 text-accent border border-accent/30'
-                        : 'glass-card text-gray-400 hover:text-white border border-white/10'
-                    }`}
-                  >
-                    {range.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <div className="flex-1 sm:flex-none">
-                <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-              </div>
-            </motion.div>
-
-            {/* Tab Content */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              {activeTab === 'overview' && (
-                <OverviewTab
-                  displayData={metricsHistory}
-                  currentMetrics={currentMetrics}
-                  avgCpu={avgCpu}
-                  avgMemory={avgMemory}
-                  avgLatency={avgLatency}
-                  totalRequests={totalRequests}
-                />
-              )}
-
-              {activeTab === 'performance' && (
-                <PerformanceTab
-                  displayData={metricsHistory}
-                  avgLatency={avgLatency}
-                  totalRequests={totalRequests}
-                  errorRate={errorRate}
-                  totalErrors={totalErrors}
-                />
-              )}
-
-              {activeTab === 'infrastructure' && (
-                <InfrastructureTab
-                  displayData={metricsHistory}
-                  currentMetrics={currentMetrics}
-                  avgCpu={avgCpu}
-                  avgMemory={avgMemory}
-                />
-              )}
-
-              {activeTab === 'services' && (
-                <ServicesTab
-                  services={services}
-                  serviceData={serviceData}
-                />
-              )}
-            </motion.div>
+              {/* Tab Content */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                {activeTab === 'overview' && (
+                  <OverviewTab
+                    displayData={metricsHistory}
+                    currentMetrics={currentMetrics}
+                    avgCpu={avgCpu}
+                    avgMemory={avgMemory}
+                    avgLatency={avgLatency}
+                    totalRequests={totalRequests}
+                  />
+                )}
+                {activeTab === 'performance' && (
+                  <PerformanceTab
+                    displayData={metricsHistory}
+                    avgLatency={avgLatency}
+                    totalRequests={totalRequests}
+                    errorRate={errorRate}
+                    totalErrors={totalErrors}
+                  />
+                )}
+                {activeTab === 'infrastructure' && (
+                  <InfrastructureTab
+                    displayData={metricsHistory}
+                    currentMetrics={currentMetrics}
+                    avgCpu={avgCpu}
+                    avgMemory={avgMemory}
+                  />
+                )}
+                {activeTab === 'services' && (
+                  <ServicesTab
+                    services={services}
+                    serviceData={serviceData}
+                  />
+                )}
+              </motion.div>
+            </>
           </>
-        
+        )}
         {/* Build Version Indicator */}
         <div className="fixed bottom-2 right-2 text-[10px] text-zinc-600 bg-zinc-900/80 px-2 py-1 rounded border border-zinc-800">
           Build: {BUILD_INFO.buildId.slice(-8)} | {new Date(BUILD_INFO.timestamp).toLocaleTimeString()}
