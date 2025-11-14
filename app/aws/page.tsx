@@ -82,20 +82,6 @@ export default function AWSEmulationPage() {
       </main>
     </AppShell>
   );
-
-            {/* IAM Tab */}
-            <TabsContent value="iam">
-              <IAMContent roles={iamQuery.data || []} loading={iamQuery.isLoading && !showEmptyStates} />
-            </TabsContent>
-
-            {/* CloudWatch Tab */}
-            <TabsContent value="cloudwatch">
-              <CloudWatchContent logGroups={cwQuery.data || []} loading={cwQuery.isLoading && !showEmptyStates} />
-            </TabsContent>
-          </Tabs>
-      </main>
-    </AppShell>
-  )
 }
 
 // Helper Components
