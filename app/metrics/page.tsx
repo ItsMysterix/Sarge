@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { AppShell } from "@/components/layout/app-shell"
 import { PageTitle } from '@/components/layout/page-title';
 import { Rocket, Cpu, Server, Gauge } from "lucide-react"
+import { Activity } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { trpc } from "@/lib/trpc"
