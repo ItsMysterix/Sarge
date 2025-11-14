@@ -9,11 +9,11 @@ export default function OneClickPage() {
   return (
     <AppShell>
       <PageTitle
-        title="One‑Click Deploy"
+        title="OneClick Deploy"
         description="Analyze your repository and launch infrastructure instantly"
         icon={<Zap className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
       />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-5xl">
           <AutoDeploy />
         </div>
