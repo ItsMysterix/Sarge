@@ -97,7 +97,6 @@ export default function DeploymentsPage() {
           transition={{ duration: 0.5 }}
         >
           <ToastContainer />
-
           {/* Quick Stats */}
           <motion.div
             className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
@@ -140,7 +139,6 @@ export default function DeploymentsPage() {
               delay={0.3}
             />
           </motion.div>
-
           {/* Filter Bar */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -157,7 +155,6 @@ export default function DeploymentsPage() {
               onClearFilters={handleClearFilters}
             />
           </motion.div>
-
           {/* Content */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -243,71 +240,13 @@ export default function DeploymentsPage() {
                     </motion.div>
                   </CardBody>
                 </Card>
-              return (
-                <>
-                  <AppShell>
-                    <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
-                      <PageTitle
-                        title="Deployments"
-                        description="Track, monitor, and analyze deployment history"
-                        icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-                      />
-                return (
-                  <>
-                    <AppShell>
-                      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
-                        <PageTitle
-                          title="Deployments"
-                          description="Track, monitor, and analyze deployment history"
-                          icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-                        />
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.5 }}
-                        >
-                          <ToastContainer />
-                          {/* ...existing code... */}
-                        </motion.div>
-                      </main>
-                    </AppShell>
-                  </>
-                );
-                  </>
-                            description={`Branch: ${deployment.branch || 'unknown'} • Commit: ${deployment.commit?.slice(0, 7) || 'N/A'}`}
-                            timestamp={deployment.created_at}
-                            icon={
-                              deployment.status === 'success' ? CheckCircle2 :
-                              deployment.status === 'failed' ? XCircle :
-                              deployment.status === 'running' ? PlayCircle :
-                              Clock
-                            }
-                            status={deployment.status}
-                            metadata={[
-                              { label: "Started", value: deployment.created_at?.slice(0, 19).replace('T', ' ') || '-' },
-                              { label: "Updated", value: deployment.updated_at?.slice(0, 19).replace('T', ' ') || '-' },
-                              { label: "Branch", value: deployment.branch || '-' },
-                              { label: "Commit", value: deployment.commit?.slice(0, 7) || '-' },
-                            ]}
-                            actions={[
-                              { label: "View Details", onClick: () => router.push(`/deployments/${deployment.id}`) },
-                              { label: "View Logs", onClick: () => router.push(`/deployments/${deployment.id}#logs`) },
-                              ...(deployment.status === 'failed' ? [
-                                { label: "Rollback", onClick: () => console.log('Rollback', deployment.id), variant: "danger" as const }
-                              ] : [])
-                            ]}
-                            isLast={index === items.length - 1}
-                            delay={index * 0.1}
-                          />
-                        ))}
-                      </motion.div>
-                    )}
-                  </CardBody>
-                </Card>
+              ) : (
+                <ListView items={items} router={router} />
               )}
             </AnimatePresence>
           </motion.div>
-      </motion.main>
+        </motion.div>
+      </main>
     </AppShell>
   );
 }
