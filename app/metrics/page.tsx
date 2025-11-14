@@ -63,24 +63,7 @@ export default function MetricsPage() {
             {/* Quick Stats */}
             <motion.div
               className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
-              return (
-                <AppShell>
-                  <main className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-[100vw]">
-                    <PageTitle
-                      title="Metrics"
-                      description="System performance and usage metrics"
-                      icon={<Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-                      className="mb-6"
-                    />
-                    {(!metricsHistory.length && !services.length && !workspaceHealth.length) ? (
-                      <div className="glass-card p-8 sm:p-12 text-center border border-white/10 rounded-lg mx-auto max-w-xl">
-                        <div className="flex justify-center mb-6">
-                          <div className="p-4 glass-card rounded-full border border-accent/30">
-                            <Gauge className="w-12 h-12 text-accent" />
-                          </div>
-                        </div>
-                        <h2 className="text-xl sm:text-2xl font-bold mb-3">No metrics available yet</h2>
-                        <p className="text-gray-400 mb-6 max-w-md mx-auto">
+            >
                           Metrics will appear after you deploy, analyze, or interact with your services. Connect a repository or trigger a deployment to start collecting performance data.
                         </p>
                         <a href="/deployments" className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
