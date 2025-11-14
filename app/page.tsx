@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { ConnectRepoModal } from "@/components/connect-repo-modal"
+import { PageTitle } from '@/components/layout/page-title'
 import { MetricsCard } from "@/components/dashboard/metrics-card"
 import { GitHubActivity } from "@/components/dashboard/github-activity"
 import { LiveLogs } from "@/components/dashboard/live-logs"
@@ -327,7 +328,22 @@ export default function Overview() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
         >
-            {/* Connect Repository Section */}
+            {/* Page title for Workspace Overview - placed above connect banner */}
+            <PageTitle
+              title="Workspace Overview"
+              description="Your local infrastructure runtime—offline, deterministic, and production-ready"
+              icon={<Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+              actions={
+                <div className="flex items-center gap-3">
+                  <button onClick={handleRefresh} className="px-3 py-2 rounded-lg glass-card text-accent hover:bg-accent/20">⟲</button>
+                  <button onClick={handleQuickDeploy} className="px-4 py-2 bg-accent text-black rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-2">
+                    <Play className="w-4 h-4" /> Quick Deploy
+                  </button>
+                </div>
+              }
+            />
+
+            {/* Connect Repository Section (kept below title) */}
             <GitHubActivity 
               repository={repository} 
               loading={repoLoading}

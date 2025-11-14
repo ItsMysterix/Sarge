@@ -58,8 +58,18 @@ export async function GET(req: Request) {
 
       // Persist a lightweight remote workspace for visibility in Workspaces page
       try {
-        const w = workspaceManager.registerRemote(owner, repo, 'main', description || '')
-        console.log('[Repository] Registered remote workspace', w.id)
+        const repoRow = result.rows[0]
+        const owner = repoRow.owner || repoRow.user || repoRow.full_name?.split('/')[0]
+        const repoName = repoRow.repo || repoRow.name || repoRow.full_name?.split('/')[1]
+        const description = repoRow.description || ''
+        if (owner && repoName) {
+          try {
+            const w = workspaceManager.registerRemote(owner, repoName, repoRow.default_branch || 'main', description)
+            console.log('[Repository] Registered remote workspace', w.id)
+          } catch (innerErr) {
+            console.warn('[Repository] Failed to register remote workspace (inner):', innerErr)
+          }
+        }
       } catch (e) {
         console.warn('[Repository] Failed to register remote workspace:', e)
       }
