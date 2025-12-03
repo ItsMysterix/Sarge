@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
     if (!session?.accessToken) {
       console.error("No GitHub access token found in session")
       return NextResponse.json(
-        { error: "Not authenticated with GitHub. Please sign in with GitHub to connect repositories." },
+        { 
+          error: "GitHub access token not found. Please sign out and sign back in with GitHub to refresh your credentials.",
+          action: "signout_required"
+        },
         { status: 401 }
       )
     }
@@ -38,6 +41,18 @@ export async function GET(req: NextRequest) {
       if (!response.ok) {
         const errorText = await response.text()
         console.error(`GitHub API error: ${response.status} ${response.statusText}`, errorText)
+        
+        // Handle 401 Unauthorized specifically
+        if (response.status === 401) {
+          return NextResponse.json(
+            { 
+              error: "GitHub authentication expired or insufficient permissions. Please sign out and sign back in with GitHub to refresh your access.",
+              action: "signout_required",
+              details: errorText 
+            },
+            { status: 401 }
+          )
+        }
         
         return NextResponse.json(
           { 
