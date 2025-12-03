@@ -168,22 +168,24 @@ export default function ProjectsPage() {
 
   return (
     <AppShell showSidebar={false}>
-      <PageTitle
-        title="Projects"
-        description="Manage application projects and repositories"
-        icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-        actions={projects.length > 0 ? (
-          <motion.button
-            onClick={handleCreateProject}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
-          >
-            <Plus className="h-5 w-5" />
-            Create Project
-          </motion.button>
-        ) : null}
-      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-4 pb-2">
+        <PageTitle
+          title="Projects"
+          description="Manage application projects and repositories"
+          icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+          actions={projects.length > 0 ? (
+            <motion.button
+              onClick={handleCreateProject}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
+            >
+              <Plus className="h-5 w-5" />
+              Create Project
+            </motion.button>
+          ) : null}
+        />
+      </div>
       <div className="max-w-7xl mx-auto p-8 flex-1">
 
         {/* Search Bar */}
