@@ -29,7 +29,12 @@ export class WorkspaceManager {
   constructor() {
     // Ensure workspaces directory exists
     if (!fs.existsSync(WORKSPACES_DIR)) {
-      fs.mkdirSync(WORKSPACES_DIR, { recursive: true })
+      try {
+        fs.mkdirSync(WORKSPACES_DIR, { recursive: true })
+      } catch (e) {
+        // Filesystem is read-only (Vercel/serverless)
+        console.warn('[WorkspaceManager] Cannot create workspaces directory (read-only filesystem):', (e as Error).message)
+      }
     }
     this.loadWorkspaces()
   }
