@@ -48,13 +48,16 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
     try {
       console.log('Fetching repositories from GitHub...')
       const response = await fetch('/api/github/repos')
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to fetch repositories')
+      let data = null
+      try {
+        data = await response.json()
+      } catch (jsonErr) {
+        // If response is not valid JSON, fallback to text
+        const text = await response.text()
+        throw new Error(text || 'Failed to parse response from server')
       }
-      const data = await response.json()
-      if (data.error) {
-        throw new Error(data.error)
+      if (!response.ok || data?.error) {
+        throw new Error(data?.error || 'Failed to fetch repositories')
       }
       console.log(`✅ Loaded ${data.length} repositories from GitHub`)
       setRepos(data)
