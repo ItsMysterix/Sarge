@@ -1,15 +1,16 @@
 // E2E harness: connect repo → create project → create stack
 try {
-  const dotenv = require('dotenv')
+  var dotenv = require('dotenv')
   dotenv.config({ path: '.env.local' })
   dotenv.config()
 } catch {}
-const { neon } = require('@neondatabase/serverless')
+var neonPkg = require('@neondatabase/serverless')
+var neonFn = neonPkg.neon
 
 async function run() {
   const dbUrl = process.env.DATABASE_URL
   if (!dbUrl) throw new Error('DATABASE_URL not configured')
-  const sql: any = neon(dbUrl)
+  const sql: any = neonFn(dbUrl)
   const userId = 'user_1'
 
   const owner = process.env.E2E_OWNER || 'vercel'
