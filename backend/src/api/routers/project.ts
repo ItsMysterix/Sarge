@@ -9,7 +9,8 @@ const createProjectSchema = z.object({
   slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/),
   description: z.string().optional(),
   framework: z.string().optional(),
-  repositoryId: z.number().optional(),
+  // Align with Neon schema: repositories.id is TEXT/UUID, not integer
+  repositoryId: z.string().optional(),
   rootDirectory: z.string().default('./'),
   buildCommand: z.string().default('npm run build'),
   outputDirectory: z.string().default('.next'),

@@ -38,22 +38,48 @@ export async function ensureCoreSchema(pool: Pool) {
   // Projects table - add repository_id column if missing (multi-project migration)
   // Don't try to create the table since it exists in production
   try {
-    await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS repository_id INTEGER;`)
+    // Ensure repository_id column exists
+    await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS repository_id TEXT;`)
+    // If repository_id is integer in existing DBs, migrate to TEXT to match repositories.id (TEXT/UUID)
     await pool.query(`
       DO $$
       BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints 
-          WHERE constraint_name = 'projects_repository_id_fkey'
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'projects' AND column_name = 'repository_id' AND data_type = 'integer'
         ) THEN
-          ALTER TABLE projects ADD CONSTRAINT projects_repository_id_fkey 
-          FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE SET NULL;
+          ALTER TABLE projects ALTER COLUMN repository_id TYPE TEXT USING repository_id::text;
+        END IF;
+      END $$;
+    `)
+    // Do NOT add FK automatically due to type variations across environments
+    // Add FK if types match (both TEXT) and constraint doesn't exist
+    await pool.query(`
+      DO $$
+      DECLARE
+        proj_type TEXT;
+        repo_type TEXT;
+      BEGIN
+        SELECT data_type INTO proj_type FROM information_schema.columns
+        WHERE table_name = 'projects' AND column_name = 'repository_id';
+
+        SELECT data_type INTO repo_type FROM information_schema.columns
+        WHERE table_name = 'repositories' AND column_name = 'id';
+
+        IF proj_type = 'text' AND repo_type = 'text' THEN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = 'projects_repository_id_fkey'
+          ) THEN
+            ALTER TABLE projects ADD CONSTRAINT projects_repository_id_fkey
+            FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE SET NULL;
+          END IF;
         END IF;
       END $$;
     `)
   } catch (e) {
     // Projects table might not exist in some setups; that's ok
-    console.warn('[schema] Could not add repository_id to projects:', e)
+    console.warn('[schema] Could not ensure repository_id TEXT on projects:', e)
   }
 
   // Add slug column to projects if missing
