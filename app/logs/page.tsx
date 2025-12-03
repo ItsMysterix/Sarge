@@ -268,12 +268,14 @@ export default function Logs() {
     <AnimationErrorBoundary fallbackType="auto" userRole={userRole}>
       <AppShell>
         <ToastContainer />
-        <PageTitle
-          title="Live Logs"
-          description="Streaming runtime logs across services"
-          icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          className="mb-6"
-        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-4 pb-2">
+          <PageTitle
+            title="Live Logs"
+            description="Streaming runtime logs across services"
+            icon={<ScrollText className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+            className="mb-6"
+          />
+        </div>
         <motion.main 
           className="flex-1 p-3 sm:p-4 md:p-6"
           initial={{ opacity: 0 }}
