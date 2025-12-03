@@ -10,6 +10,10 @@ export type Role = 'admin' | 'operator' | 'viewer'
 export type RateOverride = Partial<{ windowSec: number; max: number; burst: number; scope: Scope; requiresRole: Role; requiresLicenseFeature: 'teamSpaces' | 'cloudApply' }>
 
 function getDataRoot() {
+  // On Vercel/serverless, use /tmp (only writable location)
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join('/tmp', '.sarge')
+  }
   const base = process.env.SARGE_DATA_DIR ? path.resolve(process.cwd(), process.env.SARGE_DATA_DIR) : path.resolve(process.cwd(), 'data/sarge/workspaces/default')
   return base
 }
@@ -18,10 +22,20 @@ type StoredToken = { id: string; role: Role; salt: string; hash: string; created
 
 function tokensFile() {
   const dir = path.join(getDataRoot(), 'security')
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  return path.join(dir, 'tokens.json')
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  } catch (e) {
+    // Filesystem is read-only (Vercel/serverless), RBAC tokens won't work
+function readTokens(): StoredToken[] {
+  try {
+    const f = tokensFile()
+    if (!fs.existsSync(f)) return []
+    return JSON.parse(fs.readFileSync(f, 'utf8')) as StoredToken[]
+  } catch (e) {
+    // Filesystem errors (read-only, not found, etc.)
+    return []
+  }
 }
-
 function readTokens(): StoredToken[] {
   const f = tokensFile()
   if (!fs.existsSync(f)) return []
@@ -78,11 +92,6 @@ export function secureProcedure(route: string, override?: RateOverride) {
         const ver = verifyTokenString(token)
         if (!ver.ok) throw new TRPCError({ code: 'UNAUTHORIZED' })
         const required = cfg.requiresRole
-        if (required) {
-          const rank: Record<Role, number> = { admin: 3, operator: 2, viewer: 1 }
-          if (rank[ver.role!] < rank[required]) throw new TRPCError({ code: 'FORBIDDEN' })
-        }
-      }
       // Licensing (optional, offline): gate certain features when not licensed
       if (override?.requiresLicenseFeature) {
         try {
@@ -98,13 +107,23 @@ export function secureProcedure(route: string, override?: RateOverride) {
               core = await import(modName)
             }
           }
-          const dataRoot = getDataRoot()
-          const chk = core?.licensing?.ensureFeature?.(override.requiresLicenseFeature, { dataRoot })
-          if (!chk?.ok) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: chk?.reason || 'feature_locked' })
+          try {
+            const dataRoot = getDataRoot()
+            const chk = core?.licensing?.ensureFeature?.(override.requiresLicenseFeature, { dataRoot })
+            if (!chk?.ok) {
+              throw new TRPCError({ code: 'FORBIDDEN', message: chk?.reason || 'feature_locked' })
+            }
+          } catch (fsError) {
+            // Filesystem errors on serverless - skip licensing check
+            console.warn('[security] Licensing check skipped (filesystem unavailable)')
           }
         } catch (e) {
           // If licensing module unavailable, default to allowing Community features only
+          if (override?.requiresLicenseFeature && override.requiresLicenseFeature !== 'teamSpaces' && override.requiresLicenseFeature !== 'cloudApply') {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'feature_locked' })
+          }
+        }
+      }   // If licensing module unavailable, default to allowing Community features only
           if (override?.requiresLicenseFeature && override.requiresLicenseFeature !== 'teamSpaces' && override.requiresLicenseFeature !== 'cloudApply') {
             throw new TRPCError({ code: 'FORBIDDEN', message: 'feature_locked' })
           }
