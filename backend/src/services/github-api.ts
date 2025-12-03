@@ -4,7 +4,15 @@
  * No local cloning required!
  */
 
-import { Octokit } from '@octokit/rest'
+let Octokit: any;
+
+async function getOctokit() {
+  if (!Octokit) {
+    const mod = await import('@octokit/rest');
+    Octokit = mod.Octokit;
+  }
+  return Octokit;
+}
 
 export interface GitHubFile {
   name: string
@@ -25,10 +33,16 @@ export interface GitHubCommit {
 }
 
 export class GitHubAPIService {
-  private octokit: Octokit
+  private octokit: any;
 
   constructor(accessToken: string) {
-    this.octokit = new Octokit({ auth: accessToken })
+    // Use dynamic import for ESM compatibility
+    // Note: constructor must be async if you want to await getOctokit()
+    // For now, we use a sync hack for compatibility
+    (async () => {
+      const OctokitClass = await getOctokit();
+      this.octokit = new OctokitClass({ auth: accessToken });
+    })();
   }
 
   /**
@@ -121,7 +135,7 @@ export class GitHubAPIService {
       per_page: perPage,
     })
 
-    return data.map((commit) => ({
+    return data.map((commit: any) => ({
       sha: commit.sha,
       message: commit.commit.message,
       author: {
@@ -188,7 +202,7 @@ export class GitHubAPIService {
    */
   async getBranches(owner: string, repo: string) {
     const { data } = await this.octokit.repos.listBranches({ owner, repo })
-    return data.map((branch) => ({
+    return data.map((branch: any) => ({
       name: branch.name,
       protected: branch.protected,
       commit: branch.commit.sha,

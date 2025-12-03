@@ -38,22 +38,26 @@ export const terminalRouter = router({
     .mutation(({ ctx }) => {
       const session = startDevProcess()
       // Attach listeners once
-      if ((session as any)._listenersAttached) return { sessionId: session.id, topic: session.topic }
-      (session as any)._listenersAttached = true
+      if ((session as any)._listenersAttached) return { sessionId: session.id, topic: session.topic };
+      (session as any)._listenersAttached = true;
       const emit = (line: string, level: string = 'info') => {
-        try { ctx.ee.emit(session.topic, { ts: Date.now(), line, level }) } catch {}
+        try { ctx.ee.emit(session.topic, { ts: Date.now(), line, level }); } catch {}
+      };
+      emit(`Starting dev session (id=${session.id})`, 'progress');
+      if (session.proc.stdout) {
+        session.proc.stdout.on('data', (buf: any) => {
+          buf.toString().split(/\r?\n/).filter(Boolean).forEach((l: any) => emit(l));
+        });
       }
-      emit(`Starting dev session (id=${session.id})`,'progress')
-      session.proc.stdout.on('data', (buf) => {
-        buf.toString().split(/\r?\n/).filter(Boolean).forEach(l => emit(l))
-      })
-      session.proc.stderr.on('data', (buf) => {
-        buf.toString().split(/\r?\n/).filter(Boolean).forEach(l => emit(l,'error'))
-      })
-      session.proc.on('close', (code) => {
-        emit(`Dev process exited with code ${code}`,'success')
-      })
-      return { sessionId: session.id, topic: session.topic }
+      if (session.proc.stderr) {
+        session.proc.stderr.on('data', (buf: any) => {
+          buf.toString().split(/\r?\n/).filter(Boolean).forEach((l: any) => emit(l, 'error'));
+        });
+      }
+      session.proc.on('close', (code: any) => {
+        emit(`Dev process exited with code ${code}`, 'success');
+      });
+      return { sessionId: session.id, topic: session.topic };
     }),
   streamSession: secureProcedure('terminal.streamSession')
     .input(z.object({ sessionId: z.string() }))
