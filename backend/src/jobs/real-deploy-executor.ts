@@ -97,8 +97,13 @@ export function startRealDeployExecutor() {
 
         // Create temp directory
         workDir = path.join(os.tmpdir(), `sarge-deploy-${id}-${Date.now()}`)
-        fs.mkdirSync(workDir, { recursive: true })
-        await log('initialize', 'info', `📁 Created workspace: ${workDir}`)
+        try {
+          fs.mkdirSync(workDir, { recursive: true })
+          await log('initialize', 'info', `📁 Created workspace: ${workDir}`)
+        } catch (e) {
+          await log('initialize', 'error', `❌ Failed to create workspace: ${(e as Error).message}`)
+          throw e
+        }
 
         // Clone repository
         if (repoUrl) {
