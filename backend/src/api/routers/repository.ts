@@ -35,6 +35,10 @@ export const repositoryRouter = router({
           ]
         )
 
+        if (!upsert || !upsert.rows || upsert.rows.length === 0) {
+          throw new Error('Failed to upsert repository')
+        }
+
         const repository = upsert.rows[0]
 
         // If setPrimary, clear others and set this one

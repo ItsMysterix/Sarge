@@ -16,15 +16,16 @@ export const metricsRouter = router({
          ORDER BY "timestamp" DESC
          LIMIT 1`
       );
-      const row = result.rows[0] ?? null;
-      if (row) {
-        if (row.project_id) {
-          if (typeof row.cpu === 'number') setServiceCpu(String(row.project_id), Number(row.cpu));
-          if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.project_id), Number(row.memory));
-          if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.project_id), Number(row.latency));
-        }
+      if (!result || !result.rows || result.rows.length === 0) {
+        return null;
       }
-      return row;
+      const row = result.rows[0];
+      if (row && row.project_id) {
+        if (typeof row.cpu === 'number') setServiceCpu(String(row.project_id), Number(row.cpu));
+        if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.project_id), Number(row.memory));
+        if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.project_id), Number(row.latency));
+      }
+      return row || null;
     } catch (e) {
       // If table is missing or DB unavailable, degrade gracefully
       try { console.warn('[metrics.latest] returning null:', (e as Error).message) } catch {}

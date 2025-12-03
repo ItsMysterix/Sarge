@@ -266,6 +266,10 @@ export const projectRouter = router({
           ]
         )
 
+        if (!result || !result.rows || result.rows.length === 0) {
+          throw new Error('Failed to create project record')
+        }
+
         const project = result.rows[0]
 
         // Log activity
