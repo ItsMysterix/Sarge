@@ -59,8 +59,21 @@ export default function Overview() {
       try {
         const query = currentProject ? `?projectSlug=${encodeURIComponent(currentProject.slug)}` : ''
         const res = await fetch(`/api/repository${query}`)
-        const data = await res.json()
-        if (data.repository) {
+        let data = null
+        if (res.ok) {
+          try {
+            data = await res.json()
+          } catch (jsonErr) {
+            console.error('Error parsing repository response:', jsonErr)
+            data = null
+          }
+        } else {
+          // Try to parse error message if present
+          try {
+            data = await res.json()
+          } catch {}
+        }
+        if (data && data.repository) {
           setRepository(data.repository)
         }
       } catch (error) {
@@ -268,15 +281,26 @@ export default function Overview() {
         }),
       })
 
+      let data = null
       if (response.ok) {
-        const data = await response.json()
-        setRepository(data.repository)
+        try {
+          data = await response.json()
+        } catch (jsonErr) {
+          console.error('Error parsing repository response:', jsonErr)
+          data = null
+        }
+        setRepository(data?.repository)
         // refresh from server to include any project binding
         try {
           const query = currentProject ? `?projectSlug=${encodeURIComponent(currentProject.slug)}` : ''
           const latest = await fetch(`/api/repository${query}`)
-          const latestData = await latest.json()
-          if (latest.ok && latestData.repository) setRepository(latestData.repository)
+          let latestData = null
+          if (latest.ok) {
+            try {
+              latestData = await latest.json()
+            } catch {}
+          }
+          if (latestData && latestData.repository) setRepository(latestData.repository)
         } catch {}
         addToast({
           type: "success",
@@ -284,8 +308,11 @@ export default function Overview() {
           description: `Successfully connected ${repo.full_name}`,
         })
       } else {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to connect repository')
+        let errorData = null
+        try {
+          errorData = await response.json()
+        } catch {}
+        throw new Error(errorData?.error || 'Failed to connect repository')
       }
     } catch (error) {
       console.error('Repository connection error:', error)
