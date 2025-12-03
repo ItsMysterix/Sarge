@@ -87,64 +87,104 @@ export const projectRouter = router({
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      // TODO: Query database for project
-      // Check if user has access to this project
-      
-      // Mock response
-      return {
-        id: input.id,
-        userId: 'user_1',
-        name: 'My Next.js App',
-        slug: 'my-nextjs-app',
-        description: 'A modern web application built with Next.js',
-        framework: 'next.js',
-        repositoryId: 1,
-        rootDirectory: './',
-        buildCommand: 'npm run build',
-        outputDirectory: '.next',
-        installCommand: 'npm install',
-        devCommand: 'npm run dev',
-        autoDeploy: true,
-        autoDeployBranch: 'main',
-        previewDeployments: true,
-        status: 'active' as const,
-        lastDeployedAt: new Date().toISOString(),
-        deploymentCount: 5,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      try {
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database query timeout')), 2000)
+        )
+
+        const query = ctx.db.query(
+          `SELECT 
+             p.*,
+             COUNT(DISTINCT d.id) as deployment_count,
+             MAX(d.created_at) as last_deployed_at
+           FROM projects p
+           LEFT JOIN deployments d ON d.project_id = p.id
+           WHERE p.id = $1 AND p.user_id = $2
+           GROUP BY p.id`,
+          [input.id, 'user_1']
+        )
+
+        const result = await Promise.race([query, timeout]) as any
+        const row = result.rows?.[0]
+        if (!row) return null
+        return {
+          id: row.id,
+          userId: row.user_id,
+          name: row.name,
+          slug: row.slug,
+          description: row.description ?? undefined,
+          framework: row.framework ?? undefined,
+          repositoryId: row.repository_id ?? undefined,
+          rootDirectory: row.root_directory ?? './',
+          buildCommand: row.build_command ?? 'npm run build',
+          outputDirectory: row.output_directory ?? '.next',
+          installCommand: row.install_command ?? 'npm install',
+          devCommand: row.dev_command ?? 'npm run dev',
+          autoDeploy: !!row.auto_deploy,
+          autoDeployBranch: row.auto_deploy_branch ?? 'main',
+          previewDeployments: !!row.preview_deployments,
+          status: (row.status ?? 'active') as 'active' | 'paused' | 'archived' | 'pending',
+          lastDeployedAt: row.last_deployed_at ?? null,
+          deploymentCount: Number(row.deployment_count ?? 0),
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }
+      } catch (error) {
+        console.error('[project.getById] error:', error)
+        return null
+      }
     }),
 
   // Get project by slug
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ input, ctx }) => {
-      // TODO: Query database for project by slug
-      // Check if user has access to this project
-      
-      // Mock response
-      return {
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        userId: 'user_1',
-        name: 'My Next.js App',
-        slug: input.slug,
-        description: 'A modern web application built with Next.js',
-        framework: 'next.js',
-        repositoryId: 1,
-        rootDirectory: './',
-        buildCommand: 'npm run build',
-        outputDirectory: '.next',
-        installCommand: 'npm install',
-        devCommand: 'npm run dev',
-        autoDeploy: true,
-        autoDeployBranch: 'main',
-        previewDeployments: true,
-        status: 'active' as const,
-        lastDeployedAt: new Date().toISOString(),
-        deploymentCount: 5,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      try {
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database query timeout')), 2000)
+        )
+
+        const query = ctx.db.query(
+          `SELECT 
+             p.*,
+             COUNT(DISTINCT d.id) as deployment_count,
+             MAX(d.created_at) as last_deployed_at
+           FROM projects p
+           LEFT JOIN deployments d ON d.project_id = p.id
+           WHERE p.slug = $1 AND p.user_id = $2
+           GROUP BY p.id`,
+          [input.slug, 'user_1']
+        )
+
+        const result = await Promise.race([query, timeout]) as any
+        const row = result.rows?.[0]
+        if (!row) return null
+        return {
+          id: row.id,
+          userId: row.user_id,
+          name: row.name,
+          slug: row.slug,
+          description: row.description ?? undefined,
+          framework: row.framework ?? undefined,
+          repositoryId: row.repository_id ?? undefined,
+          rootDirectory: row.root_directory ?? './',
+          buildCommand: row.build_command ?? 'npm run build',
+          outputDirectory: row.output_directory ?? '.next',
+          installCommand: row.install_command ?? 'npm install',
+          devCommand: row.dev_command ?? 'npm run dev',
+          autoDeploy: !!row.auto_deploy,
+          autoDeployBranch: row.auto_deploy_branch ?? 'main',
+          previewDeployments: !!row.preview_deployments,
+          status: (row.status ?? 'active') as 'active' | 'paused' | 'archived' | 'pending',
+          lastDeployedAt: row.last_deployed_at ?? null,
+          deploymentCount: Number(row.deployment_count ?? 0),
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }
+      } catch (error) {
+        console.error('[project.getBySlug] error:', error)
+        return null
+      }
     }),
 
   // Create new project

@@ -10,6 +10,7 @@ import { githubRouter } from './routers/github';
 import { stacksRouter } from './routers/stacks';
 import { awsRouter } from './routers/aws';
 import { projectRouter } from './routers/project';
+import { repositoryRouter } from './routers/repository';
 import { terminalRouter } from './routers/terminal';
 
 export const appRouter = router({
@@ -24,6 +25,7 @@ export const appRouter = router({
   stacks: stacksRouter,
   aws: awsRouter,
   project: projectRouter,
+  repository: repositoryRouter,
   terminal: terminalRouter,
 });
 
