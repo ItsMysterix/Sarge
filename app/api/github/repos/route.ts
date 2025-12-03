@@ -48,7 +48,23 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      const repos = await response.json()
+      const text = await response.text()
+      if (!text || text.trim().length === 0) {
+        console.warn(`Empty response from GitHub API for page ${page}`)
+        hasMore = false
+        break
+      }
+      
+      let repos: any[]
+      try {
+        repos = JSON.parse(text)
+      } catch (parseError) {
+        console.error(`Failed to parse GitHub API response:`, parseError)
+        return NextResponse.json(
+          { error: 'Invalid response from GitHub API', details: text.substring(0, 200) },
+          { status: 500 }
+        )
+      }
       console.log(`   ✓ Page ${page}: got ${repos.length} repositories`)
       allRepos = allRepos.concat(repos)
       

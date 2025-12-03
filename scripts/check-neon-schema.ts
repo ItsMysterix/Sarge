@@ -6,9 +6,9 @@ try {
   dotenv.config({ path: '.env.local' })
   dotenv.config()
 } catch {}
-const { neon } = require("@neondatabase/serverless")
+const { neon: createNeon } = require("@neondatabase/serverless")
 
-const sql: any = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null
+const sql: any = process.env.DATABASE_URL ? createNeon(process.env.DATABASE_URL) : null
 
 async function getTableColumns(table: string) {
   if (!sql) throw new Error("DATABASE_URL not configured")
