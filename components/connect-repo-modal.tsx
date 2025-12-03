@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Github, Lock, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { trpc } from '@/lib/trpc'
 
 interface Repo {
   id: number
@@ -78,6 +79,8 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
     repo.description?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const connectRepo = trpc.repository.connect.useMutation()
+
   const handleConnect = async () => {
     if (!selectedRepo) {
       setConnectError('Please select a repository')
@@ -88,24 +91,16 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
     setConnectError(null)
     
     try {
-      // Save repo metadata to database (like Vercel does)
-      const response = await fetch('/api/repository', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          owner: selectedRepo.full_name.split('/')[0],
-          repo: selectedRepo.name,
-          description: selectedRepo.description,
-        }),
+      const owner = selectedRepo.full_name.split('/')[0]
+      const result = await connectRepo.mutateAsync({
+        owner,
+        repo: selectedRepo.name,
+        description: selectedRepo.description ?? undefined,
+        defaultBranch: selectedRepo.default_branch ?? 'main',
+        setPrimary: true,
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-        const errorDetails = data.details ? ` (${data.details})` : ''
-        throw new Error(data.error + errorDetails || 'Failed to connect repository')
-      }
-
-      console.log('✅ Connected repository:', selectedRepo.full_name)
+      console.log('✅ Connected repository:', result.full_name)
       onConnect(selectedRepo)
       onClose()
     } catch (err: any) {
