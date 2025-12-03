@@ -50,65 +50,75 @@ export function secureProcedure(route: string, override?: RateOverride) {
   }
   const cfg = { ...rateDefaults, ...(override ?? {}) }
   return t.procedure.use(async ({ ctx, next }) => {
-    if (process.env.NODE_ENV === 'test' && process.env.RATE_LIMIT_ENABLE_IN_TEST !== 'true') {
-      return next()
-    }
-  const ip = ctx.requestMeta?.ip || ''
-    // user id not present in backend Context; future: derive from auth if added
-    const key = scopeKey({ scope: cfg.scope!, ip, userId: undefined })
-    const res = await checkAndConsume(ctx.db as any, {
-      key,
-      route,
-      now: new Date(),
-      windowSec: cfg.windowSec!,
-      max: cfg.max!,
-      burst: cfg.burst!,
-    })
-    if (!res.allowed) {
-      // minimal audit (console.debug to avoid noise)
-      try { console.debug?.(`rate-limit deny route=${route} key=${key}`) } catch {}
-      try { rateDeniedTotal.labels({ route }).inc() } catch {}
-      throw new TRPCError({ code: 'TOO_MANY_REQUESTS' })
-    }
-    // RBAC (opt-in): require token and role if RBAC_ENABLED
-    if (process.env.RBAC_ENABLED === 'true') {
-      const token = ctx.requestMeta?.apiToken
-      if (!token) throw new TRPCError({ code: 'UNAUTHORIZED' })
-      const ver = verifyTokenString(token)
-      if (!ver.ok) throw new TRPCError({ code: 'UNAUTHORIZED' })
-      const required = cfg.requiresRole
-      if (required) {
-        const rank: Record<Role, number> = { admin: 3, operator: 2, viewer: 1 }
-        if (rank[ver.role!] < rank[required]) throw new TRPCError({ code: 'FORBIDDEN' })
+    try {
+      if (process.env.NODE_ENV === 'test' && process.env.RATE_LIMIT_ENABLE_IN_TEST !== 'true') {
+        return next()
       }
-    }
-    // Licensing (optional, offline): gate certain features when not licensed
-    if (override?.requiresLicenseFeature) {
-      try {
-        // Dynamic import to avoid hard dependency on build order
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        let core: any
+    const ip = ctx.requestMeta?.ip || ''
+      // user id not present in backend Context; future: derive from auth if added
+      const key = scopeKey({ scope: cfg.scope!, ip, userId: undefined })
+      const res = await checkAndConsume(ctx.db as any, {
+        key,
+        route,
+        now: new Date(),
+        windowSec: cfg.windowSec!,
+        max: cfg.max!,
+        burst: cfg.burst!,
+      })
+      if (!res.allowed) {
+        // minimal audit (console.debug to avoid noise)
+        try { console.debug?.(`rate-limit deny route=${route} key=${key}`) } catch {}
+        try { rateDeniedTotal.labels({ route }).inc() } catch {}
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS' })
+      }
+      // RBAC (opt-in): require token and role if RBAC_ENABLED
+      if (process.env.RBAC_ENABLED === 'true') {
+        const token = ctx.requestMeta?.apiToken
+        if (!token) throw new TRPCError({ code: 'UNAUTHORIZED' })
+        const ver = verifyTokenString(token)
+        if (!ver.ok) throw new TRPCError({ code: 'UNAUTHORIZED' })
+        const required = cfg.requiresRole
+        if (required) {
+          const rank: Record<Role, number> = { admin: 3, operator: 2, viewer: 1 }
+          if (rank[ver.role!] < rank[required]) throw new TRPCError({ code: 'FORBIDDEN' })
+        }
+      }
+      // Licensing (optional, offline): gate certain features when not licensed
+      if (override?.requiresLicenseFeature) {
         try {
-          const modName = ['sarge','-','core'].join('')
-          core = require(modName)
-        } catch (e: any) {
-          if (e?.code === 'ERR_REQUIRE_ESM') {
+          // Dynamic import to avoid hard dependency on build order
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          let core: any
+          try {
             const modName = ['sarge','-','core'].join('')
-            core = await import(modName)
+            core = require(modName)
+          } catch (e: any) {
+            if (e?.code === 'ERR_REQUIRE_ESM') {
+              const modName = ['sarge','-','core'].join('')
+              core = await import(modName)
+            }
+          }
+          const dataRoot = getDataRoot()
+          const chk = core?.licensing?.ensureFeature?.(override.requiresLicenseFeature, { dataRoot })
+          if (!chk?.ok) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: chk?.reason || 'feature_locked' })
+          }
+        } catch (e) {
+          // If licensing module unavailable, default to allowing Community features only
+          if (override?.requiresLicenseFeature && override.requiresLicenseFeature !== 'teamSpaces' && override.requiresLicenseFeature !== 'cloudApply') {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'feature_locked' })
           }
         }
-        const dataRoot = getDataRoot()
-        const chk = core?.licensing?.ensureFeature?.(override.requiresLicenseFeature, { dataRoot })
-        if (!chk?.ok) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: chk?.reason || 'feature_locked' })
-        }
-      } catch (e) {
-        // If licensing module unavailable, default to allowing Community features only
-        if (override?.requiresLicenseFeature && override.requiresLicenseFeature !== 'teamSpaces' && override.requiresLicenseFeature !== 'cloudApply') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'feature_locked' })
-        }
       }
+      return next()
+    } catch (middlewareError) {
+      // Log middleware errors and re-throw to ensure proper tRPC error handling
+      console.error(`[secureProcedure:${route}] Middleware error:`, {
+        message: (middlewareError as any)?.message,
+        code: (middlewareError as any)?.code,
+        stack: process.env.NODE_ENV === 'development' ? (middlewareError as Error)?.stack : undefined,
+      });
+      throw middlewareError;
     }
-    return next()
   })
 }
