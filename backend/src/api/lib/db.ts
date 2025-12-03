@@ -12,7 +12,8 @@ let db: Pool;
 const createMockPool = () => {
   console.warn('[backend/db] DATABASE_URL not set; using in-memory mock pool');
   const mock: any = {
-    async query(_sql: string, _params?: any[]) {
+    async query(sql: string, params?: any[]) {
+      console.warn('[backend/db/mock] Query called with no DB:', { sql: sql.substring(0, 100), params });
       return { rows: [] };
     },
     async end() { /* noop */ },

@@ -4,8 +4,28 @@ import type { Context } from './context';
 
 export const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  errorFormatter({ shape }) {
-    return shape;
+  errorFormatter({ shape, error }) {
+    try {
+      return {
+        ...shape,
+        data: {
+          ...shape.data,
+          // Ensure error details are serializable
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        },
+      };
+    } catch (formatterError) {
+      // Fallback if formatting fails
+      console.error('[tRPC] Error formatter failed:', formatterError);
+      return {
+        message: error.message || 'Internal server error',
+        code: shape.code || 'INTERNAL_SERVER_ERROR',
+        data: {
+          code: shape.code || 'INTERNAL_SERVER_ERROR',
+          httpStatus: shape.data?.httpStatus || 500,
+        },
+      } as any;
+    }
   },
 });
 

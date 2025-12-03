@@ -101,6 +101,20 @@ const handler = applyWSSHandler({
   createContext({ req }) {
     return createContext({ req });
   },
+  onError({ error, type, path, input, ctx, req }) {
+    console.error('[tRPC WS Error]', {
+      type,
+      path,
+      error: error.message,
+      code: error.code,
+      cause: error.cause,
+    });
+    // Log to Prometheus if available
+    try {
+      const { trpcErrorsTotal } = require('./metrics/exporter');
+      trpcErrorsTotal.labels({ path: path || 'unknown', code: error.code || 'UNKNOWN' }).inc();
+    } catch {}
+  },
 });
 
 // Heartbeat: ping every 30s, terminate if no pong within interval
