@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { trpc } from '@/lib/trpc'
+import { trpcVanilla } from '@/lib/trpc'
 import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, RefreshCw, Terminal } from 'lucide-react'
 
 // Lightweight helper to obtain a GitHub access token from the secure API route.
@@ -30,7 +30,7 @@ interface AutoDeployProps {
 type Stage = 'select' | 'analyzing' | 'installing' | 'starting' | 'running'
 
 export function AutoDeploy({ onComplete }: AutoDeployProps) {
-  const t = trpc as any
+  const t = trpcVanilla
   const [stage, setStage] = useState<Stage>('select')
   const [workspaces, setWorkspaces] = useState<any[]>([])
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null)
@@ -818,7 +818,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
 
 // Simple in-component terminal emulator (no backend exec yet)
 function TerminalEmulator() {
-  const t = trpc as any
+  const t = trpcVanilla
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [lines, setLines] = useState<any[]>([])
   const [topicReady, setTopicReady] = useState(false)
