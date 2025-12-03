@@ -6,6 +6,20 @@ import { ENV } from '../../env'
 const sql = neon(ENV.DATABASE_URL)
 
 export const stacksRouter = router({
+    /**
+     * ---
+     * Example usage (tRPC mutation):
+     * stacks.createFromRepo({
+     *   owner: 'acme',
+     *   repo: 'my-nextjs-app',
+     *   branch: 'main',
+     *   accessToken: 'ghp_...',
+     *   name: 'Acme Next.js Stack',
+     *   description: 'Stack for Acme Next.js repo'
+     * })
+     * Returns: { success, stack, blueprint }
+     * ---
+     */
   // Get all stacks
   list: publicProcedure.query(async () => {
     try {
@@ -160,4 +174,55 @@ export const stacksRouter = router({
       return { total_stacks: 0, running: 0, stopped: 0, error: 0 }
     }
   }),
+
+    /**
+     * Create a stack from connected repository metadata/services
+     * Usage: stacks.createFromRepo({ owner, repo, branch, accessToken, name?, description? })
+     * This analyzes the repo using GitHubScanner and creates a stack with detected services.
+     */
+    createFromRepo: publicProcedure
+      .input(z.object({
+        owner: z.string(),
+        repo: z.string(),
+        branch: z.string().default('main'),
+        accessToken: z.string(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          // Dynamically import GitHubScanner
+          const { createGitHubScanner } = require('../../services/github-scanner')
+          const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
+          // Analyze repo for services and metadata
+          const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
+
+          // Prepare stack fields
+          const stackName = input.name || `${input.owner}/${input.repo} Stack`
+          const stackDescription = input.description || `Stack generated from ${input.owner}/${input.repo}@${input.branch}`
+          const services = blueprint.services || []
+          const environment: Record<string, string> = {}
+          if (Array.isArray(blueprint.envKeys)) {
+            blueprint.envKeys.forEach((key: string) => { environment[key] = '' })
+          }
+
+          // Insert stack into DB
+          const result = await sql`
+            INSERT INTO stacks (name, description, status, services, environment)
+            VALUES (
+              ${stackName},
+              ${stackDescription},
+              'stopped',
+              ${JSON.stringify(services)}::jsonb,
+              ${JSON.stringify(environment)}::jsonb
+            )
+            RETURNING *
+          `
+          return { success: true, stack: result[0], blueprint }
+        } catch (error) {
+          console.error('Error creating stack from repo:', error)
+          const details = (error instanceof Error && error.message) ? error.message : String(error);
+          return { success: false, error: 'Failed to create stack from repo', details };
+        }
+      }),
 })
