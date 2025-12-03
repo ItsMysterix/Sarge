@@ -26,6 +26,11 @@ function tokensFile() {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   } catch (e) {
     // Filesystem is read-only (Vercel/serverless), RBAC tokens won't work
+    console.warn('[security] Cannot create tokens directory (read-only filesystem):', (e as Error).message)
+  }
+  return path.join(dir, 'tokens.json')
+}
+
 function readTokens(): StoredToken[] {
   try {
     const f = tokensFile()
@@ -35,11 +40,6 @@ function readTokens(): StoredToken[] {
     // Filesystem errors (read-only, not found, etc.)
     return []
   }
-}
-function readTokens(): StoredToken[] {
-  const f = tokensFile()
-  if (!fs.existsSync(f)) return []
-  try { return JSON.parse(fs.readFileSync(f, 'utf8')) as StoredToken[] } catch { return [] }
 }
 
 function verifyTokenString(token: string): { ok: boolean; role?: Role } {
@@ -68,7 +68,7 @@ export function secureProcedure(route: string, override?: RateOverride) {
       if (process.env.NODE_ENV === 'test' && process.env.RATE_LIMIT_ENABLE_IN_TEST !== 'true') {
         return next()
       }
-    const ip = ctx.requestMeta?.ip || ''
+      const ip = ctx.requestMeta?.ip || ''
       // user id not present in backend Context; future: derive from auth if added
       const key = scopeKey({ scope: cfg.scope!, ip, userId: undefined })
       const res = await checkAndConsume(ctx.db as any, {
@@ -92,6 +92,11 @@ export function secureProcedure(route: string, override?: RateOverride) {
         const ver = verifyTokenString(token)
         if (!ver.ok) throw new TRPCError({ code: 'UNAUTHORIZED' })
         const required = cfg.requiresRole
+        if (required) {
+          const rank: Record<Role, number> = { admin: 3, operator: 2, viewer: 1 }
+          if (rank[ver.role!] < rank[required]) throw new TRPCError({ code: 'FORBIDDEN' })
+        }
+      }
       // Licensing (optional, offline): gate certain features when not licensed
       if (override?.requiresLicenseFeature) {
         try {
@@ -119,11 +124,6 @@ export function secureProcedure(route: string, override?: RateOverride) {
           }
         } catch (e) {
           // If licensing module unavailable, default to allowing Community features only
-          if (override?.requiresLicenseFeature && override.requiresLicenseFeature !== 'teamSpaces' && override.requiresLicenseFeature !== 'cloudApply') {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'feature_locked' })
-          }
-        }
-      }   // If licensing module unavailable, default to allowing Community features only
           if (override?.requiresLicenseFeature && override.requiresLicenseFeature !== 'teamSpaces' && override.requiresLicenseFeature !== 'cloudApply') {
             throw new TRPCError({ code: 'FORBIDDEN', message: 'feature_locked' })
           }
