@@ -58,6 +58,9 @@ export const deployRouter = router({
       )
       end();
 
+      if (!result || !result.rows || result.rows.length === 0) {
+        throw new Error('Failed to create deployment record');
+      }
       const deployment = result.rows[0]
       
       // Emit deployment event for real-time updates
@@ -73,23 +76,32 @@ export const deployRouter = router({
     }),
   
   getDeployments: secureProcedure('deploy.get').query(async ({ ctx }) => {
-    const result = await ctx.db.query(
-      `SELECT 
-        id, workspace_id, workspace_name, workspace_path,
-        branch, commit, status, summary, services,
-        created_at, updated_at
-       FROM deployments 
-       ORDER BY created_at DESC 
-       LIMIT 100`
-    )
-    
-    // Parse JSON services column
-    const deployments = result.rows.map(row => ({
-      ...row,
-      services: typeof row.services === 'string' ? JSON.parse(row.services) : row.services
-    }))
-    
-    return deployments
+    try {
+      const result = await ctx.db.query(
+        `SELECT 
+          id, workspace_id, workspace_name, workspace_path,
+          branch, commit, status, summary, services,
+          created_at, updated_at
+         FROM deployments 
+         ORDER BY created_at DESC 
+         LIMIT 100`
+      )
+      
+      if (!result || !result.rows) {
+        return [];
+      }
+      
+      // Parse JSON services column
+      const deployments = result.rows.map(row => ({
+        ...row,
+        services: typeof row.services === 'string' ? JSON.parse(row.services) : row.services
+      }))
+      
+      return deployments
+    } catch (e) {
+      try { console.warn('[deploy.get] returning []:', (e as Error).message) } catch {}
+      return [];
+    }
   }),
 
   updateDeploymentStatus: secureProcedure('deploy.updateStatus')
@@ -112,6 +124,9 @@ export const deployRouter = router({
         [input.status, JSON.stringify(input.services || []), input.deploymentId]
       )
       
+      if (!result || !result.rows || result.rows.length === 0) {
+        return null;
+      }
       const deployment = result.rows[0]
       
       // Emit update event
@@ -137,6 +152,9 @@ export const deployRouter = router({
         [input.deploymentId]
       )
       
+      if (!result || !result.rows || result.rows.length === 0) {
+        return null;
+      }
       const deployment = result.rows[0]
       
       if (deployment) {
@@ -152,14 +170,19 @@ export const deployRouter = router({
   getDeploymentLogs: secureProcedure('deploy.getLogs')
     .input(z.object({ deploymentId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const result = await ctx.db.query(
-        `SELECT id, step, type, message, timestamp 
-         FROM deployment_logs 
-         WHERE deployment_id = $1 
-         ORDER BY timestamp ASC`,
-        [input.deploymentId]
-      )
-      return result.rows
+      try {
+        const result = await ctx.db.query(
+          `SELECT id, step, type, message, timestamp 
+           FROM deployment_logs 
+           WHERE deployment_id = $1 
+           ORDER BY timestamp ASC`,
+          [input.deploymentId]
+        )
+        return result?.rows || [];
+      } catch (e) {
+        try { console.warn('[deploy.getLogs] returning []:', (e as Error).message) } catch {}
+        return [];
+      }
     }),
 
   subscribe: secureProcedure('deploy.subscribe')

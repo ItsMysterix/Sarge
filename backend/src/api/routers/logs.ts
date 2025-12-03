@@ -69,14 +69,16 @@ export const logsRouter = router({
 
         const result = await ctx.db.query(sql, params);
 
-        const items = result.rows;
+        const items = result?.rows || [];
         // nextCursor from last item
         let nextCursor: string | null = null;
         if (items.length > 0) {
           const last = items[items.length - 1];
-          nextCursor = Buffer.from(
-            JSON.stringify({ created_at: last.created_at ?? last.timestamp ?? null, id: last.id })
-          ).toString('base64');
+          if (last) {
+            nextCursor = Buffer.from(
+              JSON.stringify({ created_at: last.created_at ?? last.timestamp ?? null, id: last.id })
+            ).toString('base64');
+          }
         }
         return { items, nextCursor };
       } catch (e) {
@@ -95,10 +97,13 @@ export const logsRouter = router({
         WHERE service IS NOT NULL 
         ORDER BY service ASC
       `);
-      return result.rows.map((row: any) => row.service);
+      if (!result || !result.rows) {
+        return [];
+      }
+      return result.rows.map((row: any) => row.service).filter(Boolean);
     } catch (e) {
       try { console.warn('[logs.services] returning []:', (e as Error).message) } catch {}
-      return [] as string[];
+      return [];
     }
   }),
 

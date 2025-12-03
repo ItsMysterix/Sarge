@@ -78,6 +78,13 @@ export const wsRateCapTotal = new Counter({
   registers: [registry],
 });
 
+export const trpcErrorsTotal = new Counter({
+  name: `${METRICS_PREFIX}trpc_errors_total`,
+  help: 'Total number of tRPC errors',
+  labelNames: ['path', 'code'],
+  registers: [registry],
+});
+
 // Helper APIs
 export function incRequest(route: string, method: string, statusClass: string) {
   requestsTotal.labels({ route, method, status_class: statusClass }).inc();
