@@ -4,6 +4,10 @@ import { z } from "zod"
 import * as path from 'path'
 
 function getDataRoot() {
+  // On Vercel/serverless, use /tmp (only writable location)
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join('/tmp', '.sarge')
+  }
   const base = process.env.SARGE_DATA_DIR ? path.resolve(process.cwd(), process.env.SARGE_DATA_DIR) : path.resolve(process.cwd(), 'data/sarge/workspaces/default')
   return base
 }
