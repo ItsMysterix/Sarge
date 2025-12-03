@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, Github, Lock, Globe } from 'lucide-react'
+import { X, Search, Github, Lock, Globe, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { trpc } from '@/lib/trpc'
 
@@ -37,6 +37,7 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
   const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null)
   const [connecting, setConnecting] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
+  const [needsSignout, setNeedsSignout] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +59,9 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
         throw new Error(text || 'Failed to parse response from server')
       }
       if (!response.ok || data?.error) {
+        if (data?.action === 'signout_required') {
+          setNeedsSignout(true)
+        }
         throw new Error(data?.error || 'Failed to fetch repositories')
       }
       console.log(`✅ Loaded ${data.length} repositories from GitHub`)
@@ -180,9 +184,21 @@ export function ConnectRepoModal({ isOpen, onClose, onConnect }: ConnectRepoModa
             {error && (
               <div className="text-center py-12">
                 <p className="text-red-400 mb-4">{error}</p>
-                <Button onClick={fetchRepos} variant="secondary" className="bg-accent/20 text-accent hover:bg-accent/30">
-                  Try Again
-                </Button>
+                <div className="flex items-center justify-center gap-3">
+                  <Button onClick={fetchRepos} variant="secondary" className="bg-accent/20 text-accent hover:bg-accent/30">
+                    Try Again
+                  </Button>
+                  {needsSignout && (
+                    <Button
+                      onClick={() => signOut({ callbackUrl: '/sign-in' })}
+                      variant="outline"
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/10 flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out & Reconnect
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
