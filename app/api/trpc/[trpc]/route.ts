@@ -18,16 +18,39 @@ function handler(request: Request) {
     router: appRouter as unknown as AnyRouter,
     createContext: () => createContext({ req: request }),
     batching: { enabled: true },
-    onError({ error, path }) {
-      console.error('[tRPC error]', path, error);
+    onError({ error, path, type, input }) {
+      console.error('[tRPC API Route Error]', {
+        path,
+        type,
+        code: error.code,
+        message: error.message,
+        cause: error.cause,
+        input: JSON.stringify(input).substring(0, 200),
+      });
     },
     responseMeta() {
       return {
         headers: {
           'x-trpc-source': 'next-fetch',
+          'Cache-Control': 'no-store, must-revalidate',
         },
       };
     },
+  }).catch((err) => {
+    // Catch any unhandled errors from fetchRequestHandler itself
+    console.error('[tRPC Handler Fatal Error]', err);
+    return new Response(
+      JSON.stringify({
+        error: {
+          message: err?.message || 'Internal server error',
+          code: 'INTERNAL_SERVER_ERROR',
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   });
 }
 
