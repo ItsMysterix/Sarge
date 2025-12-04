@@ -54,6 +54,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [serviceUrls, setServiceUrls] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [showPortPicker, setShowPortPicker] = useState(false)
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false)
 
   // Load persisted analysis state from localStorage
   useEffect(() => {
@@ -79,12 +80,85 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     }
   }, [connectedRepo])
 
+  // Auto-detect new pushes and re-analyze
+  useEffect(() => {
+    if (!connectedRepo || !analysisComplete) return
+
+    const checkForNewPushes = async () => {
+      try {
+        setCheckingForUpdates(true)
+        const token = await fetchAccessToken()
+        if (!token) return
+
+        // Fetch latest commit SHA from GitHub
+        const response = await fetch(
+          `https://api.github.com/repos/${connectedRepo.owner}/${connectedRepo.repo}/commits/main`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        )
+
+        if (!response.ok) return
+
+        const data = await response.json()
+        const latestSha = data.sha
+
+        // Check cached commit SHA
+        const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}`
+        const cached = localStorage.getItem(cacheKey)
+        
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (parsed.commitSha && parsed.commitSha !== latestSha) {
+            console.log('🔄 New commits detected, re-analyzing...')
+            // Trigger re-analysis by clearing cache and resetting state
+            localStorage.removeItem(cacheKey)
+            setAnalysisComplete(false)
+            setAnalysisResult(null)
+            // Small delay to ensure state updates
+            setTimeout(() => {
+              // The component will auto-trigger analysis via the analyze button
+              // Or we can dispatch a custom event
+              window.dispatchEvent(new CustomEvent('trigger-reanalysis'))
+            }, 100)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check for new pushes:', error)
+      } finally {
+        setCheckingForUpdates(false)
+      }
+    }
+
+    // Check every 30 seconds
+    const interval = setInterval(checkForNewPushes, 30000)
+    // Also check immediately
+    checkForNewPushes()
+
+    return () => clearInterval(interval)
+  }, [connectedRepo, analysisComplete])
+
   // Fetch workspaces and scan ports on mount
   useEffect(() => {
     fetchWorkspaces()
     scanAvailablePorts()
     fetchConnectedRepo()
   }, [])
+
+  // Listen for re-analysis trigger from push detection
+  useEffect(() => {
+    const handleReanalysis = () => {
+      if (connectedRepo && !analyzing) {
+        startAnalysis()
+      }
+    }
+
+    window.addEventListener('trigger-reanalysis', handleReanalysis)
+    return () => window.removeEventListener('trigger-reanalysis', handleReanalysis)
+  }, [connectedRepo, analyzing])
 
   // Subscribe to connected deploy logs when topic set
   // (Removed log subscription from wizard interface; terminal may attach later if desired)
@@ -147,11 +221,26 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       }
       setAnalysisComplete(true)
       
-      // Cache the analysis result in localStorage
+      // Fetch latest commit SHA to cache
+      const commitResponse = await fetch(
+        `https://api.github.com/repos/${connectedRepo.owner}/${connectedRepo.repo}/commits/main`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+          },
+        }
+      ).catch(() => null)
+      
+      const commitData = await commitResponse?.json().catch(() => null)
+      const commitSha = commitData?.sha || null
+      
+      // Cache the analysis result in localStorage with commit SHA
       const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}`
       localStorage.setItem(cacheKey, JSON.stringify({
         data: result,
         packageManager: result.packageManager,
+        commitSha,
         timestamp: Date.now(),
       }))
       addTerminalLine('💾 Analysis cached for future sessions', 'info')
@@ -541,8 +630,16 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
           {/* Repository Info */}
           <div className="p-4 glass-card border border-white/10 rounded-lg">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-lg">Connected Repository</h3>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-lg">Connected Repository</h3>
+                  {checkingForUpdates && (
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Checking for updates...
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-400">{connectedRepo.full_name}</p>
                 <p className="text-xs text-gray-500">Branch: main</p>
               </div>
