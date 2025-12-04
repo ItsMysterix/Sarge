@@ -104,9 +104,9 @@ export const oneclickRouter = router({
         
         // Convert to legacy blueprint format for compatibility
         // Ensure all data is serializable (no undefined, functions, etc.)
-        const safeServices = Array.isArray(blueprint.services) ? blueprint.services : []
-        const safeExternalServices = Array.isArray(blueprint.externalServices) ? blueprint.externalServices : []
-        const safeEnvKeys = Array.isArray(blueprint.envKeys) ? blueprint.envKeys : []
+        const safeServices = Array.isArray(blueprint.services) ? blueprint.services.filter(s => s != null) : []
+        const safeExternalServices = Array.isArray(blueprint.externalServices) ? blueprint.externalServices.filter(e => e != null) : []
+        const safeEnvKeys = Array.isArray(blueprint.envKeys) ? blueprint.envKeys.filter(k => k != null) : []
         
         // Build response with NO undefined values to prevent SuperJSON serialization crashes
         const safePorts = safeServices
@@ -130,14 +130,14 @@ export const oneclickRouter = router({
               startCommand: (svc.startCommand && typeof svc.startCommand === 'string') ? svc.startCommand : '',
               buildCommand: (svc.buildCommand && typeof svc.buildCommand === 'string') ? svc.buildCommand : '',
               ports: Array.isArray(svc.ports) ? svc.ports.filter(p => p != null && typeof p === 'number') : [],
-              envKeys: Array.isArray(svc.envKeys) ? svc.envKeys.filter(k => k != null && typeof k === 'string' && k) : [],
+              envKeys: Array.isArray(svc.envKeys) ? svc.envKeys.filter(k => k != null && typeof k === 'string' && k.length > 0) : [],
               framework: (svc.framework && typeof svc.framework === 'string') ? svc.framework : '',
             }
           }),
           resources: {
-            s3Buckets: [],
-            dynamoTables: [],
-            lambdaFunctions: [],
+            s3Buckets: Array.isArray(blueprint?.resources?.s3Buckets) ? blueprint.resources.s3Buckets.filter(b => b != null) : [],
+            dynamoTables: Array.isArray(blueprint?.resources?.dynamoTables) ? blueprint.resources.dynamoTables.filter(t => t != null) : [],
+            lambdaFunctions: Array.isArray(blueprint?.resources?.lambdaFunctions) ? blueprint.resources.lambdaFunctions.filter(l => l != null) : [],
           },
           ports: safePorts,
           envKeys: safeEnvKeysFiltered,
@@ -146,14 +146,14 @@ export const oneclickRouter = router({
             dockerCompose: !!(blueprint?.docker?.dockerCompose),
             composeFiles: safeComposeFiles,
           },
-          awsSdks: [],
+          awsSdks: Array.isArray(blueprint?.awsSdks) ? blueprint.awsSdks.filter(sdk => sdk != null) : [],
           externalServices: safeExternalServices.map(s => {
             const ext = s || {}
             return {
               name: (ext.name && typeof ext.name === 'string') ? ext.name : 'unknown',
               type: (ext.type && typeof ext.type === 'string') ? ext.type : 'database',
               ports: Array.isArray(ext.ports) ? ext.ports.filter(p => p != null && typeof p === 'number') : [],
-              envKeys: Array.isArray(ext.envKeys) ? ext.envKeys.filter(k => k != null && typeof k === 'string' && k) : [],
+              envKeys: Array.isArray(ext.envKeys) ? ext.envKeys.filter(k => k != null && typeof k === 'string' && k.length > 0) : [],
               version: (ext.version && typeof ext.version === 'string') ? ext.version : '',
               dockerImage: (ext.dockerImage && typeof ext.dockerImage === 'string') ? ext.dockerImage : '',
             }
@@ -164,9 +164,12 @@ export const oneclickRouter = router({
         }
         
         // Strip all undefined values to prevent SuperJSON serialization crashes
-        return JSON.parse(JSON.stringify(response))
+        const cleaned = JSON.parse(JSON.stringify(response))
+        console.log('[OneClick] Response prepared, services:', cleaned.services?.length || 0)
+        return cleaned
       } catch (error) {
         console.error('[OneClick] detectRepo error:', error)
+        console.error('[OneClick] Error stack:', error instanceof Error ? error.stack : 'no stack')
         // Return a resilient, mock-first response instead of throwing to avoid 500s on serverless
         return {
           services: [],

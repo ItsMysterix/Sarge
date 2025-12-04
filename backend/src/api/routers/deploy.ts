@@ -5,12 +5,11 @@ import createBufferedSubscription from '../lib/realtime';
 import { startQueryTimer } from '../../metrics/exporter';
 import { observable } from '@trpc/server/observable';
 import { topicAll, topicOne } from '../lib/deployEmit';
-import { workspaceManager } from '../../services/workspace-manager';
 
 export const deployRouter = router({
   create: secureProcedure('deploy.create')
     .input(z.object({
-      workspaceId: z.string().optional(),
+      workspaceId: z.string().optional(), // Deprecated - kept for compatibility
       branch: z.string().default("main"),
       commit: z.string().optional(),
       summary: z.string().optional(),
@@ -27,28 +26,13 @@ export const deployRouter = router({
       const end = startQueryTimer('deploy.create');
       const commit = input.commit ?? null;
       const summary = input.summary ?? `Deployment from ${input.branch}`;
-      
-      let workspaceName = 'Unknown'
-      let workspacePath = ''
-      
-      if (input.workspaceId) {
-        const workspace = workspaceManager.getWorkspace(input.workspaceId)
-        if (workspace) {
-          workspaceName = workspace.name
-          workspacePath = workspace.path
-        }
-      }
 
       const result = await ctx.db.query(
         `INSERT INTO deployments (
-          workspace_id, workspace_name, workspace_path,
           branch, commit, status, summary, 
           services, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *`,
+        ) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
         [
-          input.workspaceId || null,
-          workspaceName,
-          workspacePath,
           input.branch, 
           commit, 
           "running", 
@@ -79,7 +63,7 @@ export const deployRouter = router({
     try {
       const result = await ctx.db.query(
         `SELECT 
-          id, workspace_id, workspace_name, workspace_path,
+          id,
           branch, commit, status, summary, services,
           created_at, updated_at
          FROM deployments 

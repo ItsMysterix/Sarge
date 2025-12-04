@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { getDbPool } from "@/lib/db"
 import { ensureCoreSchema } from "@/lib/db-schema"
-import { workspaceManager } from '@/backend/src/services/workspace-manager'
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -56,23 +55,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ repository: null })
       }
 
-      // Persist a lightweight remote workspace for visibility in Workspaces page
-      try {
-        const repoRow = result.rows[0]
-        const owner = repoRow.owner || repoRow.user || repoRow.full_name?.split('/')[0]
-        const repoName = repoRow.repo || repoRow.name || repoRow.full_name?.split('/')[1]
-        const description = repoRow.description || ''
-        if (owner && repoName) {
-          try {
-            const w = workspaceManager.registerRemote(owner, repoName, repoRow.default_branch || 'main', description)
-            console.log('[Repository] Registered remote workspace', w.id)
-          } catch (innerErr) {
-            console.warn('[Repository] Failed to register remote workspace (inner):', innerErr)
-          }
-        }
-      } catch (e) {
-        console.warn('[Repository] Failed to register remote workspace:', e)
-      }
+      // Workspaces removed - AI analyzes directly from GitHub
       return NextResponse.json({ repository: result.rows[0] })
     } catch (dbError) {
       console.error("Database error fetching repository:", dbError)
@@ -140,12 +123,7 @@ export async function POST(req: Request) {
           [userId, owner, repo, `${owner}/${repo}`, description || '']
         )
 
-        try {
-          const w = workspaceManager.registerRemote(owner, repo, 'main', description || '')
-          console.log('[Repository] Registered remote workspace', w.id)
-        } catch (e) {
-          console.warn('[Repository] Failed to register remote workspace:', e)
-        }
+        // Workspaces removed - AI analyzes directly from GitHub
         return NextResponse.json({ repository: result.rows[0] })
       }
 
