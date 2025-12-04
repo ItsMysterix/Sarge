@@ -555,12 +555,12 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
               <button
                 onClick={startDeployment}
                 disabled={connectedDeploying || !selectedPackageManager}
-                className="w-full py-3 bg-accent text-black font-semibold rounded-lg disabled:opacity-40 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 border-2 border-accent bg-transparent text-white font-semibold rounded-lg disabled:opacity-40 hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
               >
                 {connectedDeploying ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Starting Services...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Deploying...</>
                 ) : (
-                  <><PlayCircle className="w-5 h-5" /> Start Services Locally</>
+                  <><PlayCircle className="w-5 h-5" /> Deploy</>
                 )}
               </button>
               {error && <p className="text-sm text-red-400">{error}</p>}
