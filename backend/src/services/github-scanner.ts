@@ -105,37 +105,37 @@ export class GitHubScanner {
    * Convert AI analysis to our blueprint format
    */
   private convertAIAnalysisToBlueprint(aiAnalysis: any, owner: string, repo: string, branch: string): ProjectBlueprint {
-    const services: DetectedService[] = aiAnalysis.services.map((svc: any) => ({
-      name: svc.name,
-      type: svc.type,
-      ports: [svc.defaultPort],
+    const services: DetectedService[] = (aiAnalysis.services || []).map((svc: any) => ({
+      name: svc.name || 'unknown',
+      type: svc.type || 'api',
+      ports: Array.isArray(svc.ports) ? svc.ports : [svc.defaultPort || 3000],
       envKeys: svc.environmentVariables || [],
-      startCommand: svc.startCommand,
-      buildCommand: svc.buildCommand,
-      cwd: svc.workingDirectory,
-      framework: svc.framework,
-      healthcheck: svc.healthcheck,
+      startCommand: svc.startCommand || '',
+      buildCommand: svc.buildCommand || '',
+      cwd: svc.workingDirectory || '.',
+      framework: svc.framework || '',
+      healthcheck: svc.healthcheck || '',
       requiredFor: ['main-app'],
     }))
 
-    const externalServices: DetectedService[] = aiAnalysis.infrastructure.map((infra: any) => ({
-      name: infra.service.toLowerCase(),
-      type: infra.type,
-      version: infra.version,
+    const externalServices: DetectedService[] = (aiAnalysis.infrastructure || []).map((infra: any) => ({
+      name: (infra.service || 'unknown').toLowerCase(),
+      type: infra.type || 'database',
+      version: infra.version || '',
       ports: this.getDefaultPort(infra.service),
       envKeys: this.getDefaultEnvKeys(infra.service),
       dockerImage: this.getDockerImage(infra.service, infra.version),
-      requiredFor: [infra.purpose],
+      requiredFor: [infra.purpose || 'app'],
     }))
 
     return {
-      projectType: aiAnalysis.projectType,
-      framework: aiAnalysis.framework,
+      projectType: aiAnalysis.projectType || 'unknown',
+      framework: aiAnalysis.framework || '',
       packageManager: this.detectPackageManagerFromServices(aiAnalysis.services),
       services,
       externalServices,
       docker: {
-        dockerfile: aiAnalysis.needsDocker,
+        dockerfile: !!aiAnalysis.needsDocker,
         dockerCompose: !!aiAnalysis.dockerComposeYml,
         composeFiles: aiAnalysis.dockerComposeYml ? ['docker-compose.yml'] : [],
       },
@@ -146,9 +146,9 @@ export class GitHubScanner {
         monitoring: [],
       },
       envKeys: aiAnalysis.requiresEnvironmentVariables || [],
-      buildCommand: aiAnalysis.suggestedBuildCommand,
-      startCommand: aiAnalysis.suggestedDevCommand,
-      outputDir: aiAnalysis.suggestedOutputDirectory,
+      buildCommand: aiAnalysis.suggestedBuildCommand || '',
+      startCommand: aiAnalysis.suggestedDevCommand || '',
+      outputDir: aiAnalysis.suggestedOutputDirectory || '',
     }
   }
 
@@ -305,7 +305,7 @@ export class GitHubScanner {
       docker: { dockerfile: false, dockerCompose: false, composeFiles: [] },
       resources,
       envKeys: this.extractEnvKeys(packageJson),
-      buildCommand: packageJson.scripts?.build,
+      buildCommand: packageJson.scripts?.build || '',
       startCommand,
     }
   }

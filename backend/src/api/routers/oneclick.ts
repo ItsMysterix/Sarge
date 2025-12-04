@@ -143,43 +143,66 @@ export const oneclickRouter = router({
       accessToken: z.string().min(1),
     }))
     .mutation(async ({ input }) => {
-      console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
-      
-      const useAI = !!process.env.ANTHROPIC_API_KEY
-      console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
-      
-      // Use GitHub scanner with AI support
-      const scanner = createGitHubScanner(input.accessToken, useAI)
-      const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
-      
-      console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
-      
-      // Convert to legacy blueprint format for compatibility
-      return {
-        services: blueprint.services.map(s => ({
-          name: s.name,
-          type: s.type,
-          cwd: s.cwd,
-          startCommand: s.startCommand,
-          buildCommand: s.buildCommand,
-          ports: s.ports,
-          envKeys: s.envKeys,
-          framework: s.framework,
-        })),
-        resources: {
-          s3Buckets: [],
-          dynamoTables: [],
-          lambdaFunctions: [],
-        },
-        ports: blueprint.services.flatMap(s => s.ports),
-        envKeys: blueprint.envKeys,
-        docker: blueprint.docker,
-        awsSdks: [],
-        // Add metadata about external services
-        externalServices: blueprint.externalServices,
-        projectType: blueprint.projectType,
-        packageManager: blueprint.packageManager,
-        framework: blueprint.framework,
+      try {
+        console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
+        
+        const useAI = !!process.env.ANTHROPIC_API_KEY
+        console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
+        
+        // Use GitHub scanner with AI support
+        const scanner = createGitHubScanner(input.accessToken, useAI)
+        const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
+        
+        console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
+        
+        // Convert to legacy blueprint format for compatibility
+        // Ensure all data is serializable (no undefined, functions, etc.)
+        const response = {
+          services: (blueprint.services || []).map(s => ({
+            name: s.name || 'unknown',
+            type: s.type || 'api',
+            cwd: s.cwd || '.',
+            startCommand: s.startCommand || '',
+            buildCommand: s.buildCommand || '',
+            ports: Array.isArray(s.ports) ? s.ports.filter(p => typeof p === 'number') : [],
+            envKeys: Array.isArray(s.envKeys) ? s.envKeys.filter(k => typeof k === 'string') : [],
+            framework: s.framework || '',
+          })),
+          resources: {
+            s3Buckets: [],
+            dynamoTables: [],
+            lambdaFunctions: [],
+          },
+          ports: (blueprint.services || []).flatMap(s => Array.isArray(s.ports) ? s.ports : []).filter(p => typeof p === 'number'),
+          envKeys: Array.isArray(blueprint.envKeys) ? blueprint.envKeys.filter(k => typeof k === 'string') : [],
+          docker: blueprint.docker ? {
+            dockerfile: !!blueprint.docker.dockerfile,
+            dockerCompose: !!blueprint.docker.dockerCompose,
+            composeFiles: Array.isArray(blueprint.docker.composeFiles) ? blueprint.docker.composeFiles : [],
+          } : {
+            dockerfile: false,
+            dockerCompose: false,
+            composeFiles: [],
+          },
+          awsSdks: [],
+          // Add metadata about external services
+          externalServices: (blueprint.externalServices || []).map(s => ({
+            name: s.name || 'unknown',
+            type: s.type || 'database',
+            ports: Array.isArray(s.ports) ? s.ports.filter(p => typeof p === 'number') : [],
+            envKeys: Array.isArray(s.envKeys) ? s.envKeys.filter(k => typeof k === 'string') : [],
+            version: s.version || '',
+            dockerImage: s.dockerImage || '',
+          })),
+          projectType: blueprint.projectType || 'unknown',
+          packageManager: blueprint.packageManager || 'npm',
+          framework: blueprint.framework || '',
+        }
+        
+        return response
+      } catch (error) {
+        console.error('[OneClick] detectRepo error:', error)
+        throw new Error(error instanceof Error ? error.message : 'Failed to analyze repository')
       }
     }),
 
