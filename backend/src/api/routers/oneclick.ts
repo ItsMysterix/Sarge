@@ -93,16 +93,32 @@ export const oneclickRouter = router({
       try {
         console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
         
-        // TEMPORARY: Return ULTRA minimal flat response to test SuperJSON
-        // No nested objects or complex structures
-        const testResponse = {
-          status: 'success',
-          serviceCount: 1,
-          projectType: 'nodejs',
-        }
+        const useAI = !!process.env.ANTHROPIC_API_KEY
+        console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
         
-        console.log('[OneClick] Returning ultra-minimal test response')
-        return testResponse
+        // Use GitHub scanner with AI support
+        const scanner = createGitHubScanner(input.accessToken, useAI)
+        const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
+        
+        console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
+        
+        // Return the blueprint directly (SuperJSON now disabled)
+        return {
+          services: blueprint.services || [],
+          resources: {
+            s3Buckets: [],
+            dynamoTables: [],
+            lambdaFunctions: [],
+          },
+          ports: blueprint.services?.flatMap(s => s.ports || []) || [],
+          envKeys: blueprint.envKeys || [],
+          docker: blueprint.docker || { dockerfile: false, dockerCompose: false, composeFiles: [] },
+          awsSdks: [],
+          externalServices: blueprint.externalServices || [],
+          projectType: blueprint.projectType || 'unknown',
+          packageManager: blueprint.packageManager || 'npm',
+          framework: blueprint.framework || '',
+        }
         
         /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
         const useAI = !!process.env.ANTHROPIC_API_KEY
