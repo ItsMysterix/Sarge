@@ -6,9 +6,8 @@ import { trpc } from '@/lib/trpc';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
-import { ListView } from './components/ListView';
 import { useRouter } from 'next/navigation';
-import { Plus, Filter, GitBranch, Clock, CheckCircle2, XCircle, PlayCircle, RotateCcw, TrendingUp, Rocket } from 'lucide-react';
+import { Plus, Filter, GitBranch, Clock, CheckCircle2, XCircle, PlayCircle, RotateCcw, TrendingUp, Rocket, Terminal } from 'lucide-react';
 import { QuickStatCard } from '@/components/ui/quick-stat-card';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { TimelineItem } from '@/components/ui/timeline-item';
@@ -16,6 +15,8 @@ import { AppShell } from '@/components/layout/app-shell';
 import { PageTitle } from '@/components/layout/page-title';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OnboardingSteps } from '@/components/ui/onboarding-steps';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
 
 export default function DeploymentsPage() {
   const t = trpc as any;
@@ -185,35 +186,87 @@ export default function DeploymentsPage() {
                   </CardBody>
                 </Card>
               ) : !data || data.length === 0 ? (
-                <EmptyState
-                  icon={Rocket}
-                  title="No Deployments Yet"
-                  description="Start deploying your applications with automated setup, dependency installation, and service management."
-                  actionLabel="Start Deploying"
-                  actionHref="/oneclick"
-                  secondaryActionLabel="Learn More"
-                  secondaryActionHref="/docs"
-                >
-                  <OnboardingSteps
-                    steps={[
-                      {
-                        number: 1,
-                        title: "Add your workspace",
-                        description: "Clone a GitHub repository or register a local project folder. Sarge supports multiple frameworks and languages.",
-                      },
-                      {
-                        number: 2,
-                        title: "Configure and deploy",
-                        description: "Choose your starting port and click deploy. Sarge automatically detects services, installs dependencies, and starts them.",
-                      },
-                      {
-                        number: 3,
-                        title: "Monitor and manage",
-                        description: "Track deployment status here, view logs, check metrics, and manage your running services.",
-                      },
-                    ]}
-                  />
-                </EmptyState>
+                <div className="border-2 border-accent/30 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
+                  {/* Window Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-accent/30">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-accent" />
+                      <span className="text-sm font-semibold">sarge-deployments</span>
+                    </div>
+                    <span className="text-xs text-accent">LIVE</span>
+                  </div>
+
+                  {/* Window Content */}
+                  <div className="min-h-96 flex flex-col items-center justify-center px-8 py-16">
+                    <div className="flex flex-col items-center gap-6">
+                      {/* Icon */}
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-600/30 to-amber-700/30 border border-amber-600/40 flex items-center justify-center">
+                        <Rocket className="w-12 h-12 text-amber-600" />
+                      </div>
+
+                      {/* Text Content */}
+                      <div className="text-center max-w-md">
+                        <h2 className="text-2xl font-bold mb-3 text-white">No Deployments Yet</h2>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                          Start deploying your applications with automated setup, dependency installation, and service management.
+                        </p>
+
+                        {/* Onboarding Steps */}
+                        <div className="space-y-3 mt-8">
+                          {[
+                            {
+                              number: 1,
+                              title: "Add your workspace",
+                              description: "Clone a GitHub repository or register a local project folder. Sarge supports multiple frameworks and languages.",
+                            },
+                            {
+                              number: 2,
+                              title: "Configure and deploy",
+                              description: "Choose your starting port and click deploy. Sarge automatically detects services, installs dependencies, and starts them.",
+                            },
+                            {
+                              number: 3,
+                              title: "Monitor and manage",
+                              description: "Track deployment status here, view logs, check metrics, and manage your running services.",
+                            },
+                          ].map((step) => (
+                            <div key={step.number} className="flex gap-4 text-left p-4 rounded-lg border border-white/10 bg-white/5">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full border-2 border-accent text-accent flex items-center justify-center text-sm font-semibold">
+                                {step.number}
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-white mb-1">{step.title}</h3>
+                                <p className="text-xs text-gray-400">{step.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 mt-8 justify-center">
+                          <Button
+                            onClick={() => router.push('/oneclick')}
+                            className="bg-accent text-black hover:bg-accent/90"
+                          >
+                            Start Deploying
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => router.push('/docs')}
+                          >
+                            Learn More
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="border-t border-accent/30 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
+                    <span>Showing 0 of 0 deployments</span>
+                    <span>Real-time updates active</span>
+                  </div>
+                </div>
               ) : items.length === 0 ? (
                 <Card>
                   <CardBody>
@@ -241,13 +294,87 @@ export default function DeploymentsPage() {
                   </CardBody>
                 </Card>
               ) : (
-                <ListView items={items} router={router} />
+                <div className="border-2 border-accent/30 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
+                  {/* Window Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-accent/30">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-accent" />
+                      <span className="text-sm font-semibold">sarge-deployments</span>
+                    </div>
+                    <span className="text-xs text-accent">LIVE</span>
+                  </div>
+
+                  {/* Deployments List */}
+                  <div role="table" aria-label="Deployments list">
+                    <div className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 text-xs text-zinc-400 border-b border-white/10 bg-black/40">
+                      <div>Status</div>
+                      <div>Workspace</div>
+                      <div>Branch</div>
+                      <div>Commit</div>
+                      <div>Started</div>
+                      <div>Actions</div>
+                    </div>
+                    {items.map((d: any) => (
+                      <DeploymentRow key={d.id} d={d} router={router} />
+                    ))}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="border-t border-accent/30 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
+                    <span>Showing {items.length} of {data.length} deployments</span>
+                    <span>Real-time updates active</span>
+                  </div>
+                </div>
               )}
             </AnimatePresence>
           </motion.div>
         </motion.div>
       </main>
     </AppShell>
+  );
+}
+
+function DeploymentRow({ d, router }: { d: any; router: any }) {
+  const t = trpc as any
+  const stopMutation = t.sarge.deploy.stopDeployment?.useMutation()
+  
+  const handleStop = async () => {
+    if (!confirm('Stop this deployment?')) return
+    try {
+      await stopMutation.mutateAsync({ deploymentId: d.id.toString() })
+    } catch (err) {
+      console.error('Failed to stop deployment:', err)
+    }
+  }
+  
+  const short = (s?: string | null) => s ? s.slice(0,7) : '';
+  const canStop = d.status === 'running' || d.status === 'pending'
+  
+  return (
+    <div role="row" className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 items-center border-b border-white/10 hover:bg-white/5 transition-colors">
+      <div><StatusBadge status={d.status} /></div>
+      <div className="truncate text-gray-300" title={d.workspace_name || d.summary || ''}>{d.workspace_name || d.summary || '-'}</div>
+      <div className="font-mono text-xs opacity-80">{d.branch ?? '-'}</div>
+      <div className="font-mono text-xs">
+        <span title={d.commit ?? ''}>{short(d.commit)}</span>
+      </div>
+      <div className="text-xs opacity-75" title={d.created_at ?? ''}>{d.created_at?.slice(0,19).replace('T',' ') ?? '-'}</div>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push(`/deployments/${d.id}`)}>View</Button>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push(`/deployments/${d.id}?tab=logs`)}>Logs</Button>
+        {canStop && (
+          <Button 
+            variant="destructive"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={handleStop}
+            disabled={stopMutation.isLoading}
+          >
+            {stopMutation.isLoading ? '...' : 'Stop'}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
  
