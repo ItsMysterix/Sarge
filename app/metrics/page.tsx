@@ -140,10 +140,10 @@ export default function MetricsPage() {
             </a>
           </div>
         ) : (
-          <>
+          <div className="glass-card border border-white/10 rounded-lg p-4 sm:p-6 space-y-6">
             {/* Quick Stats */}
             <motion.div
-              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -188,7 +188,6 @@ export default function MetricsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="mb-6"
               >
                 <HealthBanner
                   healthScore={healthScore}
@@ -203,7 +202,7 @@ export default function MetricsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
             >
               <div className="flex gap-2">
                 {(["1h", "24h", "7d"] as const).map((range) => (
@@ -260,6 +259,7 @@ export default function MetricsPage() {
                     currentMetrics,
                     avgCpu,
                     avgMemory,
+                    healthScore,
                     workspaceHealth,
                     serviceData,
                   } as any)}
@@ -269,7 +269,7 @@ export default function MetricsPage() {
                 <ServicesTab services={services} serviceData={serviceData} />
               )}
             </motion.div>
-          </>
+          </div>
         )}
 
         {/* Build Version Indicator */}
