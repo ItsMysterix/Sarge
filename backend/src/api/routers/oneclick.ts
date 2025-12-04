@@ -93,6 +93,52 @@ export const oneclickRouter = router({
       try {
         console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
         
+        // TEMPORARY: Return minimal hardcoded response to test if SuperJSON is the issue
+        const testResponse = {
+          services: [{
+            name: 'test-service',
+            type: 'api',
+            cwd: '.',
+            startCommand: 'npm start',
+            buildCommand: 'npm build',
+            ports: [3000],
+            envKeys: ['PORT', 'NODE_ENV'],
+            framework: 'next.js',
+          }],
+          resources: {
+            s3Buckets: [],
+            dynamoTables: [],
+            lambdaFunctions: [],
+          },
+          ports: [3000],
+          envKeys: ['PORT', 'NODE_ENV'],
+          docker: {
+            dockerfile: true,
+            dockerCompose: false,
+            composeFiles: [],
+          },
+          awsSdks: [],
+          externalServices: [],
+          projectType: 'nodejs',
+          packageManager: 'npm',
+          framework: 'next.js',
+        }
+        
+        console.log('[OneClick] Returning test response')
+        return testResponse
+        
+        /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
+        const useAI = !!process.env.ANTHROPIC_API_KEY
+        console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
+        
+        // Use GitHub scanner with AI support
+        const scanner = createGitHubScanner(input.accessToken, useAI)
+        const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
+        
+        console.log('[OneClick] Returning test response')
+        return testResponse
+        
+        /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
         const useAI = !!process.env.ANTHROPIC_API_KEY
         console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
         
@@ -201,6 +247,7 @@ export const oneclickRouter = router({
         
         console.log('[OneClick] Simple response ready, services:', simpleResponse.services.length)
         return simpleResponse
+        */
       } catch (error) {
         console.error('[OneClick] detectRepo error:', error)
         console.error('[OneClick] Error stack:', error instanceof Error ? error.stack : 'no stack')
