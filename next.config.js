@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // Force fresh build by updating config
+  generateBuildId: async () => {
+    return `build-${Date.now()}`
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
