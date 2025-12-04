@@ -102,22 +102,49 @@ export const oneclickRouter = router({
         
         console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
         
-        // Return the blueprint directly (SuperJSON now disabled)
+        // DEFENSIVE: Map services with null guards to prevent serialization issues
+        const safeServices = Array.isArray(blueprint?.services) ? 
+          blueprint.services.map(s => ({
+            name: String(s?.name || 'unknown'),
+            type: String(s?.type || 'api'),
+            cwd: String(s?.cwd || '.'),
+            startCommand: String(s?.startCommand || ''),
+            buildCommand: String(s?.buildCommand || ''),
+            ports: Array.isArray(s?.ports) ? s.ports.filter(p => typeof p === 'number') : [],
+            envKeys: Array.isArray(s?.envKeys) ? s.envKeys.filter(k => typeof k === 'string') : [],
+            framework: String(s?.framework || ''),
+          })) : []
+        
+        const safeExternal = Array.isArray(blueprint?.externalServices) ?
+          blueprint.externalServices.map(s => ({
+            name: String(s?.name || 'unknown'),
+            type: String(s?.type || 'database'),
+            ports: Array.isArray(s?.ports) ? s.ports.filter(p => typeof p === 'number') : [],
+            envKeys: Array.isArray(s?.envKeys) ? s.envKeys.filter(k => typeof k === 'string') : [],
+            version: String(s?.version || ''),
+            dockerImage: String(s?.dockerImage || ''),
+          })) : []
+        
+        // Return fully guarded response
         return {
-          services: blueprint.services || [],
+          services: safeServices,
           resources: {
             s3Buckets: [],
             dynamoTables: [],
             lambdaFunctions: [],
           },
-          ports: blueprint.services?.flatMap(s => s.ports || []) || [],
-          envKeys: blueprint.envKeys || [],
-          docker: blueprint.docker || { dockerfile: false, dockerCompose: false, composeFiles: [] },
+          ports: safeServices.flatMap(s => s.ports),
+          envKeys: Array.isArray(blueprint?.envKeys) ? blueprint.envKeys.filter(k => typeof k === 'string') : [],
+          docker: {
+            dockerfile: Boolean(blueprint?.docker?.dockerfile),
+            dockerCompose: Boolean(blueprint?.docker?.dockerCompose),
+            composeFiles: Array.isArray(blueprint?.docker?.composeFiles) ? blueprint.docker.composeFiles : [],
+          },
           awsSdks: [],
-          externalServices: blueprint.externalServices || [],
-          projectType: blueprint.projectType || 'unknown',
-          packageManager: blueprint.packageManager || 'npm',
-          framework: blueprint.framework || '',
+          externalServices: safeExternal,
+          projectType: String(blueprint?.projectType || 'unknown'),
+          packageManager: String(blueprint?.packageManager || 'npm'),
+          framework: String(blueprint?.framework || ''),
         }
         
         /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
