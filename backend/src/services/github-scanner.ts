@@ -324,6 +324,10 @@ export class GitHubScanner {
       buildCommand: packageJson.scripts?.build || '',
       startCommand,
     }
+    } catch (error) {
+      console.error(`[GitHubScanner] Error in scanNodeJS:`, error)
+      throw error
+    }
   }
 
   /**
