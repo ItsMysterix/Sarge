@@ -25,7 +25,7 @@ function handler(request: Request) {
         code: error.code,
         message: error.message,
         cause: error.cause,
-        input: JSON.stringify(input).substring(0, 200),
+        input: input ? JSON.stringify(input).substring(0, 200) : '(no input)',
       });
     },
     responseMeta() {
