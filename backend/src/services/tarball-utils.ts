@@ -78,7 +78,7 @@ export async function downloadAndExtractRepository(
         }
       })
       
-      extractStream.on('error', (err) => {
+      extractStream.on('error', (err: Error) => {
         console.error(`[Tarball] Extraction error: ${err.message}`)
         resolve({
           success: false,
@@ -88,7 +88,7 @@ export async function downloadAndExtractRepository(
         })
       })
       
-      readStream.on('error', (err) => {
+      readStream.on('error', (err: Error) => {
         console.error(`[Tarball] Read error: ${err.message}`)
         resolve({
           success: false,
