@@ -3,7 +3,7 @@
 import { AppShell } from "@/components/layout/app-shell"
 import { PageTitle } from '@/components/layout/page-title';
 import { Layers, Plus, Archive, Play, Pause, StopCircle, AlertCircle, CheckCircle2, Cpu, Database as DatabaseIcon } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect } from "react"
 import { trpc } from "@/lib/trpc"
 import { useToast } from "@/components/ui/toast"
@@ -11,11 +11,16 @@ import { useToast } from "@/components/ui/toast"
 export default function StacksPage() {
   const [stacks, setStacks] = useState<any[]>([])
   const [showEmptyState, setShowEmptyState] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newStackName, setNewStackName] = useState('')
+  const [newStackDescription, setNewStackDescription] = useState('')
+  const [creatingStack, setCreatingStack] = useState(false)
   const { addToast, ToastContainer } = useToast()
   
   const t = trpc as any
   const stacksQuery = t.stacks.list.useQuery()
   const updateStatusMutation = t.stacks.updateStatus.useMutation()
+  const createStackMutation = t.stacks.create.useMutation()
 
   useEffect(() => {
     if (stacksQuery.data) {
@@ -62,6 +67,37 @@ export default function StacksPage() {
     }
   }
 
+  const handleCreateStack = async () => {
+    if (!newStackName.trim()) {
+      addToast({ type: 'error', title: 'Name required', description: 'Please provide a stack name.' })
+      return
+    }
+
+    try {
+      setCreatingStack(true)
+      const result = await createStackMutation.mutateAsync({
+        name: newStackName.trim(),
+        description: newStackDescription.trim() || undefined,
+        services: [],
+        environment: {},
+      })
+
+      if (result?.success && result.stack) {
+        setStacks([result.stack, ...stacks])
+        addToast({ type: 'success', title: 'Stack created', description: `${result.stack.name} added.` })
+        setShowCreateModal(false)
+        setNewStackName('')
+        setNewStackDescription('')
+      } else {
+        addToast({ type: 'error', title: 'Create failed', description: 'Could not create stack.' })
+      }
+    } catch (error) {
+      addToast({ type: 'error', title: 'Create failed', description: 'Could not create stack.' })
+    } finally {
+      setCreatingStack(false)
+    }
+  }
+
   const getStatusIcon = (status: string) => {
     switch(status) {
       case 'running': return <CheckCircle2 className="w-4 h-4 text-success" />
@@ -81,7 +117,10 @@ export default function StacksPage() {
           description="Infrastructure and service stacks"
           icon={<Layers className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
           actions={
-            <button className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center ml-auto">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center ml-auto"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Stack
             </button>
@@ -130,7 +169,10 @@ export default function StacksPage() {
                 Create a stack to compose services (S3, DynamoDB, Lambda, your APIs) into a cohesive application. 
                 Each stack runs independently with its own resources and logs.
               </p>
-              <button className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm"
+              >
                 <Plus className="w-5 h-5 mr-2" />
                 Create Your First Stack
               </button>
@@ -185,6 +227,77 @@ export default function StacksPage() {
                           {service.name}
                         </span>
                       ))}
+
+                      {/* Create Stack Modal */}
+                      <AnimatePresence>
+                        {showCreateModal && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                          >
+                            <motion.div
+                              initial={{ scale: 0.95, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0.95, opacity: 0 }}
+                              className="w-full max-w-lg glass-card border border-white/10 rounded-xl p-6"
+                            >
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h3 className="text-lg font-semibold">Create Stack</h3>
+                                  <p className="text-sm text-gray-400">Compose services into an isolated stack.</p>
+                                </div>
+                                <button
+                                  onClick={() => setShowCreateModal(false)}
+                                  className="text-gray-400 hover:text-accent transition-colors"
+                                >
+                                  ×
+                                </button>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-sm text-gray-300">Name</label>
+                                  <input
+                                    value={newStackName}
+                                    onChange={(e) => setNewStackName(e.target.value)}
+                                    className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
+                                    placeholder="e.g. Payments Stack"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm text-gray-300">Description</label>
+                                  <textarea
+                                    value={newStackDescription}
+                                    onChange={(e) => setNewStackDescription(e.target.value)}
+                                    className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
+                                    placeholder="What does this stack include?"
+                                    rows={3}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                  onClick={() => setShowCreateModal(false)}
+                                  className="px-4 py-2 text-gray-300 border border-white/10 rounded-lg hover:border-white/20 transition-colors"
+                                  disabled={creatingStack}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={handleCreateStack}
+                                  disabled={creatingStack}
+                                  className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg font-semibold backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {creatingStack ? 'Creating...' : 'Create Stack'}
+                                </button>
+                              </div>
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       {stack.services?.length > 4 && (
                         <span className="px-2 py-1 text-xs bg-white/5 text-gray-400 rounded">
                           +{stack.services.length - 4} more
