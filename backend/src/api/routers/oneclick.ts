@@ -16,17 +16,32 @@ const orchestrator = createDeploymentOrchestrator()
 // Helper to save logs to database
 async function saveLogs(logs: Array<{ type: string; message: string; service: string; severity?: string; timestamp?: string }>) {
   try {
-    const response = await fetch('http://localhost:3000/api/logs', {
+    // Determine the base URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const logUrl = `${baseUrl}/api/logs`
+    
+    console.log('[saveLogs] Posting to:', logUrl, 'with', logs.length, 'log(s)')
+    
+    const response = await fetch(logUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(logs),
-    }).catch(() => null)
+    }).catch((err) => {
+      console.error('[saveLogs] Fetch error:', err)
+      return null
+    })
     
     if (response && !response.ok) {
-      console.error('Failed to save logs to database:', response.statusText)
+      console.error('[saveLogs] Server error:', response.status, response.statusText)
+      try {
+        const text = await response.text()
+        console.error('[saveLogs] Response:', text)
+      } catch {}
+    } else if (response) {
+      console.log('[saveLogs] Success:', response.status)
     }
   } catch (e) {
-    console.error('Error saving logs:', e)
+    console.error('[saveLogs] Error:', e)
   }
 }
 
@@ -345,6 +360,8 @@ export const oneclickRouter = router({
           logs.push(logEntry)
           ctx.ee.emit(topic, logEntry)
           
+          console.log(`[Deployment ${input.owner}/${input.repo}] [${level.toUpperCase()}] ${msg}`)
+          
           // Save to database asynchronously (don't wait)
           saveLogs([{
             type: level === 'error' ? 'error' : level === 'progress' ? 'info' : 'info',
@@ -353,7 +370,9 @@ export const oneclickRouter = router({
             severity: level === 'error' ? 'high' : 'medium',
             timestamp: new Date().toISOString(),
           }]).catch(e => console.error('Failed to save log:', e))
-        } catch {} 
+        } catch (err) {
+          console.error('[emit] Error:', err)
+        } 
       }
       
       try {

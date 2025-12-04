@@ -256,9 +256,13 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const startDeployment = async () => {
     if (!connectedRepo || !analysisComplete || connectedDeploying) return
     setConnectedDeploying(true)
+    setError(null)
+    console.log('[Deploy] Starting deployment for', connectedRepo.owner + '/' + connectedRepo.repo)
     try {
       const token = await fetchAccessToken()
-      if (!token) throw new Error('Missing token')
+      if (!token) throw new Error('Missing GitHub token')
+      
+      console.log('[Deploy] Calling deployConnected mutation...')
       const resp = await t.sarge.oneclick.deployConnected.mutate({
         owner: connectedRepo.owner,
         repo: connectedRepo.repo,
@@ -268,6 +272,8 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         packageManager: selectedPackageManager || 'pnpm',
         deploymentMethod,
       })
+      
+      console.log('[Deploy] Deployment mutation returned:', resp)
       
       // Save deployment to database
       try {
@@ -286,8 +292,12 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       } catch (e) {
         console.error('Failed to save deployment record:', e)
       }
+      
+      // Show success message directing to logs
+      console.log('[Deploy] Deployment initiated - check Logs page for details')
     } catch (e: any) {
-      setError(e.message || 'Deployment failed')
+      console.error('[Deploy] Error during deployment:', e)
+      setError(e.message || 'Deployment failed - check browser console for details')
     } finally {
       setConnectedDeploying(false)
     }
