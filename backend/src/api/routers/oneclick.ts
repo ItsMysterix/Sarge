@@ -1,7 +1,6 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
-import { workspaceManager } from '../../services/workspace-manager'
 import { createGitHubScanner } from '../../services/github-scanner'
 import { createDeploymentOrchestrator } from '../../services/deployment-orchestrator'
 
@@ -80,70 +79,6 @@ const WorkspaceIdInput = z.object({
 })
 
 export const oneclickRouter = router({
-  // Workspace management
-  workspaces: router({
-    // Clone GitHub repo to local workspace
-    cloneRepo: secureProcedure('sarge.oneclick.workspaces.cloneRepo')
-      .input(CloneRepoInput)
-      .mutation(async ({ input }) => {
-        const workspace = await workspaceManager.cloneRepo(input.repoUrl, input.branch)
-        return workspace
-      }),
-
-    // Register existing local folder
-    registerLocal: secureProcedure('sarge.oneclick.workspaces.registerLocal')
-      .input(RegisterLocalInput)
-      .mutation(async ({ input }) => {
-        const workspace = workspaceManager.registerLocal(input.localPath)
-        return workspace
-      }),
-
-    // List all workspaces
-    list: secureProcedure('sarge.oneclick.workspaces.list')
-      .query(async () => {
-        try {
-          const workspaces = workspaceManager.listWorkspaces()
-          return (Array.isArray(workspaces) ? workspaces : []).map(w => ({
-            id: (w?.id && typeof w.id === 'string') ? w.id : '',
-            name: (w?.name && typeof w.name === 'string') ? w.name : 'unknown',
-            source: (w?.source && typeof w.source === 'string') ? w.source : 'local',
-            path: (w?.path && typeof w.path === 'string') ? w.path : '',
-            repo: w?.repo || null,
-            lastUsed: w?.lastUsed || new Date(),
-          }))
-        } catch (error) {
-          console.error('[OneClick] workspaces.list error (returning empty):', error)
-          return []
-        }
-      }),
-
-    // Get workspace details
-    get: secureProcedure('sarge.oneclick.workspaces.get')
-      .input(WorkspaceIdInput)
-      .query(async ({ input }) => {
-        const workspace = workspaceManager.getWorkspace(input.workspaceId)
-        if (!workspace) {
-          throw new Error(`Workspace not found: ${input.workspaceId}`)
-        }
-        return workspace
-      }),
-
-    // Delete workspace
-    delete: secureProcedure('sarge.oneclick.workspaces.delete')
-      .input(WorkspaceIdInput)
-      .mutation(async ({ input }) => {
-        await workspaceManager.deleteWorkspace(input.workspaceId)
-        return { success: true }
-      }),
-
-    // Pull latest changes (GitHub only)
-    pull: secureProcedure('sarge.oneclick.workspaces.pull')
-      .input(WorkspaceIdInput)
-      .mutation(async ({ input }) => {
-        await workspaceManager.pullLatest(input.workspaceId)
-        return { success: true }
-      }),
-  }),
 
   // Detect services in repository (via GitHub API - NO CLONING!)
   // Uses Claude AI if ANTHROPIC_API_KEY is set, otherwise falls back to pattern matching
@@ -358,22 +293,7 @@ export const oneclickRouter = router({
       repoPath: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      let repoPath: string
-
-      if (input.workspaceId) {
-        // Use workspace
-        const workspace = workspaceManager.getWorkspace(input.workspaceId)
-        if (!workspace) {
-          throw new Error(`Workspace not found: ${input.workspaceId}`)
-        }
-        repoPath = workspace.path
-      } else if (input.repoPath) {
-        // Use provided path
-        repoPath = input.repoPath
-      } else {
-        // Default to current directory
-        repoPath = process.cwd()
-      }
+      const repoPath = input.repoPath || process.cwd()
 
       // Start services via local runtime; caller may subscribe to logs separately
   const core = await getCore()
