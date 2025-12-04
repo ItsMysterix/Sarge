@@ -152,10 +152,6 @@ export const oneclickRouter = router({
             s3Buckets: [],
             dynamoTables: [],
             lambdaFunctions: [],
-            databases: Array.isArray(blueprint?.resources?.databases) ? blueprint.resources.databases : [],
-            caches: Array.isArray(blueprint?.resources?.caches) ? blueprint.resources.caches : [],
-            queues: Array.isArray(blueprint?.resources?.queues) ? blueprint.resources.queues : [],
-            monitoring: Array.isArray(blueprint?.resources?.monitoring) ? blueprint.resources.monitoring : [],
           },
           ports: safePorts,
           envKeys: safeEnvKeysFiltered,
@@ -193,8 +189,15 @@ export const oneclickRouter = router({
           framework: (blueprint?.framework && typeof blueprint.framework === 'string') ? blueprint.framework : '',
         }
         
-        // Strip all undefined values to prevent SuperJSON serialization crashes
-        const cleaned = JSON.parse(JSON.stringify(response))
+        // Aggressively strip all undefined/null/complex values to prevent SuperJSON issues
+        const cleaned = JSON.parse(JSON.stringify(response, (key, value) => {
+          // Replace undefined with null for JSON compatibility
+          if (value === undefined) return null
+          // Filter out null values from arrays
+          if (Array.isArray(value)) return value.filter(v => v != null)
+          return value
+        }))
+        
         console.log('[OneClick] Response prepared, services:', cleaned.services?.length || 0)
         return cleaned
       } catch (error) {
