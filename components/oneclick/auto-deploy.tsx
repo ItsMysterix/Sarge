@@ -40,6 +40,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisComplete, setAnalysisComplete] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [terminalLines, setTerminalLines] = useState<any[]>([])
   const [selectedPackageManager, setSelectedPackageManager] = useState<string | null>(null)
   const [selectedPort, setSelectedPort] = useState<number>(3000)
   const [availablePorts, setAvailablePorts] = useState<number[]>([])
