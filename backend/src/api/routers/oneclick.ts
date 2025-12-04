@@ -228,7 +228,8 @@ export const oneclickRouter = router({
           framework: (blueprint?.framework && typeof blueprint.framework === 'string') ? blueprint.framework : '',
         }
         
-        return response
+        // Strip all undefined values to prevent SuperJSON serialization crashes
+        return JSON.parse(JSON.stringify(response))
       } catch (error) {
         console.error('[OneClick] detectRepo error:', error)
         // Return a resilient, mock-first response instead of throwing to avoid 500s on serverless
