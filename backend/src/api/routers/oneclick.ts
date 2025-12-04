@@ -149,9 +149,13 @@ export const oneclickRouter = router({
             }
           }),
           resources: {
-            s3Buckets: Array.isArray(blueprint?.resources?.s3Buckets) ? blueprint.resources.s3Buckets.filter(b => b != null) : [],
-            dynamoTables: Array.isArray(blueprint?.resources?.dynamoTables) ? blueprint.resources.dynamoTables.filter(t => t != null) : [],
-            lambdaFunctions: Array.isArray(blueprint?.resources?.lambdaFunctions) ? blueprint.resources.lambdaFunctions.filter(l => l != null) : [],
+            s3Buckets: [],
+            dynamoTables: [],
+            lambdaFunctions: [],
+            databases: Array.isArray(blueprint?.resources?.databases) ? blueprint.resources.databases : [],
+            caches: Array.isArray(blueprint?.resources?.caches) ? blueprint.resources.caches : [],
+            queues: Array.isArray(blueprint?.resources?.queues) ? blueprint.resources.queues : [],
+            monitoring: Array.isArray(blueprint?.resources?.monitoring) ? blueprint.resources.monitoring : [],
           },
           ports: safePorts,
           envKeys: safeEnvKeysFiltered,
@@ -160,7 +164,7 @@ export const oneclickRouter = router({
             dockerCompose: !!(blueprint?.docker?.dockerCompose),
             composeFiles: safeComposeFiles,
           },
-          awsSdks: Array.isArray(blueprint?.awsSdks) ? blueprint.awsSdks.filter(sdk => sdk != null) : [],
+          awsSdks: [],
           externalServices: safeExternalServices.map(s => {
             if (!s) return {
               name: 'unknown',
