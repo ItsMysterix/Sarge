@@ -204,59 +204,9 @@ export default function DeploymentsPage() {
                         <Rocket className="w-12 h-12 text-amber-100" />
                       </div>
 
-                      {/* Text Content */}
-                      <div className="text-center max-w-md">
-                        <h2 className="text-2xl font-bold mb-3 text-white">No Deployments Yet</h2>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
-                          Start deploying your applications with automated setup, dependency installation, and service management.
-                        </p>
-
-                        {/* Onboarding Steps */}
-                        <div className="space-y-3 mt-8">
-                          {[
-                            {
-                              number: 1,
-                              title: "Add your workspace",
-                              description: "Clone a GitHub repository or register a local project folder. Sarge supports multiple frameworks and languages.",
-                            },
-                            {
-                              number: 2,
-                              title: "Configure and deploy",
-                              description: "Choose your starting port and click deploy. Sarge automatically detects services, installs dependencies, and starts them.",
-                            },
-                            {
-                              number: 3,
-                              title: "Monitor and manage",
-                              description: "Track deployment status here, view logs, check metrics, and manage your running services.",
-                            },
-                          ].map((step) => (
-                            <div key={step.number} className="flex gap-4 text-left p-4 rounded-lg border border-amber-600/20 bg-amber-600/5">
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full border-2 border-amber-600 text-amber-600 flex items-center justify-center text-sm font-semibold">
-                                {step.number}
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-white mb-1">{step.title}</h3>
-                                <p className="text-xs text-gray-400">{step.description}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-3 mt-8 justify-center">
-                          <Button
-                            onClick={() => router.push('/oneclick')}
-                            className="bg-accent text-black hover:bg-accent/90"
-                          >
-                            Start Deploying
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => router.push('/docs')}
-                          >
-                            Learn More
-                          </Button>
-                        </div>
+                      {/* Text Content - matching logs page */}
+                      <div className="text-center max-w-2xl font-mono text-sm leading-relaxed text-gray-300">
+                        <p>No deployments found. Deployments will appear after you deploy, analyze, or interact with your services. You can also upload deployment files or trigger a deployment to generate activity.</p>
                       </div>
                     </div>
                   </div>
