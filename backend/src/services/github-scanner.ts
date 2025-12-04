@@ -334,9 +334,10 @@ export class GitHubScanner {
     }
 
     // Check for common Python frameworks
-    const framework = deps.some(d => d.includes('django')) ? 'django' : 
-                     deps.some(d => d.includes('flask')) ? 'flask' :
-                     deps.some(d => d.includes('fastapi')) ? 'fastapi' : undefined
+      const safeDeps = Array.isArray(deps) ? deps.map(d => (typeof d === 'string' ? d : String(d))) : []
+      const framework = safeDeps.some(d => d.includes('django')) ? 'django' : 
+                        safeDeps.some(d => d.includes('flask')) ? 'flask' :
+                        safeDeps.some(d => d.includes('fastapi')) ? 'fastapi' : undefined
 
     // Check databases
     if (deps.some(d => d.includes('psycopg') || d.includes('postgres'))) {
@@ -436,6 +437,10 @@ export class GitHubScanner {
     try {
       let composeContent = await this.github.getFileContent(owner, repo, 'docker-compose.yml', branch)
         .catch(() => this.github.getFileContent(owner, repo, 'docker-compose.yaml', branch))
+        .catch(() => '')
+
+      // Normalize to string to avoid `.includes` on undefined
+      if (typeof composeContent !== 'string') composeContent = String(composeContent ?? '')
 
       // Simple regex parsing (for production, use a YAML parser)
       if (composeContent.includes('image: postgres')) {
