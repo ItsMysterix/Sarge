@@ -103,6 +103,12 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         repo: connectedRepo.repo,
         branch: 'main',
         accessToken: token,
+      }).catch((err) => {
+        // If bad credentials, show helpful error
+        if (err.message?.includes('Bad credentials')) {
+          throw new Error('Bad credentials - https://docs.github.com/rest')
+        }
+        throw err
       })
       setAnalysisResult(result)
       addTerminalLine(`✅ Analysis complete: ${result.services?.length || 0} service(s) detected`, 'success')
@@ -140,7 +146,23 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         branch: 'main',
         accessToken: token,
       })
-      addTerminalLine('✅ Deployment initiated', 'success')
+      addTerminalLine('✅ Deployment initiated - Starting services locally...', 'success')
+      
+      // Subscribe to real-time deployment logs via streamConnected
+      const unsubscribe = t.sarge.oneclick.streamConnected.subscribe(
+        {
+          owner: connectedRepo.owner,
+          repo: connectedRepo.repo,
+        },
+        {
+          onData(data: any) {
+            addTerminalLine(data.line, data.level)
+          },
+          onError(err: any) {
+            console.error('Log stream error:', err)
+          },
+        }
+      )
     } catch (e: any) {
       setError(e.message || 'Deployment failed')
       addTerminalLine(`❌ ${e.message || 'Deployment failed'}`, 'error')
@@ -533,12 +555,12 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
               <button
                 onClick={startDeployment}
                 disabled={connectedDeploying || !selectedPackageManager}
-                className="w-full py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold rounded-lg disabled:opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                className="w-full py-3 bg-accent text-black font-semibold rounded-lg disabled:opacity-40 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
               >
                 {connectedDeploying ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Deploying...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Starting Services...</>
                 ) : (
-                  <><PlayCircle className="w-5 h-5" /> Deploy Services</>
+                  <><PlayCircle className="w-5 h-5" /> Start Services Locally</>
                 )}
               </button>
               {error && <p className="text-sm text-red-400">{error}</p>}
