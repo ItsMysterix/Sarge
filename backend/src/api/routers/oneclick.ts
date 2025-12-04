@@ -7,6 +7,23 @@ import { createDeploymentOrchestrator } from '../../services/deployment-orchestr
 // Global orchestrator instance
 const orchestrator = createDeploymentOrchestrator()
 
+// Helper to save logs to database
+async function saveLogs(logs: Array<{ type: string; message: string; service: string; severity?: string; timestamp?: string }>) {
+  try {
+    const response = await fetch('http://localhost:3000/api/logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(logs),
+    }).catch(() => null)
+    
+    if (response && !response.ok) {
+      console.error('Failed to save logs to database:', response.statusText)
+    }
+  } catch (e) {
+    console.error('Error saving logs:', e)
+  }
+}
+
 async function getCore(): Promise<any> {
   // Import sarge-core at runtime to avoid bundler static resolution during Next build
   // Use non-literal module name to prevent webpack from resolving it at build time
@@ -302,16 +319,36 @@ export const oneclickRouter = router({
     .mutation(async ({ input, ctx }) => {
       // Emit progress logs via event emitter so client can subscribe
       const topic = `oneclick:connected:${input.owner}/${input.repo}`
+      const logs: any[] = []
+      
       const classify = (rawMsg: string): string => {
         const normalized = typeof rawMsg === 'string' ? rawMsg : String(rawMsg ?? '')
         const msgLower = normalized.toLowerCase()
-        if (!msgLower) return 'progress'
+        if (!msgLower) return 'info'
         if (msgLower.includes('error') || normalized.startsWith('❌')) return 'error'
         if (msgLower.includes('deploying') || msgLower.includes('starting')) return 'progress'
         if (msgLower.includes('complete') || normalized.startsWith('✅')) return 'success'
         return 'info'
       }
-      const emit = (msg: string) => { try { ctx.ee.emit(topic, { ts: Date.now(), line: msg, level: classify(msg) }) } catch {} }
+      
+      const emit = (msg: string) => { 
+        try { 
+          const level = classify(msg)
+          const logEntry = { ts: Date.now(), line: msg, level }
+          logs.push(logEntry)
+          ctx.ee.emit(topic, logEntry)
+          
+          // Save to database asynchronously (don't wait)
+          saveLogs([{
+            type: level === 'error' ? 'error' : level === 'progress' ? 'info' : 'info',
+            message: msg,
+            service: `${input.owner}/${input.repo}`,
+            severity: level === 'error' ? 'high' : 'medium',
+            timestamp: new Date().toISOString(),
+          }]).catch(e => console.error('Failed to save log:', e))
+        } catch {} 
+      }
+      
       emit(`Starting connected deploy for ${input.owner}/${input.repo}`)
       emit(`Using port: ${input.startPort}, package manager: ${input.packageManager}`)
       const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
@@ -331,7 +368,7 @@ export const oneclickRouter = router({
       emit('Services started locally')
       const result = Array.from(instances.values()).map(i => ({ name: i.name, status: i.status, port: i.port, url: i.url }))
       emit('Deployment complete')
-      return { services: result, blueprintSummary: { services: blueprint.services.length, projectType: blueprint.projectType, framework: blueprint.framework }, logTopic: topic }
+      return { services: result, blueprintSummary: { services: blueprint.services.length, projectType: blueprint.projectType, framework: blueprint.framework }, logTopic: topic, logs }
     }),
 
   // Deploy services without cloning!
