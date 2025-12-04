@@ -33,7 +33,8 @@ export const logsRouter = router({
         }
 
         // Build SQL dynamically to keep parameter ordering correct
-        const selects = `SELECT id, service_id as service, type, message, "timestamp", created_at`;
+        // Support both service_id and service columns for backwards compatibility
+        const selects = `SELECT id, COALESCE(service_id, service, 'unknown') as service, type, message, "timestamp", created_at`;
         let sql = `${selects} FROM logs`;
         const params: any[] = [];
         const where: string[] = [];
@@ -45,12 +46,13 @@ export const logsRouter = router({
         
         if (service && service !== 'all') {
           params.push(service);
-          where.push(`service_id = $${params.length}`);
+          // Check both columns for backwards compatibility
+          where.push(`(service_id = $${params.length} OR service = $${params.length})`);
         }
         
         if (search && search.length > 0) {
           params.push(`%${search}%`);
-          where.push(`(message ILIKE $${params.length} OR service_id ILIKE $${params.length})`);
+          where.push(`(message ILIKE $${params.length} OR COALESCE(service_id, service) ILIKE $${params.length})`);
         }
         
         if (cursorCreatedAt && cursorId != null) {
@@ -92,10 +94,10 @@ export const logsRouter = router({
   services: secureProcedure('logs.services').query(async ({ ctx }) => {
     try {
       const result = await ctx.db.query(`
-        SELECT DISTINCT service_id as service 
+        SELECT DISTINCT COALESCE(service_id, service, 'unknown') as service 
         FROM logs 
-        WHERE service_id IS NOT NULL 
-        ORDER BY service_id ASC
+        WHERE COALESCE(service_id, service) IS NOT NULL 
+        ORDER BY COALESCE(service_id, service) ASC
       `);
       if (!result || !result.rows) {
         return [];
