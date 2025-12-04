@@ -13,7 +13,7 @@ export const logsRouter = router({
       cursor: z.string().optional(),
       limit: z.number().int().positive().max(1000).optional(),
     }))
-    .query(async ({ ctx }) => {
+    .query(async ({ ctx, input }) => {
       const end = startQueryTimer('logs.recent');
       try {
         const type = input.type;
