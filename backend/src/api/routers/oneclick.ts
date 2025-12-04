@@ -101,12 +101,15 @@ export const oneclickRouter = router({
         const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
         
         console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
+        console.log(`[OneClick] Blueprint type:`, typeof blueprint, 'Keys:', Object.keys(blueprint))
         
         // Convert to legacy blueprint format for compatibility
         // Ensure all data is serializable (no undefined, functions, etc.)
         const safeServices = Array.isArray(blueprint.services) ? blueprint.services.filter(s => s != null) : []
         const safeExternalServices = Array.isArray(blueprint.externalServices) ? blueprint.externalServices.filter(e => e != null) : []
         const safeEnvKeys = Array.isArray(blueprint.envKeys) ? blueprint.envKeys.filter(k => k != null) : []
+        
+        console.log(`[OneClick] Safe arrays - services: ${safeServices.length}, external: ${safeExternalServices.length}, envKeys: ${safeEnvKeys.length}`)
         
         // Build response with NO undefined values to prevent SuperJSON serialization crashes
         const safePorts = safeServices
@@ -119,6 +122,8 @@ export const oneclickRouter = router({
         const safeComposeFiles = (blueprint?.docker && Array.isArray(blueprint.docker.composeFiles))
           ? blueprint.docker.composeFiles.filter(f => f != null && typeof f === 'string' && f.length > 0)
           : []
+        
+        console.log(`[OneClick] Building response object...`)
         
         const response = {
           services: safeServices.map(s => {
@@ -189,6 +194,8 @@ export const oneclickRouter = router({
           framework: (blueprint?.framework && typeof blueprint.framework === 'string') ? blueprint.framework : '',
         }
         
+        console.log(`[OneClick] Response object built, serializing...`)
+        
         // Aggressively strip all undefined/null/complex values to prevent SuperJSON issues
         const cleaned = JSON.parse(JSON.stringify(response, (key, value) => {
           // Replace undefined with null for JSON compatibility
@@ -198,11 +205,13 @@ export const oneclickRouter = router({
           return value
         }))
         
-        console.log('[OneClick] Response prepared, services:', cleaned.services?.length || 0)
+        console.log('[OneClick] Response cleaned and ready, services:', cleaned.services?.length || 0)
+        console.log('[OneClick] Response keys:', Object.keys(cleaned))
         return cleaned
       } catch (error) {
         console.error('[OneClick] detectRepo error:', error)
         console.error('[OneClick] Error stack:', error instanceof Error ? error.stack : 'no stack')
+        console.error('[OneClick] Error name:', error instanceof Error ? error.name : typeof error)
         // Return a resilient, mock-first response instead of throwing to avoid 500s on serverless
         return {
           services: [],
