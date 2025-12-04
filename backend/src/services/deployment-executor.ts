@@ -51,11 +51,19 @@ export class DeploymentExecutor {
       this.addLog(`📦 Using package manager: ${packageManager}`, 'info')
       this.addLog(`🔧 Target port: ${startPort}`, 'info')
 
+      // Normalize package manager name
+      const pm = this.getNormalizedPM(packageManager)
+      if (!pm) {
+        const msg = `Unsupported package manager: ${packageManager}. Use npm, pnpm, yarn, or bun`
+        this.addLog(msg, 'error')
+        return { success: false, error: msg, logs: this.logs }
+      }
+
       // Step 1: Install dependencies
-      this.addLog(`⏳ Installing dependencies with ${packageManager}...`, 'info')
+      this.addLog(`⏳ Installing dependencies with ${pm}...`, 'info')
       const installSuccess = await this.runCommand(
-        packageManager,
-        ['install'],
+        pm,
+        this.getInstallArgs(pm),
         repoPath
       )
       if (!installSuccess) {
@@ -69,15 +77,19 @@ export class DeploymentExecutor {
       const pkgJsonPath = path.join(repoPath, 'package.json')
       let hasBuildScript = false
       if (fs.existsSync(pkgJsonPath)) {
-        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'))
-        hasBuildScript = !!(pkgJson.scripts && pkgJson.scripts.build)
+        try {
+          const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'))
+          hasBuildScript = !!(pkgJson.scripts && pkgJson.scripts.build)
+        } catch (e) {
+          this.addLog(`⚠️ Could not parse package.json`, 'warning')
+        }
       }
 
       if (hasBuildScript) {
         this.addLog(`⏳ Building project...`, 'info')
         const buildSuccess = await this.runCommand(
-          packageManager,
-          ['run', 'build'],
+          pm,
+          this.getBuildArgs(pm),
           repoPath
         )
         if (!buildSuccess) {
@@ -87,15 +99,13 @@ export class DeploymentExecutor {
         }
       }
 
-      // Step 3: Start the application
+      // Step 3: Start the application (non-blocking, just initiate)
       this.addLog(`⏳ Starting application on port ${startPort}...`, 'info')
       const envVars = { ...process.env, PORT: startPort.toString() }
-      const startSuccess = await this.runCommand(
-        packageManager,
-        ['run', 'start'],
+      const startSuccess = await this.initiateStart(
+        pm,
         repoPath,
-        envVars,
-        true // Keep alive
+        envVars
       )
 
       if (startSuccess) {
@@ -113,29 +123,73 @@ export class DeploymentExecutor {
     }
   }
 
-  private runCommand(
-    cmd: string,
-    args: string[],
+  private getNormalizedPM(pm: string): string | null {
+    const normalized = pm.toLowerCase().trim()
+    if (['npm', 'pnpm', 'yarn', 'bun'].includes(normalized)) {
+      return normalized
+    }
+    return null
+  }
+
+  private getInstallArgs(pm: string): string[] {
+    switch (pm) {
+      case 'pnpm':
+        return ['install']
+      case 'npm':
+        return ['install']
+      case 'yarn':
+        return ['install']
+      case 'bun':
+        return ['install']
+      default:
+        return ['install']
+    }
+  }
+
+  private getBuildArgs(pm: string): string[] {
+    switch (pm) {
+      case 'pnpm':
+      case 'npm':
+      case 'yarn':
+        return ['run', 'build']
+      case 'bun':
+        return ['run', 'build']
+      default:
+        return ['run', 'build']
+    }
+  }
+
+  private getStartArgs(pm: string): string[] {
+    switch (pm) {
+      case 'pnpm':
+      case 'npm':
+      case 'yarn':
+        return ['run', 'start']
+      case 'bun':
+        return ['run', 'start']
+      default:
+        return ['run', 'start']
+    }
+  }
+
+  private initiateStart(
+    pm: string,
     cwd: string,
-    env?: NodeJS.ProcessEnv,
-    keepAlive: boolean = false
+    env: NodeJS.ProcessEnv
   ): Promise<boolean> {
     return new Promise((resolve) => {
       try {
-        this.process = spawn(cmd, args, {
+        const args = this.getStartArgs(pm)
+        this.process = spawn(pm, args, {
           cwd,
-          env: env || process.env,
+          env,
           stdio: ['pipe', 'pipe', 'pipe'],
+          detached: false,
         })
-
-        let stdout = ''
-        let stderr = ''
 
         if (this.process.stdout) {
           this.process.stdout.on('data', (data) => {
             const text = data.toString()
-            stdout += text
-            // Stream individual lines
             text.split('\n').forEach((line) => {
               if (line.trim()) {
                 this.addLog(line, 'info')
@@ -147,7 +201,63 @@ export class DeploymentExecutor {
         if (this.process.stderr) {
           this.process.stderr.on('data', (data) => {
             const text = data.toString()
-            stderr += text
+            text.split('\n').forEach((line) => {
+              if (line.trim()) {
+                this.addLog(line, 'error')
+              }
+            })
+          })
+        }
+
+        // Resolve immediately after process spawns (don't wait for it to finish)
+        // Server continues running in background
+        resolve(true)
+
+        this.process.on('close', (code) => {
+          if (code !== 0) {
+            this.addLog(`⚠️ Server process exited with code ${code}`, 'warning')
+          }
+        })
+
+        this.process.on('error', (err) => {
+          this.addLog(`❌ Server process error: ${err.message}`, 'error')
+        })
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        this.addLog(`Failed to start server: ${msg}`, 'error')
+        resolve(false)
+      }
+    })
+  }
+
+  private runCommand(
+    cmd: string,
+    args: string[],
+    cwd: string,
+    env?: NodeJS.ProcessEnv
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
+      try {
+        this.process = spawn(cmd, args, {
+          cwd,
+          env: env || process.env,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        })
+
+        if (this.process.stdout) {
+          this.process.stdout.on('data', (data) => {
+            const text = data.toString()
+            text.split('\n').forEach((line) => {
+              if (line.trim()) {
+                this.addLog(line, 'info')
+              }
+            })
+          })
+        }
+
+        if (this.process.stderr) {
+          this.process.stderr.on('data', (data) => {
+            const text = data.toString()
             text.split('\n').forEach((line) => {
               if (line.trim()) {
                 this.addLog(line, 'error')
@@ -163,9 +273,7 @@ export class DeploymentExecutor {
             this.addLog(`Process exited with code ${code}`, 'error')
             resolve(false)
           }
-          if (!keepAlive) {
-            this.process = null
-          }
+          this.process = null
         })
 
         this.process.on('error', (err) => {
@@ -196,4 +304,42 @@ export class DeploymentExecutor {
   clearLogs() {
     this.logs = []
   }
-}
+
+  /**
+   * Detect package manager from project
+   */
+  detectPackageManager(repoPath: string): string {
+    const pkgJsonPath = path.join(repoPath, 'package.json')
+    
+    // Check for lock files in order of preference
+    if (fs.existsSync(path.join(repoPath, 'pnpm-lock.yaml'))) {
+      return 'pnpm'
+    }
+    if (fs.existsSync(path.join(repoPath, 'yarn.lock'))) {
+      return 'yarn'
+    }
+    if (fs.existsSync(path.join(repoPath, 'bun.lockb'))) {
+      return 'bun'
+    }
+    if (fs.existsSync(path.join(repoPath, 'package-lock.json'))) {
+      return 'npm'
+    }
+    
+    // Check package.json packageManager field
+    if (fs.existsSync(pkgJsonPath)) {
+      try {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'))
+        if (pkgJson.packageManager) {
+          const pm = pkgJson.packageManager.split('@')[0]
+          if (['npm', 'pnpm', 'yarn', 'bun'].includes(pm)) {
+            return pm
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+    
+    // Default fallback
+    return 'npm'
+  }
