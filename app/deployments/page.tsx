@@ -186,22 +186,22 @@ export default function DeploymentsPage() {
                   </CardBody>
                 </Card>
               ) : !data || data.length === 0 ? (
-                <div className="border-2 border-accent/30 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
+                <div className="border-2 border-amber-600/40 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
                   {/* Window Header */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-accent/30">
+                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-amber-600/40">
                     <div className="flex items-center gap-2">
-                      <Terminal className="w-4 h-4 text-accent" />
+                      <Terminal className="w-4 h-4 text-amber-600" />
                       <span className="text-sm font-semibold">sarge-deployments</span>
                     </div>
-                    <span className="text-xs text-accent">LIVE</span>
+                    <span className="text-xs text-amber-600">LIVE</span>
                   </div>
 
                   {/* Window Content */}
                   <div className="min-h-96 flex flex-col items-center justify-center px-8 py-16">
                     <div className="flex flex-col items-center gap-6">
                       {/* Icon */}
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-600/30 to-amber-700/30 border border-amber-600/40 flex items-center justify-center">
-                        <Rocket className="w-12 h-12 text-amber-600" />
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/50 border-2 border-amber-600 flex items-center justify-center">
+                        <Rocket className="w-12 h-12 text-amber-100" />
                       </div>
 
                       {/* Text Content */}
@@ -230,8 +230,8 @@ export default function DeploymentsPage() {
                               description: "Track deployment status here, view logs, check metrics, and manage your running services.",
                             },
                           ].map((step) => (
-                            <div key={step.number} className="flex gap-4 text-left p-4 rounded-lg border border-white/10 bg-white/5">
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full border-2 border-accent text-accent flex items-center justify-center text-sm font-semibold">
+                            <div key={step.number} className="flex gap-4 text-left p-4 rounded-lg border border-amber-600/20 bg-amber-600/5">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full border-2 border-amber-600 text-amber-600 flex items-center justify-center text-sm font-semibold">
                                 {step.number}
                               </div>
                               <div>
@@ -262,7 +262,7 @@ export default function DeploymentsPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="border-t border-accent/30 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
+                  <div className="border-t border-amber-600/40 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
                     <span>Showing 0 of 0 deployments</span>
                     <span>Real-time updates active</span>
                   </div>
@@ -294,19 +294,19 @@ export default function DeploymentsPage() {
                   </CardBody>
                 </Card>
               ) : (
-                <div className="border-2 border-accent/30 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
+                <div className="border-2 border-amber-600/40 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
                   {/* Window Header */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-accent/30">
+                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-amber-600/40">
                     <div className="flex items-center gap-2">
-                      <Terminal className="w-4 h-4 text-accent" />
+                      <Terminal className="w-4 h-4 text-amber-600" />
                       <span className="text-sm font-semibold">sarge-deployments</span>
                     </div>
-                    <span className="text-xs text-accent">LIVE</span>
+                    <span className="text-xs text-amber-600">LIVE</span>
                   </div>
 
                   {/* Deployments List */}
                   <div role="table" aria-label="Deployments list">
-                    <div className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 text-xs text-zinc-400 border-b border-white/10 bg-black/40">
+                    <div className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 text-xs text-zinc-400 border-b border-amber-600/20 bg-black/40">
                       <div>Status</div>
                       <div>Workspace</div>
                       <div>Branch</div>
@@ -320,7 +320,7 @@ export default function DeploymentsPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="border-t border-accent/30 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
+                  <div className="border-t border-amber-600/40 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
                     <span>Showing {items.length} of {data.length} deployments</span>
                     <span>Real-time updates active</span>
                   </div>
