@@ -122,16 +122,30 @@ export const oneclickRouter = router({
         
         const response = {
           services: safeServices.map(s => {
-            const svc = s || {}
+            if (!s) return {
+              name: 'unknown',
+              type: 'api',
+              cwd: '.',
+              startCommand: '',
+              buildCommand: '',
+              ports: [],
+              envKeys: [],
+              framework: '',
+            }
+            
+            // Extra defensive - ensure ports and envKeys arrays exist before filtering
+            const portsArray = (s.ports && Array.isArray(s.ports)) ? s.ports : []
+            const envKeysArray = (s.envKeys && Array.isArray(s.envKeys)) ? s.envKeys : []
+            
             return {
-              name: (svc.name && typeof svc.name === 'string') ? svc.name : 'unknown',
-              type: (svc.type && typeof svc.type === 'string') ? svc.type : 'api',
-              cwd: (svc.cwd && typeof svc.cwd === 'string') ? svc.cwd : '.',
-              startCommand: (svc.startCommand && typeof svc.startCommand === 'string') ? svc.startCommand : '',
-              buildCommand: (svc.buildCommand && typeof svc.buildCommand === 'string') ? svc.buildCommand : '',
-              ports: Array.isArray(svc.ports) ? svc.ports.filter(p => p != null && typeof p === 'number') : [],
-              envKeys: Array.isArray(svc.envKeys) ? svc.envKeys.filter(k => k != null && typeof k === 'string' && k.length > 0) : [],
-              framework: (svc.framework && typeof svc.framework === 'string') ? svc.framework : '',
+              name: (s.name && typeof s.name === 'string') ? s.name : 'unknown',
+              type: (s.type && typeof s.type === 'string') ? s.type : 'api',
+              cwd: (s.cwd && typeof s.cwd === 'string') ? s.cwd : '.',
+              startCommand: (s.startCommand && typeof s.startCommand === 'string') ? s.startCommand : '',
+              buildCommand: (s.buildCommand && typeof s.buildCommand === 'string') ? s.buildCommand : '',
+              ports: portsArray.filter(p => p != null && typeof p === 'number'),
+              envKeys: envKeysArray.filter(k => k != null && typeof k === 'string' && k.length > 0),
+              framework: (s.framework && typeof s.framework === 'string') ? s.framework : '',
             }
           }),
           resources: {
@@ -148,14 +162,26 @@ export const oneclickRouter = router({
           },
           awsSdks: Array.isArray(blueprint?.awsSdks) ? blueprint.awsSdks.filter(sdk => sdk != null) : [],
           externalServices: safeExternalServices.map(s => {
-            const ext = s || {}
+            if (!s) return {
+              name: 'unknown',
+              type: 'database',
+              ports: [],
+              envKeys: [],
+              version: '',
+              dockerImage: '',
+            }
+            
+            // Extra defensive - ensure ports and envKeys arrays exist before filtering
+            const extPortsArray = (s.ports && Array.isArray(s.ports)) ? s.ports : []
+            const extEnvKeysArray = (s.envKeys && Array.isArray(s.envKeys)) ? s.envKeys : []
+            
             return {
-              name: (ext.name && typeof ext.name === 'string') ? ext.name : 'unknown',
-              type: (ext.type && typeof ext.type === 'string') ? ext.type : 'database',
-              ports: Array.isArray(ext.ports) ? ext.ports.filter(p => p != null && typeof p === 'number') : [],
-              envKeys: Array.isArray(ext.envKeys) ? ext.envKeys.filter(k => k != null && typeof k === 'string' && k.length > 0) : [],
-              version: (ext.version && typeof ext.version === 'string') ? ext.version : '',
-              dockerImage: (ext.dockerImage && typeof ext.dockerImage === 'string') ? ext.dockerImage : '',
+              name: (s.name && typeof s.name === 'string') ? s.name : 'unknown',
+              type: (s.type && typeof s.type === 'string') ? s.type : 'database',
+              ports: extPortsArray.filter(p => p != null && typeof p === 'number'),
+              envKeys: extEnvKeysArray.filter(k => k != null && typeof k === 'string' && k.length > 0),
+              version: (s.version && typeof s.version === 'string') ? s.version : '',
+              dockerImage: (s.dockerImage && typeof s.dockerImage === 'string') ? s.dockerImage : '',
             }
           }),
           projectType: (blueprint?.projectType && typeof blueprint.projectType === 'string') ? blueprint.projectType : 'unknown',
