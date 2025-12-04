@@ -125,18 +125,36 @@ export const oneclickRouter = router({
         
         console.log(`[OneClick] Building response object...`)
         
-        // Return ultra-simple structure - no nested complexity
+        // Return ultra-simple structure - absolutely NO filter operations
         const simpleResponse = {
-          services: safeServices.map(s => ({
-            name: String(s?.name || 'unknown'),
-            type: String(s?.type || 'api'),
-            cwd: String(s?.cwd || '.'),
-            startCommand: String(s?.startCommand || ''),
-            buildCommand: String(s?.buildCommand || ''),
-            ports: (s?.ports || []).filter((p: any) => typeof p === 'number'),
-            envKeys: (s?.envKeys || []).filter((k: any) => typeof k === 'string' && k),
-            framework: String(s?.framework || ''),
-          })),
+          services: safeServices.map(s => {
+            // Manually build safe port array
+            const safePorts: number[] = []
+            if (s?.ports && Array.isArray(s.ports)) {
+              for (const p of s.ports) {
+                if (typeof p === 'number') safePorts.push(p)
+              }
+            }
+            
+            // Manually build safe envKeys array
+            const safeEnvKeys: string[] = []
+            if (s?.envKeys && Array.isArray(s.envKeys)) {
+              for (const k of s.envKeys) {
+                if (typeof k === 'string' && k) safeEnvKeys.push(k)
+              }
+            }
+            
+            return {
+              name: String(s?.name || 'unknown'),
+              type: String(s?.type || 'api'),
+              cwd: String(s?.cwd || '.'),
+              startCommand: String(s?.startCommand || ''),
+              buildCommand: String(s?.buildCommand || ''),
+              ports: safePorts,
+              envKeys: safeEnvKeys,
+              framework: String(s?.framework || ''),
+            }
+          }),
           resources: {
             s3Buckets: [],
             dynamoTables: [],
@@ -150,14 +168,32 @@ export const oneclickRouter = router({
             composeFiles: safeComposeFiles.map(f => String(f)),
           },
           awsSdks: [],
-          externalServices: safeExternalServices.map(s => ({
-            name: String(s?.name || 'unknown'),
-            type: String(s?.type || 'database'),
-            ports: (s?.ports || []).filter((p: any) => typeof p === 'number'),
-            envKeys: (s?.envKeys || []).filter((k: any) => typeof k === 'string' && k),
-            version: String(s?.version || ''),
-            dockerImage: String(s?.dockerImage || ''),
-          })),
+          externalServices: safeExternalServices.map(s => {
+            // Manually build safe port array
+            const extSafePorts: number[] = []
+            if (s?.ports && Array.isArray(s.ports)) {
+              for (const p of s.ports) {
+                if (typeof p === 'number') extSafePorts.push(p)
+              }
+            }
+            
+            // Manually build safe envKeys array
+            const extSafeEnvKeys: string[] = []
+            if (s?.envKeys && Array.isArray(s.envKeys)) {
+              for (const k of s.envKeys) {
+                if (typeof k === 'string' && k) extSafeEnvKeys.push(k)
+              }
+            }
+            
+            return {
+              name: String(s?.name || 'unknown'),
+              type: String(s?.type || 'database'),
+              ports: extSafePorts,
+              envKeys: extSafeEnvKeys,
+              version: String(s?.version || ''),
+              dockerImage: String(s?.dockerImage || ''),
+            }
+          }),
           projectType: String(blueprint?.projectType || 'unknown'),
           packageManager: String(blueprint?.packageManager || 'npm'),
           framework: String(blueprint?.framework || ''),
