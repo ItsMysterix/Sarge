@@ -147,6 +147,11 @@ export class WorkspaceManager {
    * List all workspaces
    */
   listWorkspaces(): LocalWorkspace[] {
+    // Skip on serverless (read-only filesystem)
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      console.log('[WorkspaceManager] Serverless environment, returning empty workspaces')
+      return []
+    }
     return Array.from(this.workspaces.values()).sort((a, b) => b.lastUsed.getTime() - a.lastUsed.getTime())
   }
 
