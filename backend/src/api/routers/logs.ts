@@ -32,7 +32,7 @@ export const logsRouter = router({
           } catch {}
         }
 
-        // First, detect which columns exist
+        // [v90f410f-NOCACHE] First, detect which columns exist
         let hasServiceId = false;
         let hasService = false;
         try {
