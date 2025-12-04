@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/app-shell"
 import { PageTitle } from '@/components/layout/page-title';
 import { Layers, Plus, Archive, Play, Pause, StopCircle, AlertCircle, CheckCircle2, Cpu, Database as DatabaseIcon } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { trpc } from "@/lib/trpc"
 import { useToast } from "@/components/ui/toast"
 
@@ -15,6 +15,7 @@ export default function StacksPage() {
   const [newStackName, setNewStackName] = useState('')
   const [newStackDescription, setNewStackDescription] = useState('')
   const [creatingStack, setCreatingStack] = useState(false)
+  const nameInputRef = useRef<HTMLInputElement | null>(null)
   const { addToast, ToastContainer } = useToast()
   
   const t = trpc as any
@@ -38,6 +39,13 @@ export default function StacksPage() {
 
     return () => clearTimeout(timer)
   }, [stacks.length, stacksQuery.isError])
+
+  // Auto-focus name input when modal opens
+  useEffect(() => {
+    if (showCreateModal) {
+      setTimeout(() => nameInputRef.current?.focus(), 50)
+    }
+  }, [showCreateModal])
 
   const handleToggleStack = async (stack: any) => {
     const newStatus = stack.status === 'running' ? 'stopped' : 'running'
@@ -117,13 +125,15 @@ export default function StacksPage() {
           description="Infrastructure and service stacks"
           icon={<Layers className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
           actions={
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center ml-auto"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Stack
-            </button>
+            stacks.length > 0 && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="glass-card px-4 py-2 text-accent hover:bg-accent/20 transition-all duration-300 rounded-lg border border-accent/30 flex items-center ml-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Stack
+              </button>
+            )
           }
         />
         <motion.div
@@ -136,6 +146,15 @@ export default function StacksPage() {
             {stacks.length} stack{stacks.length !== 1 ? 's' : ''}
           </p>
         </motion.div>
+
+        {/* Helper callout explaining stacks */}
+        <div className="glass-card border border-white/10 rounded-lg p-4 mb-6">
+          <div className="text-sm text-gray-300 space-y-1">
+            <div className="font-semibold text-white">What is a stack?</div>
+            <div>A stack groups the services and infra for one app slice (frontend, API, DB, queues, jobs) so you can start/stop/deploy them together.</div>
+            <div className="text-gray-400">Typical flow: define/analyze services → create a stack with those services/env → deploy/start the stack → view logs/deployments tied to that stack.</div>
+          </div>
+        </div>
 
           {/* Loading State */}
           {stacksQuery.isLoading && !showEmptyState && (
@@ -170,7 +189,10 @@ export default function StacksPage() {
                 Each stack runs independently with its own resources and logs.
               </p>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => {
+                  setShowCreateModal(true)
+                  setTimeout(() => nameInputRef.current?.focus(), 50)
+                }}
                 className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm"
               >
                 <Plus className="w-5 h-5 mr-2" />
@@ -260,6 +282,7 @@ export default function StacksPage() {
                                 <div>
                                   <label className="text-sm text-gray-300">Name</label>
                                   <input
+                                    ref={nameInputRef}
                                     value={newStackName}
                                     onChange={(e) => setNewStackName(e.target.value)}
                                     className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
