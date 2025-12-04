@@ -188,9 +188,9 @@ export class DeploymentExecutor {
         })
 
         if (this.process.stdout) {
-          this.process.stdout.on('data', (data) => {
+          this.process.stdout.on('data', (data: Buffer | string) => {
             const text = data.toString()
-            text.split('\n').forEach((line) => {
+            text.split('\n').forEach((line: string) => {
               if (line.trim()) {
                 this.addLog(line, 'info')
               }
@@ -199,9 +199,9 @@ export class DeploymentExecutor {
         }
 
         if (this.process.stderr) {
-          this.process.stderr.on('data', (data) => {
+          this.process.stderr.on('data', (data: Buffer | string) => {
             const text = data.toString()
-            text.split('\n').forEach((line) => {
+            text.split('\n').forEach((line: string) => {
               if (line.trim()) {
                 this.addLog(line, 'error')
               }
@@ -245,9 +245,9 @@ export class DeploymentExecutor {
         })
 
         if (this.process.stdout) {
-          this.process.stdout.on('data', (data) => {
+          this.process.stdout.on('data', (data: Buffer | string) => {
             const text = data.toString()
-            text.split('\n').forEach((line) => {
+            text.split('\n').forEach((line: string) => {
               if (line.trim()) {
                 this.addLog(line, 'info')
               }
@@ -256,9 +256,9 @@ export class DeploymentExecutor {
         }
 
         if (this.process.stderr) {
-          this.process.stderr.on('data', (data) => {
+          this.process.stderr.on('data', (data: Buffer | string) => {
             const text = data.toString()
-            text.split('\n').forEach((line) => {
+            text.split('\n').forEach((line: string) => {
               if (line.trim()) {
                 this.addLog(line, 'error')
               }
@@ -340,6 +340,8 @@ export class DeploymentExecutor {
       }
     }
     
-    // Default fallback
-    return 'npm'
+      // Default fallback
+      return 'npm'
+    }
+  
   }
