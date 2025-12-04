@@ -33,7 +33,7 @@ export const logsRouter = router({
         }
 
         // Build SQL dynamically to keep parameter ordering correct
-        const selects = `SELECT id, service_id, type, message, service, "timestamp", created_at`;
+        const selects = `SELECT id, service_id as service, type, message, "timestamp", created_at`;
         let sql = `${selects} FROM logs`;
         const params: any[] = [];
         const where: string[] = [];
@@ -45,12 +45,12 @@ export const logsRouter = router({
         
         if (service && service !== 'all') {
           params.push(service);
-          where.push(`service = $${params.length}`);
+          where.push(`service_id = $${params.length}`);
         }
         
         if (search && search.length > 0) {
           params.push(`%${search}%`);
-          where.push(`(message ILIKE $${params.length} OR service ILIKE $${params.length})`);
+          where.push(`(message ILIKE $${params.length} OR service_id ILIKE $${params.length})`);
         }
         
         if (cursorCreatedAt && cursorId != null) {
@@ -92,10 +92,10 @@ export const logsRouter = router({
   services: secureProcedure('logs.services').query(async ({ ctx }) => {
     try {
       const result = await ctx.db.query(`
-        SELECT DISTINCT service 
+        SELECT DISTINCT service_id as service 
         FROM logs 
-        WHERE service IS NOT NULL 
-        ORDER BY service ASC
+        WHERE service_id IS NOT NULL 
+        ORDER BY service_id ASC
       `);
       if (!result || !result.rows) {
         return [];
