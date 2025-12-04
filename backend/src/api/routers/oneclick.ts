@@ -196,18 +196,46 @@ export const oneclickRouter = router({
         
         console.log(`[OneClick] Response object built, serializing...`)
         
-        // Aggressively strip all undefined/null/complex values to prevent SuperJSON issues
-        const cleaned = JSON.parse(JSON.stringify(response, (key, value) => {
-          // Replace undefined with null for JSON compatibility
-          if (value === undefined) return null
-          // Filter out null values from arrays
-          if (Array.isArray(value)) return value.filter(v => v != null)
-          return value
-        }))
+        // Return ultra-simple structure - no nested complexity
+        const simpleResponse = {
+          services: safeServices.map(s => ({
+            name: String(s?.name || 'unknown'),
+            type: String(s?.type || 'api'),
+            cwd: String(s?.cwd || '.'),
+            startCommand: String(s?.startCommand || ''),
+            buildCommand: String(s?.buildCommand || ''),
+            ports: (s?.ports || []).filter((p: any) => typeof p === 'number'),
+            envKeys: (s?.envKeys || []).filter((k: any) => typeof k === 'string' && k),
+            framework: String(s?.framework || ''),
+          })),
+          resources: {
+            s3Buckets: [],
+            dynamoTables: [],
+            lambdaFunctions: [],
+          },
+          ports: safePorts.map(p => Number(p)),
+          envKeys: safeEnvKeysFiltered.map(k => String(k)),
+          docker: {
+            dockerfile: Boolean(blueprint?.docker?.dockerfile),
+            dockerCompose: Boolean(blueprint?.docker?.dockerCompose),
+            composeFiles: safeComposeFiles.map(f => String(f)),
+          },
+          awsSdks: [],
+          externalServices: safeExternalServices.map(s => ({
+            name: String(s?.name || 'unknown'),
+            type: String(s?.type || 'database'),
+            ports: (s?.ports || []).filter((p: any) => typeof p === 'number'),
+            envKeys: (s?.envKeys || []).filter((k: any) => typeof k === 'string' && k),
+            version: String(s?.version || ''),
+            dockerImage: String(s?.dockerImage || ''),
+          })),
+          projectType: String(blueprint?.projectType || 'unknown'),
+          packageManager: String(blueprint?.packageManager || 'npm'),
+          framework: String(blueprint?.framework || ''),
+        }
         
-        console.log('[OneClick] Response cleaned and ready, services:', cleaned.services?.length || 0)
-        console.log('[OneClick] Response keys:', Object.keys(cleaned))
-        return cleaned
+        console.log('[OneClick] Simple response ready, services:', simpleResponse.services.length)
+        return simpleResponse
       } catch (error) {
         console.error('[OneClick] detectRepo error:', error)
         console.error('[OneClick] Error stack:', error instanceof Error ? error.stack : 'no stack')
