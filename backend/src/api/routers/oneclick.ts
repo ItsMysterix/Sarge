@@ -6,6 +6,8 @@ import { createDeploymentOrchestrator } from '../../services/deployment-orchestr
 import { DeploymentExecutor } from '../../services/deployment-executor'
 import * as path from 'path'
 import * as os from 'os'
+import { spawn } from 'child_process'
+import * as fs from 'fs'
 
 // Global orchestrator instance
 const orchestrator = createDeploymentOrchestrator()
@@ -25,6 +27,65 @@ async function saveLogs(logs: Array<{ type: string; message: string; service: st
   } catch (e) {
     console.error('Error saving logs:', e)
   }
+}
+
+// Helper to clone repository
+async function cloneRepository(owner: string, repo: string, accessToken: string): Promise<{ success: boolean; path: string; error?: string }> {
+  const workspacePath = path.join(os.homedir(), '.sarge', 'workspaces', owner, repo)
+  
+  // If already cloned, return it
+  if (fs.existsSync(workspacePath)) {
+    console.log(`[Clone] Repository already exists at ${workspacePath}`)
+    return { success: true, path: workspacePath }
+  }
+  
+  // Create parent directories
+  const parentDir = path.dirname(workspacePath)
+  if (!fs.existsSync(parentDir)) {
+    fs.mkdirSync(parentDir, { recursive: true })
+  }
+  
+  return new Promise((resolve) => {
+    const cloneUrl = `https://${accessToken}@github.com/${owner}/${repo}.git`
+    
+    console.log(`[Clone] Cloning ${owner}/${repo} to ${workspacePath}`)
+    
+    const process = spawn('git', ['clone', cloneUrl, workspacePath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: true,
+    })
+    
+    let stdout = ''
+    let stderr = ''
+    
+    if (process.stdout) {
+      process.stdout.on('data', (data) => {
+        stdout += data.toString()
+      })
+    }
+    
+    if (process.stderr) {
+      process.stderr.on('data', (data) => {
+        stderr += data.toString()
+      })
+    }
+    
+    process.on('close', (code) => {
+      if (code === 0) {
+        console.log(`[Clone] Successfully cloned ${owner}/${repo}`)
+        resolve({ success: true, path: workspacePath })
+      } else {
+        const error = stderr || stdout || `Git clone failed with code ${code}`
+        console.error(`[Clone] Failed to clone: ${error}`)
+        resolve({ success: false, path: workspacePath, error })
+      }
+    })
+    
+    process.on('error', (err) => {
+      console.error(`[Clone] Process error: ${err.message}`)
+      resolve({ success: false, path: workspacePath, error: err.message })
+    })
+  })
 }
 
 async function getCore(): Promise<any> {
@@ -386,8 +447,28 @@ export const oneclickRouter = router({
           // Use local process deployment
           emit(`💻 Deploying locally...`)
           
-          // Use real deployment executor if repo is available locally
-          const repoPath = path.join(os.homedir(), '.sarge', 'workspaces', input.owner, input.repo)
+          // Clone repository first
+          emit(`📥 Cloning repository...`)
+          const cloneResult = await cloneRepository(input.owner, input.repo, input.accessToken)
+          
+          if (!cloneResult.success) {
+            emit(`❌ Failed to clone repository: ${cloneResult.error}`)
+            return {
+              services: [],
+              blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
+              logTopic: topic,
+              logs: logs.concat([{
+                ts: Date.now(),
+                line: `Clone error: ${cloneResult.error}`,
+                level: 'error',
+              }]),
+            }
+          }
+          
+          emit(`✅ Repository cloned successfully`)
+          
+          // Use real deployment executor
+          const repoPath = cloneResult.path
           const executor = new DeploymentExecutor()
           
           // Stream logs to client
