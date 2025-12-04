@@ -3,6 +3,9 @@ import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { createGitHubScanner } from '../../services/github-scanner'
 import { createDeploymentOrchestrator } from '../../services/deployment-orchestrator'
+import { DeploymentExecutor } from '../../services/deployment-executor'
+import * as path from 'path'
+import * as os from 'os'
 
 // Global orchestrator instance
 const orchestrator = createDeploymentOrchestrator()
@@ -349,26 +352,50 @@ export const oneclickRouter = router({
         } catch {} 
       }
       
-      emit(`Starting connected deploy for ${input.owner}/${input.repo}`)
-      emit(`Using port: ${input.startPort}, package manager: ${input.packageManager}`)
-      const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
-      emit('Scanning repository (no clone)...')
-      const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
-      emit(`Detected ${blueprint.services.length} service(s)`)      
-      const instances = await orchestrator.deploy({
-        owner: input.owner,
-        repo: input.repo,
-        branch: input.branch,
-        accessToken: input.accessToken,
-        services: blueprint.services || [],
-        externalServices: blueprint.externalServices || [],
-        startPort: input.startPort,
-        packageManager: input.packageManager,
-      })
-      emit('Services started locally')
-      const result = Array.from(instances.values()).map(i => ({ name: i.name, status: i.status, port: i.port, url: i.url }))
-      emit('Deployment complete')
-      return { services: result, blueprintSummary: { services: blueprint.services.length, projectType: blueprint.projectType, framework: blueprint.framework }, logTopic: topic, logs }
+      try {
+        emit(`🚀 Starting deployment for ${input.owner}/${input.repo}`)
+        
+        // Use real deployment executor if repo is available locally
+        const repoPath = path.join(os.homedir(), '.sarge', 'workspaces', input.owner, input.repo)
+        const executor = new DeploymentExecutor()
+        
+        // Stream logs to client
+        executor.setOnLog((log) => {
+          const formattedMsg = log.line
+          emit(formattedMsg)
+        })
+        
+        // Execute real deployment
+        emit(`📂 Preparing deployment environment...`)
+        const result = await executor.deploy(repoPath, input.packageManager, input.startPort)
+        
+        if (result.success) {
+          emit(`✅ Deployment successful - Application running on port ${input.startPort}`)
+          return {
+            services: [{ name: input.repo, status: 'running', port: input.startPort, url: `http://localhost:${input.startPort}` }],
+            blueprintSummary: { services: 1, projectType: 'unknown', framework: 'unknown' },
+            logTopic: topic,
+            logs: logs.concat(result.logs.map(l => ({ ts: l.timestamp, line: l.line, level: l.level }))),
+          }
+        } else {
+          emit(`❌ Deployment failed: ${result.error || 'Unknown error'}`)
+          return {
+            services: [],
+            blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
+            logTopic: topic,
+            logs: logs.concat(result.logs.map(l => ({ ts: l.timestamp, line: l.line, level: l.level }))),
+          }
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        emit(`❌ Deployment error: ${errorMsg}`)
+        return {
+          services: [],
+          blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
+          logTopic: topic,
+          logs,
+        }
+      }
     }),
 
   // Deploy services without cloning!
