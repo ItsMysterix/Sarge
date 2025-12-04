@@ -93,38 +93,15 @@ export const oneclickRouter = router({
       try {
         console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
         
-        // TEMPORARY: Return minimal hardcoded response to test if SuperJSON is the issue
+        // TEMPORARY: Return ULTRA minimal flat response to test SuperJSON
+        // No nested objects or complex structures
         const testResponse = {
-          services: [{
-            name: 'test-service',
-            type: 'api',
-            cwd: '.',
-            startCommand: 'npm start',
-            buildCommand: 'npm build',
-            ports: [3000],
-            envKeys: ['PORT', 'NODE_ENV'],
-            framework: 'next.js',
-          }],
-          resources: {
-            s3Buckets: [],
-            dynamoTables: [],
-            lambdaFunctions: [],
-          },
-          ports: [3000],
-          envKeys: ['PORT', 'NODE_ENV'],
-          docker: {
-            dockerfile: true,
-            dockerCompose: false,
-            composeFiles: [],
-          },
-          awsSdks: [],
-          externalServices: [],
+          status: 'success',
+          serviceCount: 1,
           projectType: 'nodejs',
-          packageManager: 'npm',
-          framework: 'next.js',
         }
         
-        console.log('[OneClick] Returning test response')
+        console.log('[OneClick] Returning ultra-minimal test response')
         return testResponse
         
         /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
