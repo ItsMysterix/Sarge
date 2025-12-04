@@ -147,14 +147,6 @@ export default function StacksPage() {
           </p>
         </motion.div>
 
-        {/* Helper callout explaining stacks */}
-        <div className="glass-card border border-white/10 rounded-lg p-4 mb-6">
-          <div className="text-sm text-gray-300 space-y-1">
-            <div className="font-semibold text-white">What is a stack?</div>
-            <div>A stack groups the services and infra for one app slice (frontend, API, DB, queues, jobs) so you can start/stop/deploy them together.</div>
-            <div className="text-gray-400">Typical flow: define/analyze services → create a stack with those services/env → deploy/start the stack → view logs/deployments tied to that stack.</div>
-          </div>
-        </div>
 
           {/* Loading State */}
           {stacksQuery.isLoading && !showEmptyState && (
