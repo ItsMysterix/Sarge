@@ -18,11 +18,12 @@ async function saveLogs(logs: Array<{ type: string; message: string; service: st
   try {
     // On Vercel, use full URL with host. On local, use localhost.
     const isVercel = process.env.VERCEL === '1'
+    const vercelUrl = process.env.VERCEL_URL || 'v0-sarge.vercel.app'
     const fetchUrl = isVercel 
-      ? `https://${process.env.VERCEL_URL || 'v0-sarge.vercel.app'}/api/logs`
+      ? `https://${vercelUrl}/api/logs`
       : 'http://localhost:3000/api/logs'
     
-    console.log('[saveLogs] Posting to:', fetchUrl, 'with', logs.length, 'log(s)', '(Vercel:', isVercel, ')')
+    console.log('[saveLogs] UPDATED CODE - Posting to:', fetchUrl, 'with', logs.length, 'log(s)', '(Vercel:', isVercel, ', VERCEL_URL:', vercelUrl, ')')
     
     const response = await fetch(fetchUrl, {
       method: 'POST',
