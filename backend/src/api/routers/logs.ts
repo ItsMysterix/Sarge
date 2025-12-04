@@ -13,7 +13,7 @@ export const logsRouter = router({
       cursor: z.string().optional(),
       limit: z.number().int().positive().max(1000).optional(),
     }))
-    .query(async ({ ctx, input }) => {
+    .query(async ({ ctx }) => {
       const end = startQueryTimer('logs.recent');
       try {
         const type = input.type;
@@ -32,9 +32,27 @@ export const logsRouter = router({
           } catch {}
         }
 
-        // Build SQL dynamically to keep parameter ordering correct
-        // Support both service_id and service columns for backwards compatibility
-        const selects = `SELECT id, COALESCE(service_id, service, 'unknown') as service, type, message, "timestamp", created_at`;
+        // First, detect which columns exist
+        let hasServiceId = false;
+        let hasService = false;
+        try {
+          const schemaCheck = await ctx.db.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'logs' 
+            AND column_name IN ('service_id', 'service')
+          `);
+          const columns = schemaCheck?.rows?.map((r: any) => r.column_name) || [];
+          hasServiceId = columns.includes('service_id');
+          hasService = columns.includes('service');
+        } catch (e) {
+          console.warn('[logs.recent] Could not detect schema, assuming service column exists');
+          hasService = true;
+        }
+
+        // Build SQL based on available columns
+        const serviceCol = hasServiceId ? 'service_id' : (hasService ? 'service' : "'unknown'");
+        const selects = `SELECT id, ${serviceCol} as service, type, message, "timestamp", created_at`;
         let sql = `${selects} FROM logs`;
         const params: any[] = [];
         const where: string[] = [];
@@ -46,13 +64,26 @@ export const logsRouter = router({
         
         if (service && service !== 'all') {
           params.push(service);
-          // Check both columns for backwards compatibility
-          where.push(`(service_id = $${params.length} OR service = $${params.length})`);
+          if (hasServiceId && hasService) {
+            where.push(`(service_id = $${params.length} OR service = $${params.length})`);
+          } else if (hasServiceId) {
+            where.push(`service_id = $${params.length}`);
+          } else if (hasService) {
+            where.push(`service = $${params.length}`);
+          }
         }
         
         if (search && search.length > 0) {
           params.push(`%${search}%`);
-          where.push(`(message ILIKE $${params.length} OR COALESCE(service_id, service) ILIKE $${params.length})`);
+          if (hasServiceId && hasService) {
+            where.push(`(message ILIKE $${params.length} OR service_id ILIKE $${params.length} OR service ILIKE $${params.length})`);
+          } else if (hasServiceId) {
+            where.push(`(message ILIKE $${params.length} OR service_id ILIKE $${params.length})`);
+          } else if (hasService) {
+            where.push(`(message ILIKE $${params.length} OR service ILIKE $${params.length})`);
+          } else {
+            where.push(`message ILIKE $${params.length}`);
+          }
         }
         
         if (cursorCreatedAt && cursorId != null) {
