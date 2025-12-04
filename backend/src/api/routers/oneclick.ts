@@ -23,7 +23,7 @@ async function saveLogs(logs: Array<{ type: string; message: string; service: st
       ? `https://${vercelUrl}/api/logs`
       : 'http://localhost:3000/api/logs'
     
-    console.log('[saveLogs] UPDATED CODE - Posting to:', fetchUrl, 'with', logs.length, 'log(s)', '(Vercel:', isVercel, ', VERCEL_URL:', vercelUrl, ')')
+    console.log('[saveLogs] v90f410f-NOCACHE - Posting to:', fetchUrl, 'with', logs.length, 'log(s)', '(Vercel:', isVercel, ', VERCEL_URL:', vercelUrl, ')')
     
     const response = await fetch(fetchUrl, {
       method: 'POST',
