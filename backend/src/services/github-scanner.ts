@@ -315,7 +315,8 @@ export class GitHubScanner {
    */
   private async scanPython(owner: string, repo: string, branch: string, configFiles: any[]): Promise<ProjectBlueprint> {
     const requirements = await this.github.getFileContent(owner, repo, 'requirements.txt', branch).catch(() => '')
-    const deps = requirements.split('\n').filter(Boolean)
+    const safeRequirements = typeof requirements === 'string' ? requirements : String(requirements || '')
+    const deps = safeRequirements.split('\n').filter(d => d && typeof d === 'string' && d.trim())
 
     const services: DetectedService[] = [{
       name: 'app',
@@ -334,14 +335,12 @@ export class GitHubScanner {
     }
 
     // Check for common Python frameworks
-      const safeDeps = Array.isArray(deps) ? deps.map(d => (typeof d === 'string' ? d : String(d))) : []
-      const framework = safeDeps.some(d => d.includes('django')) ? 'django' : 
-                        safeDeps.some(d => d.includes('flask')) ? 'flask' :
-                        safeDeps.some(d => d.includes('fastapi')) ? 'fastapi' : undefined
+      const framework = deps.some(d => d && d.includes('django')) ? 'django' : 
+                        deps.some(d => d && d.includes('flask')) ? 'flask' :
+                        deps.some(d => d && d.includes('fastapi')) ? 'fastapi' : undefined
 
     // Check databases
-    const depsForDb = Array.isArray(deps) ? deps.map(d => (typeof d === 'string' ? d : String(d))) : []
-    if (depsForDb.some(d => d.includes('psycopg') || d.includes('postgres'))) {
+    if (deps.some(d => d && (d.includes('psycopg') || d.includes('postgres')))) {
       resources.databases.push('postgres')
       externalServices.push({
         name: 'postgres',
@@ -534,9 +533,9 @@ export class GitHubScanner {
     
     const matches = scriptStr.match(/\$\{?([A-Z_][A-Z0-9_]*)\}?/g) || []
     matches.forEach(m => {
+      if (!m || typeof m !== 'string') return
       const key = m.replace(/\$\{?|\}?/g, '')
-      const safeKey = typeof key === 'string' ? key : String(key ?? '')
-      if (safeKey && !envKeys.includes(safeKey)) envKeys.push(safeKey)
+      if (key && typeof key === 'string' && !envKeys.includes(key)) envKeys.push(key)
     })
 
     return envKeys
