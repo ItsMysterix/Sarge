@@ -275,6 +275,13 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       })
       addTerminalLine(`✅ Deployment initiated - Starting services locally on port ${selectedPort}...`, 'success')
       
+      // Add logs from the response
+      if (resp.logs && Array.isArray(resp.logs)) {
+        resp.logs.forEach((log: any) => {
+          addTerminalLine(log.line, log.level)
+        })
+      }
+      
       // Save deployment to database
       try {
         await fetch('/api/deploy', {
@@ -293,23 +300,29 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         console.error('Failed to save deployment record:', e)
       }
       
-      // Subscribe to real-time deployment logs via streamConnected
-      const unsubscribe = t.sarge.oneclick.streamConnected.subscribe(
-        {
-          owner: connectedRepo.owner,
-          repo: connectedRepo.repo,
-        },
-        {
-          onData(data: any) {
-            console.log('[Deploy Log]', data)
-            addTerminalLine(data.line, data.level)
+      // Try to subscribe to real-time deployment logs via streamConnected
+      // This only works on localhost with WebSocket; on Vercel it will fail gracefully
+      try {
+        const unsubscribe = t.sarge.oneclick.streamConnected.subscribe(
+          {
+            owner: connectedRepo.owner,
+            repo: connectedRepo.repo,
           },
-          onError(err: any) {
-            console.error('Log stream error:', err)
-            addTerminalLine(`⚠️ Log stream error: ${err.message}`, 'warning')
-          },
-        }
-      )
+          {
+            onData(data: any) {
+              console.log('[Deploy Log]', data)
+              addTerminalLine(data.line, data.level)
+            },
+            onError(err: any) {
+              // Silently ignore subscription errors on Vercel (no WebSocket support)
+              console.warn('Log stream not available (WebSocket not supported in this environment)')
+            },
+          }
+        )
+      } catch (err: any) {
+        // Subscription not available - this is OK, we already have logs from the mutation response
+        console.warn('WebSocket subscriptions not available')
+      }
     } catch (e: any) {
       setError(e.message || 'Deployment failed')
       addTerminalLine(`❌ ${e.message || 'Deployment failed'}`, 'error')
