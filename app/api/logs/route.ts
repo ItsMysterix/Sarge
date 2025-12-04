@@ -50,17 +50,32 @@ export async function POST(request: Request) {
     const rows = items.map((l) => ({
       type: String(l.type || 'info'),
       message: String(l.message || ''),
-      service_id: String(l.service || 'unknown'),
+      service: String(l.service || 'unknown'),
       timestamp: l.timestamp ? new Date(l.timestamp).toISOString() : new Date().toISOString(),
     }))
 
-    // Bulk insert
-    const values = rows.map((r) => `('${r.type}', '${r.message.replace(/'/g, "''")}', '${r.service_id.replace(/'/g, "''")}', '${r.timestamp}')`).join(',')
-    await sql.raw?.(`INSERT INTO logs (type, message, service_id, timestamp) VALUES ${values}`)
-      ?? await Promise.all(rows.map((r) => sql`
-          INSERT INTO logs (type, message, service_id, timestamp)
-          VALUES (${r.type}, ${r.message}, ${r.service_id}, ${r.timestamp})
-        `))
+    // Try to insert with service_id first (new schema), fallback to service column (old schema)
+    try {
+      const values = rows.map((r) => `('${r.type}', '${r.message.replace(/'/g, "''")}', '${r.service.replace(/'/g, "''")}', '${r.timestamp}')`).join(',')
+      await sql.raw?.(`INSERT INTO logs (type, message, service_id, timestamp) VALUES ${values}`)
+        ?? await Promise.all(rows.map((r) => sql`
+            INSERT INTO logs (type, message, service_id, timestamp)
+            VALUES (${r.type}, ${r.message}, ${r.service}, ${r.timestamp})
+          `))
+    } catch (schemaError: any) {
+      // If service_id column doesn't exist, try with service column
+      if (schemaError?.message?.includes('service_id')) {
+        console.log('[logs] Falling back to service column (old schema)')
+        const values = rows.map((r) => `('${r.type}', '${r.message.replace(/'/g, "''")}', '${r.service.replace(/'/g, "''")}', '${r.timestamp}')`).join(',')
+        await sql.raw?.(`INSERT INTO logs (type, message, service, timestamp) VALUES ${values}`)
+          ?? await Promise.all(rows.map((r) => sql`
+              INSERT INTO logs (type, message, service, timestamp)
+              VALUES (${r.type}, ${r.message}, ${r.service}, ${r.timestamp})
+            `))
+      } else {
+        throw schemaError
+      }
+    }
 
     return NextResponse.json({ success: true, inserted: rows.length })
   } catch (error) {
