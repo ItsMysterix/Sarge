@@ -8,6 +8,8 @@ import * as path from 'path'
 import * as os from 'os'
 import { spawn } from 'child_process'
 import * as fs from 'fs'
+import * as zlib from 'zlib'
+import * as tar from 'tar'
 
 // Global orchestrator instance
 const orchestrator = createDeploymentOrchestrator()
@@ -29,63 +31,107 @@ async function saveLogs(logs: Array<{ type: string; message: string; service: st
   }
 }
 
-// Helper to clone repository
-async function cloneRepository(owner: string, repo: string, accessToken: string): Promise<{ success: boolean; path: string; error?: string }> {
-  const workspacePath = path.join(os.homedir(), '.sarge', 'workspaces', owner, repo)
+// Helper to download and extract tarball from GitHub
+async function downloadAndExtractRepository(
+  owner: string,
+  repo: string,
+  branch: string = 'main'
+): Promise<{ success: boolean; path: string; error?: string; cleanup: () => void }> {
+  const tempDir = path.join(os.tmpdir(), `sarge-deploy-${Date.now()}`)
+  const extractDir = path.join(tempDir, `${owner}-${repo}`)
   
-  // If already cloned, return it
-  if (fs.existsSync(workspacePath)) {
-    console.log(`[Clone] Repository already exists at ${workspacePath}`)
-    return { success: true, path: workspacePath }
+  let cleanupFn = () => {
+    // Clean up temp directory
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true })
+      console.log(`[Tarball] Cleaned up temp directory: ${tempDir}`)
+    }
   }
   
-  // Create parent directories
-  const parentDir = path.dirname(workspacePath)
-  if (!fs.existsSync(parentDir)) {
-    fs.mkdirSync(parentDir, { recursive: true })
-  }
-  
-  return new Promise((resolve) => {
-    const cloneUrl = `https://${accessToken}@github.com/${owner}/${repo}.git`
+  try {
+    // Create temp directory
+    fs.mkdirSync(tempDir, { recursive: true })
     
-    console.log(`[Clone] Cloning ${owner}/${repo} to ${workspacePath}`)
+    const tarballUrl = `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.tar.gz`
+    console.log(`[Tarball] Downloading from ${tarballUrl}`)
     
-    const process = spawn('git', ['clone', cloneUrl, workspacePath], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: true,
-    })
-    
-    let stdout = ''
-    let stderr = ''
-    
-    if (process.stdout) {
-      process.stdout.on('data', (data) => {
-        stdout += data.toString()
-      })
-    }
-    
-    if (process.stderr) {
-      process.stderr.on('data', (data) => {
-        stderr += data.toString()
-      })
-    }
-    
-    process.on('close', (code) => {
-      if (code === 0) {
-        console.log(`[Clone] Successfully cloned ${owner}/${repo}`)
-        resolve({ success: true, path: workspacePath })
-      } else {
-        const error = stderr || stdout || `Git clone failed with code ${code}`
-        console.error(`[Clone] Failed to clone: ${error}`)
-        resolve({ success: false, path: workspacePath, error })
+    const response = await fetch(tarballUrl)
+    if (!response.ok) {
+      return {
+        success: false,
+        path: '',
+        error: `Failed to download tarball: ${response.statusText}`,
+        cleanup: cleanupFn,
       }
-    })
+    }
     
-    process.on('error', (err) => {
-      console.error(`[Clone] Process error: ${err.message}`)
-      resolve({ success: false, path: workspacePath, error: err.message })
+    // Download and extract in one go
+    const buffer = await response.arrayBuffer()
+    const tarPath = path.join(tempDir, 'repo.tar.gz')
+    fs.writeFileSync(tarPath, Buffer.from(buffer))
+    
+    console.log(`[Tarball] Downloaded ${buffer.byteLength} bytes`)
+    
+    // Extract tar.gz
+    return new Promise((resolve) => {
+      const gunzip = zlib.createGunzip()
+      const extractStream = tar.extract({ cwd: tempDir })
+      
+      const readStream = fs.createReadStream(tarPath)
+      
+      extractStream.on('finish', () => {
+        console.log(`[Tarball] Extracted successfully`)
+        
+        // The tarball extracts to a directory like `repo-main/`
+        const entries = fs.readdirSync(tempDir)
+        const extracted = entries.find(e => e !== 'repo.tar.gz' && fs.statSync(path.join(tempDir, e)).isDirectory())
+        
+        if (extracted) {
+          const repoPath = path.join(tempDir, extracted)
+          console.log(`[Tarball] Repository extracted to ${repoPath}`)
+          resolve({
+            success: true,
+            path: repoPath,
+            cleanup: cleanupFn,
+          })
+        } else {
+          resolve({
+            success: false,
+            path: '',
+            error: 'Failed to find extracted repository directory',
+            cleanup: cleanupFn,
+          })
+        }
+      })
+      
+      extractStream.on('error', (err) => {
+        console.error(`[Tarball] Extraction error: ${err.message}`)
+        resolve({
+          success: false,
+          path: '',
+          error: err.message,
+          cleanup: cleanupFn,
+        })
+      })
+      
+      readStream.on('error', (err) => {
+        console.error(`[Tarball] Read error: ${err.message}`)
+        resolve({
+          success: false,
+          path: '',
+          error: err.message,
+          cleanup: cleanupFn,
+        })
+      })
+      
+      readStream.pipe(gunzip).pipe(extractStream)
     })
-  })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error(`[Tarball] Error: ${msg}`)
+    cleanupFn()
+    return { success: false, path: '', error: msg, cleanup: () => {} }
+  }
 }
 
 async function getCore(): Promise<any> {
@@ -447,28 +493,29 @@ export const oneclickRouter = router({
           // Use local process deployment
           emit(`💻 Deploying locally...`)
           
-          // Clone repository first
-          emit(`📥 Cloning repository...`)
-          const cloneResult = await cloneRepository(input.owner, input.repo, input.accessToken)
+          // Download and extract repository tarball
+          emit(`📥 Downloading repository...`)
+          const tarResult = await downloadAndExtractRepository(input.owner, input.repo, input.branch)
           
-          if (!cloneResult.success) {
-            emit(`❌ Failed to clone repository: ${cloneResult.error}`)
+          if (!tarResult.success) {
+            emit(`❌ Failed to download repository: ${tarResult.error}`)
+            tarResult.cleanup()
             return {
               services: [],
               blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
               logTopic: topic,
               logs: logs.concat([{
                 ts: Date.now(),
-                line: `Clone error: ${cloneResult.error}`,
+                line: `Download error: ${tarResult.error}`,
                 level: 'error',
               }]),
             }
           }
           
-          emit(`✅ Repository cloned successfully`)
+          emit(`✅ Repository downloaded successfully`)
           
           // Use real deployment executor
-          const repoPath = cloneResult.path
+          const repoPath = tarResult.path
           const executor = new DeploymentExecutor()
           
           // Stream logs to client
@@ -480,6 +527,12 @@ export const oneclickRouter = router({
           // Execute real deployment
           emit(`📂 Preparing deployment environment...`)
           const result = await executor.deploy(repoPath, input.packageManager, input.startPort)
+          
+          // Cleanup temp directory after deployment
+          setTimeout(() => {
+            tarResult.cleanup()
+            console.log(`[Deploy] Cleaned up temporary deployment files`)
+          }, 5000) // Give client time to fetch logs before cleanup
           
           if (result.success) {
             emit(`✅ Deployment successful - Application running on port ${input.startPort}`)
