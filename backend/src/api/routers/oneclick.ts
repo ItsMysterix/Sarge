@@ -173,43 +173,56 @@ export const oneclickRouter = router({
         const safeExternalServices = Array.isArray(blueprint.externalServices) ? blueprint.externalServices : []
         const safeEnvKeys = Array.isArray(blueprint.envKeys) ? blueprint.envKeys : []
         
+        // Build response with NO undefined values to prevent SuperJSON serialization crashes
+        const safePorts = safeServices
+          .flatMap(s => (s && Array.isArray(s.ports) ? s.ports : []))
+          .filter(p => p != null && typeof p === 'number')
+        
+        const safeEnvKeysFiltered = safeEnvKeys
+          .filter(k => k != null && typeof k === 'string' && k.length > 0)
+        
+        const safeComposeFiles = (blueprint?.docker && Array.isArray(blueprint.docker.composeFiles))
+          ? blueprint.docker.composeFiles.filter(f => f != null && typeof f === 'string' && f.length > 0)
+          : []
+        
         const response = {
-          services: safeServices.map(s => ({
-            name: (s?.name && typeof s.name === 'string') ? s.name : 'unknown',
-            type: (s?.type && typeof s.type === 'string') ? s.type : 'api',
-            cwd: (s?.cwd && typeof s.cwd === 'string') ? s.cwd : '.',
-            startCommand: (s?.startCommand && typeof s.startCommand === 'string') ? s.startCommand : '',
-            buildCommand: (s?.buildCommand && typeof s.buildCommand === 'string') ? s.buildCommand : '',
-            ports: Array.isArray(s?.ports) ? s.ports.filter(p => typeof p === 'number') : [],
-            envKeys: Array.isArray(s?.envKeys) ? s.envKeys.filter(k => typeof k === 'string' && k) : [],
-            framework: (s?.framework && typeof s.framework === 'string') ? s.framework : '',
-          })),
+          services: safeServices.map(s => {
+            const svc = s || {}
+            return {
+              name: (svc.name && typeof svc.name === 'string') ? svc.name : 'unknown',
+              type: (svc.type && typeof svc.type === 'string') ? svc.type : 'api',
+              cwd: (svc.cwd && typeof svc.cwd === 'string') ? svc.cwd : '.',
+              startCommand: (svc.startCommand && typeof svc.startCommand === 'string') ? svc.startCommand : '',
+              buildCommand: (svc.buildCommand && typeof svc.buildCommand === 'string') ? svc.buildCommand : '',
+              ports: Array.isArray(svc.ports) ? svc.ports.filter(p => p != null && typeof p === 'number') : [],
+              envKeys: Array.isArray(svc.envKeys) ? svc.envKeys.filter(k => k != null && typeof k === 'string' && k) : [],
+              framework: (svc.framework && typeof svc.framework === 'string') ? svc.framework : '',
+            }
+          }),
           resources: {
             s3Buckets: [],
             dynamoTables: [],
             lambdaFunctions: [],
           },
-          ports: safeServices.flatMap(s => Array.isArray(s?.ports) ? s.ports : []).filter(p => typeof p === 'number'),
-          envKeys: safeEnvKeys.filter(k => typeof k === 'string' && k),
-          docker: blueprint?.docker ? {
-            dockerfile: !!blueprint.docker.dockerfile,
-            dockerCompose: !!blueprint.docker.dockerCompose,
-            composeFiles: Array.isArray(blueprint.docker.composeFiles) ? blueprint.docker.composeFiles.filter(f => typeof f === 'string') : [],
-          } : {
-            dockerfile: false,
-            dockerCompose: false,
-            composeFiles: [],
+          ports: safePorts,
+          envKeys: safeEnvKeysFiltered,
+          docker: {
+            dockerfile: !!(blueprint?.docker?.dockerfile),
+            dockerCompose: !!(blueprint?.docker?.dockerCompose),
+            composeFiles: safeComposeFiles,
           },
           awsSdks: [],
-          // Add metadata about external services
-          externalServices: safeExternalServices.map(s => ({
-            name: (s?.name && typeof s.name === 'string') ? s.name : 'unknown',
-            type: (s?.type && typeof s.type === 'string') ? s.type : 'database',
-            ports: Array.isArray(s?.ports) ? s.ports.filter(p => typeof p === 'number') : [],
-            envKeys: Array.isArray(s?.envKeys) ? s.envKeys.filter(k => typeof k === 'string' && k) : [],
-            version: (s?.version && typeof s.version === 'string') ? s.version : '',
-            dockerImage: (s?.dockerImage && typeof s.dockerImage === 'string') ? s.dockerImage : '',
-          })),
+          externalServices: safeExternalServices.map(s => {
+            const ext = s || {}
+            return {
+              name: (ext.name && typeof ext.name === 'string') ? ext.name : 'unknown',
+              type: (ext.type && typeof ext.type === 'string') ? ext.type : 'database',
+              ports: Array.isArray(ext.ports) ? ext.ports.filter(p => p != null && typeof p === 'number') : [],
+              envKeys: Array.isArray(ext.envKeys) ? ext.envKeys.filter(k => k != null && typeof k === 'string' && k) : [],
+              version: (ext.version && typeof ext.version === 'string') ? ext.version : '',
+              dockerImage: (ext.dockerImage && typeof ext.dockerImage === 'string') ? ext.dockerImage : '',
+            }
+          }),
           projectType: (blueprint?.projectType && typeof blueprint.projectType === 'string') ? blueprint.projectType : 'unknown',
           packageManager: (blueprint?.packageManager && typeof blueprint.packageManager === 'string') ? blueprint.packageManager : 'npm',
           framework: (blueprint?.framework && typeof blueprint.framework === 'string') ? blueprint.framework : '',
