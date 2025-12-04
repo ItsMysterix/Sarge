@@ -6,7 +6,7 @@ const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as 
 
 export async function POST(request: Request) {
   try {
-    const { branch = "main", image, ports } = await request.json()
+    const { branch = "main", image, ports, owner, repo, startPort, packageManager, type = "standard" } = await request.json()
 
     // Simulate deployment time
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -14,9 +14,14 @@ export async function POST(request: Request) {
     const commit = Math.random().toString(36).substring(2, 9)
     const status = Math.random() > 0.2 ? "success" : "failed"
     
-    const summary = image 
-      ? `Quick deploy: ${image} on ports ${ports?.join(', ') || 'default'}` 
-      : `Deployment triggered from ${branch} branch`
+    let summary: string
+    if (type === "oneclick" && owner && repo) {
+      summary = `${owner}/${repo} deployed to port ${startPort} using ${packageManager}`
+    } else if (image) {
+      summary = `Quick deploy: ${image} on ports ${ports?.join(', ') || 'default'}`
+    } else {
+      summary = `Deployment triggered from ${branch} branch`
+    }
 
     if (!sql) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 })

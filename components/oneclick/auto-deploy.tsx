@@ -145,8 +145,28 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         repo: connectedRepo.repo,
         branch: 'main',
         accessToken: token,
+        startPort: selectedPort,
+        packageManager: selectedPackageManager || 'pnpm',
       })
-      addTerminalLine('✅ Deployment initiated - Starting services locally...', 'success')
+      addTerminalLine(`✅ Deployment initiated - Starting services locally on port ${selectedPort}...`, 'success')
+      
+      // Save deployment to database
+      try {
+        await fetch('/api/deploy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'oneclick',
+            owner: connectedRepo.owner,
+            repo: connectedRepo.repo,
+            branch: 'main',
+            startPort: selectedPort,
+            packageManager: selectedPackageManager || 'pnpm',
+          }),
+        })
+      } catch (e) {
+        console.error('Failed to save deployment record:', e)
+      }
       
       // Subscribe to real-time deployment logs via streamConnected
       const unsubscribe = t.sarge.oneclick.streamConnected.subscribe(
@@ -547,6 +567,20 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                       onClick={() => setSelectedPackageManager(pm)}
                       className={`px-3 py-1.5 rounded border text-sm transition-colors ${selectedPackageManager === pm ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
                     >{pm}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Port Selection */}
+              <div>
+                <label className="text-sm font-medium block mb-2">Local Port</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[3000, 3001, 3002, 4000, 5000, 8000, 8080, 9000, 5173].map(port => (
+                    <button
+                      key={port}
+                      onClick={() => setSelectedPort(port)}
+                      className={`px-3 py-2 rounded border text-sm transition-colors ${selectedPort === port ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
+                    >{port}</button>
                   ))}
                 </div>
               </div>
