@@ -1,5 +1,5 @@
+import { NextRequest } from 'next/server';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import type { AnyRouter } from '@trpc/server';
 import { appRouter } from '../../../../backend/src/api/root';
 import { createContext } from '../../../../backend/src/context';
 
@@ -11,13 +11,12 @@ export const runtime = 'nodejs';
 // Optional: increase request body size limits if scans post larger payloads
 export const maxDuration = 60; // seconds (Vercel Edge would be lower; Node allows more)
 
-function handler(request: Request) {
+async function handler(req: NextRequest) {
   return fetchRequestHandler({
     endpoint: '/api/trpc',
-    req: request,
-    router: appRouter as unknown as AnyRouter,
-    createContext: () => createContext({ req: request }),
-    batching: { enabled: true },
+    req,
+    router: appRouter,
+    createContext: () => createContext({ req }),
     onError({ error, path, type, input }) {
       console.error('[tRPC API Route Error]', {
         path,
@@ -27,14 +26,6 @@ function handler(request: Request) {
         cause: error.cause,
         input: input ? JSON.stringify(input).substring(0, 200) : '(no input)',
       });
-    },
-    responseMeta() {
-      return {
-        headers: {
-          'x-trpc-source': 'next-fetch',
-          'Cache-Control': 'no-store, must-revalidate',
-        },
-      };
     },
   }).catch((err) => {
     // Catch any unhandled errors from fetchRequestHandler itself
