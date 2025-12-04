@@ -85,6 +85,13 @@ export function secureProcedure(route: string, override?: RateOverride) {
         try { rateDeniedTotal.labels({ route }).inc() } catch {}
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS' })
       }
+      
+      // Check NextAuth session first (primary auth method)
+      if (!ctx.session?.user && process.env.RBAC_ENABLED !== 'true') {
+        // No session and RBAC not enabled = unauthorized
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' })
+      }
+      
       // RBAC (opt-in): require token and role if RBAC_ENABLED
       if (process.env.RBAC_ENABLED === 'true') {
         const token = ctx.requestMeta?.apiToken
