@@ -55,6 +55,30 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [error, setError] = useState<string | null>(null)
   const [showPortPicker, setShowPortPicker] = useState(false)
 
+  // Load persisted analysis state from localStorage
+  useEffect(() => {
+    if (connectedRepo) {
+      const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}`
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached)
+          // Check if cache is less than 1 hour old
+          if (Date.now() - parsed.timestamp < 3600000) {
+            setAnalysisResult(parsed.data)
+            setAnalysisComplete(true)
+            setSelectedPackageManager(parsed.packageManager || 'pnpm')
+            console.log('Loaded cached analysis for', connectedRepo.owner + '/' + connectedRepo.repo)
+          } else {
+            localStorage.removeItem(cacheKey)
+          }
+        } catch (e) {
+          console.error('Failed to load cached analysis:', e)
+        }
+      }
+    }
+  }, [connectedRepo])
+
   // Fetch workspaces and scan ports on mount
   useEffect(() => {
     fetchWorkspaces()
@@ -122,6 +146,15 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         setSelectedPackageManager(result.packageManager)
       }
       setAnalysisComplete(true)
+      
+      // Cache the analysis result in localStorage
+      const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}`
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: result,
+        packageManager: result.packageManager,
+        timestamp: Date.now(),
+      }))
+      addTerminalLine('💾 Analysis cached for future sessions', 'info')
     } catch (e: any) {
       setError(e.message || 'Analysis failed')
       addTerminalLine(`❌ ${e.message || 'Analysis failed'}`, 'error')
@@ -513,21 +546,35 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                 <p className="text-sm text-gray-400">{connectedRepo.full_name}</p>
                 <p className="text-xs text-gray-500">Branch: main</p>
               </div>
-              {!analysisComplete && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={startAnalysis}
-                  disabled={analyzing}
-                  className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg text-sm backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {analyzing ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
-                  ) : (
-                    <><Zap className="w-4 h-4" /> Analyze Repository</>
-                  )}
-                </motion.button>
-              )}
+              <div className="flex gap-2">
+                {analysisComplete && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={startAnalysis}
+                    disabled={analyzing}
+                    className="px-3 py-2 text-gray-400 border border-white/10 hover:border-accent/30 hover:text-accent rounded-lg text-sm backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
+                    Re-analyze
+                  </motion.button>
+                )}
+                {!analysisComplete && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={startAnalysis}
+                    disabled={analyzing}
+                    className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg text-sm backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {analyzing ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
+                    ) : (
+                      <><Zap className="w-4 h-4" /> Analyze Repository</>
+                    )}
+                  </motion.button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -586,17 +633,19 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
               </div>
 
               {/* Deploy Button */}
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={startDeployment}
                 disabled={connectedDeploying || !selectedPackageManager}
-                className="w-full py-3 border-2 border-accent bg-transparent text-white font-semibold rounded-lg disabled:opacity-40 hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg font-semibold backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {connectedDeploying ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Deploying...</>
                 ) : (
                   <><PlayCircle className="w-5 h-5" /> Deploy</>
                 )}
-              </button>
+              </motion.button>
               {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
           )}
@@ -755,7 +804,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={startAutoDeploy}
-              className="w-full py-4 bg-gradient-to-r from-accent to-blue-500 text-black font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              className="w-full py-4 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg font-semibold backdrop-blur-sm transition-all duration-300 flex items-center justify-center gap-2"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
