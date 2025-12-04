@@ -167,15 +167,24 @@ export class GitHubScanner {
     // 3. Analyze based on project type
     let blueprint: ProjectBlueprint
     
-    switch (projectType) {
-      case 'nodejs':
-        blueprint = await this.scanNodeJS(owner, repo, branch, configFiles)
-        break
-      case 'python':
-        blueprint = await this.scanPython(owner, repo, branch, configFiles)
-        break
-      default:
-        blueprint = await this.scanGeneric(owner, repo, branch, configFiles)
+    try {
+      switch (projectType) {
+        case 'nodejs':
+          console.log(`[GitHubScanner] Scanning as Node.js project`)
+          blueprint = await this.scanNodeJS(owner, repo, branch, configFiles)
+          break
+        case 'python':
+          console.log(`[GitHubScanner] Scanning as Python project`)
+          blueprint = await this.scanPython(owner, repo, branch, configFiles)
+          break
+        default:
+          console.log(`[GitHubScanner] Unknown project type, using generic scanner`)
+          blueprint = await this.scanGeneric(owner, repo, branch, configFiles)
+      }
+    } catch (scanError) {
+      console.error(`[GitHubScanner] Error scanning ${projectType} project:`, scanError)
+      // Fallback to generic scanner
+      blueprint = await this.scanGeneric(owner, repo, branch, configFiles)
     }
 
     // 4. Check for Docker configs
@@ -198,50 +207,57 @@ export class GitHubScanner {
    * Scan Node.js project
    */
   private async scanNodeJS(owner: string, repo: string, branch: string, configFiles: any[]): Promise<ProjectBlueprint> {
-    const packageJson = await this.github.getPackageJson(owner, repo, branch)
-    
-    // Detect package manager
-    const packageManager = await this.detectPackageManager(owner, repo, branch)
-    
-    // Detect framework
-    const framework = this.detectNodeFramework(packageJson)
-    
-    // Extract dependencies
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
-    
-    // Detect services from scripts and dependencies
-    const services: DetectedService[] = []
-    const externalServices: DetectedService[] = []
-    const resources = {
-      databases: [] as string[],
-      caches: [] as string[],
-      queues: [] as string[],
-      monitoring: [] as string[],
-    }
+    try {
+      const packageJson = await this.github.getPackageJson(owner, repo, branch)
+      console.log(`[GitHubScanner] Found package.json: ${packageJson.name}, version: ${packageJson.version}`)
+      
+      // Detect package manager
+      const packageManager = await this.detectPackageManager(owner, repo, branch)
+      console.log(`[GitHubScanner] Detected package manager: ${packageManager}`)
+      
+      // Detect framework
+      const framework = this.detectNodeFramework(packageJson)
+      console.log(`[GitHubScanner] Detected framework: ${framework || 'none'}`)
+      
+      // Extract dependencies
+      const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
+      console.log(`[GitHubScanner] Total dependencies: ${Object.keys(deps).length}`)
+      
+      // Detect services from scripts and dependencies
+      const services: DetectedService[] = []
+      const externalServices: DetectedService[] = []
+      const resources = {
+        databases: [] as string[],
+        caches: [] as string[],
+        queues: [] as string[],
+        monitoring: [] as string[],
+      }
 
-    // Main app service
-    const startCommand = packageJson.scripts?.start || packageJson.scripts?.dev || `node ${packageJson.main || 'index.js'}`
-    services.push({
-      name: packageJson.name || 'app',
-      type: 'web',
-      ports: [3000], // Default for Node.js
-      envKeys: this.extractEnvKeys(packageJson),
-      startCommand,
-      requiredFor: ['main-app'],
-    })
-
-    // Check for databases
-    if (deps['pg'] || deps['postgres']) {
-      resources.databases.push('postgres')
-      externalServices.push({
-        name: 'postgres',
-        type: 'database',
-        ports: [5432],
-        envKeys: ['DATABASE_URL', 'POSTGRES_USER', 'POSTGRES_PASSWORD'],
-        dockerImage: 'postgres:16-alpine',
-        requiredFor: [packageJson.name || 'app'],
+      // Main app service
+      const startCommand = packageJson.scripts?.start || packageJson.scripts?.dev || `node ${packageJson.main || 'index.js'}`
+      services.push({
+        name: packageJson.name || 'app',
+        type: 'web',
+        ports: [3000], // Default for Node.js
+        envKeys: this.extractEnvKeys(packageJson),
+        startCommand,
+        requiredFor: ['main-app'],
       })
-    }
+      console.log(`[GitHubScanner] Added main service: ${packageJson.name || 'app'}`)
+
+      // Check for databases
+      if (deps['pg'] || deps['postgres'] || deps['@neondatabase/serverless']) {
+        resources.databases.push('postgres')
+        externalServices.push({
+          name: 'postgres',
+          type: 'database',
+          ports: [5432],
+          envKeys: ['DATABASE_URL', 'POSTGRES_USER', 'POSTGRES_PASSWORD'],
+          dockerImage: 'postgres:16-alpine',
+          requiredFor: [packageJson.name || 'app'],
+        })
+        console.log(`[GitHubScanner] Detected PostgreSQL dependency`)
+      }
     if (deps['mongodb'] || deps['mongoose']) {
       resources.databases.push('mongodb')
       externalServices.push({
