@@ -27,6 +27,78 @@ export default function StacksPage() {
     if (stacksQuery.data) {
       setStacks(stacksQuery.data)
     }
+
+      {/* Create Stack Modal (global) */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg glass-card border border-white/10 rounded-xl p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Create Stack</h3>
+                  <p className="text-sm text-gray-400">Compose services into an isolated stack.</p>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-accent transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-300">Name</label>
+                  <input
+                    ref={nameInputRef}
+                    value={newStackName}
+                    onChange={(e) => setNewStackName(e.target.value)}
+                    className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
+                    placeholder="e.g. Payments Stack"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-300">Description</label>
+                  <textarea
+                    value={newStackDescription}
+                    onChange={(e) => setNewStackDescription(e.target.value)}
+                    className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
+                    placeholder="What does this stack include?"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-gray-300 border border-white/10 rounded-lg hover:border-white/20 transition-colors"
+                  disabled={creatingStack}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateStack}
+                  disabled={creatingStack}
+                  className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg font-semibold backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingStack ? 'Creating...' : 'Create Stack'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
   }, [stacksQuery.data])
 
   // Show empty state after 2 seconds if still loading with no data
@@ -241,78 +313,6 @@ export default function StacksPage() {
                           {service.name}
                         </span>
                       ))}
-
-                      {/* Create Stack Modal */}
-                      <AnimatePresence>
-                        {showCreateModal && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-                          >
-                            <motion.div
-                              initial={{ scale: 0.95, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ scale: 0.95, opacity: 0 }}
-                              className="w-full max-w-lg glass-card border border-white/10 rounded-xl p-6"
-                            >
-                              <div className="flex items-center justify-between mb-4">
-                                <div>
-                                  <h3 className="text-lg font-semibold">Create Stack</h3>
-                                  <p className="text-sm text-gray-400">Compose services into an isolated stack.</p>
-                                </div>
-                                <button
-                                  onClick={() => setShowCreateModal(false)}
-                                  className="text-gray-400 hover:text-accent transition-colors"
-                                >
-                                  ×
-                                </button>
-                              </div>
-
-                              <div className="space-y-4">
-                                <div>
-                                  <label className="text-sm text-gray-300">Name</label>
-                                  <input
-                                    ref={nameInputRef}
-                                    value={newStackName}
-                                    onChange={(e) => setNewStackName(e.target.value)}
-                                    className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
-                                    placeholder="e.g. Payments Stack"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-sm text-gray-300">Description</label>
-                                  <textarea
-                                    value={newStackDescription}
-                                    onChange={(e) => setNewStackDescription(e.target.value)}
-                                    className="mt-1 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
-                                    placeholder="What does this stack include?"
-                                    rows={3}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                  onClick={() => setShowCreateModal(false)}
-                                  className="px-4 py-2 text-gray-300 border border-white/10 rounded-lg hover:border-white/20 transition-colors"
-                                  disabled={creatingStack}
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={handleCreateStack}
-                                  disabled={creatingStack}
-                                  className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg font-semibold backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {creatingStack ? 'Creating...' : 'Create Stack'}
-                                </button>
-                              </div>
-                            </motion.div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                       {stack.services?.length > 4 && (
                         <span className="px-2 py-1 text-xs bg-white/5 text-gray-400 rounded">
                           +{stack.services.length - 4} more
