@@ -217,13 +217,13 @@ export const oneclickRouter = router({
     .mutation(async ({ input, ctx }) => {
       // Emit progress logs via event emitter so client can subscribe
       const topic = `oneclick:connected:${input.owner}/${input.repo}`
-      const classify = (msg: string): string => {
-        const m = msg.toLowerCase()
-          const msg = typeof m === 'string' ? m : String(m ?? '')
-          if (!msg) return 'progress'
-          if (msg.includes('error') || msg.startsWith('❌')) return 'error'
-          if (msg.includes('deploying') || msg.includes('starting')) return 'progress'
-          if (msg.includes('complete') || msg.startsWith('✅')) return 'success'
+      const classify = (rawMsg: string): string => {
+        const normalized = typeof rawMsg === 'string' ? rawMsg : String(rawMsg ?? '')
+        const msgLower = normalized.toLowerCase()
+        if (!msgLower) return 'progress'
+        if (msgLower.includes('error') || normalized.startsWith('❌')) return 'error'
+        if (msgLower.includes('deploying') || msgLower.includes('starting')) return 'progress'
+        if (msgLower.includes('complete') || normalized.startsWith('✅')) return 'success'
         return 'info'
       }
       const emit = (msg: string) => { try { ctx.ee.emit(topic, { ts: Date.now(), line: msg, level: classify(msg) }) } catch {} }
