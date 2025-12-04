@@ -534,7 +534,8 @@ export class GitHubScanner {
     const matches = scriptStr.match(/\$\{?([A-Z_][A-Z0-9_]*)\}?/g) || []
     matches.forEach(m => {
       const key = m.replace(/\$\{?|\}?/g, '')
-      if (!envKeys.includes(key)) envKeys.push(key)
+      const safeKey = typeof key === 'string' ? key : String(key ?? '')
+      if (safeKey && !envKeys.includes(safeKey)) envKeys.push(safeKey)
     })
 
     return envKeys
@@ -558,7 +559,8 @@ export class GitHubScanner {
       'pom.xml',
       'build.gradle',
     ]
-    return configPatterns.some(p => name.includes(p))
+    const safeName = typeof name === 'string' ? name : String(name ?? '')
+    return configPatterns.some(p => safeName.includes(p))
   }
 
   /**
