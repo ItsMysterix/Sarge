@@ -256,6 +256,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const startDeployment = async () => {
     if (!connectedRepo || !analysisComplete || connectedDeploying) return
     setConnectedDeploying(true)
+    setTerminalLines([]) // Clear previous logs
     const addTerminalLine = (line: string, level: string = 'info') => {
       setTerminalLines(prev => [...prev, { ts: Date.now(), line, level }])
     }
@@ -300,10 +301,12 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         },
         {
           onData(data: any) {
+            console.log('[Deploy Log]', data)
             addTerminalLine(data.line, data.level)
           },
           onError(err: any) {
             console.error('Log stream error:', err)
+            addTerminalLine(`⚠️ Log stream error: ${err.message}`, 'warning')
           },
         }
       )
@@ -767,6 +770,27 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                 )}
               </motion.button>
               {error && <p className="text-sm text-red-400">{error}</p>}
+            </div>
+          )}
+
+          {/* Deployment Terminal Output */}
+          {connectedDeploying && terminalLines.length > 0 && (
+            <div className="p-4 glass-card border border-white/10 rounded-lg">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                Deployment Logs
+              </h3>
+              <div className="bg-black/50 rounded-lg p-3 font-mono text-xs max-h-96 overflow-y-auto space-y-1">
+                {terminalLines.map((l, i) => {
+                  const level = l.level || 'info'
+                  const color = level === 'error' ? 'text-red-400' : level === 'success' ? 'text-green-400' : level === 'progress' ? 'text-blue-400' : 'text-gray-300'
+                  return (
+                    <div key={i} className={color}>
+                      {new Date(l.ts).toLocaleTimeString()} {l.line}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
