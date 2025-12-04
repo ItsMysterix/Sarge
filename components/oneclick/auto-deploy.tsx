@@ -175,12 +175,8 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   }, [isResizing])
 
   const fetchWorkspaces = async () => {
-    try {
-      const result = await t.sarge.oneclick.workspaces.list.query()
-      setWorkspaces(result)
-    } catch (err) {
-      console.error('Failed to fetch workspaces:', err)
-    }
+    // Workspaces removed - AI analyzes directly from GitHub
+    setWorkspaces([])
   }
 
   const scanAvailablePorts = async () => {
