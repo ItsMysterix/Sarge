@@ -318,6 +318,7 @@ export const oneclickRouter = router({
       accessToken: z.string().min(1),
       startPort: z.number().optional().default(3000),
       packageManager: z.string().optional().default('pnpm'),
+      deploymentMethod: z.enum(['local', 'docker']).optional().default('local'),
     }))
     .mutation(async ({ input, ctx }) => {
       // Emit progress logs via event emitter so client can subscribe
@@ -355,35 +356,66 @@ export const oneclickRouter = router({
       try {
         emit(`🚀 Starting deployment for ${input.owner}/${input.repo}`)
         
-        // Use real deployment executor if repo is available locally
-        const repoPath = path.join(os.homedir(), '.sarge', 'workspaces', input.owner, input.repo)
-        const executor = new DeploymentExecutor()
-        
-        // Stream logs to client
-        executor.setOnLog((log) => {
-          const formattedMsg = log.line
-          emit(formattedMsg)
-        })
-        
-        // Execute real deployment
-        emit(`📂 Preparing deployment environment...`)
-        const result = await executor.deploy(repoPath, input.packageManager, input.startPort)
-        
-        if (result.success) {
-          emit(`✅ Deployment successful - Application running on port ${input.startPort}`)
+        if (input.deploymentMethod === 'docker') {
+          // Use Docker deployment via orchestrator
+          emit(`🐳 Deploying via Docker...`)
+          const instances = await orchestrator.deploy({
+            owner: input.owner,
+            repo: input.repo,
+            branch: input.branch,
+            accessToken: input.accessToken,
+            services: [],
+            externalServices: [],
+          })
+          
+          const services = Array.from(instances.values()).map(i => ({
+            name: i.name,
+            status: i.status,
+            port: i.port,
+            url: i.url,
+          }))
+          
+          emit(`✅ Docker deployment complete - ${services.length} service(s) running`)
           return {
-            services: [{ name: input.repo, status: 'running', port: input.startPort, url: `http://localhost:${input.startPort}` }],
-            blueprintSummary: { services: 1, projectType: 'unknown', framework: 'unknown' },
+            services,
+            blueprintSummary: { services: services.length, projectType: 'unknown', framework: 'unknown' },
             logTopic: topic,
-            logs: logs.concat(result.logs.map(l => ({ ts: l.timestamp, line: l.line, level: l.level }))),
+            logs,
           }
         } else {
-          emit(`❌ Deployment failed: ${result.error || 'Unknown error'}`)
-          return {
-            services: [],
-            blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
-            logTopic: topic,
-            logs: logs.concat(result.logs.map(l => ({ ts: l.timestamp, line: l.line, level: l.level }))),
+          // Use local process deployment
+          emit(`💻 Deploying locally...`)
+          
+          // Use real deployment executor if repo is available locally
+          const repoPath = path.join(os.homedir(), '.sarge', 'workspaces', input.owner, input.repo)
+          const executor = new DeploymentExecutor()
+          
+          // Stream logs to client
+          executor.setOnLog((log) => {
+            const formattedMsg = log.line
+            emit(formattedMsg)
+          })
+          
+          // Execute real deployment
+          emit(`📂 Preparing deployment environment...`)
+          const result = await executor.deploy(repoPath, input.packageManager, input.startPort)
+          
+          if (result.success) {
+            emit(`✅ Deployment successful - Application running on port ${input.startPort}`)
+            return {
+              services: [{ name: input.repo, status: 'running', port: input.startPort, url: `http://localhost:${input.startPort}` }],
+              blueprintSummary: { services: 1, projectType: 'unknown', framework: 'unknown' },
+              logTopic: topic,
+              logs: logs.concat(result.logs.map(l => ({ ts: l.timestamp, line: l.line, level: l.level }))),
+            }
+          } else {
+            emit(`❌ Deployment failed: ${result.error || 'Unknown error'}`)
+            return {
+              services: [],
+              blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
+              logTopic: topic,
+              logs: logs.concat(result.logs.map(l => ({ ts: l.timestamp, line: l.line, level: l.level }))),
+            }
           }
         }
       } catch (error) {
