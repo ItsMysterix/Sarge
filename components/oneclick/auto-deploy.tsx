@@ -55,6 +55,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [error, setError] = useState<string | null>(null)
   const [showPortPicker, setShowPortPicker] = useState(false)
   const [checkingForUpdates, setCheckingForUpdates] = useState(false)
+  const [deploymentMethod, setDeploymentMethod] = useState<'local' | 'docker'>('local')
 
   // Load persisted analysis state from localStorage
   useEffect(() => {
@@ -269,6 +270,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         accessToken: token,
         startPort: selectedPort,
         packageManager: selectedPackageManager || 'pnpm',
+        deploymentMethod,
       })
       addTerminalLine(`✅ Deployment initiated - Starting services locally on port ${selectedPort}...`, 'success')
       
@@ -712,6 +714,27 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                       className={`px-3 py-1.5 rounded border text-sm transition-colors ${selectedPackageManager === pm ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
                     >{pm}</button>
                   ))}
+                </div>
+              </div>
+
+              {/* Deployment Method Selection */}
+              <div>
+                <label className="text-sm font-medium block mb-2">Deployment Method</label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeploymentMethod('local')}
+                    className={`flex-1 px-3 py-2.5 rounded border text-sm transition-all ${deploymentMethod === 'local' ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
+                  >
+                    <div className="font-medium">Local Process</div>
+                    <div className="text-xs opacity-75 mt-0.5">Run directly on system</div>
+                  </button>
+                  <button
+                    onClick={() => setDeploymentMethod('docker')}
+                    className={`flex-1 px-3 py-2.5 rounded border text-sm transition-all ${deploymentMethod === 'docker' ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
+                  >
+                    <div className="font-medium">Docker</div>
+                    <div className="text-xs opacity-75 mt-0.5">Containerized deployment</div>
+                  </button>
                 </div>
               </div>
 
