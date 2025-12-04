@@ -16,35 +16,36 @@ const orchestrator = createDeploymentOrchestrator()
 // Helper to save logs to database
 async function saveLogs(logs: Array<{ type: string; message: string; service: string; severity?: string; timestamp?: string }>) {
   try {
-    // On Vercel, use full URL with host. On local, use localhost.
-    const isVercel = process.env.VERCEL === '1'
-    const vercelUrl = process.env.VERCEL_URL || 'v0-sarge.vercel.app'
-    const fetchUrl = isVercel 
-      ? `https://${vercelUrl}/api/logs`
-      : 'http://localhost:3000/api/logs'
+    // FIXED: Save directly to database instead of HTTP call to avoid Vercel deployment protection issues
+    const { db } = await import('../lib/db');
     
-    console.log('[saveLogs] v90f410f-NOCACHE - Posting to:', fetchUrl, 'with', logs.length, 'log(s)', '(Vercel:', isVercel, ', VERCEL_URL:', vercelUrl, ')')
-    
-    const response = await fetch(fetchUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(logs),
-    }).catch((err) => {
-      console.error('[saveLogs] Fetch error:', err)
-      return null
-    })
-    
-    if (response && !response.ok) {
-      console.error('[saveLogs] Server error:', response.status, response.statusText)
+    for (const log of logs) {
       try {
-        const text = await response.text()
-        console.error('[saveLogs] Response:', text)
-      } catch {}
-    } else if (response) {
-      console.log('[saveLogs] Success:', response.status)
+        // Try with service_id first (new schema), fallback to service (old schema)
+        await db.query(
+          `INSERT INTO logs (type, message, service_id, timestamp, severity, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())`,
+          [log.type, log.message, log.service, log.timestamp || new Date().toISOString(), log.severity || 'info']
+        ).catch(async (err) => {
+          // If service_id doesn't exist, try service column
+          if (err?.message?.includes('service_id')) {
+            await db.query(
+              `INSERT INTO logs (type, message, service, timestamp, severity, created_at)
+               VALUES ($1, $2, $3, $4, $5, NOW())`,
+              [log.type, log.message, log.service, log.timestamp || new Date().toISOString(), log.severity || 'info']
+            );
+          } else {
+            throw err;
+          }
+        });
+      } catch (logErr) {
+        console.error('[saveLogs] Failed to insert log:', logErr);
+      }
     }
-  } catch (e) {
-    console.error('[saveLogs] Error:', e)
+    
+    console.log('[saveLogs] Successfully saved', logs.length, 'log(s) to database')
+  } catch (err) {
+    console.error('[saveLogs] Database error:', err)
   }
 }
 
