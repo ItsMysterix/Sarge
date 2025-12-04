@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'http';
 import type { db } from './api/lib/db';
 import type { ee } from './api/lib/events';
+import { getToken } from 'next-auth/jwt';
 
 export type RequestMeta = {
   ip?: string;
@@ -9,10 +10,20 @@ export type RequestMeta = {
   apiToken?: string;
 };
 
+export type Session = {
+  user?: {
+    id?: string;
+    email?: string;
+    name?: string;
+    image?: string;
+  };
+};
+
 export type Context = {
   db: typeof db;
   ee: typeof ee;
   requestMeta: RequestMeta;
+  session?: Session | null;
 };
 
 export async function createContext(opts?: {
@@ -22,6 +33,7 @@ export async function createContext(opts?: {
   const { ee } = await import('./api/lib/events');
 
   const requestMeta: RequestMeta = {};
+  let session: Session | null = null;
 
   if (opts?.req) {
     if (opts.req instanceof Request) {
@@ -32,6 +44,23 @@ export async function createContext(opts?: {
       requestMeta.origin = origin === null ? undefined : origin;
       const tok = opts.req.headers.get('x-sarge-token');
       requestMeta.apiToken = tok === null ? undefined : tok;
+      
+      // Check NextAuth session for authentication
+      try {
+        const token = await getToken({ req: opts.req as any, secret: process.env.NEXTAUTH_SECRET });
+        if (token) {
+          session = {
+            user: {
+              id: token.sub,
+              email: token.email as string | undefined,
+              name: token.name as string | undefined,
+              image: token.picture as string | undefined,
+            },
+          };
+        }
+      } catch (e) {
+        console.warn('[context] Failed to get NextAuth token:', e);
+      }
     } else {
       // http.IncomingMessage
       const ipHeader = opts.req.headers['x-forwarded-for'];
@@ -43,5 +72,5 @@ export async function createContext(opts?: {
     }
   }
 
-  return { db, ee, requestMeta };
+  return { db, ee, requestMeta, session };
 }
