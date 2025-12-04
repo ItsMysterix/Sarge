@@ -187,9 +187,9 @@ export class WorkspaceManager {
   }
 
   private loadWorkspaces(): void {
-    const manifestPath = path.join(WORKSPACES_DIR, 'manifest.json')
-    if (fs.existsSync(manifestPath)) {
-      try {
+    try {
+      const manifestPath = path.join(WORKSPACES_DIR, 'manifest.json')
+      if (fs.existsSync(manifestPath)) {
         const data = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
         this.workspaces = new Map(
           data.map((w: any) => [
@@ -201,16 +201,22 @@ export class WorkspaceManager {
             },
           ])
         )
-      } catch (err) {
-        console.error('[WorkspaceManager] Failed to load manifest:', err)
       }
+    } catch (err) {
+      // Filesystem errors (read-only, not found, etc.) - start with empty workspace list
+      console.warn('[WorkspaceManager] Cannot load manifest (likely serverless):', (err as Error).message)
     }
   }
 
   private saveWorkspaces(): void {
-    const manifestPath = path.join(WORKSPACES_DIR, 'manifest.json')
-    const data = Array.from(this.workspaces.values())
-    fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2))
+    try {
+      const manifestPath = path.join(WORKSPACES_DIR, 'manifest.json')
+      const data = Array.from(this.workspaces.values())
+      fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2))
+    } catch (err) {
+      // Filesystem is read-only (Vercel/serverless) - workspaces won't persist
+      console.warn('[WorkspaceManager] Cannot save manifest (read-only filesystem):', (err as Error).message)
+    }
   }
 
   private execCommand(command: string, args: string[], cwd?: string): Promise<void> {
