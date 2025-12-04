@@ -340,7 +340,8 @@ export class GitHubScanner {
                         safeDeps.some(d => d.includes('fastapi')) ? 'fastapi' : undefined
 
     // Check databases
-    if (deps.some(d => d.includes('psycopg') || d.includes('postgres'))) {
+    const depsForDb = Array.isArray(deps) ? deps.map(d => (typeof d === 'string' ? d : String(d))) : []
+    if (depsForDb.some(d => d.includes('psycopg') || d.includes('postgres'))) {
       resources.databases.push('postgres')
       externalServices.push({
         name: 'postgres',
