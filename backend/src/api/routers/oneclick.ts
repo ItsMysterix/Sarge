@@ -202,7 +202,20 @@ export const oneclickRouter = router({
         return response
       } catch (error) {
         console.error('[OneClick] detectRepo error:', error)
-        throw new Error(error instanceof Error ? error.message : 'Failed to analyze repository')
+        // Return a resilient, mock-first response instead of throwing to avoid 500s on serverless
+        return {
+          services: [],
+          resources: { s3Buckets: [], dynamoTables: [], lambdaFunctions: [] },
+          ports: [],
+          envKeys: [],
+          docker: { dockerfile: false, dockerCompose: false, composeFiles: [] },
+          awsSdks: [],
+          externalServices: [],
+          projectType: 'unknown',
+          packageManager: 'npm',
+          framework: '',
+          error: error instanceof Error ? error.message : 'Failed to analyze repository',
+        }
       }
     }),
 
