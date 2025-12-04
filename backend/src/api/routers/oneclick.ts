@@ -296,6 +296,8 @@ export const oneclickRouter = router({
       repo: z.string().min(1),
       branch: z.string().default('main'),
       accessToken: z.string().min(1),
+      startPort: z.number().optional().default(3000),
+      packageManager: z.string().optional().default('pnpm'),
     }))
     .mutation(async ({ input, ctx }) => {
       // Emit progress logs via event emitter so client can subscribe
@@ -311,6 +313,7 @@ export const oneclickRouter = router({
       }
       const emit = (msg: string) => { try { ctx.ee.emit(topic, { ts: Date.now(), line: msg, level: classify(msg) }) } catch {} }
       emit(`Starting connected deploy for ${input.owner}/${input.repo}`)
+      emit(`Using port: ${input.startPort}, package manager: ${input.packageManager}`)
       const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
       emit('Scanning repository (no clone)...')
       const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
@@ -322,6 +325,8 @@ export const oneclickRouter = router({
         accessToken: input.accessToken,
         services: blueprint.services || [],
         externalServices: blueprint.externalServices || [],
+        startPort: input.startPort,
+        packageManager: input.packageManager,
       })
       emit('Services started locally')
       const result = Array.from(instances.values()).map(i => ({ name: i.name, status: i.status, port: i.port, url: i.url }))
