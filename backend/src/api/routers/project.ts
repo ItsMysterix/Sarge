@@ -189,66 +189,48 @@ export const projectRouter = router({
 
   // Create new project
   create: publicProcedure
-    .input(createProjectSchema.extend({
-      workspaceId: z.string(),
-    }))
+    .input(createProjectSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        // Get workspace details
-        const workspaceManager = (() => {
-          try {
-            return require('../../services/workspace-manager').workspaceManager
-          } catch {
-            return null
-          }
-        })()
-
-        let workspace: any = null
+        // Workspaces removed - AI analyzes directly from GitHub
         let detectedInfo: any = {}
 
-        if (workspaceManager && input.workspaceId) {
-          // Use correct accessor (workspaceManager.getWorkspace) for consistency with other router calls.
-          workspace = workspaceManager.getWorkspace?.(input.workspaceId) ?? workspaceManager.get?.(input.workspaceId)
-          
-          // Run AI detection on workspace
-          if (workspace) {
-            try {
-              const modName = ['sarge','-','core'].join('')
-              const core = require(modName)
-              const detection = await core.detector.detectStack(workspace.path)
-              detectedInfo = {
-                detected_framework: detection.name,
-                detected_package_manager: detection.packageManager,
-                detected_languages: detection.languages || [],
-                ai_detected_ports: detection.ports || [],
-                ai_detected_tools: detection.tools || [],
-                ai_analysis_summary: detection.summary || '',
-                ai_analyzed_at: new Date().toISOString(),
-              }
-            } catch (err) {
-              console.error('AI detection failed:', err)
+        // Optional: Run AI detection if repositoryId provided
+        if (input.repositoryId) {
+          try {
+            const modName = ['sarge','-','core'].join('')
+            const core = require(modName)
+            const detection = await core.detector.detectStack(input.repositoryId)
+            detectedInfo = {
+              detected_framework: detection.name,
+              detected_package_manager: detection.packageManager,
+              detected_languages: detection.languages || [],
+              ai_detected_ports: detection.ports || [],
+              ai_detected_tools: detection.tools || [],
+              ai_analysis_summary: detection.summary || '',
+              ai_analyzed_at: new Date().toISOString(),
             }
+          } catch (err) {
+            console.error('AI detection failed:', err)
           }
         }
 
         const result = await ctx.db.query(
           `INSERT INTO projects (
-            user_id, name, slug, description, workspace_id, workspace_path,
-            repository_url, framework, detected_framework, detected_package_manager,
+            user_id, name, slug, description,
+            repository_id, framework, detected_framework, detected_package_manager,
             detected_languages, build_command, dev_command, install_command,
             auto_deploy, auto_deploy_branch, ai_detected_ports, ai_detected_tools,
             ai_analysis_summary, ai_analyzed_at, status
           ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
           ) RETURNING *`,
           [
             'user_1', // TODO: Get from auth
             input.name,
             input.slug,
             input.description || null,
-            input.workspaceId,
-            workspace?.path || null,
-            workspace?.repoUrl || null,
+            input.repositoryId || null,
             input.framework || null,
             detectedInfo.detected_framework || null,
             detectedInfo.detected_package_manager || null,
@@ -280,7 +262,7 @@ export const projectRouter = router({
             project.id,
             'user_1',
             'created',
-            JSON.stringify({ name: input.name, workspace_id: input.workspaceId }),
+            JSON.stringify({ name: input.name, repository_id: input.repositoryId }),
           ]
         )
 
