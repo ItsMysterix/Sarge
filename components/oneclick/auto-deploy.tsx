@@ -256,12 +256,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const startDeployment = async () => {
     if (!connectedRepo || !analysisComplete || connectedDeploying) return
     setConnectedDeploying(true)
-    setTerminalLines([]) // Clear previous logs
-    const addTerminalLine = (line: string, level: string = 'info') => {
-      setTerminalLines(prev => [...prev, { ts: Date.now(), line, level }])
-    }
     try {
-      addTerminalLine('🚀 Starting deployment...', 'progress')
       const token = await fetchAccessToken()
       if (!token) throw new Error('Missing token')
       const resp = await t.sarge.oneclick.deployConnected.mutate({
@@ -273,14 +268,6 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         packageManager: selectedPackageManager || 'pnpm',
         deploymentMethod,
       })
-      addTerminalLine(`✅ Deployment initiated - Starting services locally on port ${selectedPort}...`, 'success')
-      
-      // Add logs from the response
-      if (resp.logs && Array.isArray(resp.logs)) {
-        resp.logs.forEach((log: any) => {
-          addTerminalLine(log.line, log.level)
-        })
-      }
       
       // Save deployment to database
       try {
@@ -299,33 +286,8 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       } catch (e) {
         console.error('Failed to save deployment record:', e)
       }
-      
-      // Try to subscribe to real-time deployment logs via streamConnected
-      // This only works on localhost with WebSocket; on Vercel it will fail gracefully
-      try {
-        const unsubscribe = t.sarge.oneclick.streamConnected.subscribe(
-          {
-            owner: connectedRepo.owner,
-            repo: connectedRepo.repo,
-          },
-          {
-            onData(data: any) {
-              console.log('[Deploy Log]', data)
-              addTerminalLine(data.line, data.level)
-            },
-            onError(err: any) {
-              // Silently ignore subscription errors on Vercel (no WebSocket support)
-              console.warn('Log stream not available (WebSocket not supported in this environment)')
-            },
-          }
-        )
-      } catch (err: any) {
-        // Subscription not available - this is OK, we already have logs from the mutation response
-        console.warn('WebSocket subscriptions not available')
-      }
     } catch (e: any) {
       setError(e.message || 'Deployment failed')
-      addTerminalLine(`❌ ${e.message || 'Deployment failed'}`, 'error')
     } finally {
       setConnectedDeploying(false)
     }
@@ -786,24 +748,21 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
             </div>
           )}
 
-          {/* Deployment Terminal Output */}
-          {connectedDeploying && terminalLines.length > 0 && (
-            <div className="p-4 glass-card border border-white/10 rounded-lg">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          {/* Deployment in progress - show button to view logs */}
+          {connectedDeploying && (
+            <div className="p-4 glass-card border border-white/10 rounded-lg text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                Deployment Logs
-              </h3>
-              <div className="bg-black/50 rounded-lg p-3 font-mono text-xs max-h-96 overflow-y-auto space-y-1">
-                {terminalLines.map((l, i) => {
-                  const level = l.level || 'info'
-                  const color = level === 'error' ? 'text-red-400' : level === 'success' ? 'text-green-400' : level === 'progress' ? 'text-blue-400' : 'text-gray-300'
-                  return (
-                    <div key={i} className={color}>
-                      {new Date(l.ts).toLocaleTimeString()} {l.line}
-                    </div>
-                  )
-                })}
+                <p className="text-sm text-gray-300">Deployment in progress...</p>
               </div>
+              <motion.a
+                href="/logs"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-block px-4 py-2 bg-accent/20 hover:bg-accent/30 border border-accent/50 rounded-lg text-sm font-medium text-accent transition-colors"
+              >
+                View Logs →
+              </motion.a>
             </div>
           )}
         </div>
