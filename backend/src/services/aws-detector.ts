@@ -131,7 +131,9 @@ export class AWSDetector {
       }
 
       // Detect specific AWS services from dependencies
-      const awsPackages = Object.keys(allDeps).filter(pkg => pkg.startsWith('@aws-sdk/'))
+      const awsPackages = Object.keys(allDeps)
+        .map(p => (typeof p === 'string' ? p : String(p ?? '')))
+        .filter(pkg => pkg && pkg.startsWith('@aws-sdk/'))
       
       for (const pkg of awsPackages) {
         if (pkg.includes('s3')) {
@@ -255,7 +257,8 @@ export class AWSDetector {
     const serverlessPath = path.join(this.repoPath, 'serverless.yml')
     if (fs.existsSync(serverlessPath)) {
       try {
-        const content = fs.readFileSync(serverlessPath, 'utf-8')
+        let content = fs.readFileSync(serverlessPath, 'utf-8')
+        if (typeof content !== 'string') content = String(content ?? '')
         // Parse serverless config for services
         if (content.includes('s3')) this.addService(result, 'S3', 'serverless-bucket', {}, ['serverless.yml'])
         if (content.includes('lambda') || content.includes('functions:')) this.addService(result, 'Lambda', 'serverless-function', {}, ['serverless.yml'])
@@ -271,7 +274,8 @@ export class AWSDetector {
     const samPath = path.join(this.repoPath, 'template.yaml')
     if (fs.existsSync(samPath)) {
       try {
-        const content = fs.readFileSync(samPath, 'utf-8')
+        let content = fs.readFileSync(samPath, 'utf-8')
+        if (typeof content !== 'string') content = String(content ?? '')
         if (content.includes('AWS::S3::')) this.addService(result, 'S3', 'sam-bucket', {}, ['template.yaml'])
         if (content.includes('AWS::Lambda::')) this.addService(result, 'Lambda', 'sam-function', {}, ['template.yaml'])
         if (content.includes('AWS::DynamoDB::')) this.addService(result, 'DynamoDB', 'sam-table', {}, ['template.yaml'])
@@ -285,7 +289,8 @@ export class AWSDetector {
     for (const file of files.slice(0, 10)) { // Limit parsing
       const fullPath = path.join(this.repoPath, file)
       try {
-        const content = fs.readFileSync(fullPath, 'utf-8')
+        let content = fs.readFileSync(fullPath, 'utf-8')
+        if (typeof content !== 'string') content = String(content ?? '')
         const template = file.endsWith('.json') ? JSON.parse(content) : this.parseYaml(content)
 
         if (template.Resources) {

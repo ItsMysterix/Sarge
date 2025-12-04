@@ -219,9 +219,11 @@ export const oneclickRouter = router({
       const topic = `oneclick:connected:${input.owner}/${input.repo}`
       const classify = (msg: string): string => {
         const m = msg.toLowerCase()
-        if (m.includes('error') || m.startsWith('❌')) return 'error'
-        if (m.includes('deploying') || m.includes('starting')) return 'progress'
-        if (m.includes('complete') || m.startsWith('✅')) return 'success'
+          const msg = typeof m === 'string' ? m : String(m ?? '')
+          if (!msg) return 'progress'
+          if (msg.includes('error') || msg.startsWith('❌')) return 'error'
+          if (msg.includes('deploying') || msg.includes('starting')) return 'progress'
+          if (msg.includes('complete') || msg.startsWith('✅')) return 'success'
         return 'info'
       }
       const emit = (msg: string) => { try { ctx.ee.emit(topic, { ts: Date.now(), line: msg, level: classify(msg) }) } catch {} }
