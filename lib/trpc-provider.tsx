@@ -11,10 +11,10 @@ export function TrpcReactProvider({ children }: { children: React.ReactNode }) {
   return (
     <TrpcProvider
       client={trpc.createClient({
+        transformer: superjson,
         links: [
           httpBatchLink({
             url: '/api/trpc',
-            transformer: superjson,
             headers() {
               return {
                 // You can forward auth headers or custom tokens here
