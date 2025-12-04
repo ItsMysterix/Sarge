@@ -16,13 +16,15 @@ const orchestrator = createDeploymentOrchestrator()
 // Helper to save logs to database
 async function saveLogs(logs: Array<{ type: string; message: string; service: string; severity?: string; timestamp?: string }>) {
   try {
-    // Determine the base URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const logUrl = `${baseUrl}/api/logs`
+    // On Vercel, use full URL with host. On local, use localhost.
+    const isVercel = process.env.VERCEL === '1'
+    const fetchUrl = isVercel 
+      ? `https://${process.env.VERCEL_URL || 'v0-sarge.vercel.app'}/api/logs`
+      : 'http://localhost:3000/api/logs'
     
-    console.log('[saveLogs] Posting to:', logUrl, 'with', logs.length, 'log(s)')
+    console.log('[saveLogs] Posting to:', fetchUrl, 'with', logs.length, 'log(s)', '(Vercel:', isVercel, ')')
     
-    const response = await fetch(logUrl, {
+    const response = await fetch(fetchUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(logs),
