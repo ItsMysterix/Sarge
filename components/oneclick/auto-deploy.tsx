@@ -881,7 +881,6 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                   <><PlayCircle className="w-5 h-5" /> Deploy</>
                 )}
               </motion.button>
-              {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
           )}
 
@@ -1106,16 +1105,6 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         </motion.div>
       )}
 
-      {/* Error Display */}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 border border-red-500/30 bg-red-500/10 rounded-lg"
-        >
-          <p className="text-red-400 text-sm">{error}</p>
-        </motion.div>
-      )}
     </div>
   )
 }
