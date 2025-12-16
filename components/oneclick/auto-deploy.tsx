@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { trpcVanilla } from '@/lib/trpc'
 import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 // Lightweight helper to obtain a GitHub access token from the secure API route.
 // Returns null if unavailable (caller should surface a friendly error / fallback).
@@ -70,8 +71,6 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [manualRepoUrl, setManualRepoUrl] = useState('')
   const [manualBranch, setManualBranch] = useState('main')
   const [manualRepoError, setManualRepoError] = useState<string | null>(null)
-  const [dbHealth, setDbHealth] = useState<'unknown' | 'ok' | 'error'>('unknown')
-  const [dbHealthMessage, setDbHealthMessage] = useState<string | null>(null)
 
   // Load persisted analysis state from localStorage
   useEffect(() => {
@@ -161,12 +160,10 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     return () => clearInterval(interval)
   }, [connectedRepo, analysisComplete])
 
-  // Fetch workspaces and scan ports on mount
   useEffect(() => {
     fetchWorkspaces()
     scanAvailablePorts()
     fetchConnectedRepo()
-    checkDbHealth()
   }, [])
 
   // Listen for re-analysis trigger from push detection
@@ -181,8 +178,6 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     return () => window.removeEventListener('trigger-reanalysis', handleReanalysis)
   }, [connectedRepo, analyzing])
 
-  // Subscribe to connected deploy logs when topic set
-  // (Removed log subscription from wizard interface; terminal may attach later if desired)
   const fetchConnectedRepo = async () => {
     try {
       const res = await fetch('/api/repository')
@@ -192,28 +187,6 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       }
     } catch (e) {
       console.warn('No connected repository found')
-    }
-  }
-
-  const checkDbHealth = async () => {
-    try {
-      const res = await fetch('/api/db/health')
-      if (!res.ok) {
-        setDbHealth('error')
-        setDbHealthMessage('Database not reachable')
-        return
-      }
-      const data = await res.json()
-      if (data?.ok) {
-        setDbHealth('ok')
-        setDbHealthMessage(null)
-      } else {
-        setDbHealth('error')
-        setDbHealthMessage(data?.message || 'Database not reachable')
-      }
-    } catch (err: any) {
-      setDbHealth('error')
-      setDbHealthMessage(err?.message || 'Database not reachable')
     }
   }
 
@@ -647,22 +620,6 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
             {stage === 'select' ? 'Ready to Deploy' : stage}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <span className="text-gray-500">DB</span>
-          {dbHealth === 'ok' && <span className="px-2 py-1 rounded bg-green-500/20 text-green-300">Connected</span>}
-          {dbHealth === 'error' && (
-            <span className="px-2 py-1 rounded bg-red-500/20 text-red-300">
-              {dbHealthMessage || 'DB unreachable'}
-            </span>
-          )}
-          {dbHealth === 'unknown' && <span className="px-2 py-1 rounded bg-white/10 text-gray-300">Checking…</span>}
-          <button
-            onClick={checkDbHealth}
-            className="text-xs text-accent hover:underline"
-          >
-            Recheck
-          </button>
-        </div>
         
         {stage !== 'select' && (
           <div className="flex-1 flex items-center gap-2">
@@ -697,12 +654,9 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
               <h3 className="font-semibold text-sm">Deploy from public GitHub URL</h3>
               <p className="text-xs text-gray-400">Paste any public repo link. No local clone required.</p>
             </div>
-            <button
-              onClick={applyManualRepo}
-              className="px-3 py-2 rounded-lg border border-accent/40 text-sm text-accent hover:bg-accent/10 transition-colors"
-            >
+            <Button variant="outline" size="sm" onClick={applyManualRepo}>
               Use Repo
-            </button>
+            </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2">
@@ -748,45 +702,40 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                 <p className="text-xs text-gray-500">Branch: {connectedRepo.branch || 'main'}</p>
               </div>
               <div className="flex gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => {
                     setConnectedRepo(null)
                     setAnalysisResult(null)
                     setAnalysisComplete(false)
                     setManualRepoUrl('')
                   }}
-                  className="px-3 py-2 text-gray-400 border border-white/10 hover:border-accent/30 hover:text-accent rounded-lg text-sm backdrop-blur-sm transition-all duration-300"
                 >
                   Switch repository
-                </motion.button>
+                </Button>
                 {analysisComplete && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={startAnalysis}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={startAnalysis} 
                     disabled={analyzing}
-                    className="px-3 py-2 text-gray-400 border border-white/10 hover:border-accent/30 hover:text-accent rounded-lg text-sm backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
-                    Re-analyze
-                  </motion.button>
+                    {analyzing ? 'Analyzing...' : 'Re-analyze'}
+                  </Button>
                 )}
                 {!analysisComplete && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <Button
                     onClick={startAnalysis}
                     disabled={analyzing}
-                    className="px-4 py-2 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg text-sm backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {analyzing ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing</>
                     ) : (
                       <><Zap className="w-4 h-4" /> Analyze Repository</>
                     )}
-                  </motion.button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -868,19 +817,17 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
               </div>
 
               {/* Deploy Button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <Button
                 onClick={startDeployment}
                 disabled={connectedDeploying || !selectedPackageManager}
-                className="w-full py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent border border-accent/30 rounded-lg font-semibold backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full"
               >
                 {connectedDeploying ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Deploying...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Deploying</>
                 ) : (
-                  <><PlayCircle className="w-5 h-5" /> Deploy</>
+                  <><PlayCircle className="w-4 h-4" /> Deploy</>
                 )}
-              </motion.button>
+              </Button>
             </div>
           )}
 
@@ -891,14 +838,11 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
                 <p className="text-sm text-gray-300">Deployment in progress...</p>
               </div>
-              <motion.a
-                href="/logs"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="inline-block px-4 py-2 bg-accent/20 hover:bg-accent/30 border border-accent/50 rounded-lg text-sm font-medium text-accent transition-colors"
-              >
-                View Logs →
-              </motion.a>
+              <a href="/logs">
+                <Button variant="outline">
+                  View Logs →
+                </Button>
+              </a>
             </div>
           )}
         </div>
