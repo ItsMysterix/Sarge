@@ -23,6 +23,20 @@ async function fetchAccessToken(): Promise<string | null> {
   }
 }
 
+function parseGithubUrl(url: string): { owner: string; repo: string; branch?: string } | null {
+  // Accept forms like https://github.com/owner/repo or with /tree/<branch> or ssh/git URL
+  const cleaned = url.trim().replace(/\.git$/, '')
+  const httpsMatch = cleaned.match(/^https?:\/\/github.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^#]+))?/i)
+  if (httpsMatch) {
+    return { owner: httpsMatch[1], repo: httpsMatch[2], branch: httpsMatch[3] }
+  }
+  const sshMatch = cleaned.match(/^git@github.com:([^\/]+)\/([^#]+)$/i)
+  if (sshMatch) {
+    return { owner: sshMatch[1], repo: sshMatch[2], branch: undefined }
+  }
+  return null
+}
+
 interface AutoDeployProps {
   onComplete?: () => void
 }
@@ -53,11 +67,15 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [showPortPicker, setShowPortPicker] = useState(false)
   const [checkingForUpdates, setCheckingForUpdates] = useState(false)
   const [deploymentMethod, setDeploymentMethod] = useState<'local' | 'docker'>('local')
+  const [manualRepoUrl, setManualRepoUrl] = useState('')
+  const [manualBranch, setManualBranch] = useState('main')
+  const [manualRepoError, setManualRepoError] = useState<string | null>(null)
 
   // Load persisted analysis state from localStorage
   useEffect(() => {
     if (connectedRepo) {
-      const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}`
+      const branch = connectedRepo.branch || 'main'
+      const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}_${branch}`
       const cached = localStorage.getItem(cacheKey)
       if (cached) {
         try {
@@ -82,6 +100,8 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   useEffect(() => {
     if (!connectedRepo || !analysisComplete) return
 
+    const branch = connectedRepo.branch || 'main'
+
     const checkForNewPushes = async () => {
       try {
         setCheckingForUpdates(true)
@@ -90,7 +110,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
 
         // Fetch latest commit SHA from GitHub
         const response = await fetch(
-          `https://api.github.com/repos/${connectedRepo.owner}/${connectedRepo.repo}/commits/main`,
+          `https://api.github.com/repos/${connectedRepo.owner}/${connectedRepo.repo}/commits/${branch}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -105,7 +125,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         const latestSha = data.sha
 
         // Check cached commit SHA
-        const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}`
+        const cacheKey = `analysis_${connectedRepo.owner}_${connectedRepo.repo}_${branch}`
         const cached = localStorage.getItem(cacheKey)
         
         if (cached) {
@@ -172,6 +192,26 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     }
   }
 
+  const applyManualRepo = () => {
+    setManualRepoError(null)
+    const parsed = parseGithubUrl(manualRepoUrl)
+    if (!parsed) {
+      setManualRepoError('Enter a valid GitHub URL, e.g. https://github.com/owner/repo or git@github.com:owner/repo.git')
+      return
+    }
+    const branch = manualBranch || parsed.branch || 'main'
+    setConnectedRepo({
+      owner: parsed.owner,
+      repo: parsed.repo,
+      full_name: `${parsed.owner}/${parsed.repo}`,
+      branch,
+    })
+    setTerminalLines([])
+    setAnalysisComplete(false)
+    setAnalysisResult(null)
+    setManualRepoError(null)
+  }
+
   const startAnalysis = async () => {
     if (!connectedRepo || analyzing) return
     setAnalyzing(true)
@@ -182,6 +222,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       setTerminalLines(prev => [...prev, { ts: Date.now(), line, level }])
     }
     try {
+      const branch = connectedRepo.branch || 'main'
       addTerminalLine('🔍 Starting AI-powered repository analysis...', 'progress')
       const token = await fetchAccessToken()
       if (!token) {
@@ -197,7 +238,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       const result = await t.sarge.oneclick.detectRepo.mutate({
         owner: connectedRepo.owner,
         repo: connectedRepo.repo,
-        branch: 'main',
+        branch,
         accessToken: token,
       }).catch((err) => {
         // If bad credentials, show helpful error
@@ -221,7 +262,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
       
       // Fetch latest commit SHA to cache
       const commitResponse = await fetch(
-        `https://api.github.com/repos/${connectedRepo.owner}/${connectedRepo.repo}/commits/main`,
+        `https://api.github.com/repos/${connectedRepo.owner}/${connectedRepo.repo}/commits/${branch}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -258,12 +299,13 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     try {
       const token = await fetchAccessToken()
       if (!token) throw new Error('Missing GitHub token')
+      const branch = connectedRepo.branch || 'main'
       
       console.log('[Deploy] Calling deployConnected mutation...')
       const resp = await t.sarge.oneclick.deployConnected.mutate({
         owner: connectedRepo.owner,
         repo: connectedRepo.repo,
-        branch: 'main',
+        branch,
         accessToken: token,
         startPort: selectedPort,
         packageManager: selectedPackageManager || 'pnpm',
@@ -281,7 +323,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
             type: 'oneclick',
             owner: connectedRepo.owner,
             repo: connectedRepo.repo,
-            branch: 'main',
+            branch,
             startPort: selectedPort,
             packageManager: selectedPackageManager || 'pnpm',
           }),
@@ -586,6 +628,43 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         )}
       </div>
 
+      {/* Manual GitHub URL selection (lightweight) */}
+      <div className="p-4 glass-card border border-white/10 rounded-lg space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-sm">Deploy from public GitHub URL</h3>
+            <p className="text-xs text-gray-400">Paste any public repo link. No local clone required.</p>
+          </div>
+          <button
+            onClick={applyManualRepo}
+            className="px-3 py-2 rounded-lg border border-accent/40 text-sm text-accent hover:bg-accent/10 transition-colors"
+          >
+            Use Repo
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <label className="text-xs text-gray-400 block mb-1">GitHub URL</label>
+            <input
+              value={manualRepoUrl}
+              onChange={(e) => setManualRepoUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo"
+              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-accent outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Branch (optional)</label>
+            <input
+              value={manualBranch}
+              onChange={(e) => setManualBranch(e.target.value)}
+              placeholder="main"
+              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-accent outline-none text-sm"
+            />
+          </div>
+        </div>
+        {manualRepoError && <p className="text-xs text-red-400">{manualRepoError}</p>}
+      </div>
+
       {/* AI Analysis Interface */}
       {connectedRepo && stage === 'select' && (
         <div className="space-y-4">
@@ -603,7 +682,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
                   )}
                 </div>
                 <p className="text-sm text-gray-400">{connectedRepo.full_name}</p>
-                <p className="text-xs text-gray-500">Branch: main</p>
+                <p className="text-xs text-gray-500">Branch: {connectedRepo.branch || 'main'}</p>
               </div>
               <div className="flex gap-2">
                 {analysisComplete && (
