@@ -366,6 +366,22 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     } catch (e: any) {
       console.error('[Deploy] Error during deployment:', e)
       setError(e.message || 'Deployment failed - check browser console for details')
+
+      // Send failure to Logs API for centralized visibility
+      try {
+        await fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'error',
+            message: `One-click deploy failed: ${e?.message || 'Unknown error'}`,
+            service: `${connectedRepo?.owner || 'unknown'}/${connectedRepo?.repo || 'unknown'}`,
+            timestamp: new Date().toISOString(),
+          }),
+        })
+      } catch (logErr) {
+        console.error('Failed to persist deploy error log:', logErr)
+      }
     } finally {
       setConnectedDeploying(false)
     }
