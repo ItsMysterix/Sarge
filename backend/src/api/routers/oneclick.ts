@@ -414,7 +414,7 @@ export const oneclickRouter = router({
           
           // Download and extract repository tarball
           emit(`📥 Downloading repository...`)
-          const tarResult = await downloadAndExtractRepository(input.owner, input.repo, input.branch)
+          const tarResult = await downloadAndExtractRepository(input.owner, input.repo, input.branch, input.accessToken)
           
           if (!tarResult.success) {
             emit(`❌ Failed to download repository: ${tarResult.error}`)
@@ -428,6 +428,7 @@ export const oneclickRouter = router({
                 line: `Download error: ${tarResult.error}`,
                 level: 'error',
               }]),
+              error: tarResult.error || 'Failed to download repository tarball',
             }
           }
           
@@ -468,6 +469,7 @@ export const oneclickRouter = router({
               blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
               logTopic: topic,
               logs: logs.concat(result.logs.map(l => ({ ts: l.timestamp, line: l.line, level: l.level }))),
+              error: result.error || 'Deployment executor failed',
             }
           }
         }
@@ -479,6 +481,7 @@ export const oneclickRouter = router({
           blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
           logTopic: topic,
           logs,
+          error: errorMsg,
         }
       }
     }),
