@@ -30,6 +30,23 @@ const nextConfig = {
       },
     ]
   },
+  async redirects() {
+    // Canonicalize all non-primary hosts to v0-sarge.vercel.app to stabilize OAuth
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'host',
+            value: '^(?!v0-sarge\\.vercel\\.app$).*',
+          },
+        ],
+        destination: 'https://v0-sarge.vercel.app/:path*',
+        permanent: false,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
