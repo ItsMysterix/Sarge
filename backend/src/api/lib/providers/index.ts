@@ -141,7 +141,7 @@ class VercelProvider implements IProvider {
     // For production: deploy to main/production branch
 
     // API call to create deployment
-    const res = await (typeof global !== 'undefined' && 'fetch' in global ? global.fetch : require('node-fetch')).default(
+    const res = await fetch(
       'https://api.vercel.com/v13/deployments',
       {
         method: 'POST',
@@ -180,8 +180,7 @@ class VercelProvider implements IProvider {
 
   async getStatus(opts: StatusOptions): Promise<DeploymentStatus> {
     const token = opts.credentials.vercel_token
-    const fetchFn = typeof global !== 'undefined' && 'fetch' in global ? global.fetch : require('node-fetch').default
-    const res = await fetchFn(`https://api.vercel.com/v13/deployments/${opts.deploymentId}`, {
+    const res = await fetch(`https://api.vercel.com/v13/deployments/${opts.deploymentId}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     })
     const data = await res.json() as any
@@ -227,8 +226,7 @@ class RailwayProvider implements IProvider {
     // Railway: deploy via API with GitHub integration
     // Generates URLs like: https://project-env.railway.app
 
-    const fetchFn = typeof global !== 'undefined' && 'fetch' in global ? global.fetch : require('node-fetch').default
-    const res = await fetchFn('https://api.railway.app/graphql', {
+    const res = await fetch('https://api.railway.app/graphql', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -276,8 +274,7 @@ class RailwayProvider implements IProvider {
 
   async getStatus(opts: StatusOptions): Promise<DeploymentStatus> {
     const token = opts.credentials.railway_token
-    const fetchFn = typeof global !== 'undefined' && 'fetch' in global ? global.fetch : require('node-fetch').default
-    const res = await fetchFn('https://api.railway.app/graphql', {
+    const res = await fetch('https://api.railway.app/graphql', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
