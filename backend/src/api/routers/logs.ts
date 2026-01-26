@@ -140,6 +140,81 @@ export const logsRouter = router({
     }
   }),
 
+  // Fetch latest logs for a service (simple tail)
+  tail: secureProcedure('logs.tail')
+    .input(z.object({
+      service: z.string().optional(),
+      limit: z.number().int().positive().max(1000).default(100),
+    }))
+    .query(async ({ ctx, input }) => {
+      const end = startQueryTimer('logs.tail');
+      try {
+        const params: any[] = [];
+        let where = '';
+
+        if (input.service && input.service !== 'all') {
+          params.push(input.service);
+          where = 'WHERE service = $1';
+        }
+
+        params.push(input.limit);
+
+        const result = await ctx.db.query(
+          `SELECT id, service, type, message, "timestamp", created_at
+           FROM logs
+           ${where}
+           ORDER BY COALESCE("timestamp", created_at) DESC
+           LIMIT $${params.length}`,
+          params
+        );
+
+        return result?.rows || [];
+      } catch (e) {
+        try { console.warn('[logs.tail] returning []:', (e as Error).message) } catch {}
+        return [];
+      } finally {
+        end();
+      }
+    }),
+
+  // Search logs by message/service/time window
+  search: secureProcedure('logs.search')
+    .input(z.object({
+      search: z.string().min(1),
+      service: z.string().optional(),
+      limit: z.number().int().positive().max(500).default(100),
+    }))
+    .query(async ({ ctx, input }) => {
+      const end = startQueryTimer('logs.search');
+      try {
+        const params: any[] = [`%${input.search}%`];
+        let where = 'WHERE message ILIKE $1';
+
+        if (input.service && input.service !== 'all') {
+          params.push(input.service);
+          where += ` AND service = $${params.length}`;
+        }
+
+        params.push(input.limit);
+
+        const result = await ctx.db.query(
+          `SELECT id, service, type, message, "timestamp", created_at
+           FROM logs
+           ${where}
+           ORDER BY COALESCE("timestamp", created_at) DESC
+           LIMIT $${params.length}`,
+          params
+        );
+
+        return result?.rows || [];
+      } catch (e) {
+        try { console.warn('[logs.search] returning []:', (e as Error).message) } catch {}
+        return [];
+      } finally {
+        end();
+      }
+    }),
+
   stream: secureProcedure('logs.stream').subscription(
     createBufferedSubscription("logs:new", { bufferSize: 500, perTickCap: 100 })
   ),

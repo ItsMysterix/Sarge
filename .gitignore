@@ -27,8 +27,14 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Test coverage
+coverage/
+*.lcov
+
 # macOS
 .DS_Store
 
 # VSCode settings
 .vscode/
+.vercel
+.env*.local

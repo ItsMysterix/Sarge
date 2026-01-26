@@ -44,8 +44,17 @@ jobs:
 
       - name: Test (workspaces and root)
         run: |
-          pnpm -r --if-present run test
-          pnpm -w run test || true
+          pnpm -r --if-present run test -- --coverage
+          pnpm -w run test -- --coverage || true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   docs-check:
     runs-on: ubuntu-latest

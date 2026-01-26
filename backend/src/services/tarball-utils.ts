@@ -68,7 +68,10 @@ export async function downloadAndExtractRepository(
   }
 }
 
-async function writeAndExtract(response: any, tempDir: string) {
+async function writeAndExtract(
+  response: any, 
+  tempDir: string
+): Promise<{ success: boolean; path: string; error?: string; cleanup: () => void }> {
   // Download and extract in one go
   const buffer = await response.arrayBuffer()
   const tarPath = path.join(tempDir, 'repo.tar.gz')

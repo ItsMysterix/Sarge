@@ -3,19 +3,19 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Rocket, Activity, FileText, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen, Pin, PinOff } from "lucide-react"
+import { Home, Rocket, Activity, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen, Pin, PinOff } from "lucide-react"
 import { useProject } from "@/lib/project-context"
 import { useSidebarStore } from "@/lib/sidebar-store"
 import { useAppStore } from "@/lib/store"
 
 const navigation = [
   { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
-  { name: "One-Click Deploy", href: "/oneclick", icon: Zap, description: "Detect, plan & deploy in 3 steps" },
-  { name: "Stacks", href: "/stacks", icon: Layers, description: "Compose services into applications" },
-  { name: "AWS Emulation", href: "/aws", icon: Cloud, description: "S3, DynamoDB, Lambda & more—offline" },
-  { name: "Metrics", href: "/metrics", icon: Activity, description: "Real-time performance data" },
-  { name: "Logs", href: "/logs", icon: FileText, description: "Structured logs from all services" },
-  { name: "Deployments", href: "/deployments", icon: Rocket, description: "Legacy deployment pipeline" },
+  { name: "Launch", href: "/oneclick", icon: Zap, description: "Detect, choose platform, and deploy" },
+  { name: "Templates", href: "/stacks", icon: Layers, description: "Curated app templates across providers" },
+  { name: "Targets", href: "/targets", icon: Cloud, description: "Connect Vercel, Railway, Cloudflare, AWS, GCP, Azure" },
+  { name: "Observability", href: "/observability", icon: Activity, description: "Metrics and logs in one place" },
+  { name: "Pipelines", href: "/deployments", icon: Rocket, description: "Deploy history, previews, rollbacks" },
+  { name: "Sandbox", href: "/aws", icon: FolderOpen, description: "Offline emulation and local cloud" },
   { name: "Settings", href: "/settings", icon: Settings, description: "Configure workspace & snapshots" },
 ]
 
