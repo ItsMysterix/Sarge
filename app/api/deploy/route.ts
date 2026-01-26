@@ -6,7 +6,7 @@ const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null as 
 
 export async function POST(request: Request) {
   try {
-    const { branch = "main", image, ports, owner, repo, startPort, packageManager, type = "standard" } = await request.json()
+    const { branch = "main", image, ports, owner, repo, startPort, packageManager, type = "standard", provider, environment } = await request.json()
 
     // Simulate deployment time
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -15,12 +15,15 @@ export async function POST(request: Request) {
     const status = Math.random() > 0.2 ? "success" : "failed"
     
     let summary: string
+    const providerTag = provider ? `[provider:${provider}]` : ''
+    const envTag = environment ? `[env:${environment}]` : ''
+
     if (type === "oneclick" && owner && repo) {
-      summary = `${owner}/${repo} deployed to port ${startPort} using ${packageManager}`
+      summary = `${providerTag}${envTag} ${owner}/${repo} deployed to port ${startPort} using ${packageManager}`.trim()
     } else if (image) {
-      summary = `Quick deploy: ${image} on ports ${ports?.join(', ') || 'default'}`
+      summary = `${providerTag}${envTag} Quick deploy: ${image} on ports ${ports?.join(', ') || 'default'}`.trim()
     } else {
-      summary = `Deployment triggered from ${branch} branch`
+      summary = `${providerTag}${envTag} Deployment triggered from ${branch} branch`.trim()
     }
 
     if (!sql) {

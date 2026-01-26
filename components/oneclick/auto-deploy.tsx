@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { trpcVanilla } from '@/lib/trpc'
-import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-react'
+import { trpc, trpcVanilla } from '@/lib/trpc'
+import { FolderOpen, Github, Zap, PlayCircle, CheckCircle, Loader2, Settings, RefreshCw, Cloud, Globe2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useProject } from '@/lib/project-context'
 
 // Lightweight helper to obtain a GitHub access token from the secure API route.
 // Returns null if unavailable (caller should surface a friendly error / fallback).
@@ -36,6 +37,12 @@ function parseGithubUrl(url: string): { owner: string; repo: string; branch?: st
     return { owner: sshMatch[1], repo: sshMatch[2], branch: undefined }
   }
   return null
+}
+
+function ProviderBadge({ kind }: { kind: 'containers' | 'functions' | 'static' }) {
+  if (kind === 'static') return <Globe2 className="w-4 h-4 text-accent" />
+  if (kind === 'functions') return <Zap className="w-4 h-4 text-accent" />
+  return <Cloud className="w-4 h-4 text-accent" />
 }
 
 interface AutoDeployProps {
@@ -71,6 +78,18 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
   const [manualRepoUrl, setManualRepoUrl] = useState('')
   const [manualBranch, setManualBranch] = useState('main')
   const [manualRepoError, setManualRepoError] = useState<string | null>(null)
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('')
+  const [selectedEnv, setSelectedEnv] = useState<'preview' | 'production'>('preview')
+
+  const { currentProject } = useProject()
+  const providersClient = trpc as any
+  const providersQuery = providersClient.providers.list.useQuery({ projectSlug: currentProject?.slug }, {
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+  })
+  const providers = providersQuery.data || []
+  const connectedProviders = useMemo(() => providers.filter((p: any) => p.status === 'connected'), [providers])
+  const providerReady = useMemo(() => providers.some((p: any) => p.id === selectedProviderId && p.status === 'connected'), [providers, selectedProviderId])
 
   // Load persisted analysis state from localStorage
   useEffect(() => {
@@ -165,6 +184,15 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
     scanAvailablePorts()
     fetchConnectedRepo()
   }, [])
+
+  useEffect(() => {
+    if (selectedProviderId) return
+    if (connectedProviders.length > 0) {
+      setSelectedProviderId(connectedProviders[0].id)
+    } else if (providers.length > 0) {
+      setSelectedProviderId(providers[0].id)
+    }
+  }, [connectedProviders, providers, selectedProviderId])
 
   // Listen for re-analysis trigger from push detection
   useEffect(() => {
@@ -291,6 +319,11 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
 
   const startDeployment = async () => {
     if (!connectedRepo || !analysisComplete || connectedDeploying) return
+    const provider = providers.find((p: any) => p.id === selectedProviderId)
+    if (!provider || provider.status !== 'connected') {
+      setError('Select a connected target in Targets before deploying')
+      return
+    }
     setConnectedDeploying(true)
     setError(null)
     console.log('[Deploy] Starting deployment for', connectedRepo.owner + '/' + connectedRepo.repo)
@@ -308,6 +341,8 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
         startPort: selectedPort,
         packageManager: selectedPackageManager || 'pnpm',
         deploymentMethod,
+        provider: provider.id,
+        environment: selectedEnv,
       })
       
       console.log('[Deploy] Deployment mutation returned:', resp)
@@ -328,6 +363,8 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
             branch,
             startPort: selectedPort,
             packageManager: selectedPackageManager || 'pnpm',
+            provider: provider.id,
+            environment: selectedEnv,
           }),
         })
       } catch (e) {
@@ -766,6 +803,63 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
           {analysisComplete && analysisResult && (
             <div className="p-4 glass-card border border-white/10 rounded-lg space-y-4">
               <h3 className="font-semibold">Deployment Configuration</h3>
+
+              {/* Provider Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Deployment Target</label>
+                  <a href="/targets" className="text-xs text-accent hover:underline">Manage targets</a>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {(providers || []).map((p: any) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedProviderId(p.id)}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-all ${
+                        selectedProviderId === p.id ? 'border-accent bg-accent/10 text-accent' : 'border-white/15 hover:border-accent/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ProviderBadge kind={p.kind} />
+                        <div className="text-left">
+                          <div className="font-semibold leading-tight">{p.name}</div>
+                          <div className="text-[11px] text-gray-400 leading-tight">{p.description}</div>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] px-2 py-1 rounded border ${p.status === 'connected' ? 'border-accent/40 text-accent bg-accent/10' : 'border-white/15 text-gray-400'}`}>
+                        {p.status}
+                      </span>
+                    </button>
+                  ))}
+                  {providers.length === 0 && (
+                    <div className="text-xs text-gray-400">No targets yet. Connect one in Targets.</div>
+                  )}
+                </div>
+                {selectedProviderId && (
+                  <p className="text-xs text-gray-400">
+                    {(providers.find((p: any) => p.id === selectedProviderId)?.costHint) || 'Select a target to see cost hints.'}
+                  </p>
+                )}
+                {!providerReady && (
+                  <p className="text-xs text-amber-400">Connect this target in Targets before deploying.</p>
+                )}
+              </div>
+
+              {/* Environment */}
+              <div>
+                <label className="text-sm font-medium block mb-2">Environment</label>
+                <div className="flex gap-2">
+                  {(['preview','production'] as const).map(env => (
+                    <button
+                      key={env}
+                      onClick={() => setSelectedEnv(env)}
+                      className={`px-3 py-2 rounded border text-sm transition-colors ${selectedEnv === env ? 'bg-accent text-black border-accent' : 'border-white/15 hover:border-accent/40'}`}
+                    >
+                      {env === 'preview' ? 'Preview' : 'Production'}
+                    </button>
+                  ))}
+                </div>
+              </div>
               
               {/* Package Manager Selection */}
               <div>
@@ -819,7 +913,7 @@ export function AutoDeploy({ onComplete }: AutoDeployProps) {
               {/* Deploy Button */}
               <Button
                 onClick={startDeployment}
-                disabled={connectedDeploying || !selectedPackageManager}
+                disabled={connectedDeploying || !selectedPackageManager || !providerReady}
                 className="w-full"
               >
                 {connectedDeploying ? (

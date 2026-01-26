@@ -12,6 +12,17 @@ import { awsRouter } from './routers/aws';
 import { projectRouter } from './routers/project';
 import { repositoryRouter } from './routers/repository';
 import { terminalRouter } from './routers/terminal';
+import { providersRouter } from './routers/providers';
+import { environmentsRouter } from './routers/environments';
+import { secretsRouter } from './routers/secrets';
+import { prPreviewsRouter } from './routers/pr-previews';
+import { trafficRouter } from './routers/traffic';
+import { healthChecksRouter } from './routers/health-checks';
+import { databasesRouter } from './routers/databases';
+import { alertsRouter } from './routers/alerts';
+import { kubernetesRouter } from './routers/kubernetes';
+import { costOptimizationRouter } from './routers/cost-optimization';
+import { oneclickRouter } from './routers/oneclick';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -27,6 +38,17 @@ export const appRouter = router({
   project: projectRouter,
   repository: repositoryRouter,
   terminal: terminalRouter,
+  providers: providersRouter,
+  environments: environmentsRouter,
+  secrets: secretsRouter,
+  prPreviews: prPreviewsRouter,
+  traffic: trafficRouter,
+  healthChecks: healthChecksRouter,
+  databases: databasesRouter,
+  alerts: alertsRouter,
+  kubernetes: kubernetesRouter,
+  costOptimization: costOptimizationRouter,
+  oneclick: oneclickRouter,
 });
 
 export type AppRouter = typeof appRouter;

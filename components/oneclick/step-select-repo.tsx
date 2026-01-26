@@ -6,10 +6,17 @@ import { FolderGit2, Github, Loader2, AlertCircle, CheckCircle2, RefreshCw } fro
 
 interface Repository {
   id: number
-  owner: string
-  repo: string
-  fullName: string
-  isPrimary: boolean
+  name: string
+  full_name: string
+  private: boolean
+  html_url: string
+  default_branch: string
+  language?: string
+  stargazers_count?: number
+  updated_at?: string
+  // Derived for convenience
+  owner?: string
+  repo?: string
   branch?: string
 }
 
@@ -32,35 +39,40 @@ export function StepSelectRepo({ onRepoSelected }: StepSelectRepoProps) {
     setError(null)
     
     try {
-      const response = await fetch('/api/repository')
+      // Fetch live repositories from GitHub API (includes public + private)
+      const response = await fetch('/api/github/repos')
       if (!response.ok) {
-        throw new Error('Failed to fetch repositories')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch repositories')
       }
       
-      const data = await response.json()
-      setRepositories(data.repositories || [])
+      const repos = await response.json()
+      
+      // Transform GitHub API response to component format
+      // Extract owner/repo from full_name and add derived fields
+      const formattedRepos = repos.map((repo: any) => {
+        const [owner, repoName] = repo.full_name.split('/')
+        return {
+          id: repo.id,
+          name: repo.name,
+          full_name: repo.full_name,
+          owner, // Extracted for compatibility with auto-deploy.tsx
+          repo: repoName, // Extracted for compatibility with auto-deploy.tsx
+          branch: repo.default_branch, // Mapped for compatibility
+          private: repo.private,
+          html_url: repo.html_url,
+          default_branch: repo.default_branch,
+          language: repo.language,
+          stargazers_count: repo.stargazers_count,
+          updated_at: repo.updated_at,
+        }
+      })
+      
+      setRepositories(formattedRepos)
     } catch (err) {
       console.error('Error fetching repositories:', err)
-      setError('Failed to load repositories. Please try again.')
-      // Fallback to mock data for development
-      setRepositories([
-        {
-          id: 1,
-          owner: 'mysterix',
-          repo: 'my-nextjs-app',
-          fullName: 'mysterix/my-nextjs-app',
-          isPrimary: true,
-          branch: 'main',
-        },
-        {
-          id: 2,
-          owner: 'mysterix',
-          repo: 'react-dashboard',
-          fullName: 'mysterix/react-dashboard',
-          isPrimary: false,
-          branch: 'main',
-        },
-      ])
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load repositories'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -159,26 +171,29 @@ export function StepSelectRepo({ onRepoSelected }: StepSelectRepoProps) {
                     <CheckCircle2 className="h-5 w-5 text-blue-400" />
                   )}
                 </div>
-                {repo.isPrimary && (
-                  <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
-                    Primary
+                {repo.private && (
+                  <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                    Private
                   </span>
                 )}
               </div>
 
               <div className="space-y-1">
                 <h3 className="font-semibold text-base md:text-lg text-white group-hover:text-blue-400 transition-colors truncate">
-                  {repo.repo}
+                  {repo.name}
                 </h3>
                 <p className="text-sm text-gray-400 truncate">
-                  {repo.owner}/{repo.repo}
+                  {repo.full_name}
                 </p>
-                {repo.branch && (
-                  <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-400" />
-                    <span className="text-xs text-gray-400">{repo.branch}</span>
+                    <span className="text-xs text-gray-400">{repo.default_branch}</span>
                   </div>
-                )}
+                  {repo.language && (
+                    <span className="text-xs text-gray-400">{repo.language}</span>
+                  )}
+                </div>
               </div>
             </motion.button>
           ))}

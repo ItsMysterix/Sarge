@@ -287,6 +287,7 @@ export default function DeploymentsPage() {
 function DeploymentRow({ d, router }: { d: any; router: any }) {
   const t = trpc as any
   const stopMutation = t.sarge.deploy.stopDeployment?.useMutation()
+  const meta = extractMeta(d.summary)
   
   const handleStop = async () => {
     if (!confirm('Stop this deployment?')) return
@@ -303,7 +304,13 @@ function DeploymentRow({ d, router }: { d: any; router: any }) {
   return (
     <div role="row" className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 items-center border-b border-white/10 hover:bg-white/5 transition-colors">
       <div><StatusBadge status={d.status} /></div>
-      <div className="truncate text-gray-300" title={d.workspace_name || d.summary || ''}>{d.workspace_name || d.summary || '-'}</div>
+      <div className="truncate text-gray-300" title={d.workspace_name || d.summary || ''}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate max-w-[180px]">{d.workspace_name || stripMeta(d.summary) || '-'}</span>
+          {meta.provider && <span className="text-[10px] px-2 py-0.5 rounded border border-accent/40 text-accent bg-accent/10">{meta.provider}</span>}
+          {meta.environment && <span className="text-[10px] px-2 py-0.5 rounded border border-white/20 text-gray-200">{meta.environment}</span>}
+        </div>
+      </div>
       <div className="font-mono text-xs opacity-80">{d.branch ?? '-'}</div>
       <div className="font-mono text-xs">
         <span title={d.commit ?? ''}>{short(d.commit)}</span>
@@ -312,6 +319,7 @@ function DeploymentRow({ d, router }: { d: any; router: any }) {
       <div className="flex gap-2">
         <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push(`/deployments/${d.id}`)}>View</Button>
         <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push(`/deployments/${d.id}?tab=logs`)}>Logs</Button>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push('/observability')}>Obs</Button>
         {canStop && (
           <Button 
             variant="destructive"
@@ -326,5 +334,17 @@ function DeploymentRow({ d, router }: { d: any; router: any }) {
       </div>
     </div>
   );
+}
+
+function extractMeta(summary?: string): { provider?: string; environment?: string } {
+  if (!summary) return {}
+  const provider = summary.match(/\[provider:([^\]]+)\]/i)?.[1]
+  const environment = summary.match(/\[env:([^\]]+)\]/i)?.[1]
+  return { provider, environment }
+}
+
+function stripMeta(summary?: string): string | undefined {
+  if (!summary) return summary
+  return summary.replace(/\[provider:[^\]]+\]/gi, '').replace(/\[env:[^\]]+\]/gi, '').trim()
 }
  

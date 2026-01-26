@@ -46,7 +46,15 @@ function extractProceduresFromFile(filePath) {
 }
 
 function generateMarkdown() {
-  const routersDir = path.join(process.cwd(), 'backend', 'src', 'api', 'routers')
+  // Path resolution: when run from test (in backend/) or from root
+  let routersDir = path.join(process.cwd(), 'backend', 'src', 'api', 'routers')
+  if (!fs.existsSync(routersDir)) {
+    // If running from backend/, go up one level
+    routersDir = path.join(process.cwd(), 'src', 'api', 'routers')
+  }
+  if (!fs.existsSync(routersDir)) {
+    throw new Error(`Could not find routers directory. Tried: ${routersDir}`)
+  }
   const files = fs.readdirSync(routersDir).filter(f => f.endsWith('.ts'))
   const rows = files.flatMap(f => extractProceduresFromFile(path.join(routersDir, f)))
   const byRouter = new Map()

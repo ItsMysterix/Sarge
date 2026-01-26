@@ -1,110 +1,219 @@
 # Sarge
 
-<!-- chore: trigger vercel build (2025-11-11) -->
 [![CI](https://github.com/ItsMysterix/Sarge/actions/workflows/ci.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/ci.yml)
 [![Release](https://github.com/ItsMysterix/Sarge/actions/workflows/release.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/release.yml)
+[![Security Scan](https://github.com/ItsMysterix/Sarge/actions/workflows/security-scan.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/security-scan.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Sarge is a DevOps command center: real-time deployments, logs, and metrics in one UI. It’s a Next.js 14 app talking to a TypeScript tRPC WebSocket backend on Neon Postgres, with production-grade observability (Prometheus, Alertmanager, Grafana) and optional Nginx + TLS.
+A **DevOps command center** for real-time deployments, logs, and metrics in a single UI. Built with **Next.js 14** + **TypeScript tRPC**, powered by **Neon Postgres**, and includes production-grade observability with **Prometheus**, **Grafana**, and **Alertmanager**.
 
-## Quick Start (5 minutes)
+## Features
 
-1) Env
+- 🚀 **Deployment Management**: Track, trigger, and rollback deployments with real-time status
+- 📊 **Live Metrics**: CPU, memory, latency, and custom Prometheus metrics
+- 📝 **Aggregated Logs**: Filter and search logs across all services
+- 🔔 **Alerting**: Prometheus rules + Slack/Email/PagerDuty notifications
+- 🔐 **Secure**: Auth.js (OAuth/OIDC), RBAC, rate limiting, encrypted sessions
+- 🎨 **Dark-first UI**: Tailwind CSS with modern design patterns
+- 📦 **Multi-platform Deployments**: Local Docker, Kubernetes, Vercel, Railway, AWS, GCP, Azure
+- 🏥 **Health Checks**: HTTP/TCP/Script probes with auto-retry
+- 🌍 **Multi-cloud**: Traffic management, environment cloning, cost optimization
+- 📈 **Scalable**: Handles 1000s of metrics/logs per second via buffered subscriptions
 
+## Quick Start
+
+### 1. Prerequisites
+- **Node.js** 18+ (npm or pnpm)
+- **PostgreSQL** database (Neon, local, or cloud)
+- **GitHub OAuth app** (optional, for authentication)
+
+### 2. Clone & Setup
 ```bash
-cp .env.example .env
+git clone https://github.com/ItsMysterix/Sarge.git
+cd Sarge
+
+# Install dependencies
+pnpm install  # or npm install
+
+# Create environment file
+cp .env.example .env.local
 ```
 
-Minimum values:
-- DATABASE_URL (Neon) if you want real data (without it, API routes return mock data in dev)
-- NEXT_PUBLIC_WS_URL (e.g. ws://localhost:3200) if your WS server runs on a separate port; otherwise it defaults to ws(s)://<host>/ws
-- PROM_METRICS_TOKEN required only in production (not for local dev)
-- NEXTAUTH_SECRET and NEXTAUTH_URL for Auth.js authentication
- - ANTHROPIC_API_KEY (optional) to enable AI Co-Pilot analysis features
- - ENABLE_AI_ANALYSIS=true (optional flag to gate AI features)
+### 3. Configure `.env.local`
+```env
+# Database (required for data persistence)
+DATABASE_URL=postgresql://user:password@localhost:5432/sarge
 
-2) Install + run
+# Authentication (required to access the app)
+NEXTAUTH_SECRET=generate-with: openssl rand -hex 32
+NEXTAUTH_URL=http://localhost:3000
 
+# WebSocket server (if backend runs on separate port)
+NEXT_PUBLIC_WS_URL=ws://localhost:3200
+
+# Optional: Observability
+PROM_METRICS_TOKEN=your-prometheus-token
+
+# Optional: AI features
+ANTHROPIC_API_KEY=sk-...
+ENABLE_AI_ANALYSIS=true
+```
+
+### 4. Run Locally
 ```bash
-pnpm i # or npm i
+# Runs both frontend (port 3000) and backend (port 3200)
+npm run dev
+
+# Or run separately:
+npm run dev:frontend  # Next.js on :3000
+npm run dev:backend   # tRPC WS on :3200
+```
+
+Visit **http://localhost:3000** and sign in.
+
+## Architecture
+
+```
+┌─────────────────────┐        WS (tRPC)       ┌──────────────────────┐
+│  Next.js 14         │ ◄───────────────────► │ Backend (tRPC WS)    │
+│  • React 19         │    ctx.ee events      │ • Node.js + ts-node  │
+│  • Auth.js          │   (deploys/logs/      │ • Neon Postgres      │
+│  • Tailwind CSS     │    metrics)           │ • Event emitter      │
+└─────────┬───────────┘                       └──────────┬───────────┘
+          │                                             │
+          │ HTTP                                        │ Queries/Mutations
+          │                                             │
+          └────────────────────────────────────────────┘
+
+Observability:
+  Prometheus (metrics scrape)
+  Grafana (dashboards)
+  Alertmanager (notifications)
+```
+
+**Key characteristics:**
+- **Real-time**: WebSocket subscriptions (deploys, logs, metrics)
+- **Typed**: Full TypeScript on frontend & backend
+- **Secure**: Auth.js with OAuth, RBAC, rate limiting
+- **Observable**: Prometheus metrics + Grafana visualizations
+- **Scalable**: Buffered subscriptions, database pooling
+
+For detailed architecture, see [docs/ARCHITECTURE_COMPLETE.md](docs/ARCHITECTURE_COMPLETE.md).
+
+## Deployment
+
+### Local Development
+```bash
 npm run dev
 ```
 
-## Features by Epic
-- 1) Core WS + tRPC: subscriptions for logs, metrics, deploys
-- 2) Persistence: Neon-backed storage and migrations
-- 3) Security: CORS, rate limits, payload caps, Auth.js authentication
-- 4) CI/CD: preflight validation, GHCR build/push foundation
-- 5) Observability: Prometheus metrics, Grafana dashboards, Alertmanager
-- 6) Deploy executor: background worker and event topics
-- 7) Logs UX: virtualized viewer, filters, streaming
-- 8) Metrics UX: gauges, live updates
-- 9) Alerts & runbooks: rules tested in CI, actionable guides
-- 10) Production stack: Nginx/TLS/Compose for EC2
-
-See docs for details:
-- Architecture: `docs/architecture.md`
-- Setup local: `docs/setup-local.md`
-- CI/CD: `docs/ci-cd.md`
-- Frontend UX: `docs/frontend-ux.md`
-- Security: `docs/security.md`
-- Alerts & Runbooks: `docs/runbooks/alerts.md`
-
-## Architecture (ASCII)
-
-```
-+-------------------+           WS (tRPC)           +-------------------+
-| Next.js (app/)    |  <------------------------>   | Backend (tRPC WS) |
-|  - UI + TRPC      |                               |  - Routers        |
-|  - Auth.js        |       ctx.ee events           |  - Executor       |
-+---------+---------+        (deploys/logs/metrics) +----+--------------+
-	    ^                                           ^  |
-	    |                                           |  v
-	    | HTTP (API)*                               | Neon Postgres
-	    |                                           |
-	    |     Prometheus <-- scrape --+             |
-	    +---- Grafana ----- visualize |  +-- Alertmanager -- alerts
-		    Nginx (TLS) optional --> reverse proxy
+### Docker Compose (Staging)
+```bash
+docker-compose -f compose.prod.yaml up
 ```
 
-*Most data uses tRPC WS; some serverless API routes exist for ancillary functionality.*
+### Kubernetes (Production)
+```bash
+kustomize build bridge/overlays/prod | kubectl apply -f -
+```
 
-## Deploy to AWS EC2 (Free Tier)
-See `docs/aws-ec2-free-tier.md` for a full guide.
+### Cloud Platforms
+- **Vercel**: Frontend (built-in CI/CD)
+- **Railway**: Backend + Database
+- **Fly.io**: WebSocket server
+- **AWS ECS**: Long-running services
+- **GCP Cloud Run**: Serverless
+- **Azure Container Apps**: Managed containers
 
-## Production Stack (TLS + Nginx + Compose)
-See `docs/prod-stack.md` and runbooks in `docs/runbooks/*`.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed guides.
 
-## API Reference (tRPC)
-Auto-generated snapshot: `docs/api/trpc.md` (run `npm run docs:trpc`).
+## Development
 
-## Release Checklist
-See `docs/release-checklist.md`.
+### Project Structure
+```
+├── app/                 # Next.js 14 (App Router)
+│   ├── api/            # Serverless routes
+│   ├── deployments/    # Deployment history
+│   ├── logs/           # Log viewer
+│   ├── metrics/        # Metrics dashboard
+│   ├── projects/       # Project management
+│   ├── settings/       # User settings
+│   └── ...
+├── backend/            # tRPC WebSocket server
+│   └── src/api/
+│       ├── root.ts     # Router export
+│       ├── routers/    # Feature routers
+│       ├── lib/        # Utilities (DB, auth, etc.)
+│       └── trpc/       # tRPC config & middleware
+├── components/         # React components
+├── lib/               # Shared utilities
+├── docs/              # Documentation
+└── bridge/            # Kubernetes manifests (Kustomize)
+```
 
-## Vercel Environment Variables
-Set these in your Vercel project (Production + Preview). If a variable is optional, the platform will fall back to mock data or hide that feature.
+### Running Tests
+```bash
+# Backend
+cd backend && npm test
 
-| Name | Required | Purpose |
-|------|----------|---------|
-| DATABASE_URL | Recommended (required for persistence) | Neon Postgres connection string (use psql or Dashboard to copy). |
-| NEXTAUTH_SECRET | Yes (if auth enabled) | Auth.js session encryption secret. Generate with `openssl rand -hex 32`. |
-| NEXTAUTH_URL | Yes (auth) | Public site URL (https://your-domain). |
-| NEXT_PUBLIC_WS_URL | Optional | Override WS endpoint if running backend separately (e.g. wss://api.your-domain/ws). |
-| PROM_METRICS_TOKEN | Optional (prod) | Token required for scraping protected metrics endpoint. |
-| ANTHROPIC_API_KEY | Optional | Enables AI Co-Pilot suggestions & analysis. |
-| ENABLE_AI_ANALYSIS | Optional | Feature flag to toggle AI components (set to `true`). |
-| RATE_LIMIT_MAX | Optional | Override default rate limit bucket size. |
-| RATE_LIMIT_WINDOW_SEC | Optional | Override rate limit window length. |
-| WS_PORT | Optional (local only) | WebSocket server port (defaults to 3200 locally). |
+# Frontend
+npm run test
 
-Tips:
-1. Keep secrets out of the client: only NEXT_PUBLIC_* vars are exposed.
-2. If DATABASE_URL is absent, serverless routes will serve mock data for a smoother dev UX.
-3. Rotate NEXTAUTH_SECRET if compromised; sessions become invalid immediately.
-4. Use separate DATABASE_URL for Preview vs Production to avoid mixing data.
+# E2E
+npm run test:e2e
+```
 
-## Contributing / License
-- Internal project; contributions welcome via PRs.
-- License: MIT.
+### Building for Production
+```bash
+npm run build   # Builds both frontend & backend
+npm run start   # Runs production server
+```
 
+## Documentation
 
+- **[Architecture](docs/ARCHITECTURE_COMPLETE.md)** — System design, data flow, components
+- **[Development](docs/DEVELOPMENT.md)** — Local setup, testing, debugging
+- **[Deployment](docs/DEPLOYMENT.md)** — Production deployment guides
+- **[Monitoring](docs/MONITORING.md)** — Prometheus, Grafana, alerts
+- **[Contributing](CONTRIBUTING.md)** — Code style, PR process, conventions
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DATABASE_URL` | Recommended | PostgreSQL connection string (Neon recommended) |
+| `NEXTAUTH_SECRET` | Yes | Auth.js session encryption (generate: `openssl rand -hex 32`) |
+| `NEXTAUTH_URL` | Yes | Public site URL (https://your-domain.com) |
+| `NEXT_PUBLIC_WS_URL` | Optional | WS endpoint if backend separate (e.g., `wss://api.your-domain.com/ws`) |
+| `PROM_METRICS_TOKEN` | Optional | Token for Prometheus scrape endpoint |
+| `ANTHROPIC_API_KEY` | Optional | Enables AI Co-Pilot features |
+| `ENABLE_AI_ANALYSIS` | Optional | Feature flag for AI components (set `true` to enable) |
+| `RATE_LIMIT_MAX` | Optional | Rate limit bucket size (default: 100) |
+| `RATE_LIMIT_WINDOW_SEC` | Optional | Rate limit window (default: 60) |
+| `WS_PORT` | Optional | Backend WebSocket port (default: 3200, local only) |
+
+**Tips:**
+- Without `DATABASE_URL`, API routes gracefully degrade to mock data
+- Keep secrets out of client—only `NEXT_PUBLIC_*` vars exposed to browser
+- Rotate `NEXTAUTH_SECRET` if compromised (invalidates all sessions)
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, React 19, TypeScript, Tailwind CSS, Auth.js, tRPC
+- **Backend**: Node.js, TypeScript, tRPC, EventEmitter
+- **Database**: Neon Postgres (serverless)
+- **Observability**: Prometheus, Grafana, Alertmanager
+- **Deployment**: Docker, Kubernetes (Kustomize), Vercel, Railway, AWS, GCP, Azure
+- **Testing**: Vitest, Playwright (E2E)
+- **CI/CD**: GitHub Actions
+
+## License
+
+[MIT](LICENSE) — Internal project, contributions welcome.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/ItsMysterix/Sarge/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ItsMysterix/Sarge/discussions)

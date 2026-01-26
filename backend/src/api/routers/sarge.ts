@@ -110,6 +110,16 @@ export const sargeRouter = router({
     }),
   }),
 
+  stacks: router({
+    list: secureProcedure('sarge.stacks.list').query(async () => ([] as any[])),
+  }),
+
+  aws: router({
+    s3: router({
+      listBuckets: secureProcedure('sarge.aws.s3.listBuckets').query(async () => ([] as any[])),
+    }),
+  }),
+
   resources: router({
     search: secureProcedure('sarge.resources.search').input(ResourceSearchInput).query(async () => ([] as any[])),
   }),

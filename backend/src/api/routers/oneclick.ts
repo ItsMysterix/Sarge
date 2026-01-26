@@ -5,6 +5,8 @@ import { createGitHubScanner } from '../../services/github-scanner'
 import { createDeploymentOrchestrator } from '../../services/deployment-orchestrator'
 import { DeploymentExecutor } from '../../services/deployment-executor'
 import { downloadAndExtractRepository } from '../../services/tarball-utils'
+import { getProvider } from '../lib/providers'
+import { getProviderCredentials } from '../lib/credentials'
 import * as path from 'path'
 import * as os from 'os'
 import { spawn } from 'child_process'
@@ -122,17 +124,35 @@ const WorkspaceIdInput = z.object({
 
 export const oneclickRouter = router({
 
-  // Detect services in repository (via GitHub API - NO CLONING!)
-  // Uses Claude AI if ANTHROPIC_API_KEY is set, otherwise falls back to pattern matching
+  // Detect services in repository (supports path-based or GitHub-based detection)
   detectRepo: secureProcedure('sarge.oneclick.detectRepo')
-    .input(z.object({
-      owner: z.string().min(1),
-      repo: z.string().min(1),
-      branch: z.string().default('main'),
-      accessToken: z.string().min(1),
-    }))
+    .input(z.union([
+      DetectRepoInput,
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        branch: z.string().default('main'),
+        accessToken: z.string().min(1),
+      }),
+    ]))
     .mutation(async ({ input }) => {
       try {
+        // Path-based detection for local repos (test mode)
+        if ('path' in input) {
+          const core = await getCore()
+          const blueprint = await core?.detector?.detectStack?.(input.path)
+          return (
+            blueprint || {
+              services: [],
+              resources: { s3Buckets: [], dynamoTables: [], lambdaFunctions: [] },
+              ports: [],
+              envKeys: [],
+              docker: { dockerfile: false, composeFiles: [] },
+              awsSdks: [],
+            }
+          )
+        }
+
         console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
         
         const useAI = !!process.env.ANTHROPIC_API_KEY
@@ -341,6 +361,8 @@ export const oneclickRouter = router({
       startPort: z.number().optional().default(3000),
       packageManager: z.string().optional().default('pnpm'),
       deploymentMethod: z.enum(['local', 'docker']).optional().default('local'),
+      provider: z.string().optional(),
+      environment: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       // Emit progress logs via event emitter so client can subscribe
@@ -381,6 +403,64 @@ export const oneclickRouter = router({
       
       try {
         emit(`🚀 Starting deployment for ${input.owner}/${input.repo}`)
+        emit(`📍 Provider: ${input.provider || 'local'} | Environment: ${input.environment || 'preview'}`)
+        
+        // If provider is specified and not 'local' or 'docker', use provider-specific deployment
+        if (input.provider && input.provider !== 'local' && input.provider !== 'docker') {
+          const provider = getProvider(input.provider)
+          if (provider) {
+            emit(`☁️  Using ${provider.name} for deployment...`)
+            
+            try {
+              const repoUrl = `https://github.com/${input.owner}/${input.repo}`
+              const credentials = await getProviderCredentials(input.provider, ctx.db, (ctx as any).userId)
+              
+              // Call provider-specific deploy
+              const deployResult = await provider.deploy({
+                projectId: `${input.owner}-${input.repo}`,
+                repoUrl,
+                branch: input.branch,
+                commit: '', // Can be enhanced to get latest commit
+                environmentName: (input.environment as 'preview' | 'staging' | 'production') || 'preview',
+                credentials,
+                buildCommand: input.packageManager === 'pnpm' ? 'pnpm install && pnpm build' : 'npm install && npm run build',
+                env: {},
+              })
+              
+              if (deployResult.success) {
+                emit(`✅ ${provider.name} deployment successful`)
+                if (deployResult.previewUrl) emit(`🔗 Preview: ${deployResult.previewUrl}`)
+                if (deployResult.productionUrl) emit(`🔗 Production: ${deployResult.productionUrl}`)
+                
+                return {
+                  services: [{ 
+                    name: `${input.repo}-${input.provider}`,
+                    status: 'running', 
+                    port: 443, 
+                    url: deployResult.previewUrl || deployResult.productionUrl || 'https://deployed.example.com',
+                  }],
+                  blueprintSummary: { services: 1, projectType: provider.kind, framework: 'deployed' },
+                  logTopic: topic,
+                  logs,
+                  deploymentId: deployResult.deploymentId,
+                }
+              } else {
+                emit(`❌ ${provider.name} deployment failed: ${deployResult.error || 'Unknown error'}`)
+                return {
+                  services: [],
+                  blueprintSummary: { services: 0, projectType: 'unknown', framework: 'unknown' },
+                  logTopic: topic,
+                  logs,
+                  error: deployResult.error || `${provider.name} deployment failed`,
+                }
+              }
+            } catch (providerErr) {
+              const err = providerErr instanceof Error ? providerErr.message : String(providerErr)
+              emit(`❌ ${input.provider} integration error: ${err}`)
+              emit(`⚠️  Falling back to local deployment...`)
+            }
+          }
+        }
         
         if (input.deploymentMethod === 'docker') {
           // Use Docker deployment via orchestrator
