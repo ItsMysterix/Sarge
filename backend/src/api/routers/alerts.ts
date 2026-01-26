@@ -392,10 +392,6 @@ async function sendNotification(params: {
 }
 
 async function sendSlackNotification(webhookUrl: string, message: any): Promise<void> {
-  const fetch = typeof global !== 'undefined' && 'fetch' in global 
-    ? global.fetch 
-    : require('node-fetch').default
-
   const color = message.severity === 'critical' ? '#ff0000' : message.severity === 'warning' ? '#ffaa00' : '#00ff00'
 
   await fetch(webhookUrl, {
@@ -413,10 +409,6 @@ async function sendSlackNotification(webhookUrl: string, message: any): Promise<
 }
 
 async function sendDiscordNotification(webhookUrl: string, message: any): Promise<void> {
-  const fetch = typeof global !== 'undefined' && 'fetch' in global 
-    ? global.fetch 
-    : require('node-fetch').default
-
   const color = message.severity === 'critical' ? 16711680 : message.severity === 'warning' ? 16753920 : 65280
 
   await fetch(webhookUrl, {
@@ -434,10 +426,6 @@ async function sendDiscordNotification(webhookUrl: string, message: any): Promis
 }
 
 async function sendTeamsNotification(webhookUrl: string, message: any): Promise<void> {
-  const fetch = typeof global !== 'undefined' && 'fetch' in global 
-    ? global.fetch 
-    : require('node-fetch').default
-
   await fetch(webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -451,10 +439,6 @@ async function sendTeamsNotification(webhookUrl: string, message: any): Promise<
 }
 
 async function sendWebhookNotification(webhookUrl: string, message: any): Promise<void> {
-  const fetch = typeof global !== 'undefined' && 'fetch' in global 
-    ? global.fetch 
-    : require('node-fetch').default
-
   await fetch(webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -468,10 +452,6 @@ async function sendEmailNotification(email: string, message: any): Promise<void>
 }
 
 async function sendPagerDutyAlert(integrationKey: string, message: any): Promise<void> {
-  const fetch = typeof global !== 'undefined' && 'fetch' in global 
-    ? global.fetch 
-    : require('node-fetch').default
-
   await fetch('https://events.pagerduty.com/v2/enqueue', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -90,14 +90,10 @@ export const healthChecksRouter = router({
         try {
           if (config.check_type === 'http') {
             // HTTP health check
-            const fetchFn = typeof global !== 'undefined' && 'fetch' in global 
-              ? global.fetch 
-              : require('node-fetch').default
-
             const controller = new AbortController()
             const timeout = setTimeout(() => controller.abort(), config.timeout_seconds * 1000)
 
-            const response = await fetchFn(config.endpoint, {
+            const response = await fetch(config.endpoint, {
               method: 'GET',
               signal: controller.signal,
             })
