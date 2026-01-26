@@ -6,31 +6,29 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 // Returns a GitHub token for one-click deploy scanning.
-// Priority order:
-// 1. User's OAuth token from GitHub sign-in (session.accessToken)
-// 2. User-specific token stored in process.env.GITHUB_USER_TOKEN (future expansion)
-// 3. Global admin token from process.env.GITHUB_ACCESS_TOKEN or GITHUB_TOKEN
-// NEVER expose a token to unauthenticated requests.
+// Only returns the user's OAuth token from GitHub sign-in.
+// This ensures each user sees their own repos (multi-tenant isolation).
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // First, check if user authenticated via GitHub OAuth (preferred)
-  const oauthToken = session.accessToken
-  const userToken = process.env.GITHUB_USER_TOKEN
-  const globalToken = process.env.GITHUB_ACCESS_TOKEN || process.env.GITHUB_TOKEN
-  const token = oauthToken || userToken || globalToken
-
-  if (!token) {
     return NextResponse.json({ 
-      error: 'Token unavailable',
-      hint: 'Sign in with GitHub or set GITHUB_ACCESS_TOKEN in .env' 
-    }, { status: 404 })
+      error: 'Not signed in',
+      hint: 'Please sign in to access GitHub features',
+      action: 'signin_required'
+    }, { status: 401 })
   }
 
-  // Return full token; caller must keep in memory only.
-  const scope = oauthToken ? 'oauth' : (userToken ? 'user' : 'global')
-  return NextResponse.json({ token, scope })
+  // Only use OAuth token - no fallback to shared PAT
+  const oauthToken = session.accessToken
+
+  if (!oauthToken) {
+    return NextResponse.json({ 
+      error: 'GitHub authentication required',
+      hint: 'Sign out and sign in with GitHub to access your repositories',
+      action: 'github_oauth_required'
+    }, { status: 403 })
+  }
+
+  // Return OAuth token only
+  return NextResponse.json({ token: oauthToken, scope: 'oauth' })
 }
