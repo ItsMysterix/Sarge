@@ -30,7 +30,7 @@
   "dependencies": {
     "@auth/pg-adapter": "^1.11.1",
     "@aws-sdk/client-eventbridge": "^3.917.0",
-    "@aws-sdk/client-sns": "^3.917.0",
+    "@aws-sdk/client-sns": "^3.981.0",
     "@aws-sdk/client-sqs": "^3.917.0",
     "@neondatabase/serverless": "^1.0.1",
     "@radix-ui/react-slot": "1.1.1",
