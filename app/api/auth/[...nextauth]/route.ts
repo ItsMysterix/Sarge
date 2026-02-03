@@ -3,6 +3,7 @@ import type { NextAuthOptions } from "next-auth"
 import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { getDbPool } from "@/lib/db"
+import { storeProviderCredentials } from "@/lib/provider-credentials"
 import bcrypt from "bcryptjs"
 
 // Ensure NEXTAUTH_SECRET is set
@@ -152,13 +153,29 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
         token.id = user.id
       }
       // Store GitHub access token on first sign in
       if (account?.provider === "github" && account.access_token) {
         token.accessToken = account.access_token
+        const userEmail = user?.email || (profile as any)?.email || token.email
+        if (userEmail) {
+          try {
+            await storeProviderCredentials(
+              "github",
+              {
+                access_token: account.access_token,
+                scope: account.scope || "",
+                token_type: account.token_type || "",
+              },
+              userEmail
+            )
+          } catch (error) {
+            console.warn("[auth] Failed to store GitHub credentials:", error)
+          }
+        }
       }
       return token
     },

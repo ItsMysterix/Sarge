@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const [name, setName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [showGithubModal, setShowGithubModal] = useState(false)
+  const [githubConnection, setGithubConnection] = useState<{ connected: boolean; source?: string } | null>(null)
   
   // Security settings state
   const [showSecuritySettings, setShowSecuritySettings] = useState(false)
@@ -44,6 +45,22 @@ export default function ProfilePage() {
 
   const isGitHubUser = session?.user && (session as any).accessToken
   const isCredentialsUser = !isGitHubUser
+  const isGitHubConnected = Boolean(isGitHubUser || githubConnection?.connected)
+
+  useEffect(() => {
+    if (!isSignedIn) return
+    const loadGithubConnection = async () => {
+      try {
+        const response = await fetch("/api/github/connection")
+        if (!response.ok) return
+        const data = await response.json()
+        setGithubConnection(data)
+      } catch {
+        // ignore
+      }
+    }
+    loadGithubConnection()
+  }, [isSignedIn])
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -324,11 +341,13 @@ export default function ProfilePage() {
                       <div>
                         <h4 className="font-semibold">GitHub</h4>
                         <p className="text-sm text-gray-400">
-                          {isGitHubUser ? 'Connected - OAuth Active' : 'Sign in with GitHub to connect'}
+                          {isGitHubConnected
+                            ? (isGitHubUser ? 'Connected - OAuth Active' : 'Connected - OAuth Linked')
+                            : 'Connect GitHub to access private repos'}
                         </p>
                       </div>
                     </div>
-                    {isGitHubUser ? (
+                    {isGitHubConnected ? (
                       <span className="px-3 py-1.5 bg-success/20 text-success text-sm rounded-lg border border-success/30 flex items-center gap-2">
                         <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
                         Connected
@@ -457,7 +476,7 @@ export default function ProfilePage() {
           </div>
       </main>
       {/* GitHub Connect Modal */}
-      {!isGitHubUser && showGithubModal && (
+      {!isGitHubConnected && showGithubModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* glass overlay (not fully dimmed) */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setShowGithubModal(false)} />
@@ -504,7 +523,7 @@ export default function ProfilePage() {
                 Cancel
               </button>
               <a
-                href="/api/auth/signin?callbackUrl=/profile"
+                href="/api/auth/signin/github?callbackUrl=/profile?github=connected"
                 className="px-5 py-2 text-sm font-medium bg-accent text-black rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-2"
               >
                 <Github className="w-4 h-4" /> Continue with GitHub
