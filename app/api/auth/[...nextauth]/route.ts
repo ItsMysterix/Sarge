@@ -107,7 +107,22 @@ export const authOptions: NextAuthOptions = {
   
   session: {
     strategy: "jwt", // Use JWT instead of database sessions for OAuth
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  
+  cookies: {
+    sessionToken: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
+  
+  useSecureCookies: process.env.NODE_ENV === 'production',
   
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -150,6 +165,7 @@ export const authOptions: NextAuthOptions = {
       return true
     },
     async session({ session, token }) {
+      console.log('🟢 session callback - token:', { sub: token.sub, email: token.email })
       if (session.user && token.sub) {
         session.user.id = token.sub
       }
@@ -157,6 +173,7 @@ export const authOptions: NextAuthOptions = {
       if (token.accessToken) {
         session.accessToken = token.accessToken as string
       }
+      console.log('🟢 session callback returning:', { userId: session.user?.id, email: session.user?.email })
       return session
     },
     async jwt({ token, user, account, profile }) {
