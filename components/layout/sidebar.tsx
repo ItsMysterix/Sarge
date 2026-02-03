@@ -12,18 +12,15 @@ import {
   X, 
   Box,
   Terminal,
-  Key,
-  LogOut,
-  ChevronDown
+  LogOut
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProject } from "@/lib/project-context"
 
-// Qovery-style navigation - project-scoped items
+// Simplified navigation - Variables now in Settings
 const navigation = [
   { name: "Environments", href: "/environments", icon: Layers },
   { name: "Pipelines", href: "/deployments", icon: GitBranch },
-  { name: "Variables", href: "/variables", icon: Key },
   { name: "Logs", href: "/logs", icon: Terminal },
   { name: "Metrics", href: "/observability", icon: Activity },
   { name: "Settings", href: "/settings", icon: Settings },

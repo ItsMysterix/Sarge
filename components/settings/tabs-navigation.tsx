@@ -1,8 +1,8 @@
 "use client"
 
-import { SettingsIcon, Bell, Palette, Keyboard, Zap, Shield } from "lucide-react"
+import { SettingsIcon, Bell, Palette, Keyboard, Zap, Shield, Key, Cloud } from "lucide-react"
 
-export type SettingsTab = "general" | "notifications" | "appearance" | "shortcuts" | "integrations" | "security"
+export type SettingsTab = "general" | "variables" | "targets" | "notifications" | "appearance" | "integrations" | "security" | "shortcuts"
 
 interface TabsNavigationProps {
   activeTab: SettingsTab
@@ -11,16 +11,18 @@ interface TabsNavigationProps {
 
 const tabs = [
   { id: "general" as SettingsTab, label: "General", icon: SettingsIcon },
+  { id: "variables" as SettingsTab, label: "Variables", icon: Key },
+  { id: "targets" as SettingsTab, label: "Targets", icon: Cloud },
+  { id: "integrations" as SettingsTab, label: "Integrations", icon: Zap },
   { id: "notifications" as SettingsTab, label: "Notifications", icon: Bell },
   { id: "appearance" as SettingsTab, label: "Appearance", icon: Palette },
-  { id: "shortcuts" as SettingsTab, label: "Shortcuts", icon: Keyboard },
-  { id: "integrations" as SettingsTab, label: "Integrations", icon: Zap },
   { id: "security" as SettingsTab, label: "Security", icon: Shield },
+  { id: "shortcuts" as SettingsTab, label: "Shortcuts", icon: Keyboard },
 ]
 
 export function TabsNavigation({ activeTab, onTabChange }: TabsNavigationProps) {
   return (
-    <div className="flex gap-2 border-b border-white/10 mb-6 overflow-x-auto">
+    <div className="flex gap-1 border-b border-white/[0.06] mb-6 overflow-x-auto pb-px">
       {tabs.map((tab) => {
         const Icon = tab.icon
         const isActive = activeTab === tab.id
@@ -30,10 +32,10 @@ export function TabsNavigation({ activeTab, onTabChange }: TabsNavigationProps) 
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={`
-              flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap
+              flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-all border-b-2 whitespace-nowrap -mb-px
               ${isActive 
-                ? 'text-accent border-accent' 
-                : 'text-gray-400 border-transparent hover:text-white hover:border-white/20'
+                ? 'text-foreground border-white' 
+                : 'text-muted-foreground border-transparent hover:text-foreground hover:border-white/20'
               }
             `}
           >

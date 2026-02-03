@@ -2,12 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { SettingsIcon } from "lucide-react"
 import { useUserSettings } from "@/hooks/useApi"
 import { useToast } from "@/components/ui/toast"
 import { useAppStore } from "@/lib/store"
-import { motion } from "framer-motion"
-import { useUserRole } from "@/hooks/useUserRole" // kept in case of future role-based gating
 import { TabsNavigation, type SettingsTab } from "@/components/settings/tabs-navigation"
 import { GeneralTab } from "@/components/settings/general-tab"
 import { AppearanceTab } from "@/components/settings/appearance-tab"
@@ -15,15 +12,15 @@ import { NotificationsTab } from "@/components/settings/notifications-tab"
 import { IntegrationsTab } from "@/components/settings/integrations-tab"
 import { SecurityTab } from "@/components/settings/security-tab"
 import { ShortcutsTab } from "@/components/settings/shortcuts-tab"
-import { AppShell } from '@/components/layout/app-shell';
-import { PageTitle } from '@/components/layout/page-title';
-import { Settings as SettingsIconAlt } from 'lucide-react';
+import { VariablesTab } from "@/components/settings/variables-tab"
+import { TargetsTab } from "@/components/settings/targets-tab"
+import { AppShell } from '@/components/layout/app-shell'
+import { Settings as SettingsIcon, Loader2 } from 'lucide-react'
 
 export default function Settings() {
   const { data: settings, loading, updateSettings } = useUserSettings()
   const { isTestingWebhook, setTestingWebhook } = useAppStore()
   const { addToast, ToastContainer } = useToast()
-  const userRole = useUserRole()
   const { theme, setTheme } = useTheme()
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
@@ -39,7 +36,6 @@ export default function Settings() {
     slackNotifications: true,
   })
 
-  // Load settings on mount
   useEffect(() => {
     if (settings) {
       setEnableAnimations(settings.enable_animations ?? true)
@@ -49,7 +45,6 @@ export default function Settings() {
     }
   }, [settings])
 
-  // Handler functions
   const handleToggle = async (key: "slack_alerts" | "auto_rebuild", value: boolean) => {
     try {
       await updateSettings({ [key]: value })
@@ -59,17 +54,12 @@ export default function Settings() {
         description: `${key.replace("_", " ")} ${value ? "enabled" : "disabled"}`,
       })
     } catch (error) {
-      addToast({
-        type: "error",
-        title: "Update Failed",
-        description: "Failed to update settings",
-      })
+      addToast({ type: "error", title: "Update Failed", description: "Failed to update settings" })
     }
   }
 
   const handleThemeChange = async (mode: "dark" | "light" | "system") => {
     setTheme(mode)
-    
     try {
       await updateSettings({ theme_mode: mode as any })
       addToast({
@@ -77,7 +67,7 @@ export default function Settings() {
         title: "Theme Updated",
         description: mode === "system" ? "Following system preferences" : `${mode} mode enabled`,
       })
-    } catch (error) {
+    } catch {
       addToast({ type: "error", title: "Update Failed", description: "Failed to update theme" })
     }
   }
@@ -91,7 +81,7 @@ export default function Settings() {
         title: "Animations Updated",
         description: `Animations ${enabled ? "enabled" : "disabled"}`,
       })
-    } catch (error) {
+    } catch {
       addToast({ type: "error", title: "Update Failed", description: "Failed to update animations" })
     }
   }
@@ -106,7 +96,7 @@ export default function Settings() {
         title: "Notification Updated",
         description: `${key} notifications ${value ? "enabled" : "disabled"}`,
       })
-    } catch (error) {
+    } catch {
       addToast({ type: "error", title: "Update Failed", description: "Failed to update notifications" })
     }
   }
@@ -121,7 +111,7 @@ export default function Settings() {
         title: result.success ? "Webhook Test Successful" : "Webhook Test Failed",
         description: result.message,
       })
-    } catch (error) {
+    } catch {
       addToast({ type: "error", title: "Webhook Test Error", description: "Failed to test webhook" })
     } finally {
       setTestingWebhook(false)
@@ -136,7 +126,7 @@ export default function Settings() {
     a.href = url
     a.download = 'sarge-settings.json'
     a.click()
-    addToast({ type: 'success', title: 'Settings Exported', description: 'Configuration downloaded successfully' })
+    addToast({ type: 'success', title: 'Settings Exported', description: 'Configuration downloaded' })
   }
 
   const handleImportSettings = () => {
@@ -149,14 +139,14 @@ export default function Settings() {
         const text = await file.text()
         const data = JSON.parse(text)
         await updateSettings(data)
-        addToast({ type: 'success', title: 'Settings Imported', description: 'Configuration restored successfully' })
+        addToast({ type: 'success', title: 'Settings Imported', description: 'Configuration restored' })
       }
     }
     input.click()
   }
 
   const handleClearData = () => {
-    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
       addToast({ type: 'warning', title: 'Clear Data', description: 'This feature will be implemented soon' })
     }
   }
@@ -164,16 +154,8 @@ export default function Settings() {
   if (loading) {
     return (
       <AppShell>
-        <ToastContainer />
         <div className="flex flex-1 items-center justify-center p-6">
-          <div className="text-center">
-            <motion.div
-              className="rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            />
-            <p className="text-gray-400">Loading settings...</p>
-          </div>
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       </AppShell>
     )
@@ -182,28 +164,15 @@ export default function Settings() {
   return (
     <AppShell>
       <ToastContainer />
-      <motion.main
-        className="flex-1 p-6 overflow-auto"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        {/* Restored original styled header */}
-        <motion.div 
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <div>
-            <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-              <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
-                <SettingsIconAlt className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />
-              </motion.div>
-              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">Settings</h1>
-            </div>
-            <p className="text-xs sm:text-sm text-gray-400">Application and environment settings</p>
+      <main className="flex-1 p-6 max-w-5xl mx-auto animate-fade-in">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <SettingsIcon className="w-6 h-6 text-muted-foreground" />
+            <h1 className="text-2xl font-semibold">Settings</h1>
           </div>
-        </motion.div>
+          <p className="text-sm text-muted-foreground">Manage your project configuration and preferences</p>
+        </div>
 
         {/* Tabs Navigation */}
         <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
@@ -216,6 +185,10 @@ export default function Settings() {
             onClearData={handleClearData}
           />
         )}
+
+        {activeTab === "variables" && <VariablesTab />}
+        
+        {activeTab === "targets" && <TargetsTab />}
 
         {activeTab === "appearance" && (
           <AppearanceTab
@@ -249,7 +222,7 @@ export default function Settings() {
 
         {activeTab === "security" && <SecurityTab />}
         {activeTab === "shortcuts" && <ShortcutsTab />}
-      </motion.main>
+      </main>
     </AppShell>
   )
 }
