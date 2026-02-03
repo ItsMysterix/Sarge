@@ -12,6 +12,7 @@ function parseAllowed(str?: string | null): string[] {
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl
   const isApi = url.pathname.startsWith('/api/')
+  const isAuthApi = url.pathname.startsWith('/api/auth')
   const origin = req.headers.get('origin') || ''
   const allowed = parseAllowed(process.env.ALLOWED_ORIGINS)
 
@@ -24,7 +25,7 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
-  const isAllowed = !isApi || allowed.length === 0 || allowed.includes(origin)
+  const isAllowed = isAuthApi || !isApi || allowed.length === 0 || allowed.includes(origin)
 
   // Handle CORS preflight for API routes
   if (isApi && req.method === 'OPTIONS') {
