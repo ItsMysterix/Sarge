@@ -1,26 +1,38 @@
 "use client"
 export const dynamic = 'force-dynamic'
 
-import React, { useMemo, useState } from 'react'
-import { trpc } from '@/lib/trpc'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Plus, GitBranch, Clock, CheckCircle2, XCircle, Loader2, 
-  ArrowUpRight, Filter, Search
-} from 'lucide-react'
+import { trpc } from '@/lib/trpc'
 import { AppShell } from '@/components/layout/app-shell'
 import { cn } from '@/lib/utils'
+import { 
+  Plus, GitBranch, Clock, CheckCircle2, XCircle, Loader2, 
+  ArrowUpRight, Search, X, Rocket
+} from 'lucide-react'
 
 export default function DeploymentsPage() {
   const t = trpc as any
   const router = useRouter()
   
+  const [showModal, setShowModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  
+  // Form state
+  const [branch, setBranch] = useState("main")
+  const [summary, setSummary] = useState("")
+  const [provider, setProvider] = useState("aws")
+  const [environment, setEnvironment] = useState("preview")
+  
+  // Queries & Mutations
   const { 
     data, 
     fetchNextPage, 
     hasNextPage, 
     isFetchingNextPage, 
-    isLoading 
+    isLoading,
+    refetch
   } = t.deploy.getDeployments.useInfiniteQuery(
     { limit: 20 },
     {
@@ -28,10 +40,9 @@ export default function DeploymentsPage() {
       refetchInterval: 5000,
     }
   )
-
+  
   const statsQuery = t.deploy.stats.useQuery()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  const createMutation = t.deploy.create.useMutation()
 
   const allItems = useMemo(() => {
     return data?.pages.flatMap((p: any) => p.items) || []
@@ -65,6 +76,27 @@ export default function DeploymentsPage() {
     return d.toLocaleDateString()
   }
 
+  const handleCreate = async () => {
+    try {
+      const result = await createMutation.mutateAsync({
+        branch,
+        summary: summary || `Deploy from ${branch}`,
+        provider,
+        environment,
+        services: [],
+      })
+      setShowModal(false)
+      setBranch("main")
+      setSummary("")
+      refetch()
+      if (result?.id) {
+        router.push(`/deployments/${result.id}`)
+      }
+    } catch (e) {
+      console.error('Failed to create deployment:', e)
+    }
+  }
+
   return (
     <AppShell>
       <div className="p-6 max-w-6xl mx-auto animate-fade-in">
@@ -76,7 +108,7 @@ export default function DeploymentsPage() {
             <p className="text-sm text-muted-foreground">Track and monitor your deployment history</p>
           </div>
           <button 
-            onClick={() => router.push('/oneclick')}
+            onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-white/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -146,7 +178,7 @@ export default function DeploymentsPage() {
               </p>
               {!searchQuery && !statusFilter && (
                 <button 
-                  onClick={() => router.push('/oneclick')}
+                  onClick={() => setShowModal(true)}
                   className="text-sm text-white hover:underline"
                 >
                   Create deployment →
@@ -187,8 +219,11 @@ export default function DeploymentsPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {formatTime(deploy.createdAt)}
+                        {formatTime(deploy.createdAt || deploy.created_at)}
                       </span>
+                      {deploy.provider && (
+                        <span className="capitalize">{deploy.provider}</span>
+                      )}
                     </div>
                   </div>
 
@@ -220,6 +255,101 @@ export default function DeploymentsPage() {
           </div>
         )}
       </div>
+
+      {/* Create Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md glass-card p-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Rocket className="w-5 h-5 text-violet-400" />
+                <h3 className="text-lg font-semibold">New Deployment</h3>
+              </div>
+              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Summary</label>
+                <input
+                  type="text"
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  placeholder="e.g. Feature update, Bug fix"
+                  className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Branch</label>
+                <input
+                  type="text"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  placeholder="main"
+                  className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Provider</label>
+                <div className="flex gap-2">
+                  {["aws", "vercel", "railway"].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setProvider(p)}
+                      className={cn(
+                        "flex-1 px-3 py-2 rounded-lg text-sm border capitalize transition-all",
+                        provider === p 
+                          ? "border-white/20 bg-white/5 text-foreground" 
+                          : "border-white/[0.06] text-muted-foreground hover:border-white/15"
+                      )}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Environment</label>
+                <div className="flex gap-2">
+                  {["preview", "staging", "production"].map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => setEnvironment(e)}
+                      className={cn(
+                        "flex-1 px-3 py-2 rounded-lg text-sm border capitalize transition-all",
+                        environment === e 
+                          ? "border-white/20 bg-white/5 text-foreground" 
+                          : "border-white/[0.06] text-muted-foreground hover:border-white/15"
+                      )}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-muted-foreground">
+                Cancel
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={createMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium disabled:opacity-50"
+              >
+                {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Deploy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }
