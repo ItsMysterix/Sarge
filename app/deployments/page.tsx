@@ -1,29 +1,20 @@
-"use client";
+"use client"
 export const dynamic = 'force-dynamic'
-import React, { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { trpc } from '@/lib/trpc';
-import { Card, CardBody, CardHeader } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/components/ui/toast';
-import { useRouter } from 'next/navigation';
-import { Plus, Filter, GitBranch, Clock, CheckCircle2, XCircle, PlayCircle, RotateCcw, TrendingUp, Rocket, Terminal } from 'lucide-react';
-import { StatCard } from '@/components/ui/stat-card';
-import { FilterBar } from '@/components/ui/filter-bar';
-import { TimelineItem } from '@/components/ui/timeline-item';
-import { AppShell } from '@/components/layout/app-shell';
-import { PageTitle } from '@/components/layout/page-title';
-import { EmptyState } from '@/components/ui/empty-state';
-import { OnboardingSteps } from '@/components/ui/onboarding-steps';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Button } from '@/components/ui/button';
+
+import React, { useMemo, useState } from 'react'
+import { trpc } from '@/lib/trpc'
+import { useRouter } from 'next/navigation'
+import { 
+  Plus, GitBranch, Clock, CheckCircle2, XCircle, Loader2, 
+  ArrowUpRight, Filter, Search
+} from 'lucide-react'
+import { AppShell } from '@/components/layout/app-shell'
+import { cn } from '@/lib/utils'
 
 export default function DeploymentsPage() {
-  const t = trpc as any;
-  const router = useRouter();
-  const { addToast, ToastContainer } = useToast();
+  const t = trpc as any
+  const router = useRouter()
   
-  // Infinite query for deployments
   const { 
     data, 
     fetchNextPage, 
@@ -36,317 +27,236 @@ export default function DeploymentsPage() {
       getNextPageParam: (lastPage: any) => lastPage.nextCursor,
       refetchInterval: 5000,
     }
-  );
+  )
 
-  const statsQuery = t.deploy.stats.useQuery();
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState([
-    { id: "pending", label: "Pending", active: false },
-    { id: "running", label: "Running", active: false },
-    { id: "success", label: "Success", active: false },
-    { id: "failed", label: "Failed", active: false },
-    { id: "main", label: "Main Branch", active: false },
-    { id: "develop", label: "Develop", active: false },
-    { id: "production", label: "Production", active: false },
-    { id: "staging", label: "Staging", active: false },
-  ]);
-
-  const handleFilterToggle = (filterId: string) => {
-    setFilters(filters.map(f => f.id === filterId ? { ...f, active: !f.active } : f))
-  }
-
-  const handleClearFilters = () => {
-    setFilters(filters.map(f => ({ ...f, active: false })))
-    setSearchQuery("")
-  }
+  const statsQuery = t.deploy.stats.useQuery()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
 
   const allItems = useMemo(() => {
-    return data?.pages.flatMap((p: any) => p.items) || [];
-  }, [data]);
+    return data?.pages.flatMap((p: any) => p.items) || []
+  }, [data])
 
   const items = useMemo(() => {
-    const activeStatusFilters = filters.filter(f => ["pending", "running", "success", "failed"].includes(f.id) && f.active);
-    const activeBranchFilters = filters.filter(f => ["main", "develop"].includes(f.id) && f.active);
-    const activeEnvFilters = filters.filter(f => ["production", "staging"].includes(f.id) && f.active);
-
     return allItems.filter((r: any) => {
       const matchesSearch = !searchQuery || 
         r.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.branch?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.commit?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = activeStatusFilters.length === 0 || activeStatusFilters.some(f => r.status === f.id);
-      const matchesBranch = activeBranchFilters.length === 0 || activeBranchFilters.some(f => r.branch?.toLowerCase().includes(f.id));
-      const matchesEnv = activeEnvFilters.length === 0 || activeEnvFilters.some(f => r.summary?.toLowerCase().includes(f.id));
+        r.branch?.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesStatus = !statusFilter || r.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [allItems, searchQuery, statusFilter])
 
-      return matchesSearch && matchesStatus && matchesBranch && matchesEnv;
-    });
-  }, [allItems, filters, searchQuery]);
+  const stats = statsQuery.data || {
+    total: allItems.length,
+    success: allItems.filter((d: any) => d.status === 'success').length,
+    failed: allItems.filter((d: any) => d.status === 'failed').length,
+    running: allItems.filter((d: any) => d.status === 'running').length,
+  }
 
-  const stats = useMemo(() => {
-    if (statsQuery.data) return statsQuery.data;
-    // Fallback if query not ready or failed
-    return {
-      total: allItems.length,
-      success: allItems.filter((d: any) => d.status === 'success').length,
-      failed: allItems.filter((d: any) => d.status === 'failed').length,
-      running: allItems.filter((d: any) => d.status === 'running').length,
-      active: allItems.filter((d: any) => d.status === 'running' || d.status === 'pending').length,
-      successRate: allItems.length > 0 
-        ? ((allItems.filter((d: any) => d.status === 'success').length / allItems.length) * 100).toFixed(1)
-        : 0
-    };
-  }, [statsQuery.data, allItems]);
+  const formatTime = (date: string) => {
+    const d = new Date(date)
+    const now = new Date()
+    const diff = now.getTime() - d.getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    return d.toLocaleDateString()
+  }
 
   return (
     <AppShell>
-      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
-        <div className="flex items-center justify-between mb-6">
-            <PageTitle
-            title="Deployments"
-            description="Track, monitor, and analyze deployment history"
-            icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-            />
-            <Button 
-                onClick={() => router.push('/oneclick')} 
-                className="bg-accent text-white hover:bg-accent/90 shadow-lg hover:glow-accent"
-            >
-                <Plus className="w-4 h-4 mr-2" />
-                New Deployment
-            </Button>
-        </div>
+      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
         
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <ToastContainer />
-          {/* Quick Stats */}
-          <motion.div
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-semibold mb-1">Deployments</h1>
+            <p className="text-sm text-muted-foreground">Track and monitor your deployment history</p>
+          </div>
+          <button 
+            onClick={() => router.push('/oneclick')}
+            className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-white/90 transition-colors"
           >
-            <StatCard
-              title="Total Deploys"
-              value={stats.total.toString()}
-              icon={Rocket}
-              subtitle="All time"
-              color="accent"
-              delay={0}
-            />
-            <StatCard
-              title="Success Rate"
-              value={`${stats.successRate}%`}
-              icon={CheckCircle2}
-              trend={{ direction: "up", value: 3.2 }}
-              subtitle={`${stats.success} successful`}
-              color="success"
-              delay={0.1}
-            />
-            <StatCard
-              title="Active"
-              value={stats.active.toString()}
-              icon={PlayCircle}
-              subtitle="Running & Pending"
-              color="warning"
-              delay={0.2}
-            />
-            <StatCard
-              title="Failed"
-              value={stats.failed.toString()}
-              icon={XCircle}
-              trend={stats.failed > 0 ? { direction: "down", value: 12 } : undefined}
-              subtitle="Needs attention"
-              color={stats.failed > 0 ? "error" : "success"}
-              delay={0.3}
-            />
-          </motion.div>
-          {/* Filter Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mb-6"
-          >
-            <FilterBar
-              searchPlaceholder="Search deployments..."
-              searchValue={searchQuery}
-              onSearchChange={(value) => setSearchQuery(value)}
-              filters={filters}
-              onFilterToggle={handleFilterToggle}
-              onClearFilters={handleClearFilters}
-            />
-          </motion.div>
-          {/* Content */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            <AnimatePresence mode="wait">
-              {isLoading ? (
-                <Card>
-                  <CardBody>
-                    <motion.div 
-                      className="space-y-2"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                        >
-                          <Skeleton className="h-10" />
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  </CardBody>
-                </Card>
-              ) : !items || items.length === 0 ? (
-                <div className="border-2 border-amber-600/40 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
-                  {/* Empty State / Terminal Style */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-amber-600/40">
-                    <div className="flex items-center gap-2">
-                      <Terminal className="w-4 h-4 text-amber-600" />
-                      <span className="text-sm font-semibold">sarge-deployments</span>
-                    </div>
-                    <span className="text-xs text-amber-600">LIVE</span>
-                  </div>
-                  <div className="min-h-96 flex flex-col items-center justify-center px-8 py-16">
-                    <div className="flex flex-col items-center gap-6">
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/50 border-2 border-amber-600 flex items-center justify-center">
-                        <Rocket className="w-12 h-12 text-amber-100" />
-                      </div>
-                      <div className="text-center max-w-2xl font-mono text-sm leading-relaxed text-gray-300">
-                        <p>No deployments found. Start a new deployment to see activity here.</p>
-                      </div>
-                      <Button onClick={() => router.push('/oneclick')} className="bg-amber-600 hover:bg-amber-700 text-white">
-                        Deploy Now
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="border-2 border-amber-600/40 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm flex flex-col">
-                  {/* Window Header */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-amber-600/40">
-                    <div className="flex items-center gap-2">
-                      <Terminal className="w-4 h-4 text-amber-600" />
-                      <span className="text-sm font-semibold">sarge-deployments</span>
-                    </div>
-                    <span className="text-xs text-amber-600">LIVE</span>
-                  </div>
-
-                  {/* Deployments List */}
-                  <div role="table" aria-label="Deployments list">
-                    <div className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 text-xs text-zinc-400 border-b border-amber-600/20 bg-black/40">
-                      <div>Status</div>
-                      <div>Workspace</div>
-                      <div>Branch</div>
-                      <div>Commit</div>
-                      <div>Started</div>
-                      <div>Actions</div>
-                    </div>
-                    {items.map((d: any) => (
-                      <DeploymentRow key={d.id} d={d} router={router} />
-                    ))}
-                  </div>
-
-                  {/* Footer & Load More */}
-                  <div className="border-t border-amber-600/40 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between items-center">
-                    <span>Showing {items.length} deployments</span>
-                    <div className="flex gap-4 items-center">
-                        {hasNextPage && (
-                            <button 
-                                onClick={() => fetchNextPage()} 
-                                disabled={isFetchingNextPage}
-                                className="text-amber-500 hover:text-amber-400 disabled:opacity-50"
-                            >
-                                {isFetchingNextPage ? 'Loading...' : 'Load More'}
-                            </button>
-                        )}
-                        <span>Real-time updates active</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </motion.div>
-      </main>
-    </AppShell>
-  );
-}
-
-function DeploymentRow({ d, router }: { d: any; router: any }) {
-  const t = trpc as any
-  const stopMutation = t.deploy.stopDeployment.useMutation()
-  const meta = extractMeta(d.summary)
-  
-  const handleStop = async () => {
-    if (!confirm('Stop this deployment?')) return
-    try {
-      await stopMutation.mutateAsync({ deploymentId: d.id.toString() })
-    } catch (err) {
-      console.error('Failed to stop deployment:', err)
-    }
-  }
-  
-  const short = (s?: string | null) => s ? s.slice(0,7) : '';
-  const canStop = d.status === 'running' || d.status === 'pending'
-  
-  return (
-    <div role="row" className="grid grid-cols-[120px_1fr_1fr_180px_120px_200px] gap-3 px-4 py-2 items-center border-b border-white/10 hover:bg-white/5 transition-colors">
-      <div><StatusBadge status={d.status} /></div>
-      <div className="truncate text-gray-300" title={d.workspace_name || d.summary || ''}>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate max-w-[180px]">{d.workspace_name || stripMeta(d.summary) || '-'}</span>
-          {meta.provider && <span className="text-[10px] px-2 py-0.5 rounded border border-accent/40 text-accent bg-accent/10">{meta.provider}</span>}
-          {meta.environment && <span className="text-[10px] px-2 py-0.5 rounded border border-white/20 text-gray-200">{meta.environment}</span>}
+            <Plus className="w-4 h-4" />
+            New Deployment
+          </button>
         </div>
-      </div>
-      <div className="font-mono text-xs opacity-80">{d.branch ?? '-'}</div>
-      <div className="font-mono text-xs">
-        <span title={d.commit ?? ''}>{short(d.commit)}</span>
-      </div>
-      <div className="text-xs opacity-75" title={d.created_at ?? ''}>{d.created_at?.slice(0,19).replace('T',' ') ?? '-'}</div>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push(`/deployments/${d.id}`)}>View</Button>
-        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push(`/deployments/${d.id}?tab=logs`)}>Logs</Button>
-        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => router.push('/observability')}>Obs</Button>
-        {canStop && (
-          <Button 
-            variant="destructive"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={handleStop}
-            disabled={stopMutation.isLoading}
-          >
-            {stopMutation.isLoading ? '...' : 'Stop'}
-          </Button>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stagger-children">
+          <StatCard 
+            label="Total" 
+            value={stats.total} 
+            onClick={() => setStatusFilter(null)}
+            active={!statusFilter}
+          />
+          <StatCard 
+            label="Success" 
+            value={stats.success} 
+            color="emerald"
+            onClick={() => setStatusFilter(statusFilter === 'success' ? null : 'success')}
+            active={statusFilter === 'success'}
+          />
+          <StatCard 
+            label="Failed" 
+            value={stats.failed} 
+            color="red"
+            onClick={() => setStatusFilter(statusFilter === 'failed' ? null : 'failed')}
+            active={statusFilter === 'failed'}
+          />
+          <StatCard 
+            label="Running" 
+            value={stats.running} 
+            color="amber"
+            onClick={() => setStatusFilter(statusFilter === 'running' ? null : 'running')}
+            active={statusFilter === 'running'}
+          />
+        </div>
+
+        {/* Search */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search deployments..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-white/20 transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Deployments List */}
+        <div className="glass-card divide-y divide-white/[0.06]">
+          {isLoading ? (
+            <div className="p-8 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
+                <GitBranch className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <h3 className="font-medium mb-1">No deployments found</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {searchQuery || statusFilter ? "Try adjusting your filters" : "Create your first deployment to get started"}
+              </p>
+              {!searchQuery && !statusFilter && (
+                <button 
+                  onClick={() => router.push('/oneclick')}
+                  className="text-sm text-white hover:underline"
+                >
+                  Create deployment →
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {items.map((deploy: any) => (
+                <div 
+                  key={deploy.id}
+                  className="p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                  onClick={() => router.push(`/deployments/${deploy.id}`)}
+                >
+                  {/* Status */}
+                  <div className={cn(
+                    "w-2 h-2 rounded-full shrink-0",
+                    deploy.status === 'success' && "bg-emerald-500",
+                    deploy.status === 'running' && "bg-amber-500 animate-pulse",
+                    deploy.status === 'pending' && "bg-zinc-500",
+                    deploy.status === 'failed' && "bg-red-500"
+                  )} />
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-medium truncate">
+                        {deploy.summary || 'Deployment'}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {deploy.commit?.slice(0, 7)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <GitBranch className="w-3 h-3" />
+                        {deploy.branch || 'main'}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatTime(deploy.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status Icon */}
+                  <div className="shrink-0">
+                    {deploy.status === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                    {deploy.status === 'failed' && <XCircle className="w-4 h-4 text-red-500" />}
+                    {deploy.status === 'running' && <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />}
+                  </div>
+
+                  {/* Arrow */}
+                  <ArrowUpRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Load More */}
+        {hasNextPage && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isFetchingNextPage ? 'Loading...' : 'Load more'}
+            </button>
+          </div>
         )}
       </div>
-    </div>
-  );
+    </AppShell>
+  )
 }
 
-function extractMeta(summary?: string): { provider?: string; environment?: string } {
-  if (!summary) return {}
-  const provider = summary.match(/\[provider:([^\]]+)\]/i)?.[1]
-  const environment = summary.match(/\[env:([^\]]+)\]/i)?.[1]
-  return { provider, environment }
+function StatCard({ 
+  label, 
+  value, 
+  color, 
+  onClick, 
+  active 
+}: { 
+  label: string
+  value: number
+  color?: 'emerald' | 'red' | 'amber'
+  onClick: () => void
+  active: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "p-4 rounded-xl text-left transition-all",
+        "border border-white/[0.06]",
+        active 
+          ? "bg-white/[0.05] border-white/[0.15]" 
+          : "bg-white/[0.02] hover:bg-white/[0.04]"
+      )}
+    >
+      <div className={cn(
+        "text-2xl font-semibold mb-1",
+        color === 'emerald' && "text-emerald-400",
+        color === 'red' && "text-red-400",
+        color === 'amber' && "text-amber-400"
+      )}>
+        {value}
+      </div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </button>
+  )
 }
-
-function stripMeta(summary?: string): string | undefined {
-  if (!summary) return summary
-  return summary.replace(/\[provider:[^\]]+\]/gi, '').replace(/\[env:[^\]]+\]/gi, '').trim()
-}
- 

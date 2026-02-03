@@ -6,7 +6,6 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -56,23 +55,13 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        success: "#3cba54",
-        warning: "#ffa600",
-        error: "#d7263d",
-        chart: {
-          "1": "#06d6a0",
-          "2": "#ffa600",
-          "3": "#d7263d",
-          "4": "#3cba54",
-          "5": "#8b5cf6",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-  keyframes: {
+      keyframes: {
         "accordion-down": {
           from: {
             height: "0",

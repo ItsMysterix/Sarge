@@ -1,171 +1,115 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Rocket, Activity, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen, Pin, PinOff } from "lucide-react"
-import { useProject } from "@/lib/project-context"
-import { useAppStore } from "@/lib/store"
+import { 
+  Home, 
+  Rocket, 
+  Activity, 
+  Settings, 
+  Menu, 
+  X, 
+  FolderKanban,
+  LogOut
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
+// Simplified navigation - 5 core items
 const navigation = [
-  { name: "Workspace", href: "/", icon: Home, description: "Overview of your local infrastructure" },
-  { name: "Launch", href: "/oneclick", icon: Zap, description: "Detect, choose platform, and deploy" },
-  { name: "Templates", href: "/stacks", icon: Layers, description: "Curated app templates across providers" },
-  { name: "Targets", href: "/targets", icon: Cloud, description: "Connect Vercel, Railway, Cloudflare, AWS, GCP, Azure" },
-  { name: "Observability", href: "/observability", icon: Activity, description: "Metrics and logs in one place" },
-  { name: "Pipelines", href: "/deployments", icon: Rocket, description: "Deploy history, previews, rollbacks" },
-  { name: "Sandbox", href: "/aws", icon: FolderOpen, description: "Offline emulation and local cloud" },
-  { name: "Settings", href: "/settings", icon: Settings, description: "Configure workspace & snapshots" },
+  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Projects", href: "/projects", icon: FolderKanban },
+  { name: "Deployments", href: "/deployments", icon: Rocket },
+  { name: "Observability", href: "/observability", icon: Activity },
+  { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
-  const { currentProject } = useProject()
-  const projectId = currentProject?.id ?? null
-  const { 
-    getSidebarStateFor, 
-    toggleSidebarCollapsed, 
-    togglePinnedRoute,
-    getSystemStatus 
-  } = useAppStore()
-  
-  const state = getSidebarStateFor(projectId)
-  const systemStatus = getSystemStatus()
-
-
-  const pinnedSet = useMemo(() => new Set(state.pinnedRoutes), [state.pinnedRoutes])
-
-  const statusConfig = {
-    online: { color: 'bg-green-500', label: 'ONLINE', textColor: 'text-green-500' },
-    error: { color: 'bg-red-500', label: 'ERROR', textColor: 'text-red-500' },
-    stale: { color: 'bg-white', label: 'STALE', textColor: 'text-white' }
-  }
 
   return (
     <>
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 glass-card p-2 hover:bg-white/10 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg hover:bg-white/5 transition-colors"
       >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Sidebar */}
+      {/* Sidebar - Icon only */}
       <div
-        className={`
-        fixed inset-y-0 left-0 z-40 ${state.collapsed ? 'w-16' : 'w-64'} glass-card border-r border-white/10
-        transform transition-all duration-300 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0 lg:static lg:inset-0
-      `}
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-16 flex flex-col",
+          "bg-black/60 backdrop-blur-xl border-r border-white/[0.06]",
+          "transform transition-transform duration-300 ease-out",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:translate-x-0 lg:static"
+        )}
       >
-        <div className="flex flex-col h-full p-2 sm:p-4 overflow-y-auto">
-          {/* Top spacing (brand removed per new global header design) */}
-          <div className="mb-3 sm:mb-4 pt-4 sm:pt-8 lg:pt-0 flex items-center justify-between">
-            <button
-              onClick={() => toggleSidebarCollapsed(projectId)}
-              className="glass-card border border-white/10 px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors touch-manipulation"
-              title={state.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {state.collapsed ? '>>' : '<<'}
-            </button>
+        {/* Logo */}
+        <div className="h-16 flex items-center justify-center border-b border-white/[0.06]">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <span className="text-white font-bold text-sm">S</span>
           </div>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1">
-            <ul className="space-y-2">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                const isPinned = pinnedSet.has(item.href)
-                return (
-                  <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`
-                        group flex items-center ${state.collapsed ? 'justify-center px-2' : 'px-3 sm:px-4'} py-2.5 sm:py-3 rounded-lg transition-all duration-200 touch-manipulation
-                        ${
-                          isActive
-                            ? "bg-accent/20 text-accent border border-accent/30 glow-accent"
-                            : "hover:bg-white/5 hover:text-accent"
-                        }
-                      `}
-                      title={state.collapsed ? item.name : undefined}
-                    >
-                      <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${state.collapsed ? '' : 'mr-2 sm:mr-3'}`} />
-                      {!state.collapsed && (
-                        <span className="font-medium flex-1">{item.name}</span>
-                      )}
-                      {!state.collapsed && (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePinnedRoute(projectId, item.href) }}
-                          className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title={isPinned ? 'Unpin' : 'Pin'}
-                        >
-                          {isPinned ? <PinOff className="w-4 h-4 text-accent" /> : <Pin className="w-4 h-4 text-gray-400 hover:text-white" />}
-                        </button>
-                      )}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </nav>
+        {/* Navigation */}
+        <nav className="flex-1 py-4 px-2">
+          <ul className="space-y-2">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || 
+                (item.href !== "/" && pathname.startsWith(item.href))
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "sidebar-icon group relative",
+                      isActive && "sidebar-icon-active"
+                    )}
+                    title={item.name}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    
+                    {/* Tooltip */}
+                    <div className="absolute left-full ml-3 px-2 py-1 bg-card border border-border rounded-md text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none">
+                      {item.name}
+                    </div>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
 
-          {/* Pinned section */}
-          {!state.collapsed && state.pinnedRoutes.length > 0 && (
-            <div className="mt-3 sm:mt-4">
-              <div className="px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Pinned</div>
-              <ul className="space-y-1.5 sm:space-y-2 mt-1">
-                {state.pinnedRoutes.map((href) => {
-                  const item = navigation.find(n => n.href === href)
-                  if (!item) return null
-                  const isActive = pathname === item.href
-                  return (
-                    <li key={`pin-${href}`}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        className={`
-                          flex items-center px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 border touch-manipulation
-                          ${isActive ? 'bg-accent/10 border-accent/30 text-accent' : 'border-white/10 hover:bg-white/5'}
-                        `}
-                      >
-                        <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-3" />
-                        <span className="text-xs sm:text-sm">{item.name}</span>
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
+        {/* Bottom section - User & Logout */}
+        <div className="p-2 border-t border-white/[0.06] space-y-2">
+          {/* User Avatar */}
+          <div className="sidebar-icon">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center">
+              <span className="text-[10px] font-bold text-white">U</span>
             </div>
-          )}
-
-          {/* Status indicator */}
-          <div className={`mt-auto p-3 sm:p-4 glass-card ${state.collapsed ? 'px-2' : ''}`}>
-            {state.collapsed ? (
-              <div className="flex justify-center" title={`System Status: ${statusConfig[systemStatus].label}`}>
-                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''}`}></div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm text-gray-400">System Status</span>
-                <div className="flex items-center">
-                  <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 ${statusConfig[systemStatus].color} rounded-full ${systemStatus === 'online' ? 'animate-pulse' : ''} mr-1.5 sm:mr-2`}></div>
-                  <span className={`text-xs sm:text-sm ${statusConfig[systemStatus].textColor}`}>{statusConfig[systemStatus].label}</span>
-                </div>
-              </div>
-            )}
           </div>
+          
+          {/* Logout */}
+          <button 
+            className="sidebar-icon w-full"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* Overlay for mobile */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
+        <div 
+          className="lg:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm" 
+          onClick={() => setIsOpen(false)} 
+        />
       )}
     </>
   )

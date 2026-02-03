@@ -1,5 +1,5 @@
 
-require('dotenv').config();
+require('dotenv').config({ path: '.env.local' });
 const { Pool } = require('pg');
 
 async function main() {
@@ -19,7 +19,7 @@ async function main() {
     try {
         const res = await pool.query('SELECT id, name, created_at, user_id, slug FROM projects ORDER BY created_at DESC');
         console.log(`Found ${res.rows.length} projects:`);
-        res.rows.forEach(row => {
+        res.rows.forEach((row: any) => {
             console.log(`- [${row.created_at}] ${row.name} (${row.slug}) ID: ${row.id} User: ${row.user_id}`);
         });
     } catch (err) {
