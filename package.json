@@ -36,7 +36,7 @@
     "@radix-ui/react-slot": "1.1.1",
     "@radix-ui/react-tabs": "1.1.2",
     "@tanstack/react-query": "^4.42.0",
-    "@tanstack/react-virtual": "^3.1.0",
+    "@tanstack/react-virtual": "^3.13.18",
     "@trpc/client": "^10.45.2",
     "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
