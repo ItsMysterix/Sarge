@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../auth/[...nextauth]/route"
+import { getGithubAccessToken } from "@/lib/provider-credentials"
 
 export const dynamic = "force-dynamic"
 
@@ -8,12 +9,17 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.accessToken) {
-      console.error("No GitHub access token found in session")
+    const sessionToken = session?.accessToken
+    const userEmail = session?.user?.email
+    const linkedToken = userEmail ? await getGithubAccessToken(userEmail) : null
+    const token = sessionToken || linkedToken
+
+    if (!token) {
+      console.error("No GitHub access token found in session or linked credentials")
       return NextResponse.json(
         { 
-          error: "GitHub access token not found. Please sign out and sign back in with GitHub to refresh your credentials.",
-          action: "signout_required"
+          error: "GitHub access token not found. Connect GitHub in Settings to access your repositories.",
+          action: "github_connect_required"
         },
         { status: 401 }
       )
@@ -32,7 +38,7 @@ export async function GET(req: NextRequest) {
         `https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`,
         {
           headers: {
-            Authorization: `Bearer ${session.accessToken}`,
+            Authorization: `Bearer ${token}`,
             Accept: "application/vnd.github.v3+json",
           },
         }

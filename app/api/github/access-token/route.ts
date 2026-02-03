@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../auth/[...nextauth]/route'
+import { getGithubAccessToken } from '@/lib/provider-credentials'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -18,17 +19,22 @@ export async function GET() {
     }, { status: 401 })
   }
 
-  // Only use OAuth token - no fallback to shared PAT
+  // Prefer OAuth token from current session
   const oauthToken = session.accessToken
-
-  if (!oauthToken) {
-    return NextResponse.json({ 
-      error: 'GitHub authentication required',
-      hint: 'Sign out and sign in with GitHub to access your repositories',
-      action: 'github_oauth_required'
-    }, { status: 403 })
+  if (oauthToken) {
+    return NextResponse.json({ token: oauthToken, scope: 'oauth' })
   }
 
-  // Return OAuth token only
-  return NextResponse.json({ token: oauthToken, scope: 'oauth' })
+  // Fallback to stored GitHub token linked to this user (per-user only)
+  const userEmail = session.user.email
+  const linkedToken = userEmail ? await getGithubAccessToken(userEmail) : null
+  if (linkedToken) {
+    return NextResponse.json({ token: linkedToken, scope: 'oauth-linked' })
+  }
+
+  return NextResponse.json({
+    error: 'GitHub authentication required',
+    hint: 'Connect GitHub in Settings to access your repositories',
+    action: 'github_connect_required'
+  }, { status: 403 })
 }
