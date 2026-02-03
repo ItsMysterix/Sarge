@@ -7,6 +7,10 @@
   "regions": ["iad1"],
   "cleanUrls": true,
   "trailingSlash": false,
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  },
   "functions": {
     "app/api/trpc/[trpc]/route.ts": {
       "maxDuration": 60,
