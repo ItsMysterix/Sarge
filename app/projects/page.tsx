@@ -10,22 +10,14 @@ import {
   Globe,
   Loader2,
   RefreshCw,
-  Box
+  Box,
+  Rocket
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
-import { PageTitle } from '@/components/layout/page-title';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
 
@@ -33,15 +25,23 @@ export default function ProjectsPage() {
   const router = useRouter();
   const { addToast: toast, ToastContainer } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
 
   // Use tRPC for data fetching
   const { data, isLoading, refetch } = trpc.project.list.useQuery();
   const createMutation = trpc.project.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast({ type: "success", title: "Project created", description: "Your new project is ready." });
-      setIsCreateOpen(false);
+      setShowCreateModal(false);
+      setName('');
+      setSlug('');
       refetch();
+      // Navigate to the new project
+      if (result?.slug) {
+        router.push(`/projects/${result.slug}`);
+      }
     },
     onError: (error: any) => {
       toast({ type: "error", title: "Error", description: error.message });
@@ -49,31 +49,106 @@ export default function ProjectsPage() {
   });
 
   const projects = data?.projects || [];
+  const hasProjects = projects.length > 0;
 
   const filteredProjects = projects.filter((project: any) => {
     return project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
            project.slug?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate({
+      name,
+      slug,
+      framework: 'nextjs', 
+      autoDeploy: true,
+      repositoryId: undefined,
+    });
+  };
+
+  // Onboarding view - no projects yet
+  if (!isLoading && !hasProjects) {
+    return (
+      <AppShell>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <ToastContainer />
+          <div className="max-w-md w-full text-center">
+            {/* Welcome illustration */}
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 border border-violet-500/30 flex items-center justify-center">
+              <Rocket className="w-10 h-10 text-violet-400" />
+            </div>
+            
+            <h1 className="text-2xl font-semibold mb-2">Welcome to Sarge</h1>
+            <p className="text-muted-foreground mb-8">
+              Create your first project to get started with deployments, environments, and more.
+            </p>
+
+            {/* Create form inline */}
+            <form onSubmit={handleCreate} className="glass-card p-6 text-left space-y-4">
+              <div>
+                <Label htmlFor="name" className="text-sm text-muted-foreground">Project Name</Label>
+                <Input 
+                  id="name" 
+                  value={name} 
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (!slug) setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                  }}
+                  placeholder="My Awesome App" 
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="slug" className="text-sm text-muted-foreground">Slug</Label>
+                <Input 
+                  id="slug" 
+                  value={slug} 
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder="my-awesome-app" 
+                  className="mt-1.5 font-mono text-sm"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                disabled={createMutation.isPending || !name.trim()}
+                className="w-full bg-white text-black hover:bg-white/90"
+              >
+                {createMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Create Project
+              </Button>
+            </form>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="p-8 w-full max-w-7xl mx-auto">
         <ToastContainer />
         
-        {/* Header */}
+        {/* Header - Single Create Button */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
             <p className="text-muted-foreground mt-1">Manage and deploy your applications.</p>
           </div>
-          <CreateProjectDialog 
-            open={isCreateOpen} 
-            onOpenChange={setIsCreateOpen} 
-            createMutation={createMutation}
-          />
+          <Button 
+            onClick={() => setShowCreateModal(true)}
+            className="bg-foreground text-background hover:bg-foreground/90 font-medium"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Project
+          </Button>
         </div>
 
-        {/* Search and Filters */}
+        {/* Search */}
         <div className="flex items-center gap-3 mb-6">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -97,7 +172,11 @@ export default function ProjectsPage() {
              ))
           ) : filteredProjects.length === 0 ? (
             <div className="col-span-full">
-               <EmptyState onCreate={() => setIsCreateOpen(true)} isSearching={searchQuery.length > 0} />
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Box className="w-10 h-10 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-1">No matching projects</h3>
+                <p className="text-sm text-muted-foreground">Try adjusting your search</p>
+              </div>
             </div>
           ) : (
             filteredProjects.map((project: any) => (
@@ -106,73 +185,58 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md glass-card p-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Create Project</h3>
+              <button 
+                onClick={() => setShowCreateModal(false)} 
+                className="text-muted-foreground hover:text-foreground text-xl"
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <Label htmlFor="modal-name" className="text-sm text-muted-foreground">Project Name</Label>
+                <Input 
+                  id="modal-name" 
+                  value={name} 
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (!slug) setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                  }}
+                  placeholder="My Awesome App" 
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="modal-slug" className="text-sm text-muted-foreground">Slug</Label>
+                <Input 
+                  id="modal-slug" 
+                  value={slug} 
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder="my-awesome-app" 
+                  className="mt-1.5 font-mono text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createMutation.isPending || !name.trim()}>
+                  {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  Create
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AppShell>
-  );
-}
-
-function CreateProjectDialog({ open, onOpenChange, createMutation }: { open: boolean, onOpenChange: (open: boolean) => void, createMutation: any }) {
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate({
-      name,
-      slug,
-      framework: 'nextjs', 
-      autoDeploy: true,
-      repositoryId: null,
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button className="bg-foreground text-background hover:bg-foreground/90 font-medium">
-          <Plus className="w-4 h-4 mr-2" />
-          Create Project
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
-          <DialogDescription>
-            Deploy a new project from a repository or template.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Project Name</Label>
-            <Input 
-              id="name" 
-              value={name} 
-              onChange={(e) => {
-                setName(e.target.value);
-                if (!slug) setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-              }}
-              placeholder="acme-web" 
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="slug">Slug</Label>
-            <Input 
-              id="slug" 
-              value={slug} 
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="acme-web" 
-              className="font-mono text-sm"
-            />
-          </div>
-          <div className="flex justify-end gap-3 mt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={createMutation.isLoading}>
-              {createMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Create
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -249,28 +313,6 @@ function ProjectSkeleton() {
         <div className="h-3 w-32 bg-zinc-800/50 rounded animate-pulse" />
         <div className="h-3 w-24 bg-zinc-800/50 rounded animate-pulse" />
       </div>
-    </div>
-  )
-}
-
-function EmptyState({ onCreate, isSearching }: { onCreate: () => void, isSearching: boolean }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-24 text-center rounded-lg border border-dashed border-zinc-800">
-      <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center mb-4">
-        <Box className="w-6 h-6 text-muted-foreground" />
-      </div>
-      <h3 className="text-lg font-medium mb-1">
-        {isSearching ? "No matching projects" : "No projects found"}
-      </h3>
-      <p className="text-sm text-muted-foreground max-w-sm mb-6">
-        {isSearching 
-          ? "Try adjusting your search filters."
-          : "Get started by deploying your first project."}
-      </p>
-      <Button onClick={onCreate} variant="outline">
-        <Plus className="w-4 h-4 mr-2" />
-        {isSearching ? "Create New Project" : "Create Project"}
-      </Button>
     </div>
   )
 }

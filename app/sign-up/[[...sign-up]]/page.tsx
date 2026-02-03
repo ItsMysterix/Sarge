@@ -1,7 +1,7 @@
 "use client"
 
 import { Brain, Shield, Zap, Mail, Lock, User } from "lucide-react"
-import { PageTitle } from '@/components/layout/page-title';
+
 import { UserPlus } from 'lucide-react';
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -133,11 +133,6 @@ export default function SignUpPage() {
           <h1 className="text-2xl font-bold mb-2">Join Command Center</h1>
           <p className="text-gray-400">Create your account to get started</p>
         </div>
-        <PageTitle
-          title="Sign Up"
-          description="Create a new Sarge account"
-          icon={<UserPlus className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-        />
 
         {/* Features Grid */}
         <div className="grid grid-cols-3 gap-4 mb-8">

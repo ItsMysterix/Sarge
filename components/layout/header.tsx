@@ -5,67 +5,80 @@ import { usePathname } from "next/navigation"
 import { UserProfile } from "./user-profile"
 import { ProjectSwitcher } from "@/components/project-switcher"
 import { useProject } from "@/lib/project-context"
-import { GitBranch, Plus } from "lucide-react"
-import { motion } from "framer-motion"
+import { Search, Bell, Plus } from "lucide-react"
+
+// Map routes to page titles
+const pageTitles: Record<string, string> = {
+  "/projects": "Projects",
+  "/environments": "Environments",
+  "/deployments": "Pipelines",
+  "/logs": "Logs",
+  "/observability": "Metrics",
+  "/metrics": "Metrics",
+  "/settings": "Settings",
+  "/profile": "Profile",
+  "/stacks": "Stacks",
+  "/services": "Services",
+  "/aws": "AWS",
+  "/oneclick": "Deploy",
+  "/targets": "Targets",
+  "/explain": "Explain",
+}
 
 export function Header() {
-  const [time, setTime] = useState("")
-  const [showConnectModal, setShowConnectModal] = useState(false)
   const pathname = usePathname()
   const { projects } = useProject()
   
-  // Design rule: show brand + switcher on all pages except Profile (brand-only there)
-  const isProfilePage = pathname?.startsWith('/profile')
-  // Hide switcher on the projects listing page entirely
-  const isProjectsListing = pathname === '/projects'
-  // Hide switcher when there are no real projects (avoid showing mock placeholder)
-  const hasRealProjects = Array.isArray(projects) && projects.some(p => p.slug !== 'my-nextjs-app')
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date()
-      setTime(
-        now.toLocaleTimeString("en-US", {
-          hour12: false,
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),
-      )
+  // Get page title from route
+  const getPageTitle = () => {
+    if (!pathname) return "Dashboard"
+    
+    // Check for exact match first
+    if (pageTitles[pathname]) return pageTitles[pathname]
+    
+    // Check for prefix match (e.g. /deployments/123)
+    for (const [route, title] of Object.entries(pageTitles)) {
+      if (pathname.startsWith(route)) return title
     }
-
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
-    return () => clearInterval(interval)
-  }, [])
+    
+    // Fallback to capitalizing the first segment
+    const segment = pathname.split('/')[1]
+    return segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : "Dashboard"
+  }
+  
+  const pageTitle = getPageTitle()
+  
+  // Hide "New" button on certain pages
+  const showNewButton = !pathname?.startsWith('/profile') && !pathname?.startsWith('/settings')
 
   return (
-  <header className="glass-card border-b border-white/10 px-3 sm:px-4 md:px-6 py-2 sm:py-3 sticky top-0 z-50 backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-2 sm:gap-4">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-          {/* Brand is always visible */}
-          <div className="flex items-center flex-shrink-0">
-            <div className="text-xl sm:text-2xl md:text-3xl font-bold text-accent terminal-text whitespace-nowrap">SARGE</div>
-            <div className="ml-1 sm:ml-2 w-2 sm:w-2.5 h-2 sm:h-2.5 bg-accent rounded-full animate-pulse" aria-label="live-indicator" />
-          </div>
-          {/* Project switcher: hide on Profile, on Projects listing, or when there are no real projects */}
-          {!isProfilePage && !isProjectsListing && hasRealProjects && (
-            <div className="hidden sm:block min-w-0">
-              <ProjectSwitcher />
-            </div>
-          )}
-          {/* version badge removed per design */}
-        </div>
-        <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-6 flex-shrink-0">
-          <div className="hidden md:block px-2 sm:px-3 py-1.5 glass-card text-[10px] sm:text-xs terminal-text text-gray-400 border border-white/10">
-            AI Co-Pilot
-          </div>
-          <div className="hidden sm:block terminal-text text-accent text-xs sm:text-sm font-mono opacity-70" aria-label="clock">
-            {time}
-          </div>
-          <UserProfile />
-          <div className="hidden sm:block w-2 sm:w-3 h-2 sm:h-3 bg-accent rounded-full animate-pulse-glow" aria-label="system-status" />
-        </div>
+    <header className="h-14 flex items-center justify-between px-4 md:px-6 border-b border-white/[0.06] bg-black/40 backdrop-blur-md sticky top-0 z-50">
+      {/* Left: Page Title */}
+      <div className="flex items-center gap-3">
+        <h1 className="text-sm font-medium text-foreground">{pageTitle}</h1>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2">
+        {/* Search */}
+        <button className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground bg-white/[0.03] border border-white/[0.06] rounded-lg hover:bg-white/[0.06] transition-colors">
+          <Search className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Search</span>
+          <kbd className="hidden sm:inline ml-2 px-1.5 py-0.5 text-[10px] bg-white/5 rounded">⌘K</kbd>
+        </button>
+        
+        {/* Notifications */}
+        <button className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-white/5 transition-colors">
+          <Bell className="w-4 h-4" />
+        </button>
+        
+        {/* New button */}
+        {showNewButton && (
+          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">
+            <Plus className="w-3.5 h-3.5" />
+            <span>New</span>
+          </button>
+        )}
       </div>
     </header>
   )

@@ -49,12 +49,8 @@ export default function EnvironmentsPage() {
     <AppShell>
       <div className="p-6 max-w-6xl mx-auto animate-fade-in">
         
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold mb-1">Environments</h1>
-            <p className="text-sm text-muted-foreground">Manage deployment environments</p>
-          </div>
+        {/* Action Bar */}
+        <div className="flex items-center justify-end mb-6">
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
@@ -117,7 +113,13 @@ export default function EnvironmentsPage() {
                     <span className="text-xs text-muted-foreground capitalize">{env.status}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(env.last_deploy))} ago
+                    {(() => {
+                      try {
+                        return formatDistanceToNow(new Date(env.last_deploy)) + ' ago'
+                      } catch {
+                        return 'Unknown'
+                      }
+                    })()}
                   </span>
                 </div>
               </div>

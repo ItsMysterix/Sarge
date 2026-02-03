@@ -24,12 +24,6 @@ export default function MetricsPage() {
   return (
     <AppShell>
       <div className="p-6 max-w-6xl mx-auto animate-fade-in">
-        
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold mb-1">Metrics</h1>
-          <p className="text-sm text-muted-foreground">System performance and resource usage</p>
-        </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stagger-children">

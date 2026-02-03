@@ -12,14 +12,16 @@ import {
   X, 
   Box,
   Terminal,
-  LogOut
+  LogOut,
+  FolderKanban
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProject } from "@/lib/project-context"
 import { useUser, useAuth } from "@/lib/clerk-safe"
+import { trpc } from "@/lib/trpc"
 
-// Simplified navigation - Variables now in Settings
-const navigation = [
+// Navigation items (only shown when project exists)
+const projectNavigation = [
   { name: "Environments", href: "/environments", icon: Layers },
   { name: "Pipelines", href: "/deployments", icon: GitBranch },
   { name: "Logs", href: "/logs", icon: Terminal },
@@ -34,6 +36,11 @@ export function Sidebar() {
   const { currentProject } = useProject()
   const { user } = useUser()
   const { signOut } = useAuth()
+  
+  // Check if any projects exist
+  const projectsQuery = trpc.project.list.useQuery()
+  const projects = projectsQuery.data?.projects || []
+  const hasProjects = projects.length > 0
 
   const handleSignOut = async () => {
     await signOut()
@@ -68,46 +75,61 @@ export function Sidebar() {
           </Link>
         </div>
 
-        {/* Project Indicator (if selected) */}
-        {currentProject && (
-          <Link 
-            href="/projects"
-            className="mx-2 mt-3 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
-            title={currentProject.name}
-          >
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/10">
-              <Box className="w-4 h-4 text-indigo-400" />
-            </div>
-          </Link>
-        )}
-
         {/* Navigation - Centered Vertically */}
         <nav className="flex-1 flex flex-col justify-center py-4 px-2">
           <ul className="space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== "/" && pathname?.startsWith(item.href))
-              return (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className={cn(
-                      "sidebar-icon group relative",
-                      isActive && "sidebar-icon-active"
-                    )}
-                    title={item.name}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    
-                    {/* Tooltip */}
-                    <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
-                      {item.name}
-                    </div>
-                  </Link>
+            {/* Projects - Always visible */}
+            <li>
+              <Link
+                href="/projects"
+                onClick={() => setIsOpen(false)}
+                className={cn(
+                  "sidebar-icon group relative",
+                  pathname === "/projects" && "sidebar-icon-active"
+                )}
+                title="Projects"
+              >
+                <FolderKanban className="w-5 h-5" />
+                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+                  Projects
+                </div>
+              </Link>
+            </li>
+            
+            {/* Project-specific nav - Only visible when projects exist */}
+            {hasProjects && (
+              <>
+                {/* Separator */}
+                <li className="py-2">
+                  <div className="w-8 mx-auto border-t border-white/[0.06]" />
                 </li>
-              )
-            })}
+                
+                {projectNavigation.map((item) => {
+                  const isActive = pathname === item.href || 
+                    (item.href !== "/" && pathname?.startsWith(item.href))
+                  return (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "sidebar-icon group relative",
+                          isActive && "sidebar-icon-active"
+                        )}
+                        title={item.name}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        
+                        {/* Tooltip */}
+                        <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+                          {item.name}
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </>
+            )}
           </ul>
         </nav>
 

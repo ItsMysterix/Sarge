@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic"
 
 import { useMemo } from "react"
 import { AppShell } from "@/components/layout/app-shell"
-import { PageTitle } from "@/components/layout/page-title"
 import { Cloud, ShieldCheck, Zap, Rocket, Globe2, Link as LinkIcon, Plug } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import { trpc } from "@/lib/trpc"
@@ -49,12 +48,6 @@ export default function TargetsPage() {
     <AppShell>
       <ToastContainer />
       <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
-        <PageTitle
-          title="Targets"
-          description="Connect deployment platforms for Launch"
-          icon={<Cloud className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-        />
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
           {(providers || []).map((provider) => (
             <div
