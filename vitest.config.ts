@@ -10,7 +10,6 @@ export default defineConfig({
       'ops/tests/**/*.spec.ts',
       'app/**/__tests__/**/*.spec.tsx'
     ],
-    setupFiles: 'backend/test/setup.ts',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
