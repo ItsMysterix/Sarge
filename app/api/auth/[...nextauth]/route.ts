@@ -13,6 +13,12 @@ if (!process.env.NEXTAUTH_SECRET) {
   )
 }
 
+// Ensure NEXTAUTH_URL is set
+const nextAuthUrl = process.env.NEXTAUTH_URL
+if (!nextAuthUrl) {
+  console.warn('⚠️  NEXTAUTH_URL not set - OAuth may not work properly')
+}
+
 export const authOptions: NextAuthOptions = {
   // Don't use database adapter - use pure JWT for now
   // adapter: PostgresAdapter(getDbPool()) as Adapter,
