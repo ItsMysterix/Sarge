@@ -1,390 +1,244 @@
 "use client"
+export const dynamic = "force-dynamic"
 
+import { useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
-import { PageTitle } from "@/components/layout/page-title"
-import { Cloud, Database, Zap, Shield, Activity, Plus, Trash2, Eye } from "lucide-react"
-import { motion } from "framer-motion"
-import { useState, useEffect } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { 
+  Cloud, Database, Zap, Shield, Activity, Plus, Loader2 
+} from "lucide-react"
 import { trpc } from "@/lib/trpc"
+import { cn } from "@/lib/utils"
 
-export default function AWSEmulationPage() {
-  const [activeTab, setActiveTab] = useState("s3")
-  const [showEmptyStates, setShowEmptyStates] = useState(false)
-
+export default function AWSPage() {
+  const [activeTab, setActiveTab] = useState<"s3" | "dynamo" | "lambda" | "iam" | "cloudwatch">("s3")
+  
   const t = trpc as any
-  const summaryQuery = t.aws.getSummary.useQuery()
-  const s3Query = t.aws.s3.listBuckets.useQuery()
-  const dynamoQuery = t.aws.dynamodb.listTables.useQuery()
-  const lambdaQuery = t.aws.lambda.listFunctions.useQuery()
-  const iamQuery = t.aws.iam.listRoles.useQuery()
-  const cwQuery = t.aws.cloudwatch.listLogGroups.useQuery()
+  const s3Query = t.aws?.s3?.listBuckets?.useQuery?.()
+  const dynamoQuery = t.aws?.dynamodb?.listTables?.useQuery?.()
+  const lambdaQuery = t.aws?.lambda?.listFunctions?.useQuery?.()
+  const iamQuery = t.aws?.iam?.listRoles?.useQuery?.()
+  const cwQuery = t.aws?.cloudwatch?.listLogGroups?.useQuery?.()
 
-  // Show empty states after 2 seconds if still loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowEmptyStates(true)
-    }, 2000)
+  const tabs = [
+    { id: "s3" as const, label: "S3", icon: Database, count: s3Query?.data?.length || 0 },
+    { id: "dynamo" as const, label: "DynamoDB", icon: Zap, count: dynamoQuery?.data?.length || 0 },
+    { id: "lambda" as const, label: "Lambda", icon: Zap, count: lambdaQuery?.data?.length || 0 },
+    { id: "iam" as const, label: "IAM", icon: Shield, count: iamQuery?.data?.length || 0 },
+    { id: "cloudwatch" as const, label: "CloudWatch", icon: Activity, count: cwQuery?.data?.length || 0 },
+  ]
 
-    return () => clearTimeout(timer)
-  }, [])
-
-  const services = [
-    { id: 's3', name: 'S3', icon: Database, count: s3Query.data?.length || 0 },
-    { id: 'dynamo', name: 'DynamoDB', icon: Zap, count: dynamoQuery.data?.length || 0 },
-    { id: 'lambda', name: 'Lambda', icon: Zap, count: lambdaQuery.data?.length || 0 },
-    { id: 'iam', name: 'IAM', icon: Shield, count: iamQuery.data?.length || 0 },
-    { id: 'cloudwatch', name: 'CloudWatch', icon: Activity, count: cwQuery.data?.length || 0 },
-  ];
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return "0 B"
+    const k = 1024
+    const sizes = ["B", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
 
   return (
     <AppShell>
-      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
-        <PageTitle
-          title="AWS Overview"
-          description="Simulated AWS environment & resource detection"
-          icon={<Cloud className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          className="mb-6"
-        />
-        {/* Tabs for AWS Services */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="glass-card border border-white/10 p-1 mb-6 flex-wrap h-auto">
-            {services.map((svc) => (
-              <TabsTrigger
-                key={svc.id}
-                value={svc.id}
-                className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent data-[state=active]:border-accent/30 flex items-center gap-2 px-3 sm:px-4 py-2"
-              >
-                <svc.icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{svc.name}</span>
-                <span className="sm:hidden">{svc.id.toUpperCase()}</span>
-                <span className="ml-1 text-xs bg-accent/20 px-1.5 py-0.5 rounded">{svc.count}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {/* S3 Tab */}
-          <TabsContent value="s3">
-            <S3Content buckets={s3Query.data || []} loading={s3Query.isLoading && !showEmptyStates} />
-          </TabsContent>
-          {/* DynamoDB Tab */}
-          <TabsContent value="dynamo">
-            <DynamoDBContent tables={dynamoQuery.data || []} loading={dynamoQuery.isLoading && !showEmptyStates} />
-          </TabsContent>
-          {/* Lambda Tab */}
-          <TabsContent value="lambda">
-            <LambdaContent functions={lambdaQuery.data || []} loading={lambdaQuery.isLoading && !showEmptyStates} />
-          </TabsContent>
-          {/* IAM Tab */}
-          <TabsContent value="iam">
-            <IAMContent roles={iamQuery.data || []} loading={iamQuery.isLoading && !showEmptyStates} />
-          </TabsContent>
-          {/* CloudWatch Tab */}
-          <TabsContent value="cloudwatch">
-            <CloudWatchContent logGroups={cwQuery.data || []} loading={cwQuery.isLoading && !showEmptyStates} />
-          </TabsContent>
-        </Tabs>
-      </main>
-    </AppShell>
-  );
-}
-
-// Helper Components
-function S3Content({ buckets, loading }: { buckets: any[], loading: boolean }) {
-  if (loading) {
-    return <LoadingState service="S3 Buckets" />
-  }
-
-  if (buckets.length === 0) {
-    return <EmptyState service="S3" icon={Database} description="No buckets created yet" />
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {buckets.map((bucket: any, idx: number) => (
-        <motion.div
-          key={bucket.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: idx * 0.05 }}
-          className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/30 transition-all"
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-accent" />
-              <h3 className="font-bold text-white">{bucket.name}</h3>
-            </div>
-            <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded">{bucket.region}</span>
+      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
+        
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Cloud className="w-6 h-6 text-amber-400" />
+            <h1 className="text-2xl font-semibold">AWS Emulation</h1>
           </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Objects:</span>
-              <span className="font-medium">{bucket.object_count}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Size:</span>
-              <span className="font-medium">{formatBytes(bucket.size_bytes)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Versioning:</span>
-              <span className="font-medium">{bucket.versioning_enabled ? '✓ Enabled' : '✗ Disabled'}</span>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-white/10 text-xs text-gray-500">
-            Created {new Date(bucket.created_at).toLocaleDateString()}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
+          <p className="text-sm text-muted-foreground">LocalStack-powered AWS services for local development</p>
+        </div>
 
-function DynamoDBContent({ tables, loading }: { tables: any[], loading: boolean }) {
-  if (loading) {
-    return <LoadingState service="DynamoDB Tables" />
-  }
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium whitespace-nowrap transition-all",
+                activeTab === tab.id
+                  ? "bg-white/[0.05] border-white/20 text-foreground"
+                  : "bg-white/[0.02] border-white/[0.06] text-muted-foreground hover:text-foreground hover:border-white/15"
+              )}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              {tab.count > 0 && (
+                <span className="px-1.5 py-0.5 text-xs rounded bg-white/10">{tab.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
 
-  if (tables.length === 0) {
-    return <EmptyState service="DynamoDB" icon={Database} description="No tables created yet" />
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {tables.map((table: any, idx: number) => (
-        <motion.div
-          key={table.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: idx * 0.05 }}
-          className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/30 transition-all"
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-warning" />
-              <h3 className="font-bold text-white">{table.name}</h3>
-            </div>
-            <span className={`text-xs px-2 py-1 rounded ${
-              table.status === 'ACTIVE' ? 'bg-success/20 text-success' : 'bg-gray-500/20 text-gray-400'
-            }`}>{table.status}</span>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Partition Key:</span>
-              <code className="text-xs bg-black/30 px-2 py-0.5 rounded">{table.partition_key} ({table.partition_key_type})</code>
-            </div>
-            {table.sort_key && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Sort Key:</span>
-                <code className="text-xs bg-black/30 px-2 py-0.5 rounded">{table.sort_key} ({table.sort_key_type})</code>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-gray-400">Items:</span>
-              <span className="font-medium">{table.item_count.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Size:</span>
-              <span className="font-medium">{formatBytes(table.size_bytes)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">RCU / WCU:</span>
-              <span className="font-medium">{table.read_capacity_units} / {table.write_capacity_units}</span>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-white/10 text-xs text-gray-500">
-            Created {new Date(table.created_at).toLocaleDateString()}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
-
-function LambdaContent({ functions, loading }: { functions: any[], loading: boolean }) {
-  if (loading) {
-    return <LoadingState service="Lambda Functions" />
-  }
-
-  if (functions.length === 0) {
-    return <EmptyState service="Lambda" icon={Zap} description="No functions created yet" />
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {functions.map((func: any, idx: number) => (
-        <motion.div
-          key={func.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: idx * 0.05 }}
-          className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/30 transition-all"
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-warning" />
-              <h3 className="font-bold text-white">{func.name}</h3>
-            </div>
-            <span className={`text-xs px-2 py-1 rounded ${
-              func.status === 'Active' ? 'bg-success/20 text-success' : 'bg-gray-500/20 text-gray-400'
-            }`}>{func.status}</span>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Runtime:</span>
-              <span className="font-medium">{func.runtime}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Memory:</span>
-              <span className="font-medium">{func.memory_size} MB</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Timeout:</span>
-              <span className="font-medium">{func.timeout}s</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Invocations:</span>
-              <span className="font-medium">{func.invocation_count.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Errors:</span>
-              <span className={`font-medium ${func.error_count > 0 ? 'text-error' : 'text-success'}`}>{func.error_count}</span>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-white/10 text-xs text-gray-500">
-            Last modified {new Date(func.last_modified).toLocaleDateString()}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
-
-function IAMContent({ roles, loading }: { roles: any[], loading: boolean }) {
-  if (loading) {
-    return <LoadingState service="IAM Roles" />
-  }
-
-  if (roles.length === 0) {
-    return <EmptyState service="IAM" icon={Shield} description="No roles created yet" />
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {roles.map((role: any, idx: number) => (
-        <motion.div
-          key={role.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: idx * 0.05 }}
-          className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/30 transition-all"
-        >
-          <div className="flex items-start gap-3 mb-3">
-            <Shield className="w-5 h-5 text-info mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-bold text-white mb-1">{role.name}</h3>
-              <code className="text-xs bg-black/30 px-2 py-1 rounded block overflow-x-auto">{role.arn}</code>
-            </div>
-          </div>
-          {role.description && (
-            <p className="text-sm text-gray-400 mb-3">{role.description}</p>
+        {/* Content */}
+        <div className="glass-card p-6 min-h-[400px]">
+          
+          {/* S3 */}
+          {activeTab === "s3" && (
+            <ResourceList
+              title="S3 Buckets"
+              loading={s3Query?.isLoading}
+              items={s3Query?.data || []}
+              empty={{ icon: Database, message: "No buckets created" }}
+              renderItem={(bucket: any) => (
+                <div key={bucket.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4 text-amber-400" />
+                      <h3 className="font-medium">{bucket.name}</h3>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded bg-white/5">{bucket.region}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">Objects:</span> {bucket.object_count}</div>
+                    <div><span className="text-muted-foreground">Size:</span> {formatBytes(bucket.size_bytes)}</div>
+                    <div><span className="text-muted-foreground">Versioning:</span> {bucket.versioning_enabled ? "✓" : "✗"}</div>
+                  </div>
+                </div>
+              )}
+            />
           )}
-          <div className="mt-4 pt-4 border-t border-white/10 text-xs text-gray-500">
-            Created {new Date(role.created_at).toLocaleDateString()}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
 
-function CloudWatchContent({ logGroups, loading }: { logGroups: any[], loading: boolean }) {
-  if (loading) {
-    return <LoadingState service="CloudWatch Log Groups" />
-  }
+          {/* DynamoDB */}
+          {activeTab === "dynamo" && (
+            <ResourceList
+              title="DynamoDB Tables"
+              loading={dynamoQuery?.isLoading}
+              items={dynamoQuery?.data || []}
+              empty={{ icon: Zap, message: "No tables created" }}
+              renderItem={(table: any) => (
+                <div key={table.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-yellow-400" />
+                      <h3 className="font-medium">{table.name}</h3>
+                    </div>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded",
+                      table.status === "ACTIVE" ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-500/20"
+                    )}>{table.status}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">PK:</span> <code className="text-[10px] bg-black/30 px-1 rounded">{table.partition_key}</code></div>
+                    <div><span className="text-muted-foreground">Items:</span> {table.item_count?.toLocaleString()}</div>
+                    <div><span className="text-muted-foreground">Size:</span> {formatBytes(table.size_bytes)}</div>
+                    <div><span className="text-muted-foreground">RCU/WCU:</span> {table.read_capacity_units}/{table.write_capacity_units}</div>
+                  </div>
+                </div>
+              )}
+            />
+          )}
 
-  if (logGroups.length === 0) {
-    return <EmptyState service="CloudWatch" icon={Activity} description="No log groups created yet" />
-  }
+          {/* Lambda */}
+          {activeTab === "lambda" && (
+            <ResourceList
+              title="Lambda Functions"
+              loading={lambdaQuery?.isLoading}
+              items={lambdaQuery?.data || []}
+              empty={{ icon: Zap, message: "No functions created" }}
+              renderItem={(fn: any) => (
+                <div key={fn.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-orange-400" />
+                      <h3 className="font-medium">{fn.name}</h3>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded bg-white/5">{fn.runtime}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">Memory:</span> {fn.memory_size}MB</div>
+                    <div><span className="text-muted-foreground">Timeout:</span> {fn.timeout}s</div>
+                    <div><span className="text-muted-foreground">Invokes:</span> {fn.invocation_count}</div>
+                    <div><span className="text-muted-foreground">Errors:</span> <span className={fn.error_count > 0 ? "text-red-400" : "text-emerald-400"}>{fn.error_count}</span></div>
+                  </div>
+                </div>
+              )}
+            />
+          )}
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {logGroups.map((logGroup: any, idx: number) => (
-        <motion.div
-          key={logGroup.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: idx * 0.05 }}
-          className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/30 transition-all"
-        >
-          <div className="flex items-start gap-3 mb-3">
-            <Activity className="w-5 h-5 text-accent mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-bold text-white mb-1">{logGroup.name}</h3>
-            </div>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Retention:</span>
-              <span className="font-medium">{logGroup.retention_days ? `${logGroup.retention_days} days` : 'Never expire'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Size:</span>
-              <span className="font-medium">{formatBytes(logGroup.size_bytes)}</span>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-white/10 text-xs text-gray-500">
-            Created {new Date(logGroup.created_at).toLocaleDateString()}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
+          {/* IAM */}
+          {activeTab === "iam" && (
+            <ResourceList
+              title="IAM Roles"
+              loading={iamQuery?.isLoading}
+              items={iamQuery?.data || []}
+              empty={{ icon: Shield, message: "No roles created" }}
+              renderItem={(role: any) => (
+                <div key={role.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-4 h-4 text-blue-400" />
+                    <h3 className="font-medium">{role.name}</h3>
+                  </div>
+                  <code className="block text-[10px] text-muted-foreground bg-black/30 px-2 py-1 rounded overflow-x-auto">{role.arn}</code>
+                  {role.description && <p className="text-xs text-muted-foreground mt-2">{role.description}</p>}
+                </div>
+              )}
+            />
+          )}
 
-function LoadingState({ service }: { service: string }) {
-  return (
-    <div className="flex items-center justify-center py-20">
-      <div className="text-center">
-        <motion.div
-          className="rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-        />
-        <p className="text-gray-400">Loading {service}...</p>
-      </div>
-    </div>
-  )
-}
-
-function EmptyState({ service, icon: Icon, description }: { service: string, icon: any, description: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4 }}
-      className="glass-card p-8 sm:p-12 text-center border border-white/10 rounded-lg"
-    >
-      <div className="flex justify-center mb-6">
-        <div className="p-4 glass-card rounded-full border border-accent/30">
-          <Icon className="w-12 h-12 text-accent" />
+          {/* CloudWatch */}
+          {activeTab === "cloudwatch" && (
+            <ResourceList
+              title="CloudWatch Log Groups"
+              loading={cwQuery?.isLoading}
+              items={cwQuery?.data || []}
+              empty={{ icon: Activity, message: "No log groups created" }}
+              renderItem={(lg: any) => (
+                <div key={lg.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Activity className="w-4 h-4 text-violet-400" />
+                    <h3 className="font-medium">{lg.name}</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">Retention:</span> {lg.retention_days ? `${lg.retention_days}d` : "Never"}</div>
+                    <div><span className="text-muted-foreground">Size:</span> {formatBytes(lg.size_bytes)}</div>
+                  </div>
+                </div>
+              )}
+            />
+          )}
         </div>
       </div>
-      <h2 className="text-xl sm:text-2xl font-bold mb-3">No {service} Yet</h2>
-      <p className="text-gray-400 mb-4">{description}</p>
-      <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-        💡 Connect a repository or use Quick Deploy to start creating AWS resources. All services run offline—no internet needed!
-      </p>
-      <button className="px-6 py-3 text-accent bg-gradient-to-br from-white/[0.07] to-white/[0.03] hover:bg-accent/20 hover:glow-accent transition-all duration-300 rounded-lg border border-accent/30 flex items-center mx-auto backdrop-blur-sm">
-        <Plus className="w-5 h-5 mr-2" />
-        Create Your First {service}
-      </button>
-    </motion.div>
+    </AppShell>
   )
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+function ResourceList({ title, loading, items, empty, renderItem }: {
+  title: string
+  loading?: boolean
+  items: any[]
+  empty: { icon: any; message: string }
+  renderItem: (item: any) => React.ReactNode
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (items.length === 0) {
+    const Icon = empty.icon
+    return (
+      <div className="text-center py-16">
+        <Icon className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+        <h3 className="font-medium mb-1">{empty.message}</h3>
+        <p className="text-sm text-muted-foreground mb-6">Create resources via API or code</p>
+        <button className="flex items-center gap-2 px-4 py-2 mx-auto rounded-lg bg-white/[0.05] border border-white/10 text-sm hover:bg-white/10 transition-colors">
+          <Plus className="w-4 h-4" />
+          Create {title.split(" ")[0]}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <h3 className="font-medium mb-4">{title}</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+        {items.map(renderItem)}
+      </div>
+    </div>
+  )
 }
