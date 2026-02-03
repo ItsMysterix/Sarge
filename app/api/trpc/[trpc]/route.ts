@@ -1,7 +1,5 @@
 import { NextRequest } from 'next/server';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { appRouter } from '../../../../backend/src/api/root';
-import { createContext } from '../../../../backend/src/context';
 
 // Force dynamic so Vercel/Next doesn't cache tRPC responses
 export const dynamic = 'force-dynamic';
@@ -11,7 +9,24 @@ export const runtime = 'nodejs';
 // Optional: increase request body size limits if scans post larger payloads
 export const maxDuration = 60; // seconds (Vercel Edge would be lower; Node allows more)
 
+// Lazy load backend modules to avoid build-time evaluation
+let appRouter: any;
+let createContext: any;
+
+async function getBackendModules() {
+  if (!appRouter) {
+    const rootModule = await import('../../../../backend/src/api/root');
+    const contextModule = await import('../../../../backend/src/context');
+    appRouter = rootModule.appRouter;
+    createContext = contextModule.createContext;
+  }
+  return { appRouter, createContext };
+}
+
 async function handler(req: NextRequest) {
+  // Lazy load backend modules at runtime to avoid build-time evaluation
+  const { appRouter, createContext } = await getBackendModules();
+  
   return fetchRequestHandler({
     endpoint: '/api/trpc',
     req,
