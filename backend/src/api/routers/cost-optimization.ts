@@ -25,13 +25,13 @@ export const costOptimizationRouter = router({
       try {
         const result = await ctx.db.query(
           `SELECT 
-            provider,
-            SUM(estimated_cost) as total_cost,
+            provider_id as provider,
+            SUM(monthly_estimate) as total_cost,
             COUNT(*) as resource_count
            FROM cost_estimates
            WHERE project_id = $1 
            AND created_at > NOW() - INTERVAL '${input.timeRange === '24h' ? '1 day' : input.timeRange === '7d' ? '7 days' : input.timeRange === '30d' ? '30 days' : '90 days'}'
-           GROUP BY provider`,
+           GROUP BY provider_id`,
           [input.projectId]
         ).catch((err: any) => {
           if (err?.message?.includes('cost_estimates')) {
@@ -315,7 +315,7 @@ export const costOptimizationRouter = router({
 
         // Get current month spending
         const spending = await ctx.db.query(
-          `SELECT SUM(estimated_cost) as total
+          `SELECT SUM(monthly_estimate) as total
            FROM cost_estimates
            WHERE project_id = $1 
            AND created_at >= date_trunc('month', NOW())`,
@@ -358,7 +358,7 @@ export const costOptimizationRouter = router({
         const history = await ctx.db.query(
           `SELECT 
             DATE(created_at) as date,
-            SUM(estimated_cost) as daily_cost
+            SUM(monthly_estimate) as daily_cost
            FROM cost_estimates
            WHERE project_id = $1
            AND created_at > NOW() - INTERVAL '30 days'

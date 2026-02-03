@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Cpu, Database, HardDrive, Zap } from "lucide-react"
-import { LargeStatCard } from "./stat-card"
+import { StatCard } from "@/components/ui/stat-card"
 import { CPUUsageChart, MemoryUsageChart } from "@/components/ui/metrics-chart"
 
 interface InfrastructureTabProps {
@@ -22,35 +22,35 @@ export function InfrastructureTab({
     <div className="space-y-6">
       {/* Infrastructure Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <LargeStatCard
+        <StatCard size="lg"
           icon={Cpu}
-          label="CPU"
+          title="CPU"
           value={`${currentMetrics?.cpu?.toFixed(1) || avgCpu.toFixed(1)}%`}
           detail="4 cores · 3.2 GHz"
           color="text-accent"
         />
         
-        <LargeStatCard
+        <StatCard size="lg"
           icon={Database}
-          label="Memory"
+          title="Memory"
           value={`${((avgMemory / 100) * 8).toFixed(1)}GB`}
           detail="of 8GB total"
           color="text-warning"
           delay={0.1}
         />
         
-        <LargeStatCard
+        <StatCard size="lg"
           icon={HardDrive}
-          label="Disk I/O"
+          title="Disk I/O"
           value={`${(Math.random() * 100 + 50).toFixed(0)} MB/s`}
           detail="Read: 45 · Write: 32 MB/s"
           color="text-purple-400"
           delay={0.2}
         />
         
-        <LargeStatCard
+        <StatCard size="lg"
           icon={Zap}
-          label="Network I/O"
+          title="Network I/O"
           value={`${(Math.random() * 50 + 20).toFixed(0)} MB/s`}
           detail="In: 28 · Out: 19 MB/s"
           color="text-yellow-400"

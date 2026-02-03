@@ -53,7 +53,7 @@ export function startDeployExecutor() {
           return;
         }
         const runningRow = res.rows[0];
-        deploysRunning.inc();
+        (deploysRunning as any).inc();
         emitDeploy(ee, { type: 'deploys:update', id: String(runningRow.id), status: 'running', started_at: runningRow.started_at?.toString?.() ?? null });
 
         // Structured logs helper
@@ -100,7 +100,7 @@ export function startDeployExecutor() {
         emitDeploy(ee, { type: 'deploys:update', id: String(row.id), status: 'failed', error: row.error ?? null, finished_at: row.finished_at?.toString?.() ?? null });
         incDeploy('failed');
       } finally {
-        deploysRunning.dec();
+        (deploysRunning as any).dec();
         startTimer();
       }
     });

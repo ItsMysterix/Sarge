@@ -14,7 +14,7 @@ import { LiveLogs } from "@/components/dashboard/live-logs"
 import { 
   TrendingUp, Server, Activity, Zap, Shield, Brain, RefreshCcw, Play
 } from "lucide-react"
-import { LoadingButton } from "@/components/ui/loading-button"
+import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { useAppStore } from "@/lib/store"
 import { trpc } from "@/lib/trpc"
@@ -24,7 +24,7 @@ import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary
 import { useUserRole } from "@/hooks/useUserRole"
 import { QuickActionsPanel } from "@/components/ui/quick-actions-panel"
 import { KeyboardShortcuts } from "@/components/ui/keyboard-shortcuts"
-import { QuickStatCard } from "@/components/ui/quick-stat-card"
+import { StatCard } from "@/components/ui/stat-card"
 
 export default function Overview() {
   const { isLoaded, isSignedIn, user } = useUser()
@@ -51,6 +51,13 @@ export default function Overview() {
   const logsQuery = t.logs.recent.useQuery({ limit: 50 }, {
     refetchInterval: 2000,
     refetchOnWindowFocus: false,
+  })
+  const healthQuery = t.healthChecks.status.useQuery({ projectId: currentProject?.id }, { 
+    enabled: !!currentProject?.id 
+  })
+  const servicesSummaryQuery = t.metrics.servicesSummary.useQuery()
+  const deploymentsQuery = t.deploy.stats.useQuery({ projectId: currentProject?.id }, { 
+    enabled: !!currentProject?.id 
   })
 
   // Fetch connected repository for current project (or fallback to user's primary)
@@ -389,7 +396,7 @@ export default function Overview() {
                 whileTap={{ scale: 0.95 }}
                 className="flex-1 sm:flex-initial"
               >
-                <LoadingButton
+                <Button
                   loading={isDeploying}
                   loadingText="Deploying..."
                   onClick={handleQuickDeploy}
@@ -397,7 +404,7 @@ export default function Overview() {
                 >
                   <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
                   <span>Quick Deploy</span>
-                </LoadingButton>
+                </Button>
               </motion.div>
             </div>
           </motion.div>
@@ -409,6 +416,7 @@ export default function Overview() {
             onConnectClick={() => setShowConnectModal(true)}
           />
 
+
           {/* Quick Stats Overview - Responsive Grid */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -416,39 +424,39 @@ export default function Overview() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6"
           >
-            <QuickStatCard
+            <StatCard
               title="System Health"
-              value="—"
+              value={healthQuery.data?.status === 'healthy' ? 'Healthy' : 'Degraded'}
               icon={Shield}
-              color="success"
-              subtitle="Coming Soon"
+              color={healthQuery.data?.status === 'healthy' ? 'success' : 'warning'}
+              subtitle={healthQuery.data ? `Uptime: ${healthQuery.data.uptime}%` : 'Checking...'}
               onClick={() => router.push("/services")}
               delay={0.1}
             />
-            <QuickStatCard
+            <StatCard
               title="Active Services"
-              value="—"
+              value={servicesSummaryQuery.data ? servicesSummaryQuery.data.length.toString() : '0'}
               icon={Server}
               color="accent"
-              subtitle="Deploy to track"
+              subtitle="Running containers"
               onClick={() => router.push("/services")}
               delay={0.15}
             />
-            <QuickStatCard
+            <StatCard
               title="Deployments Today"
-              value="0"
+              value={deploymentsQuery.data?.todayCount?.toString() || '0'}
               icon={Zap}
               color="warning"
-              subtitle="Start your first deploy"
+              subtitle="Successful deploys"
               onClick={() => router.push("/deployments")}
               delay={0.2}
             />
-            <QuickStatCard
-              title="API Latency"
-              value="—"
+            <StatCard
+              title="Avg Latency"
+              value={metrics?.latency ? `${Math.round(metrics.latency)}ms` : '—'}
               icon={Activity}
               color="success"
-              subtitle="Metrics coming soon"
+              subtitle="Global average"
               onClick={() => router.push("/logs")}
               delay={0.25}
             />

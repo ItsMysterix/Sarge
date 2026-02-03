@@ -23,6 +23,7 @@ import { alertsRouter } from './routers/alerts';
 import { kubernetesRouter } from './routers/kubernetes';
 import { costOptimizationRouter } from './routers/cost-optimization';
 import { oneclickRouter } from './routers/oneclick';
+import { auditLogsRouter } from './routers/audit-logs';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -49,6 +50,7 @@ export const appRouter = router({
   kubernetes: kubernetesRouter,
   costOptimization: costOptimizationRouter,
   oneclick: oneclickRouter,
+  auditLogs: auditLogsRouter,
 });
 
 export type AppRouter = typeof appRouter;

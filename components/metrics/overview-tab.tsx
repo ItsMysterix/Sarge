@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Cpu, Database, Clock, TrendingUp } from "lucide-react"
-import { StatCard } from "./stat-card"
+import { StatCard } from "@/components/ui/stat-card"
 import { CPUUsageChart, MemoryUsageChart } from "@/components/ui/metrics-chart"
 
 interface OverviewTabProps {
@@ -28,7 +28,7 @@ export function OverviewTab({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           icon={Cpu}
-          label="CPU Usage"
+          title="CPU Usage"
           value={`${currentMetrics?.cpu?.toFixed(1) || avgCpu.toFixed(1)}%`}
           detail={`Avg: ${avgCpu.toFixed(1)}% · Peak: ${Math.max(...displayData.map(d => d.cpu)).toFixed(1)}%`}
           color="text-accent"
@@ -37,7 +37,7 @@ export function OverviewTab({
         
         <StatCard
           icon={Database}
-          label="Memory"
+          title="Memory"
           value={`${currentMetrics?.memory?.toFixed(1) || avgMemory.toFixed(1)}%`}
           detail={`Avg: ${avgMemory.toFixed(1)}% · Used: ${((avgMemory / 100) * 8).toFixed(1)}GB / 8GB`}
           color="text-warning"
@@ -46,7 +46,7 @@ export function OverviewTab({
         
         <StatCard
           icon={Clock}
-          label="Response Time"
+          title="Response Time"
           value={`${currentMetrics?.latency || Math.floor(avgLatency)}ms`}
           detail={`p50: ${Math.floor(avgLatency)}ms · p95: ${Math.floor(avgLatency * 1.5)}ms`}
           color="text-info"
@@ -55,7 +55,7 @@ export function OverviewTab({
         
         <StatCard
           icon={TrendingUp}
-          label="Throughput"
+          title="Throughput"
           value={Math.floor(totalRequests / displayData.length)}
           detail={`req/min · ${totalRequests.toLocaleString()} total`}
           color="text-success"

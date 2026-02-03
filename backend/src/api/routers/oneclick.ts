@@ -20,7 +20,7 @@ async function saveLogs(logs: Array<{ type: string; message: string; service: st
   try {
     // FIXED: Save directly to database instead of HTTP call to avoid Vercel deployment protection issues
     const { db } = await import('../lib/db');
-    
+
     for (const log of logs) {
       try {
         // Try with service_id first (new schema), fallback to service (old schema)
@@ -44,7 +44,7 @@ async function saveLogs(logs: Array<{ type: string; message: string; service: st
         console.error('[saveLogs] Failed to insert log:', logErr);
       }
     }
-    
+
     console.log('[saveLogs] Successfully saved', logs.length, 'log(s) to database')
   } catch (err) {
     console.error('[saveLogs] Database error:', err)
@@ -81,7 +81,7 @@ const BlueprintSchema = z.object({
   services: z.array(
     z.object({
       name: z.string(),
-      type: z.enum(['web','api','worker']).default('api'),
+      type: z.enum(['web', 'api', 'worker']).default('api'),
       cwd: z.string().optional(),
       startCommand: z.string().optional(),
       ports: z.array(z.number().int().positive()).default([]),
@@ -97,7 +97,7 @@ const BlueprintSchema = z.object({
   ports: z.array(z.number().int().positive()).default([]),
   envKeys: z.array(z.string()).default([]),
   docker: z.object({ dockerfile: z.boolean().default(false), composeFiles: z.array(z.string()).default([]) }).default({ dockerfile: false, composeFiles: [] }),
-  awsSdks: z.array(z.enum(['s3','dynamodb','lambda'])).default([])
+  awsSdks: z.array(z.enum(['s3', 'dynamodb', 'lambda'])).default([])
 })
 const PlanInput = z.object({ blueprint: BlueprintSchema })
 const ApplyInput = z.object({ plan: z.any() })
@@ -115,11 +115,11 @@ const CloneRepoInput = z.object({
     ),
   branch: z.string().default('main'),
 })
-const RegisterLocalInput = z.object({ 
-  localPath: z.string().min(1) 
+const RegisterLocalInput = z.object({
+  localPath: z.string().min(1)
 })
-const WorkspaceIdInput = z.object({ 
-  workspaceId: z.string().min(1) 
+const WorkspaceIdInput = z.object({
+  workspaceId: z.string().min(1)
 })
 
 export const oneclickRouter = router({
@@ -154,18 +154,18 @@ export const oneclickRouter = router({
         }
 
         console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
-        
+
         const useAI = !!process.env.ANTHROPIC_API_KEY
         console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
-        
+
         // Use GitHub scanner with AI support
         const scanner = createGitHubScanner(input.accessToken, useAI)
         const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
-        
+
         console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
-        
+
         // DEFENSIVE: Map services with null guards to prevent serialization issues
-        const safeServices = Array.isArray(blueprint?.services) ? 
+        const safeServices = Array.isArray(blueprint?.services) ?
           blueprint.services.map(s => ({
             name: String(s?.name || 'unknown'),
             type: String(s?.type || 'api'),
@@ -176,7 +176,7 @@ export const oneclickRouter = router({
             envKeys: Array.isArray(s?.envKeys) ? s.envKeys.filter(k => typeof k === 'string') : [],
             framework: String(s?.framework || ''),
           })) : []
-        
+
         const safeExternal = Array.isArray(blueprint?.externalServices) ?
           blueprint.externalServices.map(s => ({
             name: String(s?.name || 'unknown'),
@@ -186,7 +186,7 @@ export const oneclickRouter = router({
             version: String(s?.version || ''),
             dockerImage: String(s?.dockerImage || ''),
           })) : []
-        
+
         // Return fully guarded response
         return {
           services: safeServices,
@@ -208,7 +208,7 @@ export const oneclickRouter = router({
           packageManager: String(blueprint?.packageManager || 'npm'),
           framework: String(blueprint?.framework || ''),
         }
-        
+
         /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
         const useAI = !!process.env.ANTHROPIC_API_KEY
         console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
@@ -368,7 +368,7 @@ export const oneclickRouter = router({
       // Emit progress logs via event emitter so client can subscribe
       const topic = `oneclick:connected:${input.owner}/${input.repo}`
       const logs: any[] = []
-      
+
       const classify = (rawMsg: string): string => {
         const normalized = typeof rawMsg === 'string' ? rawMsg : String(rawMsg ?? '')
         const msgLower = normalized.toLowerCase()
@@ -378,16 +378,16 @@ export const oneclickRouter = router({
         if (msgLower.includes('complete') || normalized.startsWith('✅')) return 'success'
         return 'info'
       }
-      
-      const emit = (msg: string) => { 
-        try { 
+
+      const emit = (msg: string) => {
+        try {
           const level = classify(msg)
           const logEntry = { ts: Date.now(), line: msg, level }
           logs.push(logEntry)
           ctx.ee.emit(topic, logEntry)
-          
+
           console.log(`[Deployment ${input.owner}/${input.repo}] [${level.toUpperCase()}] ${msg}`)
-          
+
           // Save to database asynchronously (don't wait)
           saveLogs([{
             type: level === 'error' ? 'error' : level === 'progress' ? 'info' : 'info',
@@ -398,23 +398,23 @@ export const oneclickRouter = router({
           }]).catch(e => console.error('Failed to save log:', e))
         } catch (err) {
           console.error('[emit] Error:', err)
-        } 
+        }
       }
-      
+
       try {
         emit(`🚀 Starting deployment for ${input.owner}/${input.repo}`)
         emit(`📍 Provider: ${input.provider || 'local'} | Environment: ${input.environment || 'preview'}`)
-        
+
         // If provider is specified and not 'local' or 'docker', use provider-specific deployment
         if (input.provider && input.provider !== 'local' && input.provider !== 'docker') {
           const provider = getProvider(input.provider)
           if (provider) {
             emit(`☁️  Using ${provider.name} for deployment...`)
-            
+
             try {
               const repoUrl = `https://github.com/${input.owner}/${input.repo}`
               const credentials = await getProviderCredentials(input.provider, ctx.db, (ctx as any).userId)
-              
+
               // Call provider-specific deploy
               const deployResult = await provider.deploy({
                 projectId: `${input.owner}-${input.repo}`,
@@ -426,17 +426,42 @@ export const oneclickRouter = router({
                 buildCommand: input.packageManager === 'pnpm' ? 'pnpm install && pnpm build' : 'npm install && npm run build',
                 env: {},
               })
-              
+
               if (deployResult.success) {
                 emit(`✅ ${provider.name} deployment successful`)
                 if (deployResult.previewUrl) emit(`🔗 Preview: ${deployResult.previewUrl}`)
                 if (deployResult.productionUrl) emit(`🔗 Production: ${deployResult.productionUrl}`)
-                
+
+                // --- COST/QOVERY FEATURE: Save cost estimate ---
+                try {
+                  const cost = await provider.estimateCost({
+                    environmentName: (input.environment as string) || 'preview',
+                    resourceConfig: { cpu: 0.5, memory: 512 }
+                  });
+
+                  await ctx.db.query(
+                    `INSERT INTO cost_estimates 
+                     (project_id, environment_id, provider_id, deployment_id, monthly_estimate, hourly_rate, breakdown, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+                    [
+                      `${input.owner}-${input.repo}`,
+                      input.environment || 'preview',
+                      input.provider,
+                      deployResult.deploymentId,
+                      cost.monthlyEstimate,
+                      cost.hourlyRate,
+                      JSON.stringify(cost.breakdown)
+                    ]
+                  ).catch((err: any) => console.warn('[Cost] Failed to save estimate:', err));
+
+                  emit(`💰 Estimated cost: $${cost.monthlyEstimate.toFixed(2)}/mo`);
+                } catch (e) { console.warn('[Cost] Estimation failed:', e); }
+
                 return {
-                  services: [{ 
+                  services: [{
                     name: `${input.repo}-${input.provider}`,
-                    status: 'running', 
-                    port: 443, 
+                    status: 'running',
+                    port: 443,
                     url: deployResult.previewUrl || deployResult.productionUrl || 'https://deployed.example.com',
                   }],
                   blueprintSummary: { services: 1, projectType: provider.kind, framework: 'deployed' },
@@ -461,7 +486,7 @@ export const oneclickRouter = router({
             }
           }
         }
-        
+
         if (input.deploymentMethod === 'docker') {
           // Use Docker deployment via orchestrator
           emit(`🐳 Deploying via Docker...`)
@@ -473,14 +498,14 @@ export const oneclickRouter = router({
             services: [],
             externalServices: [],
           })
-          
+
           const services = Array.from(instances.values()).map(i => ({
             name: i.name,
             status: i.status,
             port: i.port,
             url: i.url,
           }))
-          
+
           emit(`✅ Docker deployment complete - ${services.length} service(s) running`)
           return {
             services,
@@ -491,11 +516,11 @@ export const oneclickRouter = router({
         } else {
           // Use local process deployment
           emit(`💻 Deploying locally...`)
-          
+
           // Download and extract repository tarball
           emit(`📥 Downloading repository...`)
           const tarResult = await downloadAndExtractRepository(input.owner, input.repo, input.branch, input.accessToken)
-          
+
           if (!tarResult.success) {
             emit(`❌ Failed to download repository: ${tarResult.error}`)
             tarResult.cleanup()
@@ -511,29 +536,29 @@ export const oneclickRouter = router({
               error: tarResult.error || 'Failed to download repository tarball',
             }
           }
-          
+
           emit(`✅ Repository downloaded successfully`)
-          
+
           // Use real deployment executor
           const repoPath = tarResult.path
           const executor = new DeploymentExecutor()
-          
+
           // Stream logs to client
           executor.setOnLog((log) => {
             const formattedMsg = log.line
             emit(formattedMsg)
           })
-          
+
           // Execute real deployment
           emit(`📂 Preparing deployment environment...`)
           const result = await executor.deploy(repoPath, input.packageManager, input.startPort)
-          
+
           // Cleanup temp directory after deployment
           setTimeout(() => {
             tarResult.cleanup()
             console.log(`[Deploy] Cleaned up temporary deployment files`)
           }, 5000) // Give client time to fetch logs before cleanup
-          
+
           if (result.success) {
             emit(`✅ Deployment successful - Application running on port ${input.startPort}`)
             return {
@@ -623,8 +648,8 @@ export const oneclickRouter = router({
   plan: secureProcedure('sarge.oneclick.plan')
     .input(PlanInput)
     .mutation(async ({ input }) => {
-  const core = await getCore()
-  const planOut = await core.planner.planApply(input.blueprint, { providedEnv: {} })
+      const core = await getCore()
+      const planOut = await core.planner.planApply(input.blueprint, { providedEnv: {} })
       return planOut
     }),
 
@@ -638,10 +663,10 @@ export const oneclickRouter = router({
       const repoPath = input.repoPath || process.cwd()
 
       // Start services via local runtime; caller may subscribe to logs separately
-  const core = await getCore()
-  try {
+      const core = await getCore()
+      try {
         core.traces.configureTracing?.({ enabled: true, dataRoot: getDataRoot() })
-      } catch {}
+      } catch { }
       const res = await (core.traces.runInSpan?.('oneclick.apply', async () => {
         const startRes = await core.apply.apply(input.plan, { repoPath })
         return startRes
@@ -662,17 +687,101 @@ export const oneclickRouter = router({
 
   logs: router({
     tail: secureProcedure('sarge.oneclick.logs.tail')
-      .input(LogsTailInput)
+      .input(z.object({
+        stackId: z.string().min(1),
+        service: z.string().min(1),
+        provider: z.string().optional()
+      }))
       .subscription(({ input, ctx }) => {
-        return createBufferedSubscription(ctx.ee, { topics: [`serviceLogs:${input.service}`], bufferSize: 200, perTickCap: 100 })()
+        // Dynamic import to avoid circular dependency issues if any
+        const { observable } = require('@trpc/server/observable');
+
+        return observable((emit: any) => {
+          let cleanup = () => { };
+
+          const run = async () => {
+            try {
+              if (!input.provider || input.provider === 'local') {
+                // Local: Use event emitter
+                const sub = createBufferedSubscription(ctx.ee, {
+                  topics: [`serviceLogs:${input.service}`],
+                  bufferSize: 200,
+                  perTickCap: 100
+                })()
+                const subscription = sub.subscribe({
+                  next: (data) => emit.next(data),
+                  error: (err) => emit.error(err),
+                  complete: () => emit.complete(),
+                });
+                cleanup = () => subscription.unsubscribe();
+              } else {
+                // Remote: Poll provider
+                const provider = getProvider(input.provider);
+                if (!provider) {
+                  // Fallback to local if provider not found (or treat as error)
+                  console.warn(`[logs.tail] Provider ${input.provider} not found, falling back to local events`);
+                  const sub = createBufferedSubscription(ctx.ee, { topics: [`serviceLogs:${input.service}`] })()
+                  const subscription = sub.subscribe({
+                    next: (data) => emit.next(data),
+                    error: (err) => emit.error(err),
+                    complete: () => emit.complete(),
+                  });
+                  cleanup = () => subscription.unsubscribe();
+                  return;
+                }
+
+                console.log(`[logs.tail] Polling ${input.provider} logs for ${input.stackId}`);
+                const credentials = await getProviderCredentials(input.provider, ctx.db, (ctx as any).userId);
+
+                let lastTimestamp = 0;
+
+                const poll = async () => {
+                  try {
+                    const logs = await provider.getLogs({
+                      deploymentId: input.stackId,
+                      credentials,
+                      limit: 50,
+                      startTime: lastTimestamp
+                    });
+
+                    // Deduplicate key could be needed, but for now relying on provider
+                    for (const log of logs) {
+                      const ts = new Date(log.timestamp).getTime();
+                      if (ts > lastTimestamp) {
+                        emit.next({
+                          ts,
+                          line: log.message,
+                          level: log.level || 'info'
+                        });
+                        lastTimestamp = ts;
+                      }
+                    }
+                  } catch (err) {
+                    console.error(`[logs.tail] Error polling ${input.provider}:`, err);
+                  }
+                };
+
+                await poll(); // Initial fetch
+                const interval = setInterval(poll, 5000); // Poll every 5s
+                cleanup = () => clearInterval(interval);
+              }
+            } catch (err) {
+              console.error('[logs.tail] Setup error:', err);
+              emit.error(err);
+            }
+          };
+
+          run();
+          return () => cleanup();
+        });
       })
-    }),
+  }),
   streamConnected: secureProcedure('sarge.oneclick.streamConnected')
     .input(z.object({ owner: z.string(), repo: z.string() }))
     .subscription(({ input, ctx }) => {
       const topic = `oneclick:connected:${input.owner}/${input.repo}`
       return createBufferedSubscription(ctx.ee, { topics: [topic], bufferSize: 300, perTickCap: 50 })()
-  }),
+    }),
 
   toggleDocker: secureProcedure('sarge.oneclick.toggleDocker')
     .input(ToggleDockerInput)

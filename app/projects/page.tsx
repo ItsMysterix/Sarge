@@ -1,410 +1,343 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
   Search, 
   FolderGit2, 
   Clock,
   Settings,
-  Copy,
-  Check
+  MoreVertical,
+  ExternalLink,
+  GitBranch,
+  Github,
+  Terminal as TerminalIcon,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { PageTitle } from '@/components/layout/page-title';
-import { ProjectWizard } from '@/components/projects/project-wizard';
+import { trpc } from '@/lib/trpc';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 
 export default function ProjectsPage() {
   const router = useRouter();
+  const { addToast: toast, ToastContainer } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [showWizard, setShowWizard] = useState(false);
-  const [showInlineForm, setShowInlineForm] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const fetchProjects = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/projects');
-      const data = await response.json();
-      // Filter out mock projects
-      const realProjects = (data.projects || []).filter((project: any) => 
-        project.slug !== 'my-nextjs-app' && project.name !== 'My Next.js App'
-      );
-      setProjects(realProjects);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      setProjects([]);
-    } finally {
-      setIsLoading(false);
+  // Use tRPC for data fetching
+  const { data, isLoading, refetch } = trpc.project.list.useQuery();
+  const createMutation = trpc.project.create.useMutation({
+    onSuccess: () => {
+      toast({ type: "success", title: "Project created", description: "Your new project is ready." });
+      setIsCreateOpen(false);
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ type: "error", title: "Error", description: error.message });
     }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const filteredProjects = projects.filter((project: any) => {
-    const matchesSearch = 
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.slug.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
   });
 
-  const handleProjectClick = (project: any) => {
-    // Save project to localStorage so it becomes the current project
-    localStorage.setItem('sarge_current_project_id', project.id);
-    // Go to main workspace/dashboard
-    router.push('/');
-  };
+  const projects = data?.projects || [];
 
-  const handleCreateProject = () => {
-    setShowWizard(true)
-  };
-
-  const handleWizardComplete = (project: any) => {
-    setShowWizard(false)
-    // Navigate to new project
-    if (project?.slug) {
-      router.push(`/projects/${project.slug}`)
-    }
-    // Refetch projects
-    fetchProjects();
-  };
-
-  const copyProjectId = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    navigator.clipboard.writeText(id);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleCreateInline = async () => {
-    if (!name.trim() || !slug.trim()) {
-      alert('Please provide both project name and slug');
-      return;
-    }
-    
-    try {
-      setCreating(true);
-      console.log('Creating project:', { name: name.trim(), slug: slug.trim() });
-      
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          slug: slug.trim(),
-          description: '',
-        }),
-      });
-      
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
-      const responseText = await response.text();
-      console.log('Response body:', responseText);
-      
-      if (!response.ok) {
-        console.error('Failed to create project. Status:', response.status);
-        throw new Error(`Failed to create project: ${response.status} ${responseText}`);
-      }
-      
-      const project = JSON.parse(responseText);
-      console.log('Created project:', project);
-      
-      // Add project to local state immediately
-      setProjects(prev => [project, ...prev]);
-      
-      // Reset form
-      setName('');
-      setSlug('');
-      setShowInlineForm(false);
-      
-      // Save project to localStorage so it becomes the current project
-      localStorage.setItem('sarge_current_project_id', project.id);
-      
-      // Redirect to main workspace/dashboard with sidebar
-      console.log('Redirecting to workspace');
-      router.push('/');
-    } catch (error) {
-      console.error('Error creating project:', error);
-      alert(`Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <AppShell showSidebar={false}>
-        <PageTitle
-          title="Projects"
-          description="Manage application projects and repositories"
-          icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-        />
-        <div className="flex flex-1 p-8 items-center justify-center">
-          <div className="text-center">
-            <div className="glass-card p-8 rounded-lg border border-white/10 inline-block">
-              <FolderGit2 className="h-12 w-12 text-accent mx-auto mb-4 animate-pulse" />
-              <p className="text-gray-400 mb-4">Loading projects...</p>
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-2 h-2 bg-accent rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-100" />
-                <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-200" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
+  const filteredProjects = projects.filter((project: any) => {
+    return project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           project.slug?.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
-    <AppShell showSidebar={false}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-4 pb-2">
-        <PageTitle
-          title="Projects"
-          description="Manage application projects and repositories"
-          icon={<FolderGit2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-          actions={projects.length > 0 ? (
-            <motion.button
-              onClick={handleCreateProject}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap hover:bg-accent/90 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
-            >
-              <Plus className="h-5 w-5" />
-              Create Project
-            </motion.button>
-          ) : null}
-        />
-      </div>
-      <div className="max-w-7xl mx-auto p-8 flex-1">
-
-        {/* Search Bar */}
-        <div className="mb-6 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search projects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-white placeholder-gray-400"
+    <AppShell>
+      <main className="flex-1 p-6 w-full max-w-[100vw]">
+        <ToastContainer />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+          <PageTitle
+            title="Projects"
+            description="Manage your applications and repositories"
+            icon={<FolderGit2 className="w-8 h-8 text-primary" />}
+          />
+          <CreateProjectDialog 
+            open={isCreateOpen} 
+            onOpenChange={setIsCreateOpen} 
+            createMutation={createMutation}
           />
         </div>
 
+        {/* Search and Filters */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-background/50 border-border/50 focus:border-primary/50 transition-colors"
+            />
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => refetch()} title="Refresh projects">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+
         {/* Projects Grid */}
-        {filteredProjects.length === 0 && projects.length === 0 ? (
-          <div className="glass-card p-8 border border-white/10 rounded-lg">
-            {!showInlineForm ? (
-              <div className="text-center py-8">
-                <FolderGit2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
-                <p className="text-gray-400 mb-6">
-                  Create your first project to get started with deployments
-                </p>
-                <motion.button
-                  onClick={() => setShowInlineForm(true)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors inline-flex items-center gap-2 hover:bg-accent/90"
-                >
-                  <Plus className="h-5 w-5" />
-                  Create Your First Project
-                </motion.button>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence mode="popLayout">
+            {isLoading ? (
+               Array.from({ length: 3 }).map((_, i) => (
+                <ProjectSkeleton key={i} />
+               ))
+            ) : filteredProjects.length === 0 ? (
+               <motion.div 
+                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+                 className="col-span-full"
+               >
+                 <EmptyState onCreate={() => setIsCreateOpen(true)} isSearching={searchQuery.length > 0} />
+               </motion.div>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">Create New Project</h3>
-                  <button
-                    onClick={() => {
-                      setShowInlineForm(false);
-                      setName('');
-                      setSlug('');
-                    }}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Project Name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      // Auto-generate slug
-                      if (!slug) {
-                        setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                      }
-                    }}
-                    placeholder="My Awesome Project"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-white placeholder-gray-400"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Project Slug
-                  </label>
-                  <input
-                    type="text"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
-                    placeholder="my-awesome-project"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-white placeholder-gray-400 font-mono"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Used in URLs: /projects/{slug || 'your-slug'}
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <motion.button
-                    onClick={handleCreateInline}
-                    disabled={creating || !name.trim() || !slug.trim()}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex-1 px-6 py-3 bg-accent text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent/90 flex items-center justify-center gap-2"
-                  >
-                    {creating ? (
-                      <>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-black rounded-full animate-bounce" />
-                          <div className="w-2 h-2 bg-black rounded-full animate-bounce delay-100" />
-                          <div className="w-2 h-2 bg-black rounded-full animate-bounce delay-200" />
-                        </div>
-                        <span className="ml-2">Creating...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-5 w-5" />
-                        Create Project
-                      </>
-                    )}
-                  </motion.button>
-                  <button
-                    onClick={() => {
-                      setShowInlineForm(false);
-                      setName('');
-                      setSlug('');
-                    }}
-                    disabled={creating}
-                    className="px-6 py-3 border border-white/10 text-gray-300 rounded-lg font-medium transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              filteredProjects.map((project: any) => (
+                <ProjectCard key={project.id} project={project} router={router} />
+              ))
             )}
-          </div>
-        ) : filteredProjects.length === 0 ? (
-          <div className="glass-card p-12 text-center">
-            <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No projects found</h3>
-            <p className="text-gray-400">
-              Try adjusting your search
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProjects.map((project: any, index: number) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => handleProjectClick(project)}
-                className="glass-card p-6 border border-white/10 rounded-lg hover:border-accent/50 transition-all cursor-pointer group relative"
-              >
-                {/* Project Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      <FolderGit2 className="h-6 w-6 text-accent" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg truncate group-hover:text-accent transition-colors">
-                        {project.name}
-                      </h3>
-                      <p className="text-xs text-gray-400 truncate font-mono">
-                        {project.slug}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/projects/${project.slug}/settings`)
-                    }}
-                    className="text-gray-400 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Project Info */}
-                <div className="space-y-2 text-sm">
-                  {/* Copyable Project ID */}
-                  <div className="flex items-center gap-2 text-gray-400 mb-3 pb-2 border-b border-white/5">
-                    <button
-                      onClick={(e) => copyProjectId(project.id, e)}
-                      className="flex items-center gap-2 text-xs hover:text-accent transition-colors group/copy flex-1 min-w-0"
-                      title="Click to copy project ID"
-                    >
-                      <span className="text-gray-500 flex-shrink-0">ID:</span>
-                      <span className="font-mono truncate flex-1 text-left">
-                        {project.id}
-                      </span>
-                      {copiedId === project.id ? (
-                        <Check className="h-3 w-3 text-accent flex-shrink-0" />
-                      ) : (
-                        <Copy className="h-3 w-3 opacity-0 group-hover/copy:opacity-100 transition-opacity flex-shrink-0" />
-                      )}
-                    </button>
-                  </div>
-                  
-                  {project.description && (
-                    <p className="text-gray-400 line-clamp-2">{project.description}</p>
-                  )}
-                  {project.framework && (
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <span className="text-xs px-2 py-1 bg-white/5 rounded">
-                        {project.framework}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <Clock className="h-4 w-4 flex-shrink-0" />
-                    <span className="text-xs">
-                      Created {new Date(project.created_at || project.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {showWizard && (
-        <ProjectWizard
-          onComplete={handleWizardComplete}
-          onCancel={() => setShowWizard(false)}
-        />
-      )}
+          </AnimatePresence>
+        </div>
+      </main>
     </AppShell>
   );
+}
+
+function CreateProjectDialog({ open, onOpenChange, createMutation }: { open: boolean, onOpenChange: (open: boolean) => void, createMutation: any }) {
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate({
+      name,
+      slug,
+      framework: 'nextjs', // Default or detect
+      autoDeploy: true,
+      repositoryId: null, // Allow manual creation without repo
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-primary/20 transition-all">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Project
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
+        <DialogHeader>
+          <DialogTitle>Create Project</DialogTitle>
+          <DialogDescription>
+            Connect a repository or create a new project container.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Project Name</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => {
+                setName(e.target.value);
+                if (!slug) setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+              }}
+              placeholder="My Awesome App" 
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="slug">Slug</Label>
+            <Input 
+              id="slug" 
+              value={slug} 
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="my-awesome-app" 
+              className="font-mono text-sm"
+            />
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={createMutation.isLoading}>
+              {createMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Create
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ProjectCard({ project, router }: { project: any, router: any }) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Card 
+        className="group relative overflow-hidden border-border/40 bg-card/40 backdrop-blur-sm hover:border-primary/50 hover:bg-card/60 transition-all cursor-pointer min-h-[220px] flex flex-col"
+        onClick={() => router.push(`/projects/${project.slug}`)}
+      >
+        <div className="absolute top-0 left-0 w-1 h-full bg-primary/0 group-hover:bg-primary/100 transition-all duration-300" />
+        
+        <CardHeader className="flex flex-row items-start justify-between pb-2">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
+              {project.name}
+            </CardTitle>
+            <CardDescription className="font-mono text-xs text-muted-foreground/80 flex items-center gap-1">
+              <TerminalIcon className="w-3 h-3" />
+              {project.slug}
+            </CardDescription>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/projects/${project.slug}/settings`) }}>
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive focus:text-destructive">
+                Delete Project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardHeader>
+        
+        <CardContent className="pb-2 flex-grow">
+          <div className="flex items-center gap-2 mb-4">
+            <Badge variant="outline" className={`
+              ${project.status === 'active' ? 'border-green-500/30 text-green-400 bg-green-500/10' : 
+                project.status === 'paused' ? 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10' : 
+                'border-zinc-500/30 text-zinc-400'}
+            `}>
+              <div className={`w-1.5 h-1.5 rounded-full mr-2 ${project.status === 'active' ? 'bg-green-400 animate-pulse' : 'bg-zinc-400'}`} />
+              {project.status.toUpperCase()}
+            </Badge>
+            {project.framework && (
+              <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground font-mono text-xs">
+                {project.framework}
+              </Badge>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <GitBranch className="w-4 h-4" />
+              <span className="truncate">{project.autoDeployBranch || 'main'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{new Date(project.updatedAt || project.created_at || Date.now()).toLocaleDateString()}</span>
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="pt-4 border-t border-border/20 bg-background/20 mt-auto">
+          <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+             <div className="flex items-center gap-1.5">
+               <Github className="w-3.5 h-3.5" />
+               <span className="truncate max-w-[120px]">
+                 {project.repositoryId ? project.repositoryId : 'Local Project'}
+               </span>
+             </div>
+             {project.lastDeployedAt && (
+               <span className="text-xs opacity-70">
+                 Deployed {formatTimeAgo(new Date(project.lastDeployedAt))}
+               </span>
+             )}
+          </div>
+        </CardFooter>
+      </Card>
+    </motion.div>
+  );
+}
+
+function ProjectSkeleton() {
+  return (
+    <Card className="border-border/40 bg-card/20 h-[220px]">
+      <CardHeader className="pb-2">
+        <div className="h-6 w-1/3 bg-muted/20 animate-pulse rounded mb-2" />
+        <div className="h-4 w-1/4 bg-muted/10 animate-pulse rounded" />
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="flex gap-2 mb-4">
+          <div className="h-5 w-20 bg-muted/20 animate-pulse rounded-full" />
+          <div className="h-5 w-16 bg-muted/20 animate-pulse rounded-full" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="h-4 w-full bg-muted/10 animate-pulse rounded" />
+          <div className="h-4 w-full bg-muted/10 animate-pulse rounded" />
+        </div>
+      </CardContent>
+      <CardFooter className="pt-4 border-t border-border/10 mt-auto">
+        <div className="h-4 w-full bg-muted/10 animate-pulse rounded" />
+      </CardFooter>
+    </Card>
+  )
+}
+
+function EmptyState({ onCreate, isSearching }: { onCreate: () => void, isSearching: boolean }) {
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-center rounded-lg border border-dashed border-border/50 bg-card/10">
+      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+        <FolderGit2 className="w-8 h-8 text-primary" />
+      </div>
+      <h3 className="text-xl font-semibold mb-2">
+        {isSearching ? "No matching projects" : "No projects yet"}
+      </h3>
+      <p className="text-muted-foreground max-w-sm mb-6">
+        {isSearching 
+          ? "Try adjusting your search terms or filters."
+          : "Create your first project to start deploying and managing your applications."}
+      </p>
+      <Button onClick={onCreate} className="bg-primary text-primary-foreground hover:bg-primary/90">
+        <Plus className="w-4 h-4 mr-2" />
+        {isSearching ? "Create New Project" : "Create Your First Project"}
+      </Button>
+    </div>
+  )
+}
+
+function formatTimeAgo(date: Date) {
+  const diff = (new Date().getTime() - date.getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }

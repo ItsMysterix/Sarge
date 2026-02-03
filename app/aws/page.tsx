@@ -30,7 +30,11 @@ export default function AWSEmulationPage() {
   }, [])
 
   const services = [
-    // ...existing code...
+    { id: 's3', name: 'S3', icon: Database, count: s3Query.data?.length || 0 },
+    { id: 'dynamo', name: 'DynamoDB', icon: Zap, count: dynamoQuery.data?.length || 0 },
+    { id: 'lambda', name: 'Lambda', icon: Zap, count: lambdaQuery.data?.length || 0 },
+    { id: 'iam', name: 'IAM', icon: Shield, count: iamQuery.data?.length || 0 },
+    { id: 'cloudwatch', name: 'CloudWatch', icon: Activity, count: cwQuery.data?.length || 0 },
   ];
 
   return (

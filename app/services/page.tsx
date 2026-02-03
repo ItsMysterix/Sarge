@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { FilterBar } from "@/components/ui/filter-bar"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { ActionMenu } from "@/components/ui/action-menu"
-import { QuickStatCard } from "@/components/ui/quick-stat-card"
+import { StatCard } from "@/components/ui/stat-card"
 import { useState } from "react"
 
 function ServiceCard({ service, delay }: { service: any; delay: number }) {
@@ -302,7 +302,7 @@ export default function Services() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <QuickStatCard
+            <StatCard
               title="Total Services"
               value={stats.total.toString()}
               icon={Server}
@@ -310,7 +310,7 @@ export default function Services() {
               color="accent"
               delay={0}
             />
-            <QuickStatCard
+            <StatCard
               title="Healthy"
               value={stats.up.toString()}
               icon={Activity}
@@ -319,7 +319,7 @@ export default function Services() {
               color="success"
               delay={0.1}
             />
-            <QuickStatCard
+            <StatCard
               title="Issues"
               value={(stats.degraded + stats.down).toString()}
               icon={AlertTriangle}
@@ -328,7 +328,7 @@ export default function Services() {
               color={stats.degraded + stats.down > 0 ? "error" : "success"}
               delay={0.2}
             />
-            <QuickStatCard
+            <StatCard
               title="Avg Uptime"
               value={`${stats.avgUptime}%`}
               icon={TrendingUp}

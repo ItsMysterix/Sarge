@@ -15,41 +15,13 @@ import {
   ArrowLeft,
   ArrowRight,
   Edit2,
-  Save
+  Save,
+  Globe,
+  Layers
 } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
 
-interface Repository {
-  id: number
-  owner: string
-  repo: string
-  fullName: string
-  isPrimary: boolean
-  branch?: string
-}
-
-interface AIAnalysis {
-  framework: string
-  detectedPorts: number[]
-  detectedTools: string[]
-  suggestedBuildCommand: string
-  suggestedOutputDirectory: string
-  suggestedInstallCommand: string
-  suggestedDevCommand: string
-  summary: string
-  confidence: number
-  estimatedBuildTime: number
-  requiresEnvironmentVariables: string[]
-}
-
-interface DeploymentPlan {
-  repository: Repository
-  analysis: AIAnalysis
-  projectName: string
-  projectSlug: string
-  selectedPorts: number[]
-  environmentVariables: Record<string, string>
-}
+import { Repository, AIAnalysis, DeploymentPlan } from '@/lib/types'
 
 interface StepAIAnalysisProps {
   repository: Repository
@@ -70,9 +42,18 @@ export function StepAIAnalysis({ repository, onAnalysisComplete, onBack, onNext 
   const [envVars, setEnvVars] = useState<Record<string, string>>({})
   const [isEditingPorts, setIsEditingPorts] = useState(false)
   const [newPort, setNewPort] = useState('')
+  const [selectedProvider, setSelectedProvider] = useState('local')
+  const [selectedEnv, setSelectedEnv] = useState<'preview' | 'staging' | 'production'>('preview')
 
   // tRPC mutation for AI analysis
   const analyzeMutation = (trpc.project as any).analyzeRepository.useMutation()
+  
+  // Fetch available providers
+  const providersQuery = (trpc as any).providers.list.useQuery({}, {
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+  })
+  const providers = providersQuery.data || []
 
   useEffect(() => {
     performAIAnalysis()
@@ -140,6 +121,8 @@ export function StepAIAnalysis({ repository, onAnalysisComplete, onBack, onNext 
       projectSlug,
       selectedPorts,
       environmentVariables: envVars,
+      provider: selectedProvider,
+      environment: selectedEnv,
     }
 
     onNext(plan)
@@ -340,6 +323,101 @@ export function StepAIAnalysis({ repository, onAnalysisComplete, onBack, onNext 
           </div>
         </div>
       )}
+
+      {/* Provider & Environment */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-4 glass-card border border-white/10 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Globe className="h-5 w-5 text-blue-400" />
+            <h3 className="font-semibold">Deployment Provider</h3>
+          </div>
+          <select 
+            value={selectedProvider}
+            onChange={(e) => setSelectedProvider(e.target.value)}
+            className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white text-sm appearance-none cursor-pointer"
+          >
+            <option value="local" className="bg-[#1a1a1a]">Local (Docker)</option>
+            {providers.map((p: any) => (
+              <option key={p.id} value={p.id} className="bg-[#1a1a1a]">{p.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="p-4 glass-card border border-white/10 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Layers className="h-5 w-5 text-purple-400" />
+            <h3 className="font-semibold">Environment</h3>
+          </div>
+          <div className="flex p-1 bg-black/20 border border-white/10 rounded-lg">
+            {(['preview', 'staging', 'production'] as const).map((env) => (
+              <button
+                key={env}
+                onClick={() => setSelectedEnv(env)}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${
+                  selectedEnv === env 
+                    ? 'bg-blue-500 text-white shadow-lg' 
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {env}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Detected Stack Visualization */}
+      {(analysis.services?.length || 0) > 0 || (analysis.externalServices?.length || 0) > 0 ? (
+        <div className="p-4 glass-card border border-white/10 rounded-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <Layers className="h-5 w-5 text-indigo-400" />
+            <h3 className="font-semibold">Detected Stack</h3>
+            <span className="text-xs text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded-full border border-indigo-400/20">Flex-Stack Enabled</span>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Application Services */}
+            {analysis.services?.map((svc, i) => (
+              <div key={svc.name || i} className="p-3 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                    <Globe className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold">{svc.name}</h4>
+                    <p className="text-xs text-gray-400">{svc.framework || svc.type} • {svc.cwd}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {svc.ports.map(p => (
+                    <span key={p} className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30">PORT {p}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* External Services (DBs, etc) */}
+            {analysis.externalServices?.map((svc, i) => (
+              <div key={svc.name || i} className="p-3 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center border border-orange-500/30">
+                    <Server className="h-5 w-5 text-orange-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold">{svc.name}</h4>
+                    <p className="text-xs text-gray-400">External {svc.type}</p>
+                  </div>
+                </div>
+                <button className="text-[10px] text-gray-400 hover:text-white transition-colors">Change Type</button>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-[11px] text-gray-500 italic">
+            * Sarge uses your isolated credentials for these resources. Each stack is unique to your account.
+          </p>
+        </div>
+      ) : null}
 
       {/* Build Commands */}
       <div className="p-4 glass-card border border-white/10 rounded-lg">

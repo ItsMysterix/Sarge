@@ -4,21 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FolderGit2, Github, Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react'
 
-interface Repository {
-  id: number
-  name: string
-  full_name: string
-  private: boolean
-  html_url: string
-  default_branch: string
-  language?: string
-  stargazers_count?: number
-  updated_at?: string
-  // Derived for convenience
-  owner?: string
-  repo?: string
-  branch?: string
-}
+import { Repository } from '@/lib/types'
 
 interface StepSelectRepoProps {
   onRepoSelected: (repo: Repository) => void

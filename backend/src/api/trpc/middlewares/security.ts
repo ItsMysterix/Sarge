@@ -81,17 +81,17 @@ export function secureProcedure(route: string, override?: RateOverride) {
       })
       if (!res.allowed) {
         // minimal audit (console.debug to avoid noise)
-        try { console.debug?.(`rate-limit deny route=${route} key=${key}`) } catch {}
-        try { rateDeniedTotal.labels({ route }).inc() } catch {}
+        try { console.debug?.(`rate-limit deny route=${route} key=${key}`) } catch { }
+        try { (rateDeniedTotal as any).labels({ route }).inc() } catch { }
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS' })
       }
-      
+
       // Check NextAuth session first (primary auth method) - skip in test mode
       if (process.env.NODE_ENV !== 'test' && !ctx.session?.user && process.env.RBAC_ENABLED !== 'true') {
         // No session and RBAC not enabled = unauthorized
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' })
       }
-      
+
       // RBAC (opt-in): require token and role if RBAC_ENABLED
       if (process.env.RBAC_ENABLED === 'true') {
         const token = ctx.requestMeta?.apiToken
@@ -111,11 +111,11 @@ export function secureProcedure(route: string, override?: RateOverride) {
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           let core: any
           try {
-            const modName = ['sarge','-','core'].join('')
+            const modName = ['sarge', '-', 'core'].join('')
             core = require(modName)
           } catch (e: any) {
             if (e?.code === 'ERR_REQUIRE_ESM') {
-              const modName = ['sarge','-','core'].join('')
+              const modName = ['sarge', '-', 'core'].join('')
               core = await import(modName)
             }
           }

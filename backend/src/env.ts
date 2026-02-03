@@ -30,7 +30,7 @@ if (!envLoaded) {
 const envSchema = z.object({
   DATABASE_URL: z.string().optional().default(''),
   WS_PORT: z.coerce.number().int().positive().default(3001),
-  NODE_ENV: z.enum(["development","test","production"]).default("development"),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   WS_ALLOWLIST: z.string().optional(),
   ALLOWED_ORIGINS: z.string().default(''),
   WS_ALLOWED_ORIGINS: z.string().optional(),
@@ -40,7 +40,7 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_SEC: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
   RATE_LIMIT_BURST: z.coerce.number().int().nonnegative().default(60),
-  RATE_LIMIT_SCOPE: z.enum(['ip','user','ip_user']).default('ip'),
+  RATE_LIMIT_SCOPE: z.enum(['ip', 'user', 'ip_user']).default('ip'),
   MAX_WS_SUBSCRIPTIONS_PER_CONN: z.coerce.number().int().positive().default(16),
   MAX_WS_MSGS_PER_MIN: z.coerce.number().int().positive().default(240),
   MAX_JSON_BODY_KB: z.coerce.number().int().positive().default(512),
@@ -61,6 +61,7 @@ export const ENV = (() => {
         ALLOWED_ORIGINS: '',
         METRICS_ENABLE: false,
         METRICS_PORT: 9091,
+        PROM_METRICS_TOKEN: '',
         RATE_LIMIT_WINDOW_SEC: 60,
         RATE_LIMIT_MAX: 120,
         RATE_LIMIT_BURST: 60,
@@ -68,6 +69,7 @@ export const ENV = (() => {
         MAX_WS_SUBSCRIPTIONS_PER_CONN: 16,
         MAX_WS_MSGS_PER_MIN: 240,
         MAX_JSON_BODY_KB: 512,
+        WS_ALLOWED_ORIGINS: '',
       };
     }
     throw error;

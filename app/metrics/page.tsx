@@ -8,7 +8,7 @@ import { motion } from "framer-motion"
 import { useState } from "react"
 import { trpc } from "@/lib/trpc"
 import { HealthBanner } from "@/components/metrics/health-banner"
-import { QuickStatCard } from "@/components/ui/quick-stat-card"
+import { StatCard } from "@/components/ui/stat-card"
 import { TabsNavigation } from "@/components/metrics/tabs-navigation"
 import { OverviewTab } from "@/components/metrics/overview-tab"
 import { PerformanceTab } from "@/components/metrics/performance-tab"
@@ -150,7 +150,7 @@ export default function MetricsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                  <QuickStatCard
+                  <StatCard
                     title="CPU"
                     value={`${currentMetrics?.cpu_percent ?? currentMetrics?.cpu ?? avgCpu.toFixed(1)}%`}
                     icon={Cpu}
@@ -158,7 +158,7 @@ export default function MetricsPage() {
                     color="warning"
                     delay={0}
                   />
-                  <QuickStatCard
+                  <StatCard
                     title="Memory"
                     value={`${currentMetrics?.memory_mb ?? currentMetrics?.memory ?? avgMemory.toFixed(0)}MB`}
                     icon={Gauge}
@@ -166,7 +166,7 @@ export default function MetricsPage() {
                     color="accent"
                     delay={0.1}
                   />
-                  <QuickStatCard
+                  <StatCard
                     title="Latency"
                     value={`${currentMetrics?.avg_response_ms ?? currentMetrics?.latency ?? avgLatency.toFixed(0)}ms`}
                     icon={Server}
@@ -174,7 +174,7 @@ export default function MetricsPage() {
                     color="success"
                     delay={0.2}
                   />
-                  <QuickStatCard
+                  <StatCard
                     title="Errors"
                     value={totalErrors.toString()}
                     icon={Rocket}

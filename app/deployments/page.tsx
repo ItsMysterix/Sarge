@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { useRouter } from 'next/navigation';
 import { Plus, Filter, GitBranch, Clock, CheckCircle2, XCircle, PlayCircle, RotateCcw, TrendingUp, Rocket, Terminal } from 'lucide-react';
-import { QuickStatCard } from '@/components/ui/quick-stat-card';
+import { StatCard } from '@/components/ui/stat-card';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { TimelineItem } from '@/components/ui/timeline-item';
 import { AppShell } from '@/components/layout/app-shell';
@@ -20,12 +20,26 @@ import { Button } from '@/components/ui/button';
 
 export default function DeploymentsPage() {
   const t = trpc as any;
-  const { data, isLoading } = t.deploy.getDeployments.useQuery(undefined, {
-    refetchInterval: 5000,
-    refetchOnWindowFocus: false,
-  });
   const router = useRouter();
   const { addToast, ToastContainer } = useToast();
+  
+  // Infinite query for deployments
+  const { 
+    data, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage, 
+    isLoading 
+  } = t.deploy.getDeployments.useInfiniteQuery(
+    { limit: 20 },
+    {
+      getNextPageParam: (lastPage: any) => lastPage.nextCursor,
+      refetchInterval: 5000,
+    }
+  );
+
+  const statsQuery = t.deploy.stats.useQuery();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState([
     { id: "pending", label: "Pending", active: false },
@@ -37,9 +51,6 @@ export default function DeploymentsPage() {
     { id: "production", label: "Production", active: false },
     { id: "staging", label: "Staging", active: false },
   ]);
-  const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
-
-  // Subscription removed for Vercel compatibility; list is polled above.
 
   const handleFilterToggle = (filterId: string) => {
     setFilters(filters.map(f => f.id === filterId ? { ...f, active: !f.active } : f))
@@ -50,13 +61,16 @@ export default function DeploymentsPage() {
     setSearchQuery("")
   }
 
+  const allItems = useMemo(() => {
+    return data?.pages.flatMap((p: any) => p.items) || [];
+  }, [data]);
+
   const items = useMemo(() => {
-    const rows = data ?? [];
     const activeStatusFilters = filters.filter(f => ["pending", "running", "success", "failed"].includes(f.id) && f.active);
     const activeBranchFilters = filters.filter(f => ["main", "develop"].includes(f.id) && f.active);
     const activeEnvFilters = filters.filter(f => ["production", "staging"].includes(f.id) && f.active);
 
-    return rows.filter((r: any) => {
+    return allItems.filter((r: any) => {
       const matchesSearch = !searchQuery || 
         r.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.branch?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,30 +82,41 @@ export default function DeploymentsPage() {
 
       return matchesSearch && matchesStatus && matchesBranch && matchesEnv;
     });
-  }, [data, filters, searchQuery]);
+  }, [allItems, filters, searchQuery]);
 
   const stats = useMemo(() => {
-    const all = data ?? [];
+    if (statsQuery.data) return statsQuery.data;
+    // Fallback if query not ready or failed
     return {
-      total: all.length,
-      success: all.filter((d: any) => d.status === 'success').length,
-      failed: all.filter((d: any) => d.status === 'failed').length,
-      running: all.filter((d: any) => d.status === 'running').length,
-      pending: all.filter((d: any) => d.status === 'pending').length,
-      successRate: all.length > 0 
-        ? ((all.filter((d: any) => d.status === 'success').length / all.length) * 100).toFixed(1)
+      total: allItems.length,
+      success: allItems.filter((d: any) => d.status === 'success').length,
+      failed: allItems.filter((d: any) => d.status === 'failed').length,
+      running: allItems.filter((d: any) => d.status === 'running').length,
+      active: allItems.filter((d: any) => d.status === 'running' || d.status === 'pending').length,
+      successRate: allItems.length > 0 
+        ? ((allItems.filter((d: any) => d.status === 'success').length / allItems.length) * 100).toFixed(1)
         : 0
     };
-  }, [data]);
+  }, [statsQuery.data, allItems]);
 
   return (
     <AppShell>
       <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
-        <PageTitle
-          title="Deployments"
-          description="Track, monitor, and analyze deployment history"
-          icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
-        />
+        <div className="flex items-center justify-between mb-6">
+            <PageTitle
+            title="Deployments"
+            description="Track, monitor, and analyze deployment history"
+            icon={<Rocket className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />}
+            />
+            <Button 
+                onClick={() => router.push('/oneclick')} 
+                className="bg-accent text-white hover:bg-accent/90 shadow-lg hover:glow-accent"
+            >
+                <Plus className="w-4 h-4 mr-2" />
+                New Deployment
+            </Button>
+        </div>
+        
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -105,7 +130,7 @@ export default function DeploymentsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <QuickStatCard
+            <StatCard
               title="Total Deploys"
               value={stats.total.toString()}
               icon={Rocket}
@@ -113,7 +138,7 @@ export default function DeploymentsPage() {
               color="accent"
               delay={0}
             />
-            <QuickStatCard
+            <StatCard
               title="Success Rate"
               value={`${stats.successRate}%`}
               icon={CheckCircle2}
@@ -122,15 +147,15 @@ export default function DeploymentsPage() {
               color="success"
               delay={0.1}
             />
-            <QuickStatCard
+            <StatCard
               title="Active"
-              value={(stats.running + stats.pending).toString()}
+              value={stats.active.toString()}
               icon={PlayCircle}
-              subtitle={`${stats.running} running, ${stats.pending} pending`}
+              subtitle="Running & Pending"
               color="warning"
               delay={0.2}
             />
-            <QuickStatCard
+            <StatCard
               title="Failed"
               value={stats.failed.toString()}
               icon={XCircle}
@@ -185,9 +210,9 @@ export default function DeploymentsPage() {
                     </motion.div>
                   </CardBody>
                 </Card>
-              ) : !data || data.length === 0 ? (
+              ) : !items || items.length === 0 ? (
                 <div className="border-2 border-amber-600/40 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
-                  {/* Window Header */}
+                  {/* Empty State / Terminal Style */}
                   <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-amber-600/40">
                     <div className="flex items-center gap-2">
                       <Terminal className="w-4 h-4 text-amber-600" />
@@ -195,56 +220,22 @@ export default function DeploymentsPage() {
                     </div>
                     <span className="text-xs text-amber-600">LIVE</span>
                   </div>
-
-                  {/* Window Content */}
                   <div className="min-h-96 flex flex-col items-center justify-center px-8 py-16">
                     <div className="flex flex-col items-center gap-6">
-                      {/* Icon */}
                       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-600/40 to-amber-700/50 border-2 border-amber-600 flex items-center justify-center">
                         <Rocket className="w-12 h-12 text-amber-100" />
                       </div>
-
-                      {/* Text Content - matching logs page */}
                       <div className="text-center max-w-2xl font-mono text-sm leading-relaxed text-gray-300">
-                        <p>No deployments found. Deployments will appear after you deploy, analyze, or interact with your services. You can also upload deployment files or trigger a deployment to generate activity.</p>
+                        <p>No deployments found. Start a new deployment to see activity here.</p>
                       </div>
+                      <Button onClick={() => router.push('/oneclick')} className="bg-amber-600 hover:bg-amber-700 text-white">
+                        Deploy Now
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Footer */}
-                  <div className="border-t border-amber-600/40 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
-                    <span>Showing 0 of 0 deployments</span>
-                    <span>Real-time updates active</span>
-                  </div>
                 </div>
-              ) : items.length === 0 ? (
-                <Card>
-                  <CardBody>
-                    <motion.div 
-                      className="text-sm text-zinc-400 text-center py-12"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <motion.div
-                        animate={{ y: [0, -10, 0] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="text-4xl mb-4"
-                      >
-                        📦
-                      </motion.div>
-                      <p>No deployments found matching your filters</p>
-                      <button
-                        onClick={handleClearFilters}
-                        className="mt-4 px-4 py-2 text-accent hover:underline"
-                      >
-                        Clear filters
-                      </button>
-                    </motion.div>
-                  </CardBody>
-                </Card>
               ) : (
-                <div className="border-2 border-amber-600/40 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm">
+                <div className="border-2 border-amber-600/40 rounded-lg overflow-hidden bg-black/40 backdrop-blur-sm flex flex-col">
                   {/* Window Header */}
                   <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-amber-600/40">
                     <div className="flex items-center gap-2">
@@ -269,10 +260,21 @@ export default function DeploymentsPage() {
                     ))}
                   </div>
 
-                  {/* Footer */}
-                  <div className="border-t border-amber-600/40 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between">
-                    <span>Showing {items.length} of {data.length} deployments</span>
-                    <span>Real-time updates active</span>
+                  {/* Footer & Load More */}
+                  <div className="border-t border-amber-600/40 px-4 py-2 bg-black/60 text-xs text-gray-400 flex justify-between items-center">
+                    <span>Showing {items.length} deployments</span>
+                    <div className="flex gap-4 items-center">
+                        {hasNextPage && (
+                            <button 
+                                onClick={() => fetchNextPage()} 
+                                disabled={isFetchingNextPage}
+                                className="text-amber-500 hover:text-amber-400 disabled:opacity-50"
+                            >
+                                {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                            </button>
+                        )}
+                        <span>Real-time updates active</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -286,7 +288,7 @@ export default function DeploymentsPage() {
 
 function DeploymentRow({ d, router }: { d: any; router: any }) {
   const t = trpc as any
-  const stopMutation = t.sarge.deploy.stopDeployment?.useMutation()
+  const stopMutation = t.deploy.stopDeployment.useMutation()
   const meta = extractMeta(d.summary)
   
   const handleStop = async () => {

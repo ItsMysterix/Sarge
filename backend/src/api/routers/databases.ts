@@ -2,6 +2,8 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { RDSClient, CreateDBInstanceCommand, DescribeDBInstancesCommand, DeleteDBInstanceCommand, CreateDBSnapshotCommand, RestoreDBInstanceFromDBSnapshotCommand } from '@aws-sdk/client-rds'
+import { getProviderCredentials } from '../lib/credentials'
 
 /**
  * Managed Databases Router
@@ -74,13 +76,16 @@ export const databasesRouter = router({
 
         const dbId = result.rows[0].id
 
+        // Fetch credentials for the provider
+        const creds = await getProviderCredentials(input.provider, ctx.db, ctx.session?.user?.id)
+
         // Trigger provisioning (async)
         provisionDatabase({
           ...input,
           id: dbId,
           username,
           password,
-        }).catch(console.error)
+        }, creds).catch(console.error)
 
         return {
           success: true,
@@ -229,7 +234,7 @@ export const databasesRouter = router({
         await ctx.db.query(
           `UPDATE database_backups SET status = 'restoring' WHERE id = $1`,
           [input.backupId]
-        ).catch(() => {})
+        ).catch(() => { })
 
         // Trigger restore (async)
         performRestore(input.backupId, input.targetDatabaseId).catch(console.error)
@@ -330,14 +335,14 @@ export const databasesRouter = router({
               database_instance_id, backup_type, status, description, created_at
             ) VALUES ($1, 'final', 'in_progress', 'Final backup before deletion', NOW())`,
             [input.databaseId]
-          ).catch(() => {})
+          ).catch(() => { })
         }
 
         // Mark for deletion
         await ctx.db.query(
           `UPDATE database_instances SET status = 'deleting' WHERE id = $1`,
           [input.databaseId]
-        ).catch(() => {})
+        ).catch(() => { })
 
         // Trigger deletion (async)
         performDeletion(input.databaseId).catch(console.error)
@@ -364,14 +369,42 @@ function generateSecurePassword(): string {
   return password
 }
 
-async function provisionDatabase(config: any): Promise<void> {
-  // In production, call cloud provider APIs:
-  // - AWS: RDS CreateDBInstance
-  // - GCP: Cloud SQL instances.create
-  // - Azure: sql servers create
+async function provisionDatabase(config: any, creds?: Record<string, string>): Promise<void> {
   console.log('[provisionDatabase] Starting provisioning for', config.id)
-  
-  // Simulate async provisioning
+
+  if (config.provider === 'aws' && creds) {
+    try {
+      const rds = new RDSClient({
+        region: config.region || creds.aws_region || 'us-east-1',
+        credentials: {
+          accessKeyId: creds.aws_token || '',
+          secretAccessKey: creds.aws_secret || '',
+        },
+      })
+
+      const command = new CreateDBInstanceCommand({
+        DBInstanceIdentifier: config.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        Engine: config.engine === 'postgresql' ? 'postgres' : config.engine,
+        EngineVersion: config.version,
+        DBInstanceClass: config.instanceType,
+        AllocatedStorage: config.storageGb,
+        MasterUsername: config.username,
+        MasterUserPassword: config.password,
+        BackupRetentionPeriod: config.enableBackups ? config.backupRetentionDays : 0,
+        PubliclyAccessible: config.enablePublicAccess,
+        StorageType: 'gp2',
+      })
+
+      const result = await rds.send(command)
+      console.log('[provisionDatabase] AWS RDS Instance created:', result.DBInstance?.DBInstanceArn)
+    } catch (err) {
+      console.error('[provisionDatabase] AWS Error:', err)
+    }
+    return
+  }
+
+  // Fallback for other providers or missing creds
+  console.log('[provisionDatabase] Simulation mode for', config.id)
   await new Promise(resolve => setTimeout(resolve, 5000))
   console.log('[provisionDatabase] Completed for', config.id)
 }

@@ -14,8 +14,10 @@ export const repositoryRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       try {
-        // Ensure user context (placeholder 'user_1')
-        const userId = 'user_1'
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new Error('Not authenticated');
+        }
 
         // Upsert repository
         const upsert = await ctx.db.query(
@@ -59,7 +61,10 @@ export const repositoryRouter = router({
   // List repositories for current user
   list: publicProcedure.query(async ({ ctx }) => {
     try {
-      const userId = 'user_1'
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return [];
+      }
       const res = await ctx.db.query(
         `SELECT * FROM repositories WHERE user_id = $1 ORDER BY is_primary DESC, updated_at DESC`,
         [userId]
@@ -76,7 +81,10 @@ export const repositoryRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const userId = 'user_1'
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new Error('Not authenticated');
+        }
         await ctx.db.query(`UPDATE repositories SET is_primary = false WHERE user_id = $1`, [userId])
         await ctx.db.query(`UPDATE repositories SET is_primary = true WHERE id = $1 AND user_id = $2`, [input.id, userId])
         return { success: true }
