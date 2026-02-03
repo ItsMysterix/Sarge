@@ -5,17 +5,17 @@ const METRICS_PREFIX = process.env.METRICS_PREFIX ?? 'sarge_';
 
 // Single registry instance for the app
 const registry = new Registry();
-collectDefaultMetrics({ register: registry, prefix: METRICS_PREFIX });
+collectDefaultMetrics({ register: registry });
 
 // Domain metrics
-export const requestsTotal = new Counter({
+export const requestsTotal = new Counter<"route" | "method" | "status_class">({
   name: `${METRICS_PREFIX}requests_total`,
   help: 'HTTP/tRPC requests',
   labelNames: ['route', 'method', 'status_class'],
   registers: [registry],
 });
 
-export const queryDurationSeconds = new Histogram({
+export const queryDurationSeconds = new Histogram<"query_name">({
   name: `${METRICS_PREFIX}query_duration_seconds`,
   help: 'DB/tRPC query duration',
   labelNames: ['query_name'],
@@ -23,21 +23,21 @@ export const queryDurationSeconds = new Histogram({
   registers: [registry],
 });
 
-export const serviceCpuPercent = new Gauge({
+export const serviceCpuPercent = new Gauge<"service_id">({
   name: `${METRICS_PREFIX}service_cpu_percent`,
   help: 'Service CPU usage (percent 0-100)',
   labelNames: ['service_id'],
   registers: [registry],
 });
 
-export const serviceMemoryBytes = new Gauge({
+export const serviceMemoryBytes = new Gauge<"service_id">({
   name: `${METRICS_PREFIX}service_memory_bytes`,
   help: 'Service memory bytes',
   labelNames: ['service_id'],
   registers: [registry],
 });
 
-export const serviceLatencyMs = new Histogram({
+export const serviceLatencyMs = new Histogram<"service_id">({
   name: `${METRICS_PREFIX}service_latency_ms`,
   help: 'Service latency ms',
   labelNames: ['service_id'],
@@ -45,21 +45,21 @@ export const serviceLatencyMs = new Histogram({
   registers: [registry],
 });
 
-export const deploysTotal = new Counter({
+export const deploysTotal = new Counter<"status">({
   name: `${METRICS_PREFIX}deploys_total`,
   help: 'Deploy count by outcome',
   labelNames: ['status'],
   registers: [registry],
 });
 
-export const deploysRunning = new Gauge({
+export const deploysRunning = new Gauge<string>({
   name: `${METRICS_PREFIX}deploys_running`,
   help: 'Current number of running deployments',
   registers: [registry],
 });
 
 // Security/WS related counters for alerting
-export const rateDeniedTotal = new Counter({
+export const rateDeniedTotal = new Counter<"route">({
   name: `${METRICS_PREFIX}rate_denied_total`,
   help: 'Total number of rate limit denials',
   labelNames: ['route'],
@@ -87,28 +87,28 @@ export const trpcErrorsTotal = new Counter({
 
 // Helper APIs
 export function incRequest(route: string, method: string, statusClass: string) {
-  requestsTotal.labels({ route, method, status_class: statusClass }).inc();
+  (requestsTotal as any).labels({ route, method, status_class: statusClass }).inc();
 }
 
 export function startQueryTimer(queryName: string) {
-  const end = queryDurationSeconds.labels({ query_name: queryName }).startTimer();
+  const end = (queryDurationSeconds as any).labels({ query_name: queryName }).startTimer();
   return () => end();
 }
 
 export function setServiceCpu(serviceId: string, percent: number) {
-  serviceCpuPercent.labels({ service_id: serviceId }).set(percent);
+  (serviceCpuPercent as any).labels({ service_id: serviceId }).set(percent);
 }
 
 export function setServiceMemoryBytes(serviceId: string, bytes: number) {
-  serviceMemoryBytes.labels({ service_id: serviceId }).set(bytes);
+  (serviceMemoryBytes as any).labels({ service_id: serviceId }).set(bytes);
 }
 
 export function observeServiceLatencyMs(serviceId: string, ms: number) {
-  serviceLatencyMs.labels({ service_id: serviceId }).observe(ms);
+  (serviceLatencyMs as any).labels({ service_id: serviceId }).observe(ms);
 }
 
 export function incDeploy(status: string) {
-  deploysTotal.labels({ status }).inc();
+  (deploysTotal as any).labels({ status }).inc();
 }
 
 export async function getMetricsText() {

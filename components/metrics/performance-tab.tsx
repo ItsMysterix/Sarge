@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Clock, TrendingUp, AlertTriangle } from "lucide-react"
-import { LargeStatCard } from "./stat-card"
+import { StatCard } from "@/components/ui/stat-card"
 import { MetricsChart, RequestVolumeChart, ErrorRateChart } from "@/components/ui/metrics-chart"
 
 interface PerformanceTabProps {
@@ -24,26 +24,26 @@ export function PerformanceTab({
     <div className="space-y-6">
       {/* Performance Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <LargeStatCard
+        <StatCard size="lg"
           icon={Clock}
-          label="Response Latency"
+          title="Response Latency"
           value={`${Math.floor(avgLatency)}ms`}
           detail={`p50: ${Math.floor(avgLatency)}ms · p95: ${Math.floor(avgLatency * 1.5)}ms · p99: ${Math.floor(avgLatency * 2)}ms`}
           color="text-info"
         />
         
-        <LargeStatCard
+        <StatCard size="lg"
           icon={TrendingUp}
-          label="Request Volume"
+          title="Request Volume"
           value={`${Math.floor(totalRequests / displayData.length)}/min`}
           detail={`Total: ${totalRequests.toLocaleString()} · Avg: ${(totalRequests / displayData.length).toFixed(1)}/min`}
           color="text-success"
           delay={0.1}
         />
         
-        <LargeStatCard
+        <StatCard size="lg"
           icon={AlertTriangle}
-          label="Error Rate"
+          title="Error Rate"
           value={`${errorRate.toFixed(2)}%`}
           detail={`${totalErrors} errors · ${(totalErrors / (displayData.length || 1)).toFixed(1)}/min`}
           color="text-error"

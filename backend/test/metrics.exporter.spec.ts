@@ -3,7 +3,7 @@ import { register, requestsTotal, queryDurationSeconds, serviceCpuPercent, servi
 
 describe('metrics exporter', () => {
   test('registers expected metrics', async () => {
-    const json = await register.getMetricsAsJSON();
+    const json = await (register as any).getMetricsAsJSON();
     const names = json.map((m: any) => m.name).sort();
     expect(names).toEqual(expect.arrayContaining([
       'sarge_requests_total',

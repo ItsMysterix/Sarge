@@ -57,10 +57,15 @@ export const projectRouter = router({
   list: publicProcedure.query(async ({ ctx }) => {
     try {
       // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Database query timeout')), 2000)
       );
-      
+
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { projects: [] };
+      }
+
       const queryPromise = ctx.db.query(
         `SELECT 
           p.*,
@@ -71,9 +76,9 @@ export const projectRouter = router({
          WHERE p.user_id = $1
          GROUP BY p.id
          ORDER BY p.created_at DESC`,
-        ['user_1'] // TODO: Get from auth context
+        [userId]
       );
-      
+
       const result = await Promise.race([queryPromise, timeoutPromise]) as any;
       return { projects: result.rows }
     } catch (error) {
@@ -92,6 +97,11 @@ export const projectRouter = router({
           setTimeout(() => reject(new Error('Database query timeout')), 2000)
         )
 
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new TRPCError({ code: 'UNAUTHORIZED' });
+        }
+
         const query = ctx.db.query(
           `SELECT 
              p.*,
@@ -101,7 +111,7 @@ export const projectRouter = router({
            LEFT JOIN deployments d ON d.project_id = p.id
            WHERE p.id = $1 AND p.user_id = $2
            GROUP BY p.id`,
-          [input.id, 'user_1']
+          [input.id, userId]
         )
 
         const result = await Promise.race([query, timeout]) as any
@@ -144,6 +154,11 @@ export const projectRouter = router({
           setTimeout(() => reject(new Error('Database query timeout')), 2000)
         )
 
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new TRPCError({ code: 'UNAUTHORIZED' });
+        }
+
         const query = ctx.db.query(
           `SELECT 
              p.*,
@@ -153,7 +168,7 @@ export const projectRouter = router({
            LEFT JOIN deployments d ON d.project_id = p.id
            WHERE p.slug = $1 AND p.user_id = $2
            GROUP BY p.id`,
-          [input.slug, 'user_1']
+          [input.slug, userId]
         )
 
         const result = await Promise.race([query, timeout]) as any
@@ -198,7 +213,7 @@ export const projectRouter = router({
         // Optional: Run AI detection if repositoryId provided
         if (input.repositoryId) {
           try {
-            const modName = ['sarge','-','core'].join('')
+            const modName = ['sarge', '-', 'core'].join('')
             const core = require(modName)
             const detection = await core.detector.detectStack(input.repositoryId)
             detectedInfo = {
@@ -215,6 +230,14 @@ export const projectRouter = router({
           }
         }
 
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'You must be logged in to create a project',
+          });
+        }
+
         const result = await ctx.db.query(
           `INSERT INTO projects (
             user_id, name, slug, description,
@@ -226,7 +249,7 @@ export const projectRouter = router({
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
           ) RETURNING *`,
           [
-            'user_1', // TODO: Get from auth
+            userId,
             input.name,
             input.slug,
             input.description || null,
@@ -260,7 +283,7 @@ export const projectRouter = router({
            VALUES ($1, $2, $3, $4)`,
           [
             project.id,
-            'user_1',
+            userId,
             'created',
             JSON.stringify({ name: input.name, repository_id: input.repositoryId }),
           ]
@@ -277,14 +300,16 @@ export const projectRouter = router({
   update: publicProcedure
     .input(updateProjectSchema)
     .mutation(async ({ input, ctx }) => {
-      // TODO: Check user has access to this project
-      // TODO: Update in database
-      
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
       const { id, ...updates } = input;
-      
+
       return {
         id,
-        userId: 'user_1',
+        userId: userId,
         name: updates.name || 'My Project',
         slug: 'my-project',
         ...updates,
@@ -298,7 +323,7 @@ export const projectRouter = router({
     .mutation(async ({ input, ctx }) => {
       // TODO: Check user has access to this project
       // TODO: Delete from database (cascade will handle related data)
-      
+
       return { success: true, id: input.id };
     }),
 
@@ -308,7 +333,7 @@ export const projectRouter = router({
     .query(async ({ input, ctx }) => {
       // TODO: Query database for project settings
       // Check if user has access to this project
-      
+
       // Mock response
       return {
         id: 1,
@@ -338,9 +363,9 @@ export const projectRouter = router({
     .mutation(async ({ input, ctx }) => {
       // TODO: Check user has access to this project
       // TODO: Update settings in database
-      
+
       const { projectId, ...settings } = input;
-      
+
       return {
         id: 1,
         projectId,
@@ -354,7 +379,7 @@ export const projectRouter = router({
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       // TODO: Query aggregated stats from database
-      
+
       return {
         projectId: input.projectId,
         totalDeployments: 5,
@@ -371,7 +396,7 @@ export const projectRouter = router({
 
   // Analyze project (AI detection for one-click deploy)
   analyzeRepository: publicProcedure
-    .input(z.object({ 
+    .input(z.object({
       repositoryId: z.number(),
       owner: z.string(),
       repo: z.string(),
@@ -380,7 +405,7 @@ export const projectRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         console.log(`[tRPC] Analyzing repository: ${input.owner}/${input.repo}`);
-        
+
         // Use AI analyzer to analyze the repository
         const analyzer = getAIAnalyzer();
         const analysis = await analyzer.analyzeRepository(
@@ -388,13 +413,13 @@ export const projectRouter = router({
           input.repo,
           input.branch
         );
-        
+
         console.log(`[tRPC] Analysis complete: ${analysis.framework} (confidence: ${analysis.confidence})`);
-        
+
         return analysis;
       } catch (error) {
         console.error('[tRPC] Analysis failed:', error);
-        
+
         // Return fallback mock data if AI fails
         console.warn('[tRPC] Returning fallback mock analysis');
         return {

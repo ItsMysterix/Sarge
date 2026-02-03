@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Server, Database, CheckCircle } from "lucide-react"
-import { LargeStatCard } from "./stat-card"
+import { StatCard } from "@/components/ui/stat-card"
 import { ServiceDistributionChart } from "@/components/ui/metrics-chart"
 
 interface ServicesTabProps {
@@ -15,26 +15,26 @@ export function ServicesTab({ services, serviceData }: ServicesTabProps) {
     <div className="space-y-6">
       {/* Service Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <LargeStatCard
+        <StatCard size="lg"
           icon={Server}
-          label="Active Containers"
+          title="Active Containers"
           value={services.length || 5}
           detail="Running · 0 stopped"
           color="text-cyan-400"
         />
         
-        <LargeStatCard
+        <StatCard size="lg"
           icon={Database}
-          label="Services"
+          title="Services"
           value={serviceData.length}
           detail="AWS services active"
           color="text-accent"
           delay={0.1}
         />
         
-        <LargeStatCard
+        <StatCard size="lg"
           icon={CheckCircle}
-          label="Health"
+          title="Health"
           value="100%"
           detail="All services operational"
           color="text-success"

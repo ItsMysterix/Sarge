@@ -3,15 +3,9 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Rocket, Loader2, CheckCircle2, XCircle, Terminal, ArrowLeft } from 'lucide-react'
+import { trpc } from '@/lib/trpc'
 
-interface DeploymentPlan {
-  repository: any
-  analysis: any
-  projectName: string
-  projectSlug: string
-  selectedPorts: number[]
-  environmentVariables: Record<string, string>
-}
+import { DeploymentPlan } from '@/lib/types'
 
 interface StepDeployProps {
   plan: DeploymentPlan
@@ -34,26 +28,61 @@ export function StepDeploy({ plan, onBack, onDeploymentComplete }: StepDeployPro
     'Deployment complete',
   ]
 
+  const deployMutation = (trpc as any).oneclick.deployConnected.useMutation()
+  
+  // Real logs streaming
+  (trpc as any).oneclick.streamConnected.useSubscription(
+    { owner: plan.repository.owner, repo: plan.repository.repo },
+    {
+      onData: (log: any) => {
+        setDeploymentLogs(prev => [...prev.slice(-100), log.line])
+        if (log.level === 'error') setError(log.line)
+      },
+    }
+  )
+
   const handleDeploy = async () => {
     setIsDeploying(true)
     setError(null)
     setDeploymentLogs([])
 
     try {
-      // Simulate deployment process
-      for (let i = 0; i < deploymentSteps.length; i++) {
-        setCurrentStep(i)
-        setDeploymentLogs(prev => [...prev, `✓ ${deploymentSteps[i]}`])
-        await new Promise(resolve => setTimeout(resolve, 1500))
+      // 1. Get access token
+      setDeploymentLogs(prev => [...prev, '🔑 Fetching GitHub credentials...'])
+      const tokenRes = await fetch('/api/github/access-token')
+      if (!tokenRes.ok) throw new Error('Failed to fetch GitHub token')
+      const { token } = await tokenRes.json()
+
+      // 2. Start deployment
+      setDeploymentLogs(prev => [...prev, `🚀 Initiating ${plan.provider} deployment for ${plan.repository.full_name}...`])
+      
+      const result = await deployMutation.mutateAsync({
+        owner: plan.repository.owner,
+        repo: plan.repository.repo,
+        branch: plan.repository.branch || 'main',
+        accessToken: token,
+        provider: plan.provider,
+        environment: plan.environment,
+        deploymentMethod: plan.provider === 'local' ? 'local' : 'docker'
+      })
+
+      if (result.error) {
+        throw new Error(result.error)
       }
 
-      // Create project ID
-      const projectId = crypto.randomUUID()
-      onDeploymentComplete(projectId)
-    } catch (err) {
+      setDeploymentLogs(prev => [...prev, '✅ Deployment handshake successful'])
+      
+      // The subscription will handle the rest of the logs
+      // We'll wait a bit or wait for a specific log to signal completion
+      // For now, let's wait 5 seconds and signal success if no error
+      setTimeout(() => {
+        if (!error) onDeploymentComplete(result.deploymentId || crypto.randomUUID())
+      }, 5000)
+
+    } catch (err: any) {
       console.error('Deployment failed:', err)
-      setError('Deployment failed. Please try again.')
-      setDeploymentLogs(prev => [...prev, '✗ Deployment failed'])
+      setError(err.message || 'Deployment failed. Please try again.')
+      setDeploymentLogs(prev => [...prev, `✗ Error: ${err.message}`])
     } finally {
       setIsDeploying(false)
     }

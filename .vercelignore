@@ -32,7 +32,6 @@ coverage
 packages/*/node_modules
 packages/*/dist
 packages/localcloud-*
-packages/sarge-*
 
 # Monitoring
 prometheus/data

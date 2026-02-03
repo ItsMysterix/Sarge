@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Rocket, Activity, Settings, Menu, X, Layers, Cloud, Zap, FolderOpen, Pin, PinOff } from "lucide-react"
 import { useProject } from "@/lib/project-context"
-import { useSidebarStore } from "@/lib/sidebar-store"
 import { useAppStore } from "@/lib/store"
 
 const navigation = [
@@ -24,13 +23,16 @@ export function Sidebar() {
   const pathname = usePathname()
   const { currentProject } = useProject()
   const projectId = currentProject?.id ?? null
-  const { getStateFor, toggleCollapsed, togglePinnedRoute, hydrate } = useSidebarStore()
-  const state = getStateFor(projectId)
-  const systemStatus = useAppStore((state) => state.getSystemStatus())
+  const { 
+    getSidebarStateFor, 
+    toggleSidebarCollapsed, 
+    togglePinnedRoute,
+    getSystemStatus 
+  } = useAppStore()
+  
+  const state = getSidebarStateFor(projectId)
+  const systemStatus = getSystemStatus()
 
-  useEffect(() => {
-    hydrate(projectId)
-  }, [projectId, hydrate])
 
   const pinnedSet = useMemo(() => new Set(state.pinnedRoutes), [state.pinnedRoutes])
 
@@ -63,7 +65,7 @@ export function Sidebar() {
           {/* Top spacing (brand removed per new global header design) */}
           <div className="mb-3 sm:mb-4 pt-4 sm:pt-8 lg:pt-0 flex items-center justify-between">
             <button
-              onClick={() => toggleCollapsed(projectId)}
+              onClick={() => toggleSidebarCollapsed(projectId)}
               className="glass-card border border-white/10 px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors touch-manipulation"
               title={state.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >

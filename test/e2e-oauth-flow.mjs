@@ -96,7 +96,7 @@ async function testOAuthFlow() {
         console.log('');
         
         // Wait for callback
-        await page.waitForURL(url => !url.includes('github.com'), { timeout: 60000 });
+        await page.waitForURL(url => !url.toString().includes('github.com'), { timeout: 60000 });
         
         const currentUrl3 = page.url();
         console.log('\n✅ Returned from GitHub to:', currentUrl3);
@@ -151,10 +151,9 @@ async function testOAuthFlow() {
     console.error('\n❌ Test failed with error:', error.message);
     console.error('Stack:', error.stack);
   } finally {
-    console.log('\n⏸️  Keeping browser open for 30 seconds for inspection...');
-    await page.waitForTimeout(30000);
-    await browser.close();
-    console.log('✅ Browser closed');
+    console.log('\n⏸️  Keeping browser open. Press Ctrl+C in this terminal to close it.');
+    // Keep process alive so the browser stays open for manual inspection.
+    await new Promise(() => {});
   }
 }
 

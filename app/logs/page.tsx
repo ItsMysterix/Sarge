@@ -28,7 +28,7 @@ import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
 import { AnimationErrorBoundary } from "@/components/ui/animation-error-boundary";
 import { useUserRole } from "@/hooks/useUserRole";
-import { QuickStatCard } from "@/components/ui/quick-stat-card";
+import { StatCard } from "@/components/ui/stat-card";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -252,11 +252,11 @@ export default function Logs() {
           />
           <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw] flex items-center justify-center">
             <EmptyState 
-              service="Logs"
+              title="No logs found"
               icon={ScrollText}
-              description="No logs found. Logs will appear after you deploy, analyze, or interact with your services. You can also upload log files or trigger a deployment to generate activity."
+              description="Logs will appear after you deploy, analyze, or interact with your services. You can also upload log files or trigger a deployment to generate activity."
               actionLabel="Go to Deployments"
-              actionHref="/deployments"
+              onAction={() => window.location.href = "/deployments"}
             />
           </main>
         </AppShell>
@@ -351,7 +351,7 @@ export default function Logs() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <QuickStatCard
+              <StatCard
                 title="Total Logs"
                 value={stats.total.toString()}
                 icon={Brain}
@@ -359,7 +359,7 @@ export default function Logs() {
                 color="accent"
                 delay={0}
               />
-              <QuickStatCard
+              <StatCard
                 title="Info"
                 value={stats.info.toString()}
                 icon={Info}
@@ -367,7 +367,7 @@ export default function Logs() {
                 color="accent"
                 delay={0.05}
               />
-              <QuickStatCard
+              <StatCard
                 title="Warnings"
                 value={stats.warn.toString()}
                 icon={AlertTriangle}
@@ -376,7 +376,7 @@ export default function Logs() {
                 color="warning"
                 delay={0.1}
               />
-              <QuickStatCard
+              <StatCard
                 title="Errors"
                 value={stats.error.toString()}
                 icon={AlertCircle}
@@ -385,7 +385,7 @@ export default function Logs() {
                 color="error"
                 delay={0.15}
               />
-              <QuickStatCard
+              <StatCard
                 title="Alerts"
                 value={stats.alert.toString()}
                 icon={AlertCircle}
@@ -393,7 +393,7 @@ export default function Logs() {
                 color="error"
                 delay={0.2}
               />
-              <QuickStatCard
+              <StatCard
                 title="Bookmarked"
                 value={stats.bookmarked.toString()}
                 icon={BookmarkCheck}
@@ -476,11 +476,11 @@ export default function Logs() {
                 <AnimatePresence mode="wait">
                   {filteredLogs.length === 0 ? (
                     <EmptyState 
-                      service="Logs"
+                      title="No logs found"
                       icon={ScrollText}
-                      description="No logs found. Logs will appear after you deploy, analyze, or interact with your services. You can also upload log files or trigger a deployment to generate activity."
+                      description="Logs will appear after you deploy, analyze, or interact with your services. You can also upload log files or trigger a deployment to generate activity."
                       actionLabel="Go to Deployments"
-                      actionHref="/deployments"
+                      onAction={() => window.location.href = "/deployments"}
                     />
                   ) : (
                     <motion.div 

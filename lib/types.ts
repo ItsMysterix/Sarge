@@ -1,56 +1,52 @@
-// Database types for Neon backend
-export interface Insight {
-  id: string
-  date: string
-  grade: "A" | "B" | "C" | "D" | "F"
-  tips: string[]
-  created_at: string
+export interface Repository {
+  id: number;
+  name: string;
+  owner: string;
+  repo: string;
+  full_name: string;
+  private: boolean;
+  html_url: string;
+  default_branch: string;
+  branch?: string;
+  language?: string;
+  stargazers_count?: number;
+  updated_at?: string;
 }
 
-export interface Metric {
-  id: string
-  cpu: number
-  memory: number
-  latency: number
-  cost: number
-  timestamp: string
+export interface DetectedService {
+  name: string;
+  type: string;
+  cwd: string;
+  startCommand?: string;
+  buildCommand?: string;
+  ports: number[];
+  envKeys: string[];
+  framework?: string;
 }
 
-export interface Deployment {
-  id: string
-  branch: string
-  commit: string
-  status: "pending" | "success" | "failed"
-  summary: string
-  created_at: string
+export interface AIAnalysis {
+  framework: string;
+  detectedPorts: number[];
+  detectedTools: string[];
+  suggestedBuildCommand: string;
+  suggestedOutputDirectory: string;
+  suggestedInstallCommand: string;
+  suggestedDevCommand: string;
+  summary: string;
+  confidence: number;
+  estimatedBuildTime: number;
+  requiresEnvironmentVariables: string[];
+  services?: DetectedService[];
+  externalServices?: DetectedService[];
 }
 
-export interface Log {
-  id: string
-  type: "info" | "error" | "alert" | "warn"
-  message: string
-  service: string
-  timestamp: string
-}
-
-export interface Service {
-  id: string
-  name: string
-  status: "up" | "down" | "degraded"
-  cost_hr: number
-  uptime_percent: number
-}
-
-export interface ServiceUptime {
-  id: string
-  service_id: string
-  timestamp: string
-  value: number
-}
-
-export interface UserSettings {
-  id: string
-  user_id: string
-  slack_alerts: boolean
-  auto_rebuild: boolean
+export interface DeploymentPlan {
+  repository: Repository;
+  analysis: AIAnalysis;
+  projectName: string;
+  projectSlug: string;
+  selectedPorts: number[];
+  environmentVariables: Record<string, string>;
+  provider: string;
+  environment: 'preview' | 'staging' | 'production';
 }

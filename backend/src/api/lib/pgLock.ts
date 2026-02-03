@@ -10,8 +10,8 @@ export function uuidLockKey(id: string | number): bigint {
   // Take first 8 bytes as unsigned 64-bit, then clamp to 53-bit range
   const hi = hash.readUInt32BE(0);
   const lo = hash.readUInt32BE(4);
-  const u64 = (BigInt(hi) << 32n) | BigInt(lo);
-  const mask53 = (1n << 53n) - 1n;
+  const u64 = (BigInt(hi) << BigInt(32)) | BigInt(lo);
+  const mask53 = (BigInt(1) << BigInt(53)) - BigInt(1);
   return u64 & mask53;
 }
 
@@ -24,7 +24,7 @@ export async function withAdvisoryLock<T>(db: Pool, key: bigint, fn: () => Promi
       try {
         return await fn();
       } finally {
-        try { await (db as any).query(`SELECT pg_advisory_unlock($1)`, [key]); } catch {}
+        try { await (db as any).query(`SELECT pg_advisory_unlock($1)`, [key]); } catch { }
       }
     }
     // quick retry without sleep to keep tests fast

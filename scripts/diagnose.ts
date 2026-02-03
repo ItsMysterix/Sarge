@@ -188,10 +188,10 @@ async function checkOAuth(envVars: Map<string, string>) {
   const nextAuthUrl = envVars.get('NEXTAUTH_URL')
   const nextAuthSecret = envVars.get('NEXTAUTH_SECRET')
 
-  const checks = [
+  const checks: [string, string | undefined, boolean][] = [
     ['GITHUB_ID', githubId, githubId ? githubId.length > 10 : false],
     ['GITHUB_SECRET', githubSecret, githubSecret ? githubSecret.length > 20 : false],
-    ['NEXTAUTH_URL', nextAuthUrl, nextAuthUrl?.startsWith('http') || false],
+    ['NEXTAUTH_URL', nextAuthUrl, !!nextAuthUrl?.startsWith('http')],
     ['NEXTAUTH_SECRET', nextAuthSecret, nextAuthSecret ? nextAuthSecret.length > 20 : false],
   ]
 

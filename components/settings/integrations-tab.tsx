@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Github, MessageSquare, Brain, Database, CheckCircle, AlertTriangle, Zap } from "lucide-react"
-import { LoadingButton } from "@/components/ui/loading-button"
+import { Button } from "@/components/ui/button"
 
 interface IntegrationsTabProps {
   slackAlerts: boolean
@@ -135,13 +135,13 @@ export function IntegrationsTab({
             <div className="text-sm text-gray-400 mb-3">
               Webhook endpoint configured
             </div>
-            <LoadingButton
+            <Button
               onClick={onTestWebhook}
               loading={isTestingWebhook}
               className="w-full px-4 py-2 glass-card border border-white/10 hover:bg-white/5 rounded transition-colors text-sm"
             >
               Test Webhook
-            </LoadingButton>
+            </Button>
           </div>
         </div>
       </div>
