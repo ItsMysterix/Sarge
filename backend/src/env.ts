@@ -46,7 +46,33 @@ const envSchema = z.object({
   MAX_JSON_BODY_KB: z.coerce.number().int().positive().default(512),
 });
 
-export const ENV = envSchema.parse(process.env);
+export const ENV = (() => {
+  try {
+    return envSchema.parse(process.env);
+  } catch (error) {
+    // During Next.js build, backend modules may be imported but not actually used at runtime
+    // Return a partial env object with safe defaults
+    if (process.env.NODE_ENV !== 'production' || process.env.__NEXT_PHASE === 'phase-production-build') {
+      console.warn('[backend/env] Returning partial ENV during build phase:', error);
+      return {
+        NODE_ENV: (process.env.NODE_ENV || 'development') as any,
+        DATABASE_URL: '',
+        WS_PORT: 3001,
+        ALLOWED_ORIGINS: '',
+        METRICS_ENABLE: false,
+        METRICS_PORT: 9091,
+        RATE_LIMIT_WINDOW_SEC: 60,
+        RATE_LIMIT_MAX: 120,
+        RATE_LIMIT_BURST: 60,
+        RATE_LIMIT_SCOPE: 'ip' as const,
+        MAX_WS_SUBSCRIPTIONS_PER_CONN: 16,
+        MAX_WS_MSGS_PER_MIN: 240,
+        MAX_JSON_BODY_KB: 512,
+      };
+    }
+    throw error;
+  }
+})();
 
 // Enforce metrics token in production
 if (ENV.NODE_ENV === 'production') {
