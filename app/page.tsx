@@ -4,10 +4,12 @@ export const dynamic = 'force-dynamic'
 import { useUser } from "@/lib/clerk-safe"
 import { useProject } from "@/lib/project-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { 
-  TrendingUp, Server, Activity, Zap, ArrowUpRight, GitBranch, Clock, CheckCircle2, XCircle
+  TrendingUp, Server, Activity, Zap, ArrowUpRight, GitBranch, Clock, 
+  CheckCircle2, Layers, Terminal, Key, Settings, Rocket, Globe, 
+  Database, Shield, Play, RotateCcw
 } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
@@ -47,6 +49,11 @@ export default function Dashboard() {
         
         {/* Hero Section */}
         <div className="mb-8">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <span>Project</span>
+            <span>/</span>
+            <span className="text-foreground font-medium">{currentProject?.name || 'Dashboard'}</span>
+          </div>
           <h1 className="text-2xl font-semibold mb-1">
             Welcome back{user?.firstName ? `, ${user.firstName}` : ''}
           </h1>
@@ -55,8 +62,37 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 stagger-children">
+          <QuickAction 
+            icon={<Rocket className="w-4 h-4" />}
+            label="Deploy"
+            description="Push to production"
+            onClick={() => router.push('/oneclick')}
+            primary
+          />
+          <QuickAction 
+            icon={<Terminal className="w-4 h-4" />}
+            label="Logs"
+            description="View live logs"
+            onClick={() => router.push('/logs')}
+          />
+          <QuickAction 
+            icon={<Key className="w-4 h-4" />}
+            label="Variables"
+            description="Manage env vars"
+            onClick={() => router.push('/variables')}
+          />
+          <QuickAction 
+            icon={<Activity className="w-4 h-4" />}
+            label="Metrics"
+            description="View performance"
+            onClick={() => router.push('/observability')}
+          />
+        </div>
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
           <StatCard 
             label="Total Deployments"
             value={deploymentsQuery.data?.total || 0}
@@ -85,12 +121,12 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Quick Actions */}
+        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Recent Deployments */}
           <div className="lg:col-span-2 glass-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-medium">Recent Deployments</h2>
+              <h2 className="font-medium">Recent Pipelines</h2>
               <button 
                 onClick={() => router.push('/deployments')}
                 className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
@@ -125,21 +161,33 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Resources & Features */}
           <div className="glass-card p-5">
-            <h2 className="font-medium mb-4">Quick Actions</h2>
+            <h2 className="font-medium mb-4">Resources</h2>
             <div className="space-y-2">
-              <QuickActionButton 
-                label="New Deployment"
-                onClick={() => router.push('/oneclick')}
+              <ResourceLink 
+                icon={<Layers className="w-4 h-4" />}
+                label="Environments"
+                count="3"
+                onClick={() => router.push('/environments')}
               />
-              <QuickActionButton 
-                label="View Logs"
-                onClick={() => router.push('/logs')}
+              <ResourceLink 
+                icon={<Database className="w-4 h-4" />}
+                label="Databases"
+                count="2"
+                onClick={() => router.push('/services')}
               />
-              <QuickActionButton 
-                label="Manage Projects"
-                onClick={() => router.push('/projects')}
+              <ResourceLink 
+                icon={<Globe className="w-4 h-4" />}
+                label="Domains"
+                count="5"
+                onClick={() => router.push('/settings')}
+              />
+              <ResourceLink 
+                icon={<Shield className="w-4 h-4" />}
+                label="Secrets"
+                count="12"
+                onClick={() => router.push('/variables')}
               />
             </div>
           </div>
@@ -174,6 +222,36 @@ export default function Dashboard() {
   )
 }
 
+function QuickAction({ icon, label, description, onClick, primary }: {
+  icon: React.ReactNode
+  label: string
+  description: string
+  onClick: () => void
+  primary?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "p-4 rounded-xl text-left transition-all group",
+        "border border-white/[0.06]",
+        primary 
+          ? "bg-gradient-to-br from-violet-500/20 to-purple-600/10 hover:from-violet-500/30 hover:to-purple-600/20 border-violet-500/20" 
+          : "bg-white/[0.02] hover:bg-white/[0.05]"
+      )}
+    >
+      <div className={cn(
+        "w-8 h-8 rounded-lg flex items-center justify-center mb-3",
+        primary ? "bg-violet-500/20 text-violet-400" : "bg-white/5 text-muted-foreground group-hover:text-foreground"
+      )}>
+        {icon}
+      </div>
+      <div className="font-medium text-sm">{label}</div>
+      <div className="text-xs text-muted-foreground">{description}</div>
+    </button>
+  )
+}
+
 function StatCard({ label, value, icon, trend, trendUp }: {
   label: string
   value: string | number
@@ -200,14 +278,22 @@ function StatCard({ label, value, icon, trend, trendUp }: {
   )
 }
 
-function QuickActionButton({ label, onClick }: { label: string; onClick: () => void }) {
+function ResourceLink({ icon, label, count, onClick }: { 
+  icon: React.ReactNode
+  label: string
+  count: string
+  onClick: () => void 
+}) {
   return (
     <button 
       onClick={onClick}
-      className="w-full p-3 text-left text-sm rounded-lg bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all flex items-center justify-between group"
+      className="w-full p-3 text-left rounded-lg bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all flex items-center gap-3 group"
     >
-      <span>{label}</span>
-      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      <div className="text-muted-foreground group-hover:text-foreground transition-colors">
+        {icon}
+      </div>
+      <span className="text-sm flex-1">{label}</span>
+      <span className="text-xs text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{count}</span>
     </button>
   )
 }

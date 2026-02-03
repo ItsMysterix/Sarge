@@ -4,29 +4,35 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { 
-  Home, 
-  Rocket, 
+  Layers,
+  GitBranch, 
   Activity, 
   Settings, 
   Menu, 
   X, 
-  FolderKanban,
-  LogOut
+  Box,
+  Terminal,
+  Key,
+  LogOut,
+  ChevronDown
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useProject } from "@/lib/project-context"
 
-// Simplified navigation - 5 core items
+// Qovery-style navigation - project-scoped items
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "Deployments", href: "/deployments", icon: Rocket },
-  { name: "Observability", href: "/observability", icon: Activity },
+  { name: "Environments", href: "/environments", icon: Layers },
+  { name: "Pipelines", href: "/deployments", icon: GitBranch },
+  { name: "Variables", href: "/variables", icon: Key },
+  { name: "Logs", href: "/logs", icon: Terminal },
+  { name: "Metrics", href: "/observability", icon: Activity },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  const { currentProject } = useProject()
 
   return (
     <>
@@ -38,7 +44,7 @@ export function Sidebar() {
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Sidebar - Icon only */}
+      {/* Sidebar */}
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-16 flex flex-col",
@@ -49,18 +55,33 @@ export function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-center border-b border-white/[0.06]">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="text-white font-bold text-sm">S</span>
-          </div>
+        <div className="h-14 flex items-center justify-center border-b border-white/[0.06]">
+          <Link href="/projects" className="group">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 transition-shadow">
+              <span className="text-white font-bold text-sm">S</span>
+            </div>
+          </Link>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 py-4 px-2">
-          <ul className="space-y-2">
+        {/* Project Indicator (if selected) */}
+        {currentProject && (
+          <Link 
+            href="/projects"
+            className="mx-2 mt-3 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
+            title={currentProject.name}
+          >
+            <div className="w-8 h-8 rounded bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/10">
+              <Box className="w-4 h-4 text-indigo-400" />
+            </div>
+          </Link>
+        )}
+
+        {/* Navigation - Centered Vertically */}
+        <nav className="flex-1 flex flex-col justify-center py-4 px-2">
+          <ul className="space-y-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href || 
-                (item.href !== "/" && pathname.startsWith(item.href))
+                (item.href !== "/" && pathname?.startsWith(item.href))
               return (
                 <li key={item.name}>
                   <Link
@@ -75,7 +96,7 @@ export function Sidebar() {
                     <item.icon className="w-5 h-5" />
                     
                     {/* Tooltip */}
-                    <div className="absolute left-full ml-3 px-2 py-1 bg-card border border-border rounded-md text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none">
+                    <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
                       {item.name}
                     </div>
                   </Link>
@@ -85,11 +106,11 @@ export function Sidebar() {
           </ul>
         </nav>
 
-        {/* Bottom section - User & Logout */}
-        <div className="p-2 border-t border-white/[0.06] space-y-2">
+        {/* Bottom section */}
+        <div className="p-2 border-t border-white/[0.06] space-y-1">
           {/* User Avatar */}
-          <div className="sidebar-icon">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center">
+          <div className="sidebar-icon cursor-pointer" title="Account">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center ring-2 ring-white/10">
               <span className="text-[10px] font-bold text-white">U</span>
             </div>
           </div>
