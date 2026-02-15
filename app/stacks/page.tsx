@@ -62,8 +62,9 @@ export default function StacksPage() {
       setNewName("")
       setNewDesc("")
       addToast({ type: "success", title: "Stack created" })
-    } catch {
+    } catch (err) {
       addToast({ type: "error", title: "Failed to create stack" })
+      console.error('Failed to create stack:', err)
     } finally {
       setCreating(false)
     }

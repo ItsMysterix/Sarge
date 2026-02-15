@@ -67,8 +67,9 @@ export default function Settings() {
         title: "Theme Updated",
         description: mode === "system" ? "Following system preferences" : `${mode} mode enabled`,
       })
-    } catch {
+    } catch (error) {
       addToast({ type: "error", title: "Update Failed", description: "Failed to update theme" })
+      console.error('Failed to update theme:', error)
     }
   }
 
@@ -81,8 +82,9 @@ export default function Settings() {
         title: "Animations Updated",
         description: `Animations ${enabled ? "enabled" : "disabled"}`,
       })
-    } catch {
+    } catch (error) {
       addToast({ type: "error", title: "Update Failed", description: "Failed to update animations" })
+      console.error('Failed to update animations:', error)
     }
   }
 
@@ -96,8 +98,9 @@ export default function Settings() {
         title: "Notification Updated",
         description: `${key} notifications ${value ? "enabled" : "disabled"}`,
       })
-    } catch {
+    } catch (error) {
       addToast({ type: "error", title: "Update Failed", description: "Failed to update notifications" })
+      console.error('Failed to update notifications:', error)
     }
   }
 
@@ -111,8 +114,9 @@ export default function Settings() {
         title: result.success ? "Webhook Test Successful" : "Webhook Test Failed",
         description: result.message,
       })
-    } catch {
+    } catch (error) {
       addToast({ type: "error", title: "Webhook Test Error", description: "Failed to test webhook" })
+      console.error('Webhook test failed:', error)
     } finally {
       setTestingWebhook(false)
     }

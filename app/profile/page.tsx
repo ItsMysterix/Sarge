@@ -54,8 +54,8 @@ export default function ProfilePage() {
         if (!response.ok) return
         const data = await response.json()
         setGithubConnection(data)
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('Failed to load GitHub connection:', err)
       }
     }
     loadGithubConnection()
