@@ -1,4 +1,5 @@
 import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry } from './types'
+import { providerLogger } from "../../../lib/logger";
 
 export class LocalProvider implements IProvider {
     id = 'local'
@@ -13,8 +14,8 @@ export class LocalProvider implements IProvider {
         const deploymentId = `local-${Date.now()}`
         const port = 3000 + Math.floor(Math.random() * 1000)
 
-        console.log(`[LocalProvider] Starting deployment: ${deploymentId}`)
-        console.log(`[LocalProvider] Repo: ${opts.repoUrl}, Branch: ${opts.branch}`)
+        providerLogger.info(`[LocalProvider] Starting deployment: ${deploymentId}`)
+        providerLogger.info(`[LocalProvider] Repo: ${opts.repoUrl}, Branch: ${opts.branch}`)
 
         // In a real implementation, this would:
         // 1. Clone the repo to a temp directory

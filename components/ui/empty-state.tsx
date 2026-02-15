@@ -1,101 +1,54 @@
-"use client"
-
-import { motion } from "framer-motion"
-import { LucideIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { LucideIcon } from 'lucide-react'
 
 interface EmptyStateProps {
   icon: LucideIcon
   title: string
   description: string
   actionLabel?: string
+  actionHref?: string
   onAction?: () => void
-  secondaryActionLabel?: string
-  onSecondaryAction?: () => void
-  children?: React.ReactNode
 }
 
-export function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  actionLabel,
-  onAction,
-  secondaryActionLabel,
-  onSecondaryAction,
-  children,
+/**
+ * [CPO U3] Reusable empty state for Hub pages
+ * Shows when a user has no data (new account, no clusters, etc.)
+ */
+export function EmptyState({ 
+  icon: Icon, 
+  title, 
+  description, 
+  actionLabel, 
+  actionHref, 
+  onAction 
 }: EmptyStateProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-col items-center justify-center min-h-[500px] px-4 text-center"
+    <div 
+      className="flex flex-col items-center justify-center py-16 px-4"
+      role="status"
+      aria-label={title}
     >
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-        className="mb-6 p-6 rounded-full bg-muted border border-muted-foreground"
-      >
-        <Icon className="w-16 h-16 text-muted-foreground" />
-      </motion.div>
-
-      <motion.h2
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-3xl font-bold mb-3 text-foreground"
-      >
-        {title}
-      </motion.h2>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="text-muted-foreground max-w-md mb-8 text-lg"
-      >
-        {description}
-      </motion.p>
-
-      {children && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mb-6 w-full max-w-lg"
-        >
-          {children}
-        </motion.div>
-      )}
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="flex gap-4"
-      >
-        {actionLabel && onAction && (
-          <Button
-            onClick={onAction}
-            size="lg"
-            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-600/10 border border-violet-500/20">
+        <Icon className="h-10 w-10 text-violet-400" aria-hidden="true" />
+      </div>
+      <h3 className="mb-2 text-lg font-semibold text-foreground">{title}</h3>
+      <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground leading-relaxed">{description}</p>
+      {actionLabel && (
+        actionHref ? (
+          <a
+            href={actionHref}
+            className="inline-flex items-center rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500 hover:shadow-violet-500/30 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
           >
             {actionLabel}
-          </Button>
-        )}
-        {secondaryActionLabel && onSecondaryAction && (
-          <Button
-            onClick={onSecondaryAction}
-            size="lg"
-            variant="outline"
-            className="border-gray-700 hover:bg-gray-800"
+          </a>
+        ) : onAction ? (
+          <button
+            onClick={onAction}
+            className="inline-flex items-center rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500 hover:shadow-violet-500/30 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
           >
-            {secondaryActionLabel}
-          </Button>
-        )}
-      </motion.div>
-    </motion.div>
+            {actionLabel}
+          </button>
+        ) : null
+      )}
+    </div>
   )
 }

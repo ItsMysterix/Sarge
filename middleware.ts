@@ -9,6 +9,32 @@ function parseAllowed(str?: string | null): string[] {
     .filter(Boolean)
 }
 
+/** [CISO S1] Inject security response headers on every response */
+function setSecurityHeaders(res: NextResponse): void {
+  // Prevent clickjacking
+  res.headers.set('X-Frame-Options', 'DENY')
+  // Prevent MIME-type sniffing
+  res.headers.set('X-Content-Type-Options', 'nosniff')
+  // Enforce HTTPS (1 year, include subdomains)
+  res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+  // Control referrer leakage
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  // Prevent XSS in older browsers
+  res.headers.set('X-XSS-Protection', '1; mode=block')
+  // Restrict permissions
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  // Content Security Policy — strict but functional
+  res.headers.set('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  // Next.js requires these
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https: wss:",
+    "frame-ancestors 'none'",
+  ].join('; '))
+}
+
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl
   const isApi = url.pathname.startsWith('/api/')
@@ -36,6 +62,7 @@ export default async function middleware(req: NextRequest) {
     res.headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
     res.headers.set('Access-Control-Allow-Headers', req.headers.get('access-control-request-headers') || 'Content-Type,Authorization')
     res.headers.set('Access-Control-Allow-Credentials', 'true')
+    setSecurityHeaders(res)
     return res
   }
 
@@ -45,37 +72,38 @@ export default async function middleware(req: NextRequest) {
 
   // Check authentication for protected routes (exclude public paths)
   const isPublicPath = url.pathname.startsWith('/sign-in') ||
-                       url.pathname.startsWith('/sign-up') ||
-                       url.pathname.startsWith('/landing') ||
-                       url.pathname.startsWith('/api/auth') ||
-                       url.pathname === '/' // Allow root path for now
+    url.pathname.startsWith('/sign-up') ||
+    url.pathname.startsWith('/landing') ||
+    url.pathname.startsWith('/api/auth') ||
+    url.pathname === '/' // Allow root path for now
 
   if (!isPublicPath && process.env.NEXTAUTH_SECRET) {
     try {
       const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-      
+
       if (!token) {
-        // Redirect to sign-in if not authenticated
         if (!isApi) {
           return NextResponse.redirect(new URL('/sign-in', req.url))
         }
-        // Return 401 for API routes
         return new NextResponse('Unauthorized', { status: 401 })
       }
     } catch (error) {
-      console.error('Auth middleware error:', error)
-      // Continue without auth on error to prevent blocking
+      // [CISO S4] Fail-closed: deny access on auth errors instead of allowing through
+      console.error('[Security] Auth middleware error — denying access:', error)
+      if (!isApi) {
+        return NextResponse.redirect(new URL('/sign-in', req.url))
+      }
+      return new NextResponse('Authentication Error', { status: 401 })
     }
   }
-  
-  // Set CORS headers for allowed API requests
+
+  // Set CORS + Security headers for all responses
   const res = NextResponse.next()
+  setSecurityHeaders(res)
   if (isApi && isAllowed) {
-    try {
-      res.headers.set('Access-Control-Allow-Origin', origin)
-      res.headers.set('Vary', 'Origin')
-      res.headers.set('Access-Control-Allow-Credentials', 'true')
-    } catch {}
+    res.headers.set('Access-Control-Allow-Origin', origin)
+    res.headers.set('Vary', 'Origin')
+    res.headers.set('Access-Control-Allow-Credentials', 'true')
   }
   return res
 }

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { aiLogger } from '../../lib/logger';
 import simpleGit from 'simple-git';
 import fs from 'fs/promises';
 import path from 'path';
@@ -28,19 +29,19 @@ export interface RepositoryAnalysis {
   // Project structure
   projectType: 'monorepo' | 'fullstack' | 'frontend' | 'backend' | 'static';
   services: ServiceConfig[];         // All detected services
-  
+
   // Infrastructure requirements
   infrastructure: InfrastructureRequirement[];
-  
+
   // Docker configuration
   needsDocker: boolean;
   dockerComposeYml?: string | null;         // Generated docker-compose.yml
   dockerfiles: Record<string, string>; // service name -> Dockerfile content
-  
+
   // Deployment recommendations
   recommendedPlatform: 'vercel' | 'docker' | 'kubernetes' | 'traditional';
   deploymentStrategy: string;        // Detailed explanation
-  
+
   // Original fields (for backward compatibility)
   framework: string;
   detectedPorts: number[];
@@ -62,7 +63,8 @@ export interface FileInfo {
 }
 
 /**
- * AI-powered repository analyzer using Claude 3.5 Sonnet
+ * AI-powered project analyzer using LLMs to extract architectural patterns
+ * and deployment requirements from source code.
  */
 export class AIRepositoryAnalyzer {
   private anthropic: Anthropic;
@@ -81,18 +83,18 @@ export class AIRepositoryAnalyzer {
    * Analyze a GitHub repository
    */
   async analyzeRepository(owner: string, repo: string, branch: string = 'main'): Promise<RepositoryAnalysis> {
-    console.log(`[AI Analyzer] Starting analysis for ${owner}/${repo}`);
-    
+    aiLogger.info(`[AI Analyzer] Starting analysis for ${owner}/${repo}`);
+
     // Clone repository to temp directory
     const repoPath = await this.cloneRepository(owner, repo, branch);
-    
+
     try {
       // Scan repository structure
       const files = await this.scanRepository(repoPath);
-      
+
       // Analyze with Claude
       const analysis = await this.analyzeWithClaude(files, owner, repo);
-      
+
       return analysis;
     } finally {
       // Cleanup temp directory
@@ -106,12 +108,12 @@ export class AIRepositoryAnalyzer {
   private async cloneRepository(owner: string, repo: string, branch: string): Promise<string> {
     const tempDir = path.join(os.tmpdir(), `repo-${owner}-${repo}-${Date.now()}`);
     const repoUrl = `https://github.com/${owner}/${repo}.git`;
-    
-    console.log(`[AI Analyzer] Cloning ${repoUrl} to ${tempDir}`);
-    
+
+    aiLogger.info(`[AI Analyzer] Cloning ${repoUrl} to ${tempDir}`);
+
     const git = simpleGit();
     await git.clone(repoUrl, tempDir, ['--depth', '1', '--branch', branch]);
-    
+
     return tempDir;
   }
 
@@ -120,7 +122,7 @@ export class AIRepositoryAnalyzer {
    */
   private async scanRepository(repoPath: string): Promise<FileInfo[]> {
     const files: FileInfo[] = [];
-    
+
     // Priority files to analyze (ordered by importance)
     const priorityFiles = [
       'package.json',
@@ -175,7 +177,7 @@ export class AIRepositoryAnalyzer {
       } catch (error) {
         // File doesn't exist, skip
       }
-      
+
       // Stop if we have enough files
       if (files.length >= this.maxFiles) break;
     }
@@ -190,7 +192,7 @@ export class AIRepositoryAnalyzer {
     console.log(`[AI Analyzer] Analyzing ${files.length} files with Claude 3.5 Sonnet`);
 
     // Prepare context for Claude
-    const filesContext = files.map(f => 
+    const filesContext = files.map(f =>
       `--- ${f.path} ---\n${f.content}\n`
     ).join('\n');
 
@@ -306,10 +308,10 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
       });
 
       // Extract JSON from response
-      const responseText = message.content[0].type === 'text' 
-        ? message.content[0].text 
+      const responseText = message.content[0].type === 'text'
+        ? message.content[0].text
         : '';
-      
+
       console.log(`[AI Analyzer] Claude response: ${responseText.substring(0, 200)}...`);
 
       // Parse JSON response
@@ -326,7 +328,7 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
         dockerfiles: analysis.dockerfiles || {},
         recommendedPlatform: analysis.recommendedPlatform || 'docker',
         deploymentStrategy: analysis.deploymentStrategy || 'Deploy using Docker Compose',
-        
+
         // Backward compatibility fields
         framework: analysis.framework || 'Unknown',
         detectedPorts: Array.isArray(analysis.detectedPorts) ? analysis.detectedPorts : [],
@@ -338,8 +340,8 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
         summary: analysis.summary || 'Repository analysis completed.',
         confidence: Math.max(0, Math.min(1, analysis.confidence || 0.5)),
         estimatedBuildTime: Math.max(0, analysis.estimatedBuildTime || 60),
-        requiresEnvironmentVariables: Array.isArray(analysis.requiresEnvironmentVariables) 
-          ? analysis.requiresEnvironmentVariables 
+        requiresEnvironmentVariables: Array.isArray(analysis.requiresEnvironmentVariables)
+          ? analysis.requiresEnvironmentVariables
           : [],
       };
     } catch (error) {

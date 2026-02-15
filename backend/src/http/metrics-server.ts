@@ -1,5 +1,6 @@
 import http from 'http';
 import { register } from '../metrics/exporter';
+import { metricsLogger } from '../lib/logger';
 
 export type MetricsServerControls = { server: http.Server, port: number, close: () => Promise<void> };
 
@@ -51,7 +52,7 @@ export function startMetricsServer(port = Number(process.env.METRICS_PORT ?? 946
   });
 
   server.listen(port, () => {
-    console.log(`Metrics server listening on :${port}`);
+    metricsLogger.info({ port }, 'Metrics server started');
   });
 
   async function close() {

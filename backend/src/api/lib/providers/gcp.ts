@@ -1,5 +1,9 @@
 import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry } from './types'
+import { providerLogger } from "../../../lib/logger";
 
+/**
+ * GCP deployment provider using Compute Engine.
+ */
 export class GCPProvider implements IProvider {
     id = 'gcp'
     name = 'Google Cloud Platform'
@@ -22,7 +26,7 @@ export class GCPProvider implements IProvider {
         const serviceName = `${opts.projectId}-${opts.environmentName}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
         const region = opts.credentials.gcp_region || 'us-central1'
 
-        console.log(`[GCP] Deploying ${serviceName} to Cloud Run in ${region}`)
+        providerLogger.info(`[GCP] Deploying ${serviceName} to Cloud Run in ${region}`)
 
         // In real implementation:
         // 1. Authenticate with service account

@@ -3,6 +3,7 @@ import { EKSClient, ListClustersCommand as ListEKSClustersCommand, DescribeClust
 import { ECSClient, CreateServiceCommand, DescribeServicesCommand, ListClustersCommand as ListECSClustersCommand } from '@aws-sdk/client-ecs'
 import { CloudWatchLogsClient, GetLogEventsCommand, DescribeLogStreamsCommand } from '@aws-sdk/client-cloudwatch-logs'
 import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry } from './types'
+import { providerLogger } from "../../../lib/logger";
 
 export class AWSProvider implements IProvider {
     id = 'aws'
@@ -45,23 +46,23 @@ export class AWSProvider implements IProvider {
             const { eks, s3 } = this.getClients(opts.credentials)
 
             // 1. Verify EKS cluster exists (the "environment")
-            console.log(`[AWSProvider] Verifying cluster: ${opts.environmentName}`)
+            providerLogger.info(`[AWSProvider] Verifying cluster: ${opts.environmentName}`)
             let clusterArn = ''
             try {
                 const clusterInfo = await eks.send(new DescribeClusterCommand({ name: opts.environmentName }))
                 clusterArn = clusterInfo.cluster?.arn || ''
             } catch (err) {
-                console.warn(`[AWSProvider] Cluster ${opts.environmentName} not found, using generic deployment`)
+                providerLogger.warn(`[AWSProvider] Cluster ${opts.environmentName} not found, using generic deployment`)
             }
 
             // 2. Ensure project bucket exists
             const bucketName = `sarge-assets-${opts.projectId.toLowerCase()}`
             try {
                 await s3.send(new CreateBucketCommand({ Bucket: bucketName }))
-                console.log(`[AWSProvider] Created S3 bucket: ${bucketName}`)
+                providerLogger.info(`[AWSProvider] Created S3 bucket: ${bucketName}`)
             } catch (err: any) {
                 if (err.name !== 'BucketAlreadyExists' && err.name !== 'BucketAlreadyOwnedByYou') {
-                    console.warn(`[AWSProvider] S3 Bucket issue:`, err.message)
+                    providerLogger.warn(`[AWSProvider] S3 Bucket issue:`, err.message)
                 }
             }
 
@@ -80,7 +81,7 @@ export class AWSProvider implements IProvider {
                 estimatedDuration: 300,
             }
         } catch (err) {
-            console.error('[AWSProvider] Deployment failed:', err)
+            providerLogger.error({ err }, '[AWSProvider] Deployment failed')
             return {
                 success: false,
                 deploymentId: `aws-err-${Date.now()}`,

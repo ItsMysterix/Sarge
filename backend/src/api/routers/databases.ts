@@ -4,6 +4,9 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { RDSClient, CreateDBInstanceCommand, DescribeDBInstancesCommand, DeleteDBInstanceCommand, CreateDBSnapshotCommand, RestoreDBInstanceFromDBSnapshotCommand } from '@aws-sdk/client-rds'
 import { getProviderCredentials } from '../lib/credentials'
+import logger from '../../lib/logger'
+
+const dbOpsLogger = logger.child({ module: 'db-ops' });
 
 /**
  * Managed Databases Router

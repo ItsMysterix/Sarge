@@ -2,6 +2,7 @@ import { z } from "zod";
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import logger from './lib/logger';
 
 // Load environment variables from .env file if present
 // Try multiple paths to find the .env file
@@ -16,7 +17,7 @@ for (const envPath of possibleEnvPaths) {
   if (fs.existsSync(envPath)) {
     const result = dotenv.config({ path: envPath });
     if (!result.error) {
-      console.log(`✅ Backend loaded env from: ${envPath}`);
+      logger.info({ path: envPath }, 'Backend loaded env');
       envLoaded = true;
       break;
     }
@@ -24,7 +25,7 @@ for (const envPath of possibleEnvPaths) {
 }
 
 if (!envLoaded) {
-  console.warn('⚠️  No .env file found, using environment variables');
+  logger.warn('No .env file found, using environment variables');
 }
 
 const envSchema = z.object({
@@ -53,7 +54,7 @@ export const ENV = (() => {
     // During Next.js build, backend modules may be imported but not actually used at runtime
     // Return a partial env object with safe defaults
     if (process.env.NODE_ENV !== 'production' || process.env.__NEXT_PHASE === 'phase-production-build') {
-      console.warn('[backend/env] Returning partial ENV during build phase:', error);
+      logger.warn({ error }, 'Returning partial ENV during build phase');
       return {
         NODE_ENV: (process.env.NODE_ENV || 'development') as any,
         DATABASE_URL: '',
@@ -80,10 +81,10 @@ export const ENV = (() => {
 if (ENV.NODE_ENV === 'production') {
   // Make metrics token optional; if missing, metrics protection disabled
   if (!ENV.PROM_METRICS_TOKEN) {
-    console.warn('PROM_METRICS_TOKEN missing in production; /metrics will be unsecured. Set one to protect metrics.')
+    logger.warn('PROM_METRICS_TOKEN missing in production; /metrics will be unsecured')
   }
   if (!ENV.DATABASE_URL) {
-    console.warn('DATABASE_URL missing; database-backed features will be disabled.')
+    logger.warn('DATABASE_URL missing; database-backed features will be disabled')
   }
 }
 

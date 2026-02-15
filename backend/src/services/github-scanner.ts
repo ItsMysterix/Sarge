@@ -4,6 +4,8 @@
  * WITHOUT cloning the repository
  */
 
+import { z } from "zod";
+import { scannerLogger } from "../lib/logger";
 import { createGitHubAPI, GitHubAPIService } from './github-api'
 import { AIRepositoryAnalyzer } from '../api/lib/ai-analyzer'
 
@@ -26,20 +28,20 @@ export interface ProjectBlueprint {
   projectType: string  // 'nodejs', 'python', 'java', etc.
   packageManager?: string  // 'npm', 'pnpm', 'yarn', 'pip', etc.
   framework?: string  // 'next.js', 'express', 'django', etc.
-  
+
   // Detected services from the repo
   services: DetectedService[]
-  
+
   // External services needed (Prometheus, Grafana, Redis, etc.)
   externalServices: DetectedService[]
-  
+
   // Docker configs found
   docker: {
     dockerfile: boolean
     dockerCompose: boolean
     composeFiles: string[]
   }
-  
+
   // Infrastructure needs
   resources: {
     databases: string[]  // ['postgres', 'mongodb']
@@ -47,10 +49,10 @@ export interface ProjectBlueprint {
     queues: string[]     // ['rabbitmq', 'kafka']
     monitoring: string[] // ['prometheus', 'grafana']
   }
-  
+
   // Environment variables needed
   envKeys: string[]
-  
+
   // Build & deploy info
   buildCommand?: string
   startCommand?: string
@@ -65,7 +67,7 @@ export class GitHubScanner {
   constructor(accessToken: string, useAI: boolean = true) {
     this.github = createGitHubAPI(accessToken)
     this.useAI = useAI && !!process.env.ANTHROPIC_API_KEY
-    
+
     if (this.useAI) {
       try {
         this.aiAnalyzer = new AIRepositoryAnalyzer()
@@ -82,22 +84,22 @@ export class GitHubScanner {
    * Uses Claude AI if available, falls back to pattern matching
    */
   async scanRepository(owner: string, repo: string, branch: string = 'main'): Promise<ProjectBlueprint> {
-    console.log(`[GitHubScanner] Scanning ${owner}/${repo}@${branch}`)
+    scannerLogger.info(`[GitHubScanner] Scanning ${owner}/${repo}@${branch}`)
 
     // If AI is available, use it for comprehensive analysis
     if (this.useAI && this.aiAnalyzer) {
       try {
-        console.log('[GitHubScanner] Using Claude AI for analysis')
+        scannerLogger.info('[GitHubScanner] Using Claude AI for analysis')
         const aiAnalysis = await this.aiAnalyzer.analyzeRepository(owner, repo, branch)
         return this.convertAIAnalysisToBlueprint(aiAnalysis, owner, repo, branch)
       } catch (err) {
-        console.warn('[GitHubScanner] AI analysis failed, falling back to pattern matching:', err)
+        scannerLogger.warn({ err }, '[GitHubScanner] AI analysis failed, falling back to pattern matching')
         // Fall through to pattern matching
       }
     }
 
     // Fallback: Pattern-based detection (no AI)
-    console.log('[GitHubScanner] Using pattern matching (no AI)')
+    scannerLogger.info('[GitHubScanner] Using pattern matching (no AI)')
     return this.scanWithPatternMatching(owner, repo, branch)
   }
 
@@ -159,14 +161,14 @@ export class GitHubScanner {
 
     // 1. Detect project type
     const projectType = await this.github.detectProjectType(owner, repo, branch)
-    
+
     // 2. Get all relevant config files
     const files = await this.github.listFiles(owner, repo, '', branch)
     const configFiles = files.filter(f => this.isConfigFile(f.name))
-    
+
     // 3. Analyze based on project type
     let blueprint: ProjectBlueprint
-    
+
     try {
       switch (projectType) {
         case 'nodejs':
@@ -199,7 +201,7 @@ export class GitHubScanner {
       blueprint.externalServices.push(...externalServices)
     }
 
-    console.log(`[GitHubScanner] Scan complete. Found ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
+    scannerLogger.info(`[GitHubScanner] Scan complete. Found ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
     return blueprint
   }
 
@@ -209,20 +211,20 @@ export class GitHubScanner {
   private async scanNodeJS(owner: string, repo: string, branch: string, configFiles: any[]): Promise<ProjectBlueprint> {
     try {
       const packageJson = await this.github.getPackageJson(owner, repo, branch)
-      console.log(`[GitHubScanner] Found package.json: ${packageJson.name}, version: ${packageJson.version}`)
-      
+      scannerLogger.info(`[GitHubScanner] Found package.json: ${packageJson.name}, version: ${packageJson.version}`)
+
       // Detect package manager
       const packageManager = await this.detectPackageManager(owner, repo, branch)
-      console.log(`[GitHubScanner] Detected package manager: ${packageManager}`)
-      
+      scannerLogger.info(`[GitHubScanner] Detected package manager: ${packageManager}`)
+
       // Detect framework
       const framework = this.detectNodeFramework(packageJson)
       console.log(`[GitHubScanner] Detected framework: ${framework || 'none'}`)
-      
+
       // Extract dependencies
       const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
       console.log(`[GitHubScanner] Total dependencies: ${Object.keys(deps).length}`)
-      
+
       // Detect services from scripts and dependencies
       const services: DetectedService[] = []
       const externalServices: DetectedService[] = []
@@ -258,72 +260,72 @@ export class GitHubScanner {
         })
         console.log(`[GitHubScanner] Detected PostgreSQL dependency`)
       }
-    if (deps['mongodb'] || deps['mongoose']) {
-      resources.databases.push('mongodb')
-      externalServices.push({
-        name: 'mongodb',
-        type: 'database',
-        ports: [27017],
-        envKeys: ['MONGODB_URI'],
-        dockerImage: 'mongo:7',
-        requiredFor: [packageJson.name || 'app'],
-      })
-    }
-    if (deps['mysql'] || deps['mysql2']) {
-      resources.databases.push('mysql')
-      externalServices.push({
-        name: 'mysql',
-        type: 'database',
-        ports: [3306],
-        envKeys: ['MYSQL_ROOT_PASSWORD', 'MYSQL_DATABASE'],
-        dockerImage: 'mysql:8',
-        requiredFor: [packageJson.name || 'app'],
-      })
-    }
+      if (deps['mongodb'] || deps['mongoose']) {
+        resources.databases.push('mongodb')
+        externalServices.push({
+          name: 'mongodb',
+          type: 'database',
+          ports: [27017],
+          envKeys: ['MONGODB_URI'],
+          dockerImage: 'mongo:7',
+          requiredFor: [packageJson.name || 'app'],
+        })
+      }
+      if (deps['mysql'] || deps['mysql2']) {
+        resources.databases.push('mysql')
+        externalServices.push({
+          name: 'mysql',
+          type: 'database',
+          ports: [3306],
+          envKeys: ['MYSQL_ROOT_PASSWORD', 'MYSQL_DATABASE'],
+          dockerImage: 'mysql:8',
+          requiredFor: [packageJson.name || 'app'],
+        })
+      }
 
-    // Check for Redis
-    if (deps['redis'] || deps['ioredis']) {
-      resources.caches.push('redis')
-      externalServices.push({
-        name: 'redis',
-        type: 'cache',
-        ports: [6379],
-        envKeys: ['REDIS_URL'],
-        dockerImage: 'redis:7-alpine',
-        requiredFor: [packageJson.name || 'app'],
-      })
-    }
+      // Check for Redis
+      if (deps['redis'] || deps['ioredis']) {
+        resources.caches.push('redis')
+        externalServices.push({
+          name: 'redis',
+          type: 'cache',
+          ports: [6379],
+          envKeys: ['REDIS_URL'],
+          dockerImage: 'redis:7-alpine',
+          requiredFor: [packageJson.name || 'app'],
+        })
+      }
 
-    // Check for message queues
-    if (deps['amqplib'] || deps['rabbitmq']) {
-      resources.queues.push('rabbitmq')
-      externalServices.push({
-        name: 'rabbitmq',
-        type: 'worker',
-        ports: [5672, 15672],
-        envKeys: ['RABBITMQ_URL'],
-        dockerImage: 'rabbitmq:3-management-alpine',
-        requiredFor: [packageJson.name || 'app'],
-      })
-    }
+      // Check for message queues
+      if (deps['amqplib'] || deps['rabbitmq']) {
+        resources.queues.push('rabbitmq')
+        externalServices.push({
+          name: 'rabbitmq',
+          type: 'worker',
+          ports: [5672, 15672],
+          envKeys: ['RABBITMQ_URL'],
+          dockerImage: 'rabbitmq:3-management-alpine',
+          requiredFor: [packageJson.name || 'app'],
+        })
+      }
 
-    // Check for Prometheus client
-    if (deps['prom-client']) {
-      resources.monitoring.push('prometheus')
-    }
+      // Check for Prometheus client
+      if (deps['prom-client']) {
+        resources.monitoring.push('prometheus')
+      }
 
-    return {
-      projectType: 'nodejs',
-      packageManager,
-      framework,
-      services,
-      externalServices,
-      docker: { dockerfile: false, dockerCompose: false, composeFiles: [] },
-      resources,
-      envKeys: this.extractEnvKeys(packageJson),
-      buildCommand: packageJson.scripts?.build || '',
-      startCommand,
-    }
+      return {
+        projectType: 'nodejs',
+        packageManager,
+        framework,
+        services,
+        externalServices,
+        docker: { dockerfile: false, dockerCompose: false, composeFiles: [] },
+        resources,
+        envKeys: this.extractEnvKeys(packageJson),
+        buildCommand: packageJson.scripts?.build || '',
+        startCommand,
+      }
     } catch (error) {
       console.error(`[GitHubScanner] Error in scanNodeJS:`, error)
       throw error
@@ -355,9 +357,9 @@ export class GitHubScanner {
     }
 
     // Check for common Python frameworks
-      const framework = deps.some(d => d && d.includes('django')) ? 'django' : 
-                        deps.some(d => d && d.includes('flask')) ? 'flask' :
-                        deps.some(d => d && d.includes('fastapi')) ? 'fastapi' : undefined
+    const framework = deps.some(d => d && d.includes('django')) ? 'django' :
+      deps.some(d => d && d.includes('flask')) ? 'flask' :
+        deps.some(d => d && d.includes('fastapi')) ? 'fastapi' : undefined
 
     // Check databases
     if (deps.some(d => d && (d.includes('psycopg') || d.includes('postgres')))) {
@@ -410,8 +412,8 @@ export class GitHubScanner {
   private async detectDockerConfig(owner: string, repo: string, branch: string) {
     const dockerfile = await this.github.hasFile(owner, repo, 'Dockerfile', branch)
     const dockerCompose = await this.github.hasFile(owner, repo, 'docker-compose.yml', branch) ||
-                         await this.github.hasFile(owner, repo, 'docker-compose.yaml', branch)
-    
+      await this.github.hasFile(owner, repo, 'docker-compose.yaml', branch)
+
     const composeFiles: string[] = []
     if (await this.github.hasFile(owner, repo, 'docker-compose.yml', branch)) {
       composeFiles.push('docker-compose.yml')
@@ -431,7 +433,7 @@ export class GitHubScanner {
 
     // Check for Prometheus config
     if (await this.github.hasFile(owner, repo, 'prometheus.yml', branch) ||
-        await this.github.hasFile(owner, repo, 'prometheus/prometheus.yml', branch)) {
+      await this.github.hasFile(owner, repo, 'prometheus/prometheus.yml', branch)) {
       monitoring.push('prometheus')
     }
 
@@ -529,7 +531,7 @@ export class GitHubScanner {
    */
   private detectNodeFramework(packageJson: any): string | undefined {
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
-    
+
     if (deps['next']) return 'next.js'
     if (deps['nuxt']) return 'nuxt'
     if (deps['express']) return 'express'
@@ -537,7 +539,7 @@ export class GitHubScanner {
     if (deps['koa']) return 'koa'
     if (deps['nest']) return 'nestjs'
     if (deps['@nestjs/core']) return 'nestjs'
-    
+
     return undefined
   }
 
@@ -546,11 +548,11 @@ export class GitHubScanner {
    */
   private extractEnvKeys(packageJson: any): string[] {
     const envKeys: string[] = []
-    
+
     // Check scripts for env vars
     const scripts = packageJson.scripts || {}
     const scriptStr = JSON.stringify(scripts)
-    
+
     const matches = scriptStr.match(/\$\{?([A-Z_][A-Z0-9_]*)\}?/g) || []
     matches.forEach(m => {
       if (!m || typeof m !== 'string') return

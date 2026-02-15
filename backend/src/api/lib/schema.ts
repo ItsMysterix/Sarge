@@ -19,6 +19,9 @@ export async function ensureRateLimitTables(db: Pool) {
     `)
     await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_rate_hits_key_route_ts ON rate_limit_hits(key, route, ts);`)
 
+    // [CFO F1] Auto-purge rate limit hits older than 24h to prevent storage bloat on Neon free tier
+    await (db as any).query(`DELETE FROM rate_limit_hits WHERE ts < NOW() - INTERVAL '24 hours';`)
+
     // Environment & Platform Tables
     await (db as any).query(`
       CREATE TABLE IF NOT EXISTS environments (

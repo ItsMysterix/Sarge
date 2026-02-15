@@ -28,10 +28,21 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
     db = createMockPool();
 } else if (process.env.NODE_ENV === 'production') {
-    db = new Pool({ connectionString: databaseUrl });
+    // [CTO T2] Explicit pool limits to prevent exhausting Neon's connection limit
+    db = new Pool({
+        connectionString: databaseUrl,
+        max: Number(process.env.DB_POOL_MAX ?? 10),
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 5_000,
+    });
 } else {
     if (!global.__db_pool_backend) {
-        global.__db_pool_backend = new Pool({ connectionString: databaseUrl });
+        global.__db_pool_backend = new Pool({
+            connectionString: databaseUrl,
+            max: 5,
+            idleTimeoutMillis: 30_000,
+            connectionTimeoutMillis: 5_000,
+        });
     }
     db = global.__db_pool_backend;
 }

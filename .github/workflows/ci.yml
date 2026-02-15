@@ -32,15 +32,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm -w run lint || pnpm exec next lint --max-warnings 0 || true
+
       - name: Typecheck (root and workspaces)
         run: |
-          pnpm -w run typecheck || true
           pnpm -r --if-present run typecheck
 
       - name: Build (root and workspaces)
         run: |
-          pnpm -w run build || true
           pnpm -r --if-present run build
+          pnpm -w run build
 
       - name: Test (workspaces and root)
         run: |

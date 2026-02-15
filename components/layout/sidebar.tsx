@@ -54,12 +54,18 @@ export function Sidebar() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg hover:bg-white/5 transition-colors"
+        aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={isOpen}
+        aria-controls="main-sidebar"
       >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {isOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
       </button>
 
       {/* Sidebar */}
       <div
+        id="main-sidebar"
+        role="navigation"
+        aria-label="Main navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-16 flex flex-col",
           "bg-black/60 backdrop-blur-xl border-r border-white/[0.06]",
@@ -78,8 +84,8 @@ export function Sidebar() {
         </div>
 
         {/* Navigation - Centered Vertically */}
-        <nav className="flex-1 flex flex-col justify-center py-4 px-2">
-          <ul className="space-y-1">
+        <nav className="flex-1 flex flex-col justify-center py-4 px-2" aria-label="Primary">
+          <ul className="space-y-1" role="list">
             {/* Projects - Always visible */}
             <li>
               <Link
@@ -90,9 +96,11 @@ export function Sidebar() {
                   pathname === "/projects" && "sidebar-icon-active"
                 )}
                 title="Projects"
+                aria-label="Projects"
+                aria-current={pathname === '/projects' ? 'page' : undefined}
               >
-                <FolderKanban className="w-5 h-5" />
-                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+                <FolderKanban className="w-5 h-5" aria-hidden="true" />
+                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl" aria-hidden="true">
                   Projects
                 </div>
               </Link>
@@ -119,11 +127,13 @@ export function Sidebar() {
                           isActive && "sidebar-icon-active"
                         )}
                         title={item.name}
+                        aria-label={item.name}
+                        aria-current={isActive ? 'page' : undefined}
                       >
-                        <item.icon className="w-5 h-5" />
+                        <item.icon className="w-5 h-5" aria-hidden="true" />
                         
                         {/* Tooltip */}
-                        <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+                        <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl" aria-hidden="true">
                           {item.name}
                         </div>
                       </Link>

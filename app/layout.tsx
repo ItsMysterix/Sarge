@@ -6,6 +6,7 @@ import { AuthDebug } from "@/components/debug/auth-debug";
 import { SessionProviderWrapper } from "@/components/providers/session-provider-wrapper";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ProjectProvider } from "@/lib/project-context";
+import { GlobalErrorBoundary } from "@/components/ui/global-error-boundary";
 import "./globals.css";
 
 // Force dynamic rendering for all pages (no static generation)
@@ -53,8 +54,10 @@ export default function RootLayout({
         >
           <SessionProviderWrapper>
             <ProjectProvider>
-              <TrpcReactProvider>
-                {children}
+            <TrpcReactProvider>
+                <GlobalErrorBoundary>
+                  {children}
+                </GlobalErrorBoundary>
                 <AuthDebug />
               </TrpcReactProvider>
             </ProjectProvider>

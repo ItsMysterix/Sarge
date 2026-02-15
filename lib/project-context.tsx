@@ -94,13 +94,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const loadProjects = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual tRPC call once backend is ready
       const response = await fetch('/api/projects');
       if (response.ok) {
         const data = await response.json();
         setProjects(data.projects || []);
       } else {
-        // Fallback: empty projects list
         setProjects([]);
       }
     } catch (error) {

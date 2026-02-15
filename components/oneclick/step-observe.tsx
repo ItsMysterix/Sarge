@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { trpc } from '@/lib/trpc'
 import { FeatureGate } from '@/components/ui/feature-gate'
+import { useToast } from '@/components/ui/toast'
+import { useProject } from '@/lib/project-context'
 
 interface StepObserveProps {
   plan: any
@@ -10,6 +12,8 @@ interface StepObserveProps {
 }
 
 export function StepObserve({ plan, onBack }: StepObserveProps) {
+  const { addToast } = useToast()
+  const { currentProject } = useProject()
   const [result, setResult] = useState<any>(null)
   const [dockerMode, setDockerMode] = useState(false)
 
@@ -55,10 +59,17 @@ export function StepObserve({ plan, onBack }: StepObserveProps) {
     }
   }
 
-  const handleSnapshot = () => {
-    // TODO: wire to sarge.workspace.snapshots.create
-    console.log('Snapshot requested')
-  }
+  const createSnapshotMutation = (trpc.sarge as any).workspace.snapshots.create.useMutation();
+
+  const handleSnapshot = async () => {
+    try {
+      await createSnapshotMutation.mutateAsync({ workspaceId: currentProject?.id || '' });
+      addToast({ type: 'success', title: 'Workspace snapshot created' });
+    } catch (err) {
+      console.error('Snapshot failed:', err);
+      addToast({ type: 'error', title: 'Snapshot failed', description: 'Could not create workspace snapshot' });
+    }
+  };
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,5 @@
 import * as crypto from 'crypto'
+import { credLogger } from '../../lib/logger';
 
 /**
  * Credential injection layer
@@ -25,10 +26,10 @@ export function encryptCredentials(plaintext: string): string {
     const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32).padEnd(32, '0'))
     const iv = crypto.randomBytes(16)
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
-    
+
     let encrypted = cipher.update(plaintext, 'utf8', 'hex')
     encrypted += cipher.final('hex')
-    
+
     // Return iv + encrypted data
     return iv.toString('hex') + ':' + encrypted
   } catch (err) {
@@ -46,10 +47,10 @@ export function decryptCredentials(encrypted: string): string {
     const [ivHex, encryptedData] = encrypted.split(':')
     const iv = Buffer.from(ivHex, 'hex')
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
-    
+
     let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
     decrypted += decipher.final('utf8')
-    
+
     return decrypted
   } catch (err) {
     console.error('[credentials] Decryption error:', err)
@@ -83,7 +84,7 @@ export async function getProviderCredentials(
   userId?: string
 ): Promise<ProviderCredentials> {
   const credentials: ProviderCredentials = {}
-  
+
   // Environment variable mapping
   const envMap: Record<string, string> = {
     vercel: 'VERCEL_TOKEN',
@@ -95,26 +96,26 @@ export async function getProviderCredentials(
     gcp: 'GCP_SERVICE_ACCOUNT_KEY', // Also need GCP_PROJECT_ID
     azure: 'AZURE_TENANT_ID', // Also need AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_SUBSCRIPTION_ID
   }
-  
+
   // 1. Try environment variables first (instant setup)
   const envVar = envMap[providerId]
   if (envVar && process.env[envVar]) {
     console.log(`[credentials] Using ${envVar} from environment`)
     credentials[`${providerId}_token`] = process.env[envVar] as string
-    
+
     // AWS special case: needs both access key and secret
     if (providerId === 'aws' && process.env.AWS_SECRET_ACCESS_KEY) {
       credentials.aws_secret = process.env.AWS_SECRET_ACCESS_KEY
       credentials.aws_region = process.env.AWS_REGION || 'us-east-1'
     }
-    
+
     // GCP special case: needs service account key and project ID
     if (providerId === 'gcp' && process.env.GCP_PROJECT_ID) {
       credentials.gcp_service_account_key = process.env.GCP_SERVICE_ACCOUNT_KEY || ''
       credentials.gcp_project_id = process.env.GCP_PROJECT_ID
       credentials.gcp_region = process.env.GCP_REGION || 'us-central1'
     }
-    
+
     // Azure special case: needs multiple credentials
     if (providerId === 'azure') {
       credentials.azure_tenant_id = process.env.AZURE_TENANT_ID || ''
@@ -124,10 +125,10 @@ export async function getProviderCredentials(
       credentials.azure_resource_group = process.env.AZURE_RESOURCE_GROUP || 'sarge-deployments'
       credentials.azure_region = process.env.AZURE_REGION || 'eastus'
     }
-    
+
     return credentials
   }
-  
+
   // 2. Try database (encrypted storage)
   try {
     const result = await db.query(
@@ -141,25 +142,26 @@ export async function getProviderCredentials(
       // Table doesn't exist yet - return empty
       if (err?.message?.includes('provider_credentials')) {
         console.log('[credentials] provider_credentials table not found, using env vars only')
+        credLogger.info('[credentials] provider_credentials table not found, using env vars only');
         return null
       }
       throw err
     })
-    
+
     if (result?.rows?.[0]) {
       const encrypted = result.rows[0].credentials_encrypted
       const decrypted = decryptCredentials(encrypted)
       const parsed = JSON.parse(decrypted)
-      
-      console.log(`[credentials] Using credentials from database for ${providerId}`)
+
+      credLogger.info({ providerId }, `Using credentials from database for ${providerId}`);
       return parsed
     }
   } catch (err) {
-    console.warn(`[credentials] Database lookup failed for ${providerId}:`, err)
+    credLogger.warn({ providerId, err }, `[credentials] Database lookup failed for ${providerId}`);
   }
-  
+
   // 3. Return empty (provider will handle missing creds gracefully)
-  console.log(`[credentials] No credentials found for ${providerId} - will use mock/local fallback`)
+  credLogger.info({ providerId }, `[credentials] No credentials found for ${providerId} - will use mock/local fallback`);
   return credentials
 }
 
@@ -176,7 +178,7 @@ export async function storeProviderCredentials(
   try {
     const plaintext = JSON.stringify(credentials)
     const encrypted = encryptCredentials(plaintext)
-    
+
     // Upsert credentials
     await db.query(
       `INSERT INTO provider_credentials (provider_id, user_id, credentials_encrypted, created_at, updated_at)
@@ -191,7 +193,7 @@ export async function storeProviderCredentials(
       }
       throw err
     })
-    
+
     console.log(`[credentials] Stored encrypted credentials for ${providerId}`)
   } catch (err) {
     console.error(`[credentials] Failed to store credentials for ${providerId}:`, err)
@@ -219,7 +221,7 @@ export async function deleteProviderCredentials(
       }
       throw err
     })
-    
+
     console.log(`[credentials] Deleted credentials for ${providerId}`)
   } catch (err) {
     console.error(`[credentials] Failed to delete credentials for ${providerId}:`, err)

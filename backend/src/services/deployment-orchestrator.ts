@@ -176,20 +176,19 @@ EXPOSE ${service.ports[0] || 3000}
     const defaults: Record<string, Record<string, string>> = {
       postgres: {
         POSTGRES_USER: 'postgres',
-        POSTGRES_PASSWORD: 'postgres',
+        POSTGRES_PASSWORD: process.env.DEFAULT_DB_PASSWORD || 'postgres',
         POSTGRES_DB: 'app',
       },
       mongodb: {
         MONGO_INITDB_ROOT_USERNAME: 'admin',
-        MONGO_INITDB_ROOT_PASSWORD: 'password',
+        MONGO_INITDB_ROOT_PASSWORD: process.env.DEFAULT_DB_PASSWORD || 'password',
       },
       redis: {},
       mysql: {
-        MYSQL_ROOT_PASSWORD: 'root',
+        MYSQL_ROOT_PASSWORD: process.env.DEFAULT_DB_PASSWORD || 'root',
         MYSQL_DATABASE: 'app',
       },
       grafana: {
-        GF_SECURITY_ADMIN_PASSWORD: 'admin',
       },
     }
 

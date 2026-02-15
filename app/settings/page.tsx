@@ -136,10 +136,15 @@ export default function Settings() {
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (file) {
-        const text = await file.text()
-        const data = JSON.parse(text)
-        await updateSettings(data)
-        addToast({ type: 'success', title: 'Settings Imported', description: 'Configuration restored' })
+        try {
+          const text = await file.text()
+          const data = JSON.parse(text)
+          await updateSettings(data)
+          addToast({ type: 'success', title: 'Settings Imported', description: 'Configuration restored' })
+        } catch (error) {
+          addToast({ type: 'error', title: 'Import Failed', description: 'Failed to import settings. Invalid file or data.' })
+          console.error(error)
+        }
       }
     }
     input.click()

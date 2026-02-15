@@ -1,3 +1,4 @@
+import { providerLogger } from '../../../lib/logger'
 import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry } from './types'
 
 export class AzureProvider implements IProvider {
@@ -25,7 +26,7 @@ export class AzureProvider implements IProvider {
         const resourceGroup = opts.credentials.azure_resource_group || 'sarge-deployments'
         const region = opts.credentials.azure_region || 'eastus'
 
-        console.log(`[Azure] Deploying ${appName} to Container Apps in ${region}`)
+        providerLogger.info(`[Azure] Deploying ${appName} to Container Apps in ${region}`)
 
         // In real implementation:
         // 1. Authenticate with service principal

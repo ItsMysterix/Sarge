@@ -38,8 +38,9 @@ export default function StacksPage() {
       await updateMutation?.mutateAsync?.({ id: stack.id, status: newStatus })
       stacksQuery?.refetch?.()
       addToast({ type: "success", title: `Stack ${newStatus === "running" ? "Started" : "Stopped"}` })
-    } catch {
+    } catch (err) {
       addToast({ type: "error", title: "Failed to update stack" })
+      console.error(err);
     }
   }
 

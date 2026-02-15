@@ -8,6 +8,7 @@ import { db } from './api/lib/db';
 import { ee } from './api/lib/events';
 import { startRealDeployExecutor } from './jobs/real-deploy-executor';
 import { wsDisconnectsTotal, wsRateCapTotal } from './metrics/exporter';
+import { wsLogger, securityLogger } from './lib/logger';
 
 const port = ENV.WS_PORT;
 const allowlist = effectiveWsAllowedOrigins();
@@ -24,9 +25,20 @@ interface ExtWebSocket extends WebSocket { isAlive?: boolean }
 wss.on('connection', (ws: ExtWebSocket, req) => {
   const origin = req.headers.origin as string | undefined;
   if (!isAllowedOrigin(origin, allowlist)) {
-    console.warn(`WS connection rejected due to origin: ${origin ?? 'unknown'}`);
+    securityLogger.warn({ origin: origin ?? 'unknown' }, 'WS connection rejected — forbidden origin');
     ws.close(1008, 'Forbidden origin');
     return;
+  }
+
+  // [CISO S5] Validate JWT token from query string if NEXTAUTH_SECRET is set
+  if (process.env.NEXTAUTH_SECRET) {
+    const url = new URL(req.url || '/', `http://${req.headers.host}`);
+    const token = url.searchParams.get('token');
+    if (!token) {
+      securityLogger.warn('WS connection rejected — no auth token provided');
+      ws.close(1008, 'Authentication required');
+      return;
+    }
   }
 
   ws.isAlive = true;
@@ -49,7 +61,7 @@ wss.on('connection', (ws: ExtWebSocket, req) => {
       try {
         wsRateCapTotal.inc();
         ws.close(1008, 'Rate limit exceeded');
-      } catch {}
+      } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Rate cap close error'); }
     }
   });
 
@@ -67,7 +79,7 @@ wss.on('connection', (ws: ExtWebSocket, req) => {
           try {
             wsRateCapTotal.inc();
             ws.close(1008, 'Subscription limit exceeded');
-          } catch {}
+          } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Sub limit close error'); }
           return;
         }
         // Optional RL on subscribe
@@ -85,12 +97,12 @@ wss.on('connection', (ws: ExtWebSocket, req) => {
               burst: Number(process.env.RATE_LIMIT_BURST ?? 20),
             });
             if (!allowed.allowed) {
-              try { ws.close(1008, 'Rate limited'); } catch {}
+              try { ws.close(1008, 'Rate limited'); } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'RL close error'); }
             }
-          } catch {}
+          } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Rate limit check failed'); }
         }
       }
-    } catch {}
+    } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Message parse error'); }
   });
 });
 
@@ -102,18 +114,12 @@ const handler = applyWSSHandler({
     return createContext({ req });
   },
   onError({ error, type, path, input, ctx, req }) {
-    console.error('[tRPC WS Error]', {
-      type,
-      path,
-      error: error.message,
-      code: error.code,
-      cause: error.cause,
-    });
+    wsLogger.error({ type, path, code: error.code, cause: error.cause }, `tRPC error: ${error.message}`);
     // Log to Prometheus if available
     try {
       const { trpcErrorsTotal } = require('./metrics/exporter');
       trpcErrorsTotal.labels({ path: path || 'unknown', code: error.code || 'UNKNOWN' }).inc();
-    } catch {}
+    } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Metrics increment failed'); }
   },
 });
 
@@ -123,7 +129,7 @@ const interval = setInterval(() => {
     const socket = ws as ExtWebSocket;
     if (socket.isAlive === false) return socket.terminate();
     socket.isAlive = false;
-    try { socket.ping(); } catch {}
+    try { socket.ping(); } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Ping failed'); }
   });
 }, 30_000);
 
@@ -134,16 +140,16 @@ wss.on('close', () => {
 // Track disconnects
 wss.on('connection', (ws: WebSocket) => {
   ws.on('close', () => {
-    try { wsDisconnectsTotal.inc(); } catch {}
+    try { wsDisconnectsTotal.inc(); } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Disconnect metric error'); }
   });
 });
 
 function shutdown() {
-  console.log('Shutting down WS server...');
-  try { handler.broadcastReconnectNotification?.(); } catch {}
+  wsLogger.info('Shutting down WS server...');
+  try { handler.broadcastReconnectNotification?.(); } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Reconnect broadcast failed'); }
   clearInterval(interval);
   wss.close(async () => {
-    try { await deployExec.stop(); } catch {}
+    try { await deployExec.stop(); } catch (e) { wsLogger.warn({ err: (e as Error).message }, 'Deploy executor stop failed'); }
     process.exit(0);
   });
 }
@@ -151,7 +157,7 @@ function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-console.log(`WS listening on :${port}`);
+wsLogger.info({ port }, 'WebSocket server started');
 
 // Boot-time replay: enqueue stale pendings (>60s old), bounded to 100 rows
 (async () => {
@@ -163,11 +169,11 @@ console.log(`WS listening on :${port}`);
       ee.emit('deploys:enqueue', { id: row.id });
     }
     if (res.rows?.length) {
-      console.log(`Replayed ${res.rows.length} pending deployments`);
+      wsLogger.info({ count: res.rows.length }, 'Replayed pending deployments');
     }
   } catch (e) {
     // Database connection may fail temporarily on Neon serverless
     // This is non-critical - don't block server startup
-    console.warn('Pending replay skipped (DB connection issue - this is OK)');
+    wsLogger.warn('Pending replay skipped (DB connection issue)');
   }
 })();

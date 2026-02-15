@@ -1,219 +1,82 @@
 # Sarge
 
 [![CI](https://github.com/ItsMysterix/Sarge/actions/workflows/ci.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/ci.yml)
-[![Release](https://github.com/ItsMysterix/Sarge/actions/workflows/release.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/release.yml)
 [![Security Scan](https://github.com/ItsMysterix/Sarge/actions/workflows/security-scan.yml/badge.svg)](https://github.com/ItsMysterix/Sarge/actions/workflows/security-scan.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A **DevOps command center** for real-time deployments, logs, and metrics in a single UI. Built with **Next.js 14** + **TypeScript tRPC**, powered by **Neon Postgres**, and includes production-grade observability with **Prometheus**, **Grafana**, and **Alertmanager**.
+Sarge is a DevOps command center that consolidates deployment management, real-time log aggregation, infrastructure metrics, and multi-cloud orchestration into a single unified interface. It provides engineering teams with a centralized platform to monitor, deploy, and manage services across cloud providers without switching between vendor-specific consoles.
 
-## Features
+---
 
-- 🚀 **Deployment Management**: Track, trigger, and rollback deployments with real-time status
-- 📊 **Live Metrics**: CPU, memory, latency, and custom Prometheus metrics
-- 📝 **Aggregated Logs**: Filter and search logs across all services
-- 🔔 **Alerting**: Prometheus rules + Slack/Email/PagerDuty notifications
-- 🔐 **Secure**: Auth.js (OAuth/OIDC), RBAC, rate limiting, encrypted sessions
-- 🎨 **Dark-first UI**: Tailwind CSS with modern design patterns
-- 📦 **Multi-platform Deployments**: Local Docker, Kubernetes, Vercel, Railway, AWS, GCP, Azure
-- 🏥 **Health Checks**: HTTP/TCP/Script probes with auto-retry
-- 🌍 **Multi-cloud**: Traffic management, environment cloning, cost optimization
-- 📈 **Scalable**: Handles 1000s of metrics/logs per second via buffered subscriptions
+## What It Does
 
-## Quick Start
+Sarge acts as a control plane for modern infrastructure. It connects to your cloud providers, ingests deployment and observability data, and presents it through a real-time dashboard backed by WebSocket subscriptions. The platform covers five core operational domains:
 
-### 1. Prerequisites
-- **Node.js** 18+ (npm or pnpm)
-- **PostgreSQL** database (Neon, local, or cloud)
-- **GitHub OAuth app** (optional, for authentication)
+**Deployment Orchestration** -- Track, trigger, and roll back deployments across environments. Sarge maintains a complete deployment history with status tracking, build logs, and one-click rollback capability. Deployments are scoped to projects and environments, with support for preview environments tied to pull requests.
 
-### 2. Clone & Setup
-```bash
-git clone https://github.com/ItsMysterix/Sarge.git
-cd Sarge
+**Observability** -- Aggregate logs across services with structured filtering. Prometheus-compatible metrics are scraped and visualized through integrated Grafana dashboards. Alertmanager handles notification routing to Slack, email, or PagerDuty based on configurable thresholds and severity rules.
 
-# Install dependencies
-pnpm install  # or npm install
+**Environment Management** -- Create, clone, and manage isolated environments (development, staging, production, preview) per project. Each environment maintains its own service configuration, secrets, and resource allocation. Environment cloning duplicates infrastructure state for rapid staging or feature branch testing.
 
-# Create environment file
-cp .env.example .env.local
-```
+**Multi-Cloud Governance** -- Connect multiple cloud provider credentials and manage infrastructure across AWS, GCP, Azure, Kubernetes, Vercel, and Render from a single interface. Role-based access control restricts operations by user, project, and environment. An audit log captures every mutation for compliance.
 
-### 3. Configure `.env.local`
-```env
-# Database (required for data persistence)
-DATABASE_URL=postgresql://user:password@localhost:5432/sarge
+**Cost and Resource Intelligence** -- Track resource consumption and estimated monthly costs per project and provider. Budget alerts notify stakeholders when spending thresholds are reached. Idle environments can be configured to auto-stop after a defined period to reduce waste.
 
-# Authentication (required to access the app)
-NEXTAUTH_SECRET=generate-with: openssl rand -hex 32
-NEXTAUTH_URL=http://localhost:3000
-
-# WebSocket server (if backend runs on separate port)
-NEXT_PUBLIC_WS_URL=ws://localhost:3200
-
-# Optional: Observability
-PROM_METRICS_TOKEN=your-prometheus-token
-
-# Optional: AI features
-ANTHROPIC_API_KEY=sk-...
-ENABLE_AI_ANALYSIS=true
-```
-
-### 4. Run Locally
-```bash
-# Runs both frontend (port 3000) and backend (port 3200)
-npm run dev
-
-# Or run separately:
-npm run dev:frontend  # Next.js on :3000
-npm run dev:backend   # tRPC WS on :3200
-```
-
-Visit **http://localhost:3000** and sign in.
+---
 
 ## Architecture
 
+Sarge is split into two runtime processes that communicate over WebSockets using tRPC subscriptions.
+
 ```
-┌─────────────────────┐        WS (tRPC)       ┌──────────────────────┐
-│  Next.js 14         │ ◄───────────────────► │ Backend (tRPC WS)    │
-│  • React 19         │    ctx.ee events      │ • Node.js + ts-node  │
-│  • Auth.js          │   (deploys/logs/      │ • Neon Postgres      │
-│  • Tailwind CSS     │    metrics)           │ • Event emitter      │
-└─────────┬───────────┘                       └──────────┬───────────┘
-          │                                             │
-          │ HTTP                                        │ Queries/Mutations
-          │                                             │
-          └────────────────────────────────────────────┘
+Frontend (Next.js 14)                      Backend (Node.js)
+---------------------                      -----------------
+React 19 + TypeScript                      tRPC WebSocket Server
+Auth.js (OAuth/OIDC)                       Event Emitter (pub/sub)
+App Router                                 Neon Postgres (serverless)
+Tailwind CSS                               Prometheus Metrics Endpoint
 
-Observability:
-  Prometheus (metrics scrape)
-  Grafana (dashboards)
-  Alertmanager (notifications)
-```
+        <--- WebSocket (tRPC subscriptions) --->
 
-**Key characteristics:**
-- **Real-time**: WebSocket subscriptions (deploys, logs, metrics)
-- **Typed**: Full TypeScript on frontend & backend
-- **Secure**: Auth.js with OAuth, RBAC, rate limiting
-- **Observable**: Prometheus metrics + Grafana visualizations
-- **Scalable**: Buffered subscriptions, database pooling
-
-For detailed architecture, see [docs/ARCHITECTURE_COMPLETE.md](docs/ARCHITECTURE_COMPLETE.md).
-
-## Deployment
-
-### Local Development
-```bash
-npm run dev
+Observability Stack
+-------------------
+Prometheus  -->  Grafana  -->  Alertmanager
 ```
 
-### Docker Compose (Staging)
-```bash
-docker-compose -f compose.prod.yaml up
-```
+The frontend handles authentication, routing, and rendering. The backend owns all data access, business logic, and real-time event distribution. Both layers are fully typed end-to-end through tRPC, eliminating runtime type mismatches between client and server.
 
-### Kubernetes (Production)
-```bash
-kustomize build bridge/overlays/prod | kubectl apply -f -
-```
+The database layer uses Neon Postgres with connection pooling, row-level security on all user-facing tables, and automatic retention policies for high-volume operational data.
 
-### Cloud Platforms
-- **Vercel**: Frontend (built-in CI/CD)
-- **Railway**: Backend + Database
-- **Fly.io**: WebSocket server
-- **AWS ECS**: Long-running services
-- **GCP Cloud Run**: Serverless
-- **Azure Container Apps**: Managed containers
+---
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed guides.
+## Core Technical Characteristics
 
-## Development
+- **Real-time data flow** -- WebSocket subscriptions push deployment status, log entries, and metric updates to the browser without polling. The backend uses an event emitter pattern with buffered fan-out to handle concurrent connections efficiently.
 
-### Project Structure
-```
-├── app/                 # Next.js 14 (App Router)
-│   ├── api/            # Serverless routes
-│   ├── deployments/    # Deployment history
-│   ├── logs/           # Log viewer
-│   ├── metrics/        # Metrics dashboard
-│   ├── projects/       # Project management
-│   ├── settings/       # User settings
-│   └── ...
-├── backend/            # tRPC WebSocket server
-│   └── src/api/
-│       ├── root.ts     # Router export
-│       ├── routers/    # Feature routers
-│       ├── lib/        # Utilities (DB, auth, etc.)
-│       └── trpc/       # tRPC config & middleware
-├── components/         # React components
-├── lib/               # Shared utilities
-├── docs/              # Documentation
-└── bridge/            # Kubernetes manifests (Kustomize)
-```
+- **End-to-end type safety** -- tRPC generates typed client bindings from server router definitions. Schema validation uses Zod on both input and output boundaries. There are no untyped API calls anywhere in the system.
 
-### Running Tests
-```bash
-# Backend
-cd backend && npm test
+- **Security hardened** -- Auth.js handles session management with encrypted JWTs. The middleware layer injects security headers (CSP, HSTS, X-Frame-Options) on every response. Authentication fails closed on errors. WebSocket connections require token validation. The database enforces row-level security policies for tenant isolation.
 
-# Frontend
-npm run test
+- **Production observability** -- Prometheus scrapes application metrics (request latency, error rates, WebSocket connection counts). Grafana provides pre-configured dashboards. Alertmanager routes notifications based on severity. Structured logging is used throughout the backend with context tags for traceability.
 
-# E2E
-npm run test:e2e
-```
+- **Multi-tenant by default** -- All data is scoped to authenticated users. Database queries filter by `user_id` at the application layer, and row-level security policies provide a second enforcement boundary at the database layer. RBAC policies restrict operations based on assigned roles per project and environment.
 
-### Building for Production
-```bash
-npm run build   # Builds both frontend & backend
-npm run start   # Runs production server
-```
+---
 
-## Documentation
+## Technology
 
-- **[Architecture](docs/ARCHITECTURE_COMPLETE.md)** — System design, data flow, components
-- **[Development](docs/DEVELOPMENT.md)** — Local setup, testing, debugging
-- **[Deployment](docs/DEPLOYMENT.md)** — Production deployment guides
-- **[Monitoring](docs/MONITORING.md)** — Prometheus, Grafana, alerts
-- **[Contributing](CONTRIBUTING.md)** — Code style, PR process, conventions
+| Layer | Stack |
+|-------|-------|
+| Frontend | Next.js 14, React 19, TypeScript, Tailwind CSS, Auth.js |
+| Backend | Node.js, TypeScript, tRPC, WebSocket, EventEmitter |
+| Database | Neon Postgres (serverless, connection pooled) |
+| Observability | Prometheus, Grafana, Alertmanager |
+| Infrastructure | Docker, Kubernetes (Kustomize), Vercel, Render |
+| Testing | Vitest, Playwright |
+| CI/CD | GitHub Actions (lint, typecheck, build, test, coverage) |
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `DATABASE_URL` | Recommended | PostgreSQL connection string (Neon recommended) |
-| `NEXTAUTH_SECRET` | Yes | Auth.js session encryption (generate: `openssl rand -hex 32`) |
-| `NEXTAUTH_URL` | Yes | Public site URL (https://your-domain.com) |
-| `NEXT_PUBLIC_WS_URL` | Optional | WS endpoint if backend separate (e.g., `wss://api.your-domain.com/ws`) |
-| `PROM_METRICS_TOKEN` | Optional | Token for Prometheus scrape endpoint |
-| `ANTHROPIC_API_KEY` | Optional | Enables AI Co-Pilot features |
-| `ENABLE_AI_ANALYSIS` | Optional | Feature flag for AI components (set `true` to enable) |
-| `RATE_LIMIT_MAX` | Optional | Rate limit bucket size (default: 100) |
-| `RATE_LIMIT_WINDOW_SEC` | Optional | Rate limit window (default: 60) |
-| `WS_PORT` | Optional | Backend WebSocket port (default: 3200, local only) |
-
-**Tips:**
-- Without `DATABASE_URL`, API routes gracefully degrade to mock data
-- Keep secrets out of client—only `NEXT_PUBLIC_*` vars exposed to browser
-- Rotate `NEXTAUTH_SECRET` if compromised (invalidates all sessions)
-
-## Tech Stack
-
-- **Frontend**: Next.js 14, React 19, TypeScript, Tailwind CSS, Auth.js, tRPC
-- **Backend**: Node.js, TypeScript, tRPC, EventEmitter
-- **Database**: Neon Postgres (serverless)
-- **Observability**: Prometheus, Grafana, Alertmanager
-- **Deployment**: Docker, Kubernetes (Kustomize), Vercel, Railway, AWS, GCP, Azure
-- **Testing**: Vitest, Playwright (E2E)
-- **CI/CD**: GitHub Actions
+---
 
 ## License
 
-[MIT](LICENSE) — Internal project, contributions welcome.
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/ItsMysterix/Sarge/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/ItsMysterix/Sarge/discussions)
+[MIT](LICENSE)

@@ -1,4 +1,5 @@
 import { t } from '../../lib/trpc'
+import logger from '../../../lib/logger';
 
 /**
  * Audit Logging Middleware

@@ -53,7 +53,8 @@ export function TargetsTab() {
         title: newStatus === "connected" ? "Connected" : "Disconnected",
         description: `Provider ${newStatus === "connected" ? "ready for deployment" : "disconnected"}`
       })
-    } catch {
+    } catch (err) {
+      console.error('Failed to trigger test notification:', err);
       addToast({ type: "error", title: "Failed", description: "Could not update provider" })
     }
   }
