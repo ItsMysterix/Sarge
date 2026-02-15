@@ -5,7 +5,6 @@ import { useRef, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import gsap from "gsap"
-import { ScrollTrigger } from "gsap/ScrollTrigger"
 import {
   Rocket,
   Activity,
@@ -39,8 +38,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/clerk-safe"
 
-gsap.registerPlugin(ScrollTrigger)
-
 export default function LandingPage() {
   const router = useRouter()
   const { user, isLoaded } = useUser()
@@ -70,50 +67,38 @@ export default function LandingPage() {
     return () => clearInterval(i)
   }, [])
 
-  // GSAP animations
+  // Hero entrance animations (GSAP — no ScrollTrigger)
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.from(navRef.current, {
         y: -80, opacity: 0, duration: 0.8, ease: "power3.out",
       })
-
       gsap.from(".hero-element", {
         y: 40, opacity: 0, duration: 0.9, stagger: 0.12,
         ease: "power3.out", delay: 0.3,
       })
-
-      gsap.from(".stat-card", {
-        y: 30, opacity: 0, duration: 0.6, stagger: 0.08,
-        ease: "power2.out",
-        scrollTrigger: { trigger: statsRef.current, start: "top 85%" },
-      })
-
-      gsap.from(".feature-card", {
-        y: 40, opacity: 0, duration: 0.7, stagger: 0.1,
-        ease: "power2.out",
-        scrollTrigger: { trigger: featuresRef.current, start: "top 80%" },
-      })
-
-      gsap.from(".workflow-step", {
-        x: -30, opacity: 0, duration: 0.6, stagger: 0.15,
-        ease: "power2.out",
-        scrollTrigger: { trigger: ".workflow-section", start: "top 80%" },
-      })
-
-      gsap.from(".provider-logo", {
-        scale: 0.8, opacity: 0, duration: 0.4, stagger: 0.06,
-        ease: "back.out(1.7)",
-        scrollTrigger: { trigger: ".providers-section", start: "top 85%" },
-      })
-
-      gsap.from(".cta-element", {
-        y: 30, opacity: 0, duration: 0.7, stagger: 0.1,
-        ease: "power2.out",
-        scrollTrigger: { trigger: ctaRef.current, start: "top 85%" },
-      })
     }, containerRef)
-
     return () => ctx.revert()
+  }, [])
+
+  // Intersection Observer for scroll-reveal sections
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("revealed")
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    )
+
+    const revealItems = containerRef.current?.querySelectorAll(".reveal-on-scroll")
+    revealItems?.forEach((el) => observer.observe(el))
+
+    return () => observer.disconnect()
   }, [])
 
   const features = [
@@ -275,7 +260,7 @@ export default function LandingPage() {
       <section ref={statsRef} className="py-16 border-y border-border">
         <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
           {stats.map((s, i) => (
-            <div key={i} className="stat-card glass-card rounded-xl p-6 text-center">
+            <div key={i} className="reveal-on-scroll glass-card rounded-xl p-6 text-center" style={{ transitionDelay: `${i * 80}ms` }}>
               <div className="text-3xl font-bold tracking-tight">{s.value}</div>
               <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
             </div>
@@ -297,7 +282,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f, i) => (
-              <div key={i} className="feature-card glass-card rounded-xl p-6 group">
+              <div key={i} className="reveal-on-scroll glass-card rounded-xl p-6 group" style={{ transitionDelay: `${i * 100}ms` }}>
                 <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center mb-4 group-hover:border-white/20 transition-colors">
                   <f.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </div>
@@ -323,7 +308,7 @@ export default function LandingPage() {
 
           <div className="space-y-6">
             {workflow.map((w, i) => (
-              <div key={i} className="workflow-step flex items-start gap-6 glass-card rounded-xl p-6">
+              <div key={i} className="reveal-on-scroll flex items-start gap-6 glass-card rounded-xl p-6" style={{ transitionDelay: `${i * 150}ms` }}>
                 <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-card border border-border flex items-center justify-center">
                   <w.icon className="w-5 h-5 text-muted-foreground" />
                 </div>
@@ -355,7 +340,7 @@ export default function LandingPage() {
 
           <div className="flex flex-wrap justify-center gap-4">
             {providers.map((p, i) => (
-              <div key={i} className="provider-logo glass-card rounded-xl px-6 py-4 flex items-center gap-3 min-w-[140px]">
+              <div key={i} className="reveal-on-scroll glass-card rounded-xl px-6 py-4 flex items-center gap-3 min-w-[140px]" style={{ transitionDelay: `${i * 60}ms` }}>
                 <p.icon className="w-5 h-5 text-muted-foreground" />
                 <span className="text-sm font-medium">{p.name}</span>
               </div>
@@ -378,7 +363,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="glass-card rounded-xl p-8">
+            <div className="reveal-on-scroll glass-card rounded-xl p-8">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <Eye className="w-5 h-5 text-emerald-400" />
@@ -428,13 +413,13 @@ export default function LandingPage() {
       <section ref={ctaRef} className="py-24 border-t border-border">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <div className="glass-card rounded-2xl p-12">
-            <h2 className="cta-element text-3xl md:text-4xl font-bold tracking-tight">
+            <h2 className="reveal-on-scroll text-3xl md:text-4xl font-bold tracking-tight">
               Ready to <span className="text-muted-foreground">Take Command?</span>
             </h2>
-            <p className="cta-element text-muted-foreground mt-4 max-w-md mx-auto">
+            <p className="reveal-on-scroll text-muted-foreground mt-4 max-w-md mx-auto" style={{ transitionDelay: '100ms' }}>
               Deploy your first project in under 2 minutes. No credit card required.
             </p>
-            <div className="cta-element flex items-center justify-center gap-4 mt-8">
+            <div className="reveal-on-scroll flex items-center justify-center gap-4 mt-8" style={{ transitionDelay: '200ms' }}>
               <Link href="/sign-up">
                 <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 h-12 px-8">
                   <Rocket className="w-4 h-4 mr-2" />
@@ -447,7 +432,7 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
-            <div className="cta-element flex items-center justify-center gap-6 mt-6 text-xs text-muted-foreground">
+            <div className="reveal-on-scroll flex items-center justify-center gap-6 mt-6 text-xs text-muted-foreground" style={{ transitionDelay: '300ms' }}>
               <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Free to start</span>
               <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> No credit card</span>
               <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> 7 providers</span>
