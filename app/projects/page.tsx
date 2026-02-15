@@ -7,8 +7,6 @@ import {
   Search, 
   GitBranch, 
   Github,
-  Globe,
-  Loader2,
   RefreshCw,
   Box,
   Rocket
@@ -20,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
+import { GridLoader } from '@/components/ui/grid-loader';
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -67,66 +66,66 @@ export default function ProjectsPage() {
   if (!isLoading && !hasProjects) {
     return (
       <AppShell>
-        <div className="flex-1 flex items-center justify-center p-8 animate-fade-in min-h-[calc(100vh-4rem)]">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in min-h-[calc(100vh-4rem)]">
           <ToastContainer />
-          <div className="max-w-4xl w-full">
-            <div className="text-center mb-12">
-               <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 mb-4">
-                 Create Project
+          
+          <div className="w-full max-w-lg relative z-10">
+            {/* Header */}
+            <div className="text-center mb-8">
+               <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/5 border border-white/10 mb-6 shadow-2xl">
+                  <Box className="w-6 h-6 text-violet-400" />
+               </div>
+               <h1 className="text-2xl font-medium tracking-tight text-white mb-2">
+                 Create your first project
                </h1>
-               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                 Your project is a container for all your services, databases, and environments.
+               <p className="text-muted-foreground text-sm">
+                 Projects organize your services and deployments.
                </p>
             </div>
 
-            <div className="glass-card p-1 mt-8 border-white/10 bg-black/40 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden relative">
-               <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-purple-500/5 pointer-events-none" />
+            {/* Compact Form Card */}
+            <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+               <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
                
-               <div className="p-8 md:p-12 space-y-10 relative">
-                  {/* Step 1: Name */}
-                  <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                        <Label className="text-lg font-medium">Project Name</Label>
-                        <span className="text-sm text-muted-foreground">e.g. Acme Corp, Production, Internal Tools</span>
-                     </div>
-                     <div className="relative">
+               <div className="space-y-4 relative">
+                  <div>
+                     <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                        Project Name
+                     </Label>
+                     <div className="relative group/input">
                         <Input 
                            value={name} 
-                           onChange={(e) => {
-                             setName(e.target.value);
-                           }}
-                           placeholder="My First Project" 
-                           className="h-16 text-2xl px-6 bg-white/[0.03] border-white/10 focus:border-violet-500/50 focus:ring-violet-500/20 rounded-xl transition-all"
+                           onChange={(e) => setName(e.target.value)}
+                           placeholder="acme-core" 
+                           autoFocus
+                           className="h-11 bg-black border-white/10 focus:border-violet-500/50 focus:ring-violet-500/20 rounded-lg transition-all font-mono text-sm shadow-inner"
                         />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden group-focus-within/input:block">
+                           <span className="text-[10px] text-muted-foreground border border-white/10 px-1.5 py-0.5 rounded">Enter</span>
+                        </div>
                      </div>
-                     <p className="text-sm text-muted-foreground">
-                        This name will be used to identify your project in the dashboard.
-                     </p>
                   </div>
 
-                  {/* Action */}
-                  <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                     <div className="flex items-center text-sm text-muted-foreground">
-                        <Box className="w-4 h-4 mr-2 text-violet-400" />
-                        Environments included
-                     </div>
-                     <Button 
-                        size="lg"
-                        onClick={(e) => {
-                           e.preventDefault();
-                           createMutation.mutate({
-                              name,
-                              autoDeploy: true,
-                              repositoryId: undefined,
-                           });
-                        }} 
-                        disabled={createMutation.isPending || !name.trim()}
-                        className="h-12 px-8 bg-white text-black hover:bg-white/90 text-base font-medium rounded-lg shadow-lg hover:shadow-xl transition-all"
-                     >
-                        {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                        Create Project
-                     </Button>
-                  </div>
+                  <Button 
+                     size="lg"
+                     onClick={(e) => {
+                        e.preventDefault();
+                        createMutation.mutate({
+                           name,
+                           autoDeploy: true,
+                           repositoryId: undefined,
+                        });
+                     }} 
+                     disabled={createMutation.isPending || !name.trim()}
+                     className="w-full h-10 bg-white text-black hover:bg-white/90 text-sm font-medium rounded-lg shadow-lg hover:shadow-xl transition-all"
+                  >
+                     {createMutation.isPending ? (
+                        <GridLoader className="w-4 h-4 mr-2" />
+                     ) : (
+                        <Plus className="w-3.5 h-3.5 mr-2" />
+                     )}
+                     Create Project
+                  </Button>
                </div>
             </div>
           </div>
@@ -179,7 +178,7 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
           {isLoading ? (
              <div className="col-span-full flex items-center justify-center py-20">
-               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+               <GridLoader className="w-8 h-8" />
              </div>
           ) : filteredProjects.length === 0 ? (
             <div className="col-span-full">
@@ -253,7 +252,7 @@ function CreateProjectModal({ onClose, onSubmit, name, setName, isPending }: any
               Cancel
             </Button>
             <Button type="submit" disabled={isPending || !name.trim()} className="bg-white text-black hover:bg-white/90">
-              {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {isPending && <GridLoader className="w-3 h-3 mr-2" />}
               Create Project
             </Button>
           </div>
