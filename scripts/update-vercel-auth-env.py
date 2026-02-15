@@ -11,7 +11,7 @@ for line in p.read_text().splitlines():
     if not line or line.startswith('#') or '=' not in line:
         continue
     k, v = line.split('=', 1)
-    vals[k.strip()] = v.strip().strip('"')
+    vals[k.strip()] = v.strip().strip('"').strip("'").strip()
 
 github_id = vals.get('GITHUB_ID', '')
 github_secret = vals.get('GITHUB_SECRET', '')

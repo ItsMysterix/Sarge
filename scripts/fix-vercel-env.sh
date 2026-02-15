@@ -9,10 +9,10 @@ echo "Setting ALLOWED_ORIGINS..."
 echo "https://v0-sarge.vercel.app" | npx vercel env add ALLOWED_ORIGINS production --force
 
 echo "Setting GITHUB_ID..."
-echo "Ov23liOP1yVxDnm9SsYs" | npx vercel env add GITHUB_ID production --force
+echo "Ov23liOP1yVxDnm9SsYs" | tr -d '\n' | npx vercel env add GITHUB_ID production --force
 
 echo "Setting GITHUB_SECRET..."
-echo "8766c6b5d38fb6cdaf96af985592936c4d97d55d" | npx vercel env add GITHUB_SECRET production --force
+echo "8766c6b5d38fb6cdaf96af985592936c4d97d55d" | tr -d '\n' | npx vercel env add GITHUB_SECRET production --force
 
 echo ""
 echo "✅ All environment variables set!"

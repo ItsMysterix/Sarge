@@ -24,7 +24,7 @@ def update_env_var(key, value):
     print(f"Updating {key}...")
     
     headers = {
-        "Authorization": f"Bearer {VERCEL_TOKEN}",
+        "Authorization": f"Bearer {VERCEL_TOKEN.strip()}",
         "Content-Type": "application/json"
     }
     
