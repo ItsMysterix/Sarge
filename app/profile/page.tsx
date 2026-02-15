@@ -1,7 +1,7 @@
 "use client"
 
 import { AppShell } from "@/components/layout/app-shell"
-import { User, Mail, Calendar, GitBranch, Activity, Settings, Save, Database, Cloud, Zap, Lock, Key, Github } from "lucide-react"
+import { User, Mail, Calendar, GitBranch, Activity, Settings, Save, Database, Cloud, Zap, Lock, Key, Github, Terminal, Copy, Plus, Trash2, Shield, Clock, Loader2, CheckCircle, ExternalLink } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/clerk-safe"
@@ -31,6 +31,26 @@ export default function ProfilePage() {
   const t = trpc as any
   const stacksQuery = t.stacks?.list?.useQuery()
   const awsSummaryQuery = t.aws?.getSummary?.useQuery()
+  
+  // PATs logic
+  const tokensQuery = t.tokens?.list?.useQuery()
+  const createTokenMutation = t.tokens?.create?.useMutation({
+    onSuccess: (data: any) => {
+      setNewToken(data.token)
+      tokensQuery.refetch()
+      addToast({ type: "success", title: "Token created", description: "Copy it now, you won't see it again!" })
+    }
+  })
+  const revokeTokenMutation = t.tokens?.revoke?.useMutation({
+    onSuccess: () => {
+      tokensQuery.refetch()
+      addToast({ type: "success", title: "Token revoked" })
+    }
+  })
+
+  const [newToken, setNewToken] = useState<string | null>(null)
+  const [tokenName, setTokenName] = useState("")
+  const [isCreatingToken, setIsCreatingToken] = useState(false)
 
   useEffect(() => {
     if (user?.fullName) {
@@ -427,43 +447,225 @@ export default function ProfilePage() {
                 )}
               </motion.div>
 
-              {/* Recent Activity */}
+              {/* Personal Access Tokens */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="space-y-4"
               >
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-accent" />
-                  Recent Activity
-                </h3>
-                <div className="glass-card border border-white/10 rounded-lg divide-y divide-white/10">
-                  {stacksQuery.data?.slice(0, 5).map((stack: any, idx: number) => (
-                    <div key={stack.id} className="p-4 hover:bg-white/5 transition-all">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-accent/20 rounded-lg flex items-center justify-center">
-                            <Database className="w-4 h-4 text-accent" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">{stack.name}</h4>
-                            <p className="text-xs text-gray-400">
-                              {stack.services?.length || 0} services · {stack.status}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {new Date(stack.updated_at).toLocaleDateString()}
-                        </span>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <Key className="w-5 h-5 text-accent" />
+                    Personal Access Tokens
+                  </h3>
+                  <button
+                    onClick={() => setIsCreatingToken(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Generate New
+                  </button>
+                </div>
+
+                {isCreatingToken && (
+                  <div className="glass-card p-4 border border-accent/20 bg-accent/5 rounded-lg space-y-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Token Name</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={tokenName}
+                          onChange={(e) => setTokenName(e.target.value)}
+                          placeholder="e.g. MacBook Pro CLI"
+                          className="flex-1 bg-white/10 border border-white/10 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-accent"
+                        />
+                        <button
+                          onClick={() => {
+                            createTokenMutation.mutate({ name: tokenName })
+                            setTokenName("")
+                            setIsCreatingToken(false)
+                          }}
+                          disabled={!tokenName || createTokenMutation.isLoading}
+                          className="bg-accent text-black px-4 py-1.5 rounded font-medium text-sm disabled:opacity-50"
+                        >
+                          Generate
+                        </button>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {newToken && (
+                  <div className="glass-card p-4 border border-emerald-500/30 bg-emerald-500/5 rounded-lg space-y-2">
+                    <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                      <CheckCircle className="w-3 h-3" />
+                      Success! Token generated
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-black/40 border border-emerald-500/20 p-2 rounded text-emerald-300 font-mono text-xs break-all">
+                        {newToken}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(newToken)
+                          addToast({ type: "info", title: "Copied", description: "Token copied to clipboard" })
+                        }}
+                        className="p-2 hover:bg-white/5 rounded"
+                      >
+                        <Copy className="w-4 h-4 text-emerald-400" />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-emerald-400/60">
+                      Store this safely. It will not be shown again.
+                    </p>
+                  </div>
+                )}
+
+                <div className="glass-card border border-white/10 rounded-lg divide-y divide-white/10">
+                  {tokensQuery.data?.map((token: any) => (
+                    <div key={token.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center">
+                          <Key className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium">{token.name}</h4>
+                          <p className="text-[10px] text-gray-500 font-mono">
+                            Created {new Date(token.created_at).toLocaleDateString()} · 
+                            Last used {token.last_used_at ? new Date(token.last_used_at).toLocaleDateString() : 'Never'}
+                          </p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => revokeTokenMutation.mutate({ tokenId: token.id })}
+                        className="p-2 text-gray-500 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
-                  {(!stacksQuery.data || stacksQuery.data.length === 0) && (
-                    <div className="p-8 text-center text-gray-400">
-                      <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No recent activity</p>
+                  {(!tokensQuery.data || tokensQuery.data.length === 0) && !isCreatingToken && (
+                    <div className="p-6 text-center text-gray-500 text-sm">
+                      No active tokens
                     </div>
                   )}
+                </div>
+              </motion.div>
+
+              {/* Developer Portal / CLI Setup */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+                className="space-y-4"
+              >
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-accent" />
+                  Developer Portal
+                </h3>
+                <div className="glass-card p-6 border border-white/10 rounded-lg bg-gradient-to-br from-accent/5 to-transparent">
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center font-bold">1</span>
+                          <span className="text-sm font-medium">Install Sarge CLI</span>
+                        </div>
+                        <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-gray-400">v1.2.4</span>
+                      </div>
+                      <div className="relative group">
+                        <pre className="bg-black/40 border border-white/10 p-3 rounded font-mono text-xs text-accent overflow-x-auto">
+                          curl -sL https://cli.sarge.io/install | sh
+                        </pre>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText("curl -sL https://cli.sarge.io/install | sh")
+                            addToast({ type: "info", title: "Copied", description: "Command copied" })
+                          }}
+                          className="absolute right-2 top-2 p-1.5 opacity-0 group-hover:opacity-100 bg-white/5 rounded transition-opacity"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="w-6 h-6 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center font-bold">2</span>
+                        <span className="text-sm font-medium">Authenticate</span>
+                      </div>
+                      <div className="relative group">
+                        <pre className="bg-black/40 border border-white/10 p-3 rounded font-mono text-xs text-accent overflow-x-auto">
+                          sarge login --token {'<YOUR_TOKEN>'}
+                        </pre>
+                        <p className="mt-2 text-[10px] text-gray-500">
+                          Or run <code className="text-accent/60">sarge login</code> to authenticate via browser.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <ExternalLink className="w-3 h-3" />
+                        Explore CLI Documentation
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Github className="w-4 h-4 text-gray-500 hover:text-white cursor-pointer" />
+                        <span className="text-xs text-accent hover:underline cursor-pointer">View Samples</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Sessions & History */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.8 }}
+                className="space-y-4 pb-10"
+              >
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-accent" />
+                  Active Sessions
+                </h3>
+                <div className="glass-card border border-white/10 rounded-lg divide-y divide-white/10">
+                  <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                        <Terminal className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Current Session (Chrome / macOS)</h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Active Now</span>
+                          <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Started 2 hours ago
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 font-mono">192.168.1.1</div>
+                  </div>
+                  <div className="p-4 flex items-center justify-between opacity-60 grayscale">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center">
+                        <Terminal className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-400">CLI session (MacBook Pro)</h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Last seen yesterday
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="text-[10px] font-bold uppercase text-red-400 hover:text-red-300">Revoke</button>
+                  </div>
                 </div>
               </motion.div>
             </div>

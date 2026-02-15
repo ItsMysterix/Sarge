@@ -25,6 +25,9 @@ import { costOptimizationRouter } from './routers/cost-optimization';
 import { oneclickRouter } from './routers/oneclick';
 import { auditLogsRouter } from './routers/audit-logs';
 import { rustBridgeRouter } from './routers/rust-bridge';
+import { domainsRouter } from './routers/domains';
+import { membersRouter } from './routers/members';
+import { tokensRouter } from './routers/tokens';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -53,6 +56,9 @@ export const appRouter = router({
   oneclick: oneclickRouter,
   auditLogs: auditLogsRouter,
   rustBridge: rustBridgeRouter,
+  domains: domainsRouter,
+  members: membersRouter,
+  tokens: tokensRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -14,6 +14,9 @@ import { SecurityTab } from "@/components/settings/security-tab"
 import { ShortcutsTab } from "@/components/settings/shortcuts-tab"
 import { VariablesTab } from "@/components/settings/variables-tab"
 import { TargetsTab } from "@/components/settings/targets-tab"
+import { DomainsTab } from "@/components/settings/domains-tab"
+import { MembersTab } from "@/components/settings/members-tab"
+import { WebhooksTab } from "@/components/settings/webhooks-tab"
 import { AppShell } from '@/components/layout/app-shell'
 import { Settings as SettingsIcon, Loader2 } from 'lucide-react'
 
@@ -189,6 +192,8 @@ export default function Settings() {
         {/* Tab Content */}
         {activeTab === "general" && (
           <GeneralTab
+            settings={settings}
+            updateSettings={updateSettings}
             onExport={handleExportSettings}
             onImport={handleImportSettings}
             onClearData={handleClearData}
@@ -231,6 +236,9 @@ export default function Settings() {
 
         {activeTab === "security" && <SecurityTab />}
         {activeTab === "shortcuts" && <ShortcutsTab />}
+        {activeTab === "domains" && <DomainsTab />}
+        {activeTab === "members" && <MembersTab />}
+        {activeTab === "webhooks" && <WebhooksTab />}
       </main>
     </AppShell>
   )

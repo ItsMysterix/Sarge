@@ -2,6 +2,7 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { createHmac } from 'crypto'
 
 /**
  * Alerting & Notifications Router
@@ -21,6 +22,7 @@ export const alertsRouter = router({
       name: z.string(),
       description: z.string().optional(),
       ruleType: z.enum(['metric', 'deployment', 'healthcheck', 'custom']),
+      events: z.array(z.string()).optional(), // e.g., ['DEPLOYMENT_STARTED', 'DEPLOYMENT_SUCCESS']
       condition: z.object({
         metric: z.string().optional(), // e.g., 'cpu_usage', 'error_rate'
         operator: z.enum(['gt', 'lt', 'eq', 'gte', 'lte']),
@@ -35,15 +37,16 @@ export const alertsRouter = router({
       try {
         const result = await ctx.db.query(
           `INSERT INTO alert_rules (
-            project_id, name, description, rule_type, condition,
+            project_id, name, description, rule_type, events, condition,
             severity, notification_channels, enabled, created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
           RETURNING id`,
           [
             input.projectId,
             input.name,
             input.description || '',
             input.ruleType,
+            JSON.stringify(input.events || []),
             JSON.stringify(input.condition),
             input.severity,
             JSON.stringify(input.notificationChannelIds),
@@ -98,6 +101,7 @@ export const alertsRouter = router({
       type: z.enum(['slack', 'discord', 'email', 'webhook', 'pagerduty', 'teams']),
       config: z.object({
         webhookUrl: z.string().optional(),
+        webhookSecret: z.string().optional(),
         email: z.string().optional(),
         integrationKey: z.string().optional(),
       }),
@@ -370,7 +374,7 @@ async function sendNotification(params: {
     } else if (type === 'email' && config.email) {
       await sendEmailNotification(config.email, message)
     } else if (type === 'webhook' && config.webhookUrl) {
-      await sendWebhookNotification(config.webhookUrl, message)
+      await sendWebhookNotification(config.webhookUrl, message, config.webhookSecret)
     } else if (type === 'teams' && config.webhookUrl) {
       await sendTeamsNotification(config.webhookUrl, message)
     } else if (type === 'pagerduty' && config.integrationKey) {
@@ -429,11 +433,19 @@ async function sendTeamsNotification(webhookUrl: string, message: any): Promise<
   })
 }
 
-async function sendWebhookNotification(webhookUrl: string, message: any): Promise<void> {
+async function sendWebhookNotification(webhookUrl: string, message: any, secret?: string): Promise<void> {
+  const payload = JSON.stringify(message)
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+  if (secret) {
+    const signature = createHmac('sha256', secret).update(payload).digest('hex')
+    headers['Sarge-Signature'] = signature
+  }
+
   await fetch(webhookUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(message),
+    headers,
+    body: payload,
   })
 }
 

@@ -2,23 +2,29 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Settings2, Globe, Server, Database, Download, Upload, Trash2, AlertTriangle } from "lucide-react"
+import { Settings2, Globe, Server, Database, Download, Upload, Trash2, AlertTriangle, Zap } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface GeneralTabProps {
+  settings?: any
+  updateSettings?: (updates: any) => Promise<any>
   onExport?: () => void
   onImport?: () => void
   onClearData?: () => void
 }
 
 export function GeneralTab({
+  settings,
+  updateSettings,
   onExport,
   onImport,
   onClearData
 }: GeneralTabProps) {
-  const [defaultRegion, setDefaultRegion] = useState("us-east-1")
-  const [defaultEnvironment, setDefaultEnvironment] = useState("development")
-  const [autoDeploy, setAutoDeploy] = useState(false)
-  const [autoSSL, setAutoSSL] = useState(true)
+  const [defaultRegion, setDefaultRegion] = useState(settings?.default_region || "us-east-1")
+  const [defaultEnvironment, setDefaultEnvironment] = useState(settings?.default_environment || "development")
+  const [cpu, setCpu] = useState(settings?.resources?.cpu || 0.5)
+  const [memory, setMemory] = useState(settings?.resources?.memory || 512)
+  const [replicas, setReplicas] = useState(settings?.resources?.replicas || 1)
 
   return (
     <motion.div
@@ -71,28 +77,96 @@ export function GeneralTab({
         </div>
       </div>
 
-      {/* Deployment Preferences */}
+      {/* Infrastructure & Resources */}
       <div className="glass-card p-6 border border-white/10">
         <div className="flex items-center gap-3 mb-6">
-          <Server className="w-5 h-5 text-accent" />
-          <h3 className="text-lg font-semibold">Deployment Preferences</h3>
+          <Globe className="w-5 h-5 text-accent" />
+          <h3 className="text-lg font-semibold">Infrastructure & Resources</h3>
+        </div>
+        
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Allocation: vCPU</span>
+              <span className="font-mono text-accent">{cpu} vCPU</span>
+            </div>
+            <input 
+              type="range" min="0.1" max="4" step="0.1" 
+              value={cpu} 
+              onChange={(e) => {
+                const val = parseFloat(e.target.value)
+                setCpu(val)
+                updateSettings?.({ resources: { ...settings?.resources, cpu: val } })
+              }}
+              className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Allocation: RAM</span>
+              <span className="font-mono text-accent">{memory} MB</span>
+            </div>
+            <input 
+              type="range" min="128" max="8192" step="128" 
+              value={memory} 
+              onChange={(e) => {
+                const val = parseInt(e.target.value)
+                setMemory(val)
+                updateSettings?.({ resources: { ...settings?.resources, memory: val } })
+              }}
+              className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Minimum Replicas</span>
+              <span className="font-mono text-accent">{replicas}</span>
+            </div>
+            <div className="flex gap-2">
+              {[1, 2, 3, 5, 10].map(r => (
+                <button
+                  key={r}
+                  onClick={() => {
+                    setReplicas(r)
+                    updateSettings?.({ resources: { ...settings?.resources, replicas: r } })
+                  }}
+                  className={cn(
+                    "px-3 py-1 rounded border text-xs transition-all",
+                    replicas === r ? "bg-white text-black border-transparent" : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Advanced Deployment */}
+      <div className="glass-card p-6 border border-white/10">
+        <div className="flex items-center gap-3 mb-6">
+          <Zap className="w-5 h-5 text-accent" />
+          <h3 className="text-lg font-semibold">Advanced Deployment</h3>
         </div>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10">
             <div className="flex-1">
-              <div className="font-medium">Auto Deploy</div>
-              <div className="text-sm text-gray-400">Automatically deploy when pushing to main branch</div>
+              <div className="font-medium">Zero-Downtime Deployments</div>
+              <div className="text-sm text-gray-400">Use Rolling Updates or Blue/Green strategies.</div>
             </div>
             <button
-              onClick={() => setAutoDeploy(!autoDeploy)}
+              onClick={() => updateSettings?.({ zero_downtime: !settings?.zero_downtime })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                autoDeploy ? 'bg-accent' : 'bg-gray-600'
+                settings?.zero_downtime ? 'bg-accent' : 'bg-gray-600'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  autoDeploy ? 'translate-x-6' : 'translate-x-1'
+                   settings?.zero_downtime ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
@@ -100,18 +174,18 @@ export function GeneralTab({
 
           <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10">
             <div className="flex-1">
-              <div className="font-medium">Auto SSL</div>
-              <div className="text-sm text-gray-400">Automatically provision SSL certificates</div>
+              <div className="font-medium">Active Health Checks</div>
+              <div className="text-sm text-gray-400">Kill and restart unhealthy containers automatically.</div>
             </div>
             <button
-              onClick={() => setAutoSSL(!autoSSL)}
+              onClick={() => updateSettings?.({ health_checks: !settings?.health_checks })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                autoSSL ? 'bg-accent' : 'bg-gray-600'
+                settings?.health_checks ? 'bg-accent' : 'bg-gray-600'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  autoSSL ? 'translate-x-6' : 'translate-x-1'
+                  settings?.health_checks ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>

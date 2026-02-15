@@ -12,13 +12,14 @@ export function VariablesTab() {
   const { addToast } = useToast()
   const t = trpc as any
   
+  const [activeEnv, setActiveEnv] = useState("production")
   const [showValues, setShowValues] = useState<Record<string, boolean>>({})
   const [newKey, setNewKey] = useState("")
   const [newValue, setNewValue] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   
   const secretsQuery = t.secrets?.list?.useQuery(
-    { projectId: currentProject?.id, environmentId: "production" },
+    { projectId: currentProject?.id, environmentId: activeEnv },
     { enabled: !!currentProject?.id }
   )
   
@@ -28,7 +29,7 @@ export function VariablesTab() {
       setNewKey("")
       setNewValue("")
       setIsAdding(false)
-      addToast({ type: "success", title: "Variable added", description: "Secret has been encrypted and saved" })
+      addToast({ type: "success", title: "Variable added", description: `Secret saved for ${activeEnv}` })
     },
     onError: (err: any) => {
       addToast({ type: "error", title: "Error", description: err.message })
@@ -46,17 +47,17 @@ export function VariablesTab() {
     if (!newKey || !newValue) return
     setMutation?.mutate({
       projectId: currentProject?.id,
-      environmentId: "production",
+      environmentId: activeEnv,
       key: newKey,
       value: newValue
     })
   }
 
   const handleDelete = (key: string) => {
-    if (!confirm(`Delete ${key}?`)) return
+    if (!confirm(`Delete ${key} from ${activeEnv}?`)) return
     deleteMutation?.mutate({
       projectId: currentProject?.id,
-      environmentId: "production",
+      environmentId: activeEnv,
       key
     })
   }
@@ -88,6 +89,24 @@ export function VariablesTab() {
           <Plus className="w-4 h-4" />
           Add Variable
         </button>
+      </div>
+
+      {/* Environment Selector */}
+      <div className="flex gap-1 p-1 bg-white/5 border border-white/10 rounded-lg w-fit">
+        {["production", "preview", "development"].map(env => (
+          <button
+            key={env}
+            onClick={() => setActiveEnv(env)}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize",
+              activeEnv === env 
+                ? "bg-white text-black shadow-lg" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {env}
+          </button>
+        ))}
       </div>
 
       {/* Add New Variable Form */}
