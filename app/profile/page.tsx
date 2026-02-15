@@ -48,14 +48,75 @@ export default function ProfilePage() {
   // Data Fetching
   const t = trpc as any
   const stacksQuery = t.stacks?.list?.useQuery()
+  const stacks = stacksQuery?.data || []
+
+  // Fetch Settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/user/settings")
+        if (res.ok) {
+          const data = await res.json()
+          setDeploymentEmails(data.deployment_emails)
+          setProductEmails(data.product_emails)
+        }
+      } catch (error) {
+        console.error("Failed to fetch settings", error)
+      }
+    }
+    fetchSettings()
+  }, [])
+
+  const updateSettings = async (updates: { deployment_emails?: boolean; product_emails?: boolean }) => {
+     try {
+        await fetch("/api/user/settings", {
+           method: "PATCH",
+           headers: { "Content-Type": "application/json" },
+           body: JSON.stringify(updates),
+        })
+        addToast({
+           type: "success",
+           title: "Success",
+           description: "Preferences updated.",
+        })
+     } catch (error) {
+        addToast({
+           type: "error",
+           title: "Error",
+           description: "Failed to update preferences.",
+        })
+     }
+  }
+
+  const handleDeploymentEmailChange = (checked: boolean) => {
+     setDeploymentEmails(checked)
+     updateSettings({ deployment_emails: checked, product_emails: productEmails })
+  }
+
+  const handleProductEmailChange = (checked: boolean) => {
+     setProductEmails(checked)
+     updateSettings({ deployment_emails: deploymentEmails, product_emails: checked })
+  }
   const awsSummaryQuery = t.aws?.getSummary?.useQuery()
   const tokensQuery = t.tokens?.list?.useQuery()
   
   const createTokenMutation = t.tokens?.create?.useMutation({
-    onSuccess: (data: any) => {
-      setNewToken(data.token)
+    onSuccess: () => {
+      setTokenName("")
+      setIsCreatingToken(false)
       tokensQuery.refetch()
-      addToast({ type: "success", title: "Token created", description: "Copy it now, you won't see it again!" })
+      addToast({
+        type: "success",
+        title: "Success",
+        description: "Token created successfully",
+      })
+    },
+    onError: (error: any) => {
+      addToast({
+        type: "error",
+        title: "Error",
+        description: error.message,
+      })
     }
   })
   const revokeTokenMutation = t.tokens?.revoke?.useMutation({
@@ -458,14 +519,14 @@ export default function ProfilePage() {
                          <Label className="text-base">Deployment Status</Label>
                          <p className="text-sm text-muted-foreground">Receive emails when deployments succeed or fail.</p>
                       </div>
-                      <Switch checked={deploymentEmails} onCheckedChange={setDeploymentEmails} />
+                      <Switch checked={deploymentEmails} onCheckedChange={handleDeploymentEmailChange} />
                    </div>
                    <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                          <Label className="text-base">Product Updates</Label>
                          <p className="text-sm text-muted-foreground">News about new features and improvements.</p>
                       </div>
-                      <Switch checked={productEmails} onCheckedChange={setProductEmails} />
+                      <Switch checked={productEmails} onCheckedChange={handleProductEmailChange} />
                    </div>
                 </div>
              </div>

@@ -7,7 +7,7 @@ import { getAIAnalyzer } from '../lib/ai-analyzer';
 // Project schema for validation
 const createProjectSchema = z.object({
   name: z.string().min(1).max(255),
-  slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/),
+  slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/).optional(),
   description: z.string().optional(),
   framework: z.string().optional(),
   repositoryId: z.string().optional(),
@@ -200,6 +200,14 @@ export const projectRouter = router({
       try {
         let detectedInfo: any = {}
 
+        // Auto-generate slug if not provided matches system-generated requirement
+        let finalSlug = input.slug;
+        if (!finalSlug) {
+          const baseSlug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          const randomSuffix = Math.random().toString(36).substring(2, 8);
+          finalSlug = `${baseSlug}-${randomSuffix}`;
+        }
+
         // Optional: Run AI detection if repositoryId provided
         if (input.repositoryId) {
           try {
@@ -233,7 +241,7 @@ export const projectRouter = router({
           [
             userId,
             input.name,
-            input.slug,
+            finalSlug,
             input.description || null,
             input.repositoryId || null,
             input.framework || null,

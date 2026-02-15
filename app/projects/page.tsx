@@ -27,7 +27,6 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
 
   // Use tRPC for data fetching
   const { data, isLoading, refetch } = trpc.project.list.useQuery();
@@ -36,7 +35,6 @@ export default function ProjectsPage() {
       toast({ type: "success", title: "Project created", description: "Your new project is ready." });
       setShowCreateModal(false);
       setName('');
-      setSlug('');
       refetch();
       // Navigate to the new project
       if (result?.slug) {
@@ -60,8 +58,6 @@ export default function ProjectsPage() {
     e.preventDefault();
     createMutation.mutate({
       name,
-      slug,
-      framework: 'nextjs', 
       autoDeploy: true,
       repositoryId: undefined,
     });
@@ -71,45 +67,70 @@ export default function ProjectsPage() {
   if (!isLoading && !hasProjects) {
     return (
       <AppShell>
-        <div className="flex-1 flex items-center justify-center p-8 animate-fade-in">
+        <div className="flex-1 flex items-center justify-center p-8 animate-fade-in min-h-[calc(100vh-4rem)]">
           <ToastContainer />
-          <div className="max-w-md w-full text-center">
-            <div className="relative group mx-auto mb-8 w-24 h-24">
-              <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full group-hover:bg-violet-500/30 transition-all duration-500" />
-              <div className="relative w-full h-full bg-gradient-to-br from-zinc-900 to-black border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-500">
-                <Box className="w-10 h-10 text-violet-400" />
-              </div>
+          <div className="max-w-4xl w-full">
+            <div className="text-center mb-12">
+               <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 mb-4">
+                 Create Project
+               </h1>
+               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                 Your project is a container for all your services, databases, and environments.
+               </p>
             </div>
-            
-            <h1 className="text-3xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
-              No projects yet
-            </h1>
-            <p className="text-muted-foreground mb-8 text-lg">
-              Create your first project to get started with deployments, environments, and more.
-            </p>
 
-            <Button 
-              onClick={() => setShowCreateModal(true)}
-              className="h-12 px-8 bg-white text-black hover:bg-white/90 font-medium text-base rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] transition-all duration-300"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create First Project
-            </Button>
+            <div className="glass-card p-1 mt-8 border-white/10 bg-black/40 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden relative">
+               <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-purple-500/5 pointer-events-none" />
+               
+               <div className="p-8 md:p-12 space-y-10 relative">
+                  {/* Step 1: Name */}
+                  <div className="space-y-4">
+                     <div className="flex items-center justify-between">
+                        <Label className="text-lg font-medium">Project Name</Label>
+                        <span className="text-sm text-muted-foreground">e.g. Acme Corp, Production, Internal Tools</span>
+                     </div>
+                     <div className="relative">
+                        <Input 
+                           value={name} 
+                           onChange={(e) => {
+                             setName(e.target.value);
+                           }}
+                           placeholder="My First Project" 
+                           className="h-16 text-2xl px-6 bg-white/[0.03] border-white/10 focus:border-violet-500/50 focus:ring-violet-500/20 rounded-xl transition-all"
+                        />
+                     </div>
+                     <p className="text-sm text-muted-foreground">
+                        This name will be used to identify your project in the dashboard.
+                     </p>
+                  </div>
+
+                  {/* Action */}
+                  <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                     <div className="flex items-center text-sm text-muted-foreground">
+                        <Box className="w-4 h-4 mr-2 text-violet-400" />
+                        Environments included
+                     </div>
+                     <Button 
+                        size="lg"
+                        onClick={(e) => {
+                           e.preventDefault();
+                           createMutation.mutate({
+                              name,
+                              autoDeploy: true,
+                              repositoryId: undefined,
+                           });
+                        }} 
+                        disabled={createMutation.isPending || !name.trim()}
+                        className="h-12 px-8 bg-white text-black hover:bg-white/90 text-base font-medium rounded-lg shadow-lg hover:shadow-xl transition-all"
+                     >
+                        {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                        Create Project
+                     </Button>
+                  </div>
+               </div>
+            </div>
           </div>
         </div>
-
-        {/* Create Modal (Same as main view) */}
-        {showCreateModal && (
-          <CreateProjectModal 
-            onClose={() => setShowCreateModal(false)}
-            onSubmit={handleCreate}
-            name={name}
-            setName={setName}
-            slug={slug}
-            setSlug={setSlug}
-            isPending={createMutation.isPending}
-          />
-        )}
       </AppShell>
     );
   }
@@ -179,15 +200,13 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Create Modal */}
+        {/* Create Modal */}
       {showCreateModal && (
         <CreateProjectModal 
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreate}
           name={name}
           setName={setName}
-          slug={slug}
-          setSlug={setSlug}
           isPending={createMutation.isPending}
         />
       )}
@@ -195,7 +214,7 @@ export default function ProjectsPage() {
   );
 }
 
-function CreateProjectModal({ onClose, onSubmit, name, setName, slug, setSlug, isPending }: any) {
+function CreateProjectModal({ onClose, onSubmit, name, setName, isPending }: any) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
       <div className="w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-xl p-6 shadow-2xl scale-100 animate-in fade-in zoom-in-95 duration-200">
@@ -221,25 +240,14 @@ function CreateProjectModal({ onClose, onSubmit, name, setName, slug, setSlug, i
               autoFocus
               onChange={(e) => {
                 setName(e.target.value);
-                if (!slug) setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
               }}
               placeholder="My Awesome App" 
               className="mt-1.5 bg-white/[0.03] border-white/[0.08] focus:border-violet-500/50"
             />
           </div>
-          <div>
-            <Label htmlFor="modal-slug" className="text-sm font-medium text-foreground">Slug</Label>
-            <Input 
-              id="modal-slug" 
-              value={slug} 
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="my-awesome-app" 
-              className="mt-1.5 font-mono text-sm bg-white/[0.03] border-white/[0.08] focus:border-violet-500/50"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              URL-friendly identifier for your project.
-            </p>
-          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            A unique identifier will be generated automatically.
+          </p>
           <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.06]">
             <Button type="button" variant="ghost" onClick={onClose} className="hover:bg-white/5">
               Cancel
