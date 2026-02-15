@@ -1,5 +1,5 @@
 {
-  "buildCommand": "env && pnpm run build",
+  "buildCommand": "pnpm run build",
   "devCommand": "pnpm run dev:frontend",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "framework": "nextjs",

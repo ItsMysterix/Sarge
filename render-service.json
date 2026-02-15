@@ -1,0 +1,49 @@
+{
+    "type": "web_service",
+    "name": "sarge-backend",
+    "ownerId": "tea-d1iab13e5dus739gotpg",
+    "repo": "https://github.com/ItsMysterix/Sarge",
+    "branch": "main",
+    "autoDeploy": "yes",
+    "serviceDetails": {
+        "env": "docker",
+        "dockerContext": ".",
+        "dockerfilePath": "backend/Dockerfile",
+        "plan": "free",
+        "healthCheckPath": "/metrics"
+    },
+    "envVars": [
+        {
+            "key": "NODE_ENV",
+            "value": "production"
+        },
+        {
+            "key": "WS_PORT",
+            "value": "3001"
+        },
+        {
+            "key": "DATABASE_URL",
+            "value": "postgresql://***REDACTED_DB_USER***:***REDACTED_DB_PASSWORD***@***REDACTED_DB_HOST***-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+        },
+        {
+            "key": "NEXTAUTH_SECRET",
+            "value": "/i7W2ZP4lWDvjhU/J152WiTCozW2+Ost4URnQXziQXQ="
+        },
+        {
+            "key": "GITHUB_ID",
+            "value": "Ov23linESnwa4yLDNcr5"
+        },
+        {
+            "key": "GITHUB_SECRET",
+            "value": "ea8e506e5f522bf30f1713f17365769a02d7871b"
+        },
+        {
+            "key": "NEXTAUTH_URL",
+            "value": "https://v0-sarge.vercel.app"
+        },
+        {
+            "key": "CREDENTIAL_ENCRYPTION_KEY",
+            "value": "dev-32-char-key-change-me-1234567"
+        }
+    ]
+}

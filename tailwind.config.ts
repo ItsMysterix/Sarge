@@ -18,8 +18,8 @@ const config: Config = {
         '2xl': '1536px', // 2X Extra large devices
       },
       fontFamily: {
-        inter: ["var(--font-inter)", "sans-serif"],
-        "jetbrains-mono": ["var(--font-jetbrains-mono)", "monospace"],
+        sans: ["var(--font-geist-sans)", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "monospace"],
       },
       colors: {
         background: "hsl(var(--background))",

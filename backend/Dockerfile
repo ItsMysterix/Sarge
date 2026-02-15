@@ -12,7 +12,7 @@ WORKDIR /app
 COPY . .
 COPY --from=deps /app/node_modules ./node_modules
 # Build workspace packages then backend
-RUN if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm -w -r run build || npm --prefix backend run build; \
+RUN if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm install && pnpm -r run build; \
 	else npm --prefix backend run build; fi
 
 FROM node:20-alpine AS runner

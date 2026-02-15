@@ -148,7 +148,7 @@
     @apply bg-red-500/10 text-red-400 border border-red-500/20;
   }
 
-  /* Integration cards (like reference image) */
+  /* Integration cards */
   .integration-card {
     @apply flex flex-col items-center justify-center p-4 rounded-xl;
     @apply bg-white/[0.02] border border-white/[0.05];

@@ -1,0 +1,8 @@
+{
+    "serviceDetails": {
+        "envSpecificDetails": {
+            "dockerfilePath": "backend/Dockerfile",
+            "dockerContext": "."
+        }
+    }
+}
