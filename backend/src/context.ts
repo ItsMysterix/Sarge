@@ -24,6 +24,7 @@ export type Context = {
   ee: typeof ee;
   requestMeta: RequestMeta;
   session?: Session | null;
+  userId?: string;
 };
 
 export async function createContext(opts?: {
@@ -44,7 +45,7 @@ export async function createContext(opts?: {
       requestMeta.origin = origin === null ? undefined : origin;
       const tok = opts.req.headers.get('x-sarge-token');
       requestMeta.apiToken = tok === null ? undefined : tok;
-      
+
       // Check NextAuth session for authentication
       try {
         const token = await getToken({ req: opts.req as any, secret: process.env.NEXTAUTH_SECRET });
@@ -72,5 +73,11 @@ export async function createContext(opts?: {
     }
   }
 
-  return { db, ee, requestMeta, session };
+  return {
+    db,
+    ee,
+    requestMeta,
+    session,
+    userId: session?.user?.id
+  };
 }

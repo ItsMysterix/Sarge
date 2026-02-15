@@ -75,10 +75,16 @@ export function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="h-14 flex items-center justify-center border-b border-white/[0.06]">
-          <Link href="/projects" className="group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 transition-shadow">
-              <span className="text-white font-bold text-sm">S</span>
+        <div className="h-16 flex items-center justify-center border-b border-white/[0.06] relative">
+          <Link href="/projects" className="group relative">
+            <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-900 to-black border border-white/10 flex items-center justify-center shadow-lg group-hover:border-violet-500/50 transition-all duration-300 relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white group-hover:text-violet-400 transition-colors">
+                 <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                 <path d="M12 8V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                 <path d="M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+               </svg>
             </div>
           </Link>
         </div>
@@ -92,8 +98,10 @@ export function Sidebar() {
                 href="/projects"
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  "sidebar-icon group relative",
-                  pathname === "/projects" && "sidebar-icon-active"
+                  "sidebar-icon group relative transition-all duration-200",
+                  pathname === "/projects" 
+                    ? "bg-violet-500/10 text-violet-400 shadow-[inset_3px_0_0_0_rgba(139,92,246,1)]" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                 )}
                 title="Projects"
                 aria-label="Projects"
@@ -123,8 +131,10 @@ export function Sidebar() {
                         href={item.href}
                         onClick={() => setIsOpen(false)}
                         className={cn(
-                          "sidebar-icon group relative",
-                          isActive && "sidebar-icon-active"
+                          "sidebar-icon group relative transition-all duration-200",
+                          isActive 
+                            ? "bg-violet-500/10 text-violet-400 shadow-[inset_3px_0_0_0_rgba(139,92,246,1)]" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                         )}
                         title={item.name}
                         aria-label={item.name}
