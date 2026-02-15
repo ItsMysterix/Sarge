@@ -178,9 +178,9 @@ export default function ProjectsPage() {
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
           {isLoading ? (
-             Array.from({ length: 9 }).map((_, i) => (
-               <ProjectSkeleton key={i} />
-             ))
+             <div className="col-span-full flex items-center justify-center py-20">
+               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+             </div>
           ) : filteredProjects.length === 0 ? (
             <div className="col-span-full">
               <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
@@ -337,26 +337,7 @@ function ProjectCard({ project, router }: { project: any, router: any }) {
   );
 }
 
-function ProjectSkeleton() {
-  return (
-    <div className="h-[200px] p-6 rounded-xl border border-white/[0.06] bg-white/[0.01]">
-      <div className="flex gap-4 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-white/5 animate-pulse" />
-        <div className="space-y-2">
-          <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
-          <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
-        </div>
-      </div>
-      <div className="space-y-3 mb-6">
-        <div className="h-3 w-40 bg-white/5 rounded animate-pulse" />
-        <div className="h-3 w-28 bg-white/5 rounded animate-pulse" />
-      </div>
-      <div className="border-t border-white/5 pt-4 mt-auto">
-        <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
-      </div>
-    </div>
-  )
-}
+
 
 function formatTimeAgo(date: Date) {
   const diff = (new Date().getTime() - date.getTime()) / 1000;
