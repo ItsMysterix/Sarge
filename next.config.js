@@ -31,17 +31,22 @@ const nextConfig = {
     ]
   },
   async redirects() {
-    // Canonicalize all non-primary hosts to v0-sarge.vercel.app to stabilize OAuth
     return [
+      // Sovereign Hub Consolidation
+      { source: '/environments', destination: '/orchestration', permanent: true },
+      { source: '/deployments', destination: '/orchestration', permanent: true },
+      { source: '/secrets', destination: '/orchestration', permanent: true },
+      { source: '/cost', destination: '/governance', permanent: true },
+      { source: '/drift', destination: '/governance', permanent: true },
+      { source: '/audit', destination: '/governance', permanent: true },
+      { source: '/logs', destination: '/observability', permanent: true },
+      { source: '/metrics', destination: '/observability', permanent: true },
+      { source: '/traffic', destination: '/observability', permanent: true },
+
+      // Canonicalize host (Optional, handled by Vercel usually, but kept for stability)
       {
         source: '/:path*',
-        has: [
-          {
-            type: 'header',
-            key: 'host',
-            value: '^(?!v0-sarge\\.vercel\\.app$).*',
-          },
-        ],
+        has: [{ type: 'header', key: 'host', value: '^(?!v0-sarge\\.vercel\\.app$).*' }],
         destination: 'https://v0-sarge.vercel.app/:path*',
         permanent: false,
       },
