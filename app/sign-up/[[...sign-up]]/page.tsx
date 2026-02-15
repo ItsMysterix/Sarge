@@ -1,8 +1,6 @@
 "use client"
 
-import { Brain, Shield, Zap, Mail, Lock, User } from "lucide-react"
-
-import { UserPlus } from 'lucide-react';
+import { Shield, Zap, Layers, Mail, Lock, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -19,17 +17,13 @@ export default function SignUpPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
-  console.log('🔵 SignUpPage rendered, step:', step, 'loading:', loading)
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('🔵 Email signup started:', email)
     setLoading(true)
     setError("")
     setSuccess("")
 
     try {
-      console.log('🔵 Calling /api/auth/signup...')
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,19 +31,15 @@ export default function SignUpPage() {
       })
 
       const data = await res.json()
-      console.log('🔵 Signup response:', res.status, data)
 
       if (!res.ok) {
-        console.error('❌ Signup failed:', data.error)
         setError(data.error || "Signup failed")
         return
       }
 
-      console.log('✅ Signup successful, moving to verify step')
       setSuccess(data.message)
       setStep("verify")
     } catch (err) {
-      console.error('❌ Signup exception:', err)
       setError("Something went wrong")
     } finally {
       setLoading(false)
@@ -58,13 +48,11 @@ export default function SignUpPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('🔵 Email verification started:', email)
     setLoading(true)
     setError("")
     setSuccess("")
 
     try {
-      console.log('🔵 Calling /api/auth/verify-email...')
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,19 +60,15 @@ export default function SignUpPage() {
       })
 
       const data = await res.json()
-      console.log('🔵 Verification response:', res.status, data)
 
       if (!res.ok) {
-        console.error('❌ Verification failed:', data.error)
         setError(data.error || "Verification failed")
         return
       }
 
-      console.log('✅ Verification successful, redirecting to sign-in...')
       setSuccess(data.message)
       setTimeout(() => router.push("/sign-in"), 2000)
     } catch (err) {
-      console.error('❌ Verification exception:', err)
       setError("Something went wrong")
     } finally {
       setLoading(false)
@@ -92,236 +76,231 @@ export default function SignUpPage() {
   }
 
   const handleGitHub = async () => {
-    console.log('🔵 GitHub button clicked (signup page)')
-    console.log('🔵 Current loading state:', loading)
-    console.log('🔵 signIn function available:', typeof signIn)
-    
     try {
       setLoading(true)
-      console.log('🔵 Calling signIn("github") with callback: /')
       const result = await signIn("github", { callbackUrl: "/" })
-      console.log('🔵 signIn result:', result)
-      
       if (result?.error) {
-        console.error('❌ GitHub OAuth error:', result.error)
         setError(`GitHub sign-up failed: ${result.error}`)
         setLoading(false)
       }
     } catch (err) {
-      console.error('❌ GitHub sign-up exception:', err)
-      console.error('❌ Error stack:', err instanceof Error ? err.stack : 'No stack')
       setError("GitHub sign-up failed. Please try again.")
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-warning/5 rounded-full blur-3xl animate-pulse-slow delay-1000"></div>
+    <div className="min-h-screen bg-background flex">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex w-[480px] flex-col justify-between border-r border-border bg-card p-10">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl font-bold tracking-tight">SARGE</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          </div>
+          <p className="text-sm text-muted-foreground">DevOps Command Center</p>
+        </div>
+
+        <div className="space-y-8">
+          <div className="flex items-start gap-4">
+            <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Zap className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">One-Click Deploy</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Deploy to Vercel, Render, Railway, AWS, and more — instantly.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Layers className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Full Stack Management</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Infrastructure as code, secrets, pipelines, and environments — unified.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Shield className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Governance & Compliance</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Audit trails, cost tracking, drift detection — automatic.</p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Sarge. All rights reserved.
+        </p>
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="text-4xl font-bold text-accent terminal-text">SARGE</div>
-            <div className="ml-3 w-3 h-3 bg-accent rounded-full animate-pulse"></div>
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-2 mb-8">
+            <span className="text-xl font-bold tracking-tight">SARGE</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">Join Command Center</h1>
-          <p className="text-gray-400">Create your account to get started</p>
-        </div>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="glass-card p-4 text-center">
-            <Brain className="w-6 h-6 text-accent mx-auto mb-2" />
-            <div className="text-xs text-gray-400">AI Insights</div>
-          </div>
-          <div className="glass-card p-4 text-center">
-            <Zap className="w-6 h-6 text-warning mx-auto mb-2" />
-            <div className="text-xs text-gray-400">Real-time</div>
-          </div>
-          <div className="glass-card p-4 text-center">
-            <Shield className="w-6 h-6 text-success mx-auto mb-2" />
-            <div className="text-xs text-gray-400">Secure</div>
-          </div>
-        </div>
-
-        {/* Sign Up Form or Verification */}
-        <div className="glass-card p-6 rounded-lg border border-white/10">
           {step === "signup" ? (
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <label className="flex items-center gap-2 text-gray-300 font-medium mb-2">
-                  <User className="w-4 h-4" />
-                  Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full glass-card border border-white/10 text-white bg-transparent focus:border-accent/50 rounded px-4 py-2 outline-none transition-colors"
-                  placeholder="John Doe"
-                />
-              </div>
+            <>
+              <h1 className="text-2xl font-bold tracking-tight mb-1">Create your account</h1>
+              <p className="text-sm text-muted-foreground mb-8">Get started with Sarge in seconds</p>
 
-              <div>
-                <label className="flex items-center gap-2 text-gray-300 font-medium mb-2">
-                  <Mail className="w-4 h-4" />
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full glass-card border border-white/10 text-white bg-transparent focus:border-accent/50 rounded px-4 py-2 outline-none transition-colors"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-gray-300 font-medium mb-2">
-                  <Lock className="w-4 h-4" />
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full glass-card border border-white/10 text-white bg-transparent focus:border-accent/50 rounded px-4 py-2 outline-none transition-colors"
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                />
-                <p className="text-xs text-gray-500 mt-1">At least 8 characters</p>
-              </div>
-
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-2 rounded">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="bg-green-500/10 border border-green-500/50 text-green-400 px-4 py-2 rounded">
-                  {success}
-                </div>
-              )}
-
+              {/* GitHub */}
               <Button
-                type="submit"
+                type="button"
+                onClick={handleGitHub}
                 disabled={loading}
-                className="w-full bg-accent hover:bg-accent/90 text-black font-bold disabled:opacity-50"
+                variant="outline"
+                className="w-full h-11 border-border text-foreground hover:bg-card"
               >
-                {loading ? "Creating Account..." : "Create Account"}
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+                {loading ? "Connecting..." : "Continue with GitHub"}
               </Button>
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10"></div>
+                  <div className="w-full border-t border-border" />
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-[#0f0f0f] text-gray-400">Or continue with</span>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-3 bg-background text-muted-foreground">or</span>
                 </div>
               </div>
 
-              <Button
-                type="button"
-                onClick={() => {
-                  console.log('🔵 Button onClick fired (signup)')
-                  handleGitHub()
-                }}
-                disabled={loading}
-                variant="outline"
-                className="w-full glass-card border border-white/10 text-white hover:bg-white/10"
-              >
-                {loading ? 'Loading...' : 'GitHub'}
-              </Button>
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Name <span className="text-muted-foreground font-normal">(optional)</span></label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full h-11 rounded-lg border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-white/10 transition-all"
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full h-11 rounded-lg border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-white/10 transition-all"
+                    placeholder="you@company.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full h-11 rounded-lg border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-white/10 transition-all"
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">Minimum 8 characters</p>
+                </div>
 
-              <div className="mt-4 text-center text-sm text-gray-400">
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-lg text-sm">
+                    {success}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-11 bg-foreground text-background hover:bg-foreground/90 font-semibold"
+                >
+                  {loading ? "Creating Account..." : "Create Account"}
+                </Button>
+              </form>
+
+              <p className="text-sm text-muted-foreground text-center mt-6">
                 Already have an account?{" "}
                 <button
                   type="button"
                   onClick={() => router.push("/sign-in")}
-                  className="text-accent hover:underline"
+                  className="text-foreground hover:underline font-medium"
                 >
                   Sign In
                 </button>
-              </div>
-            </form>
+              </p>
+            </>
           ) : (
-            <form onSubmit={handleVerify} className="space-y-4">
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Mail className="w-8 h-8 text-accent" />
+            <>
+              <div className="text-center mb-8">
+                <div className="w-14 h-14 rounded-xl bg-card border border-border flex items-center justify-center mx-auto mb-4">
+                  <Mail className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <h2 className="text-xl font-bold mb-2">Check Your Email</h2>
-                <p className="text-gray-400 text-sm">
-                  We sent a verification code to <span className="text-accent">{email}</span>
+                <h1 className="text-2xl font-bold tracking-tight mb-1">Check your email</h1>
+                <p className="text-sm text-muted-foreground">
+                  We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>
                 </p>
               </div>
 
-              <div>
-                <label className="block text-gray-300 font-medium mb-2">
-                  6-Digit Code
-                </label>
-                <input
-                  type="text"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="w-full glass-card border border-white/10 text-white bg-transparent focus:border-accent/50 rounded px-4 py-2 outline-none transition-colors text-center text-2xl tracking-widest"
-                  placeholder="123456"
-                  required
-                  maxLength={6}
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-2 rounded text-sm">
-                  {error}
+              <form onSubmit={handleVerify} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Verification Code</label>
+                  <input
+                    type="text"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="w-full h-14 rounded-lg border border-border bg-card px-4 text-foreground text-center text-2xl tracking-[0.3em] font-mono placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-white/10 transition-all"
+                    placeholder="000000"
+                    required
+                    maxLength={6}
+                  />
                 </div>
-              )}
 
-              {success && (
-                <div className="bg-green-500/10 border border-green-500/50 text-green-400 px-4 py-2 rounded text-sm">
-                  {success}
-                </div>
-              )}
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
-              <Button
-                type="submit"
-                disabled={loading || verificationCode.length !== 6}
-                className="w-full bg-accent hover:bg-accent/90 text-black font-bold disabled:opacity-50"
-              >
-                {loading ? "Verifying..." : "Verify Email"}
-              </Button>
+                {success && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-lg text-sm">
+                    {success}
+                  </div>
+                )}
 
-              <div className="text-center text-sm text-gray-400">
-                Didn't receive code?{" "}
-                <button
-                  type="button"
-                  onClick={() => handleSignup(new Event("submit") as any)}
-                  className="text-accent hover:underline"
-                  disabled={loading}
+                <Button
+                  type="submit"
+                  disabled={loading || verificationCode.length !== 6}
+                  className="w-full h-11 bg-foreground text-background hover:bg-foreground/90 font-semibold"
                 >
-                  Resend
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+                  {loading ? "Verifying..." : "Verify Email"}
+                </Button>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <div className="text-xs text-gray-500 terminal-text">SARGE v2.0 • Secure DevOps Command Center</div>
-          <div className="flex items-center justify-center mt-2">
-            <div className="w-2 h-2 bg-success rounded-full animate-pulse mr-2"></div>
-            <span className="text-xs text-success">SYSTEM ONLINE</span>
-          </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  Didn&apos;t receive a code?{" "}
+                  <button
+                    type="button"
+                    onClick={() => handleSignup(new Event("submit") as any)}
+                    className="text-foreground hover:underline font-medium"
+                    disabled={loading}
+                  >
+                    Resend
+                  </button>
+                </p>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>

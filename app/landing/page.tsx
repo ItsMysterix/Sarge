@@ -14,7 +14,6 @@ import {
   Zap,
   Terminal,
   Globe,
-  Database,
   Layers,
   ArrowRight,
   CheckCircle2,
@@ -22,11 +21,20 @@ import {
   Cloud,
   Lock,
   Eye,
-  Play,
   ChevronRight,
   Server,
   Key,
   Users,
+  Cpu,
+  GitCompare,
+  Coins,
+  Map,
+  Brain,
+  Plug,
+  Settings,
+  FileCode,
+  Box,
+  Search,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/clerk-safe"
@@ -65,89 +73,44 @@ export default function LandingPage() {
   // GSAP animations
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Nav slide down
       gsap.from(navRef.current, {
-        y: -80,
-        opacity: 0,
-        duration: 0.8,
-        ease: "power3.out",
+        y: -80, opacity: 0, duration: 0.8, ease: "power3.out",
       })
 
-      // Hero stagger
       gsap.from(".hero-element", {
-        y: 40,
-        opacity: 0,
-        duration: 0.9,
-        stagger: 0.12,
-        ease: "power3.out",
-        delay: 0.3,
+        y: 40, opacity: 0, duration: 0.9, stagger: 0.12,
+        ease: "power3.out", delay: 0.3,
       })
 
-      // Stats count-up entrance
       gsap.from(".stat-card", {
-        y: 30,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.08,
+        y: 30, opacity: 0, duration: 0.6, stagger: 0.08,
         ease: "power2.out",
-        scrollTrigger: {
-          trigger: statsRef.current,
-          start: "top 85%",
-        },
+        scrollTrigger: { trigger: statsRef.current, start: "top 85%" },
       })
 
-      // Feature cards stagger
       gsap.from(".feature-card", {
-        y: 40,
-        opacity: 0,
-        duration: 0.7,
-        stagger: 0.1,
+        y: 40, opacity: 0, duration: 0.7, stagger: 0.1,
         ease: "power2.out",
-        scrollTrigger: {
-          trigger: featuresRef.current,
-          start: "top 80%",
-        },
+        scrollTrigger: { trigger: featuresRef.current, start: "top 80%" },
       })
 
-      // Workflow steps
       gsap.from(".workflow-step", {
-        x: -30,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.15,
+        x: -30, opacity: 0, duration: 0.6, stagger: 0.15,
         ease: "power2.out",
-        scrollTrigger: {
-          trigger: ".workflow-section",
-          start: "top 80%",
-        },
+        scrollTrigger: { trigger: ".workflow-section", start: "top 80%" },
       })
 
-      // Provider logos
       gsap.from(".provider-logo", {
-        scale: 0.8,
-        opacity: 0,
-        duration: 0.4,
-        stagger: 0.06,
+        scale: 0.8, opacity: 0, duration: 0.4, stagger: 0.06,
         ease: "back.out(1.7)",
-        scrollTrigger: {
-          trigger: ".providers-section",
-          start: "top 85%",
-        },
+        scrollTrigger: { trigger: ".providers-section", start: "top 85%" },
       })
 
-      // CTA section
       gsap.from(".cta-element", {
-        y: 30,
-        opacity: 0,
-        duration: 0.7,
-        stagger: 0.1,
+        y: 30, opacity: 0, duration: 0.7, stagger: 0.1,
         ease: "power2.out",
-        scrollTrigger: {
-          trigger: ctaRef.current,
-          start: "top 85%",
-        },
+        scrollTrigger: { trigger: ctaRef.current, start: "top 85%" },
       })
-
     }, containerRef)
 
     return () => ctx.revert()
@@ -157,429 +120,361 @@ export default function LandingPage() {
     {
       icon: Rocket,
       title: "One-Click Deploy",
-      description: "AI analyzes your repository, detects the stack, and generates an optimized deployment plan — then deploys it.",
-    },
-    {
-      icon: Activity,
-      title: "Real-Time Monitoring",
-      description: "Live WebSocket feeds push deployment status, log entries, and metric updates to your dashboard without polling.",
-    },
-    {
-      icon: Shield,
-      title: "Enterprise Security",
-      description: "Encrypted sessions, row-level security, RBAC policies, and a full audit log for every mutation.",
+      description: "Deploy to any provider — Vercel, Render, Railway, AWS — with a single click. No config files needed.",
     },
     {
       icon: Layers,
-      title: "Environment Management",
-      description: "Create, clone, and manage isolated environments per project — development, staging, production, preview.",
+      title: "Infrastructure Stacks",
+      description: "Define, version, and manage your full infrastructure as code. Create stacks from templates or from scratch.",
     },
     {
-      icon: BarChart3,
-      title: "Observability Stack",
-      description: "Prometheus metrics, Grafana dashboards, and Alertmanager routing — all pre-configured and integrated.",
+      icon: Settings,
+      title: "Orchestration Hub",
+      description: "Manage environments, CI/CD pipelines, and secrets across all your projects from one unified console.",
     },
     {
-      icon: Cloud,
-      title: "Multi-Cloud",
-      description: "Connect AWS, GCP, Azure, Kubernetes, Vercel, and Render from a single unified control plane.",
+      icon: Activity,
+      title: "Observability Suite",
+      description: "Real-time metrics, structured logs, and traffic maps. Monitor every service with live dashboards.",
+    },
+    {
+      icon: Shield,
+      title: "Governance & Compliance",
+      description: "Audit trails, cost tracking, and drift detection. Stay compliant without slowing down deployments.",
+    },
+    {
+      icon: Brain,
+      title: "Explain — Stack Intelligence",
+      description: "AI-free stack summaries from local data. See topology, health, errors, costs, and recent changes instantly.",
+    },
+    {
+      icon: Plug,
+      title: "Multi-Provider Targets",
+      description: "Connect and manage Vercel, Render, Railway, AWS, GCP, Azure, and Cloudflare from a single pane of glass.",
+    },
+    {
+      icon: Key,
+      title: "Secrets Management",
+      description: "Securely store, rotate, and inject environment variables and secrets across all environments.",
+    },
+    {
+      icon: GitCompare,
+      title: "Drift Detection",
+      description: "Automatically compare live infrastructure state against your declared configuration. Fix drift in seconds.",
     },
   ]
 
   const stats = [
-    { value: "99.9%", label: "Uptime SLA" },
-    { value: "<50ms", label: "Response Time" },
-    { value: "6", label: "Cloud Providers" },
-    { value: "E2E", label: "Type Safety" },
+    { value: "7+", label: "Cloud Providers" },
+    { value: "<30s", label: "Deploy Time" },
+    { value: "100%", label: "IaC Coverage" },
+    { value: "0", label: "Config Files Needed" },
   ]
 
   const providers = [
-    { name: "AWS", icon: Cloud },
-    { name: "GCP", icon: Server },
-    { name: "Azure", icon: Database },
-    { name: "Kubernetes", icon: Layers },
     { name: "Vercel", icon: Globe },
-    { name: "Render", icon: Zap },
+    { name: "Render", icon: Server },
+    { name: "Railway", icon: Zap },
+    { name: "AWS", icon: Cloud },
+    { name: "GCP", icon: Cpu },
+    { name: "Azure", icon: Globe },
+    { name: "Cloudflare", icon: Shield },
   ]
 
   const workflow = [
-    {
-      step: "01",
-      title: "Connect Repository",
-      description: "Link your GitHub repository to Sarge with OAuth. We detect your framework and branch.",
-      icon: GitBranch,
-    },
-    {
-      step: "02",
-      title: "AI Analyzes Your Stack",
-      description: "Our AI engine scans your codebase, identifies dependencies, and generates an optimized deployment plan.",
-      icon: Terminal,
-    },
-    {
-      step: "03",
-      title: "Review & Deploy",
-      description: "Review the AI-generated plan, customize if needed, and deploy to your infrastructure with one click.",
-      icon: Rocket,
-    },
-    {
-      step: "04",
-      title: "Monitor & Scale",
-      description: "Real-time metrics, logs, and alerts keep you in control. Scale up or roll back instantly.",
-      icon: Activity,
-    },
+    { step: "01", title: "Create Project", description: "Name your project and configure defaults. Sarge scaffolds the workspace instantly.", icon: FileCode },
+    { step: "02", title: "Connect Providers", description: "Link your cloud accounts — OAuth or API key. Multi-provider from day one.", icon: Plug },
+    { step: "03", title: "Define Stack", description: "Build your infrastructure stack visually or with code. Sarge tracks every resource.", icon: Layers },
+    { step: "04", title: "Deploy & Monitor", description: "One-click deploy to any target. Observability and governance activate automatically.", icon: Rocket },
   ]
 
   return (
     <div ref={containerRef} className="min-h-screen bg-background text-foreground overflow-hidden">
-      {/* ═══ Navigation ═══ */}
+      {/* Navigation */}
       <nav ref={navRef} className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-lg font-bold tracking-tight">SARGE</span>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-xs text-muted-foreground font-mono hidden sm:inline">{time}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-xs text-muted-foreground">v2.0</span>
           </div>
-
-          <div className="hidden md:flex items-center gap-8">
-            {["Features", "How it works", "Providers"].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {item}
-              </a>
-            ))}
+          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
+            <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
+            <a href="#providers" className="hover:text-foreground transition-colors">Providers</a>
+            <span className="font-mono text-xs tabular-nums">{time}</span>
           </div>
-
           <div className="flex items-center gap-3">
             <Link href="/sign-in">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                Sign In
-              </Button>
+              <Button variant="ghost" size="sm">Sign In</Button>
             </Link>
             <Link href="/sign-up">
-              <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90 font-medium">
-                Get Started
-                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90">
+                Get Started <ChevronRight className="w-3.5 h-3.5 ml-1" />
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ═══ Hero ═══ */}
+      {/* Hero */}
       <section ref={heroRef} className="relative pt-24 pb-20 md:pt-32 md:pb-28">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          {/* Status badge */}
-          <div className="hero-element inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card text-xs text-muted-foreground mb-8">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            All systems operational
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="hero-element inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-card text-xs text-muted-foreground mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            YOUR INFRASTRUCTURE, ONE COMMAND AWAY
           </div>
 
-          <h1 className="hero-element text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-            Your infrastructure,
-            <br />
-            <span className="text-muted-foreground">one command center.</span>
+          <h1 className="hero-element text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]">
+            <span className="text-muted-foreground">Deploy, Monitor &</span><br />
+            <span>Govern Everything</span>
           </h1>
 
-          <p className="hero-element text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Deploy, monitor, and manage services across cloud providers without switching between vendor consoles. Real-time metrics, AI-powered deployments, and end-to-end type safety.
+          <p className="hero-element text-lg text-muted-foreground max-w-2xl mx-auto mt-6 leading-relaxed">
+            Sarge is the unified DevOps command center for teams who ship to multiple clouds.
+            One-click deploys, full observability, governance and drift detection — all in one place.
           </p>
 
-          <div className="hero-element flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Button
-              onClick={handleLaunchClick}
-              size="lg"
-              className="bg-foreground text-background hover:bg-foreground/90 font-medium px-8 h-12 text-base"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Launch Dashboard
+          <div className="hero-element flex items-center justify-center gap-4 mt-10">
+            <Button onClick={handleLaunchClick} size="lg" className="bg-foreground text-background hover:bg-foreground/90 h-12 px-8 text-sm font-semibold">
+              <Rocket className="w-4 h-4 mr-2" />
+              Start Deploying
             </Button>
             <Link href="#features">
-              <Button variant="outline" size="lg" className="h-12 text-base border-border hover:bg-card">
-                Explore Features
-                <ChevronRight className="w-4 h-4 ml-1" />
+              <Button variant="outline" size="lg" className="h-12 px-8 text-sm border-border hover:bg-card">
+                See All Features
               </Button>
             </Link>
           </div>
 
-          {/* Terminal preview */}
-          <div className="hero-element max-w-2xl mx-auto">
-            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-2xl shadow-black/20">
-              {/* Title bar */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/60" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/60" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/60" />
-                </div>
-                <span className="text-xs text-muted-foreground font-mono ml-2">sarge — deployment pipeline</span>
+          {/* Terminal Preview */}
+          <div className="hero-element mt-16 max-w-2xl mx-auto">
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+                <span className="text-xs text-muted-foreground ml-2 font-mono">sarge-cli</span>
               </div>
-              {/* Content */}
-              <div className="p-5 font-mono text-sm text-left space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">$</span>
-                  <span className="text-foreground">sarge deploy --prod</span>
-                </div>
-                <div className="text-muted-foreground text-xs space-y-1.5 pl-4">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                    <span>Repository connected — ItsMysterix/Sarge</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                    <span>AI analysis complete — Next.js 14, TypeScript, tRPC</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                    <span>Build succeeded in 1m 23s</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                    <span>Deployed to production — 3 regions</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-emerald-500 font-medium">✓ Live at</span>
-                    <span className="text-foreground underline underline-offset-2 decoration-border">sarge.app</span>
-                  </div>
-                </div>
+              <div className="p-5 font-mono text-xs text-left space-y-1.5">
+                <div><span className="text-emerald-400">$</span> <span className="text-muted-foreground">sarge deploy --target vercel --env production</span></div>
+                <div className="text-muted-foreground/60">→ Building from stack &apos;web-app-v3&apos;...</div>
+                <div className="text-muted-foreground/60">→ Connected to Vercel (project: sarge-dashboard)</div>
+                <div className="text-muted-foreground/60">→ Deploying 3 services, 2 databases, 1 CDN...</div>
+                <div className="text-emerald-400">✓ Deployed in 24s — https://sarge.app</div>
+                <div className="text-muted-foreground/60">→ Observability: metrics active, alerts configured</div>
+                <div className="text-muted-foreground/60">→ Governance: audit logged, cost estimate $12.40/mo</div>
+                <div><span className="text-emerald-400">$</span> <span className="text-foreground/30 animate-pulse">_</span></div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ Stats ═══ */}
+      {/* Stats */}
       <section ref={statsRef} className="py-16 border-y border-border">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat, i) => (
-              <div key={i} className="stat-card text-center">
-                <div className="text-3xl md:text-4xl font-bold tracking-tight mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
-          </div>
+        <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+          {stats.map((s, i) => (
+            <div key={i} className="stat-card glass-card rounded-xl p-6 text-center">
+              <div className="text-3xl font-bold tracking-tight">{s.value}</div>
+              <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ═══ Features ═══ */}
+      {/* Features */}
       <section ref={featuresRef} id="features" className="py-24">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Everything you need to ship.
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              Everything You Need to <span className="text-muted-foreground">Ship & Govern</span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From deployment orchestration to cost intelligence — Sarge covers every operational domain.
+            <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
+              From deploy to drift detection — Sarge covers the full DevOps lifecycle across every cloud provider.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {features.map((feature, i) => (
-              <div
-                key={i}
-                className="feature-card group p-6 rounded-xl border border-border bg-card hover:border-zinc-500/50 transition-all duration-200"
-              >
-                <div className="w-10 h-10 rounded-lg bg-white/[0.05] border border-border flex items-center justify-center mb-4 group-hover:bg-white/[0.08] transition-colors">
-                  <feature.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f, i) => (
+              <div key={i} className="feature-card glass-card rounded-xl p-6 group">
+                <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center mb-4 group-hover:border-white/20 transition-colors">
+                  <f.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </div>
-                <h3 className="font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                <h3 className="font-semibold mb-2">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ How It Works ═══ */}
+      {/* How It Works */}
       <section id="how-it-works" className="py-24 border-t border-border workflow-section">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Deploy in four steps.
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              From Zero to <span className="text-muted-foreground">Production in Minutes</span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From repository to production in minutes, with AI doing the heavy lifting.
+            <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
+              Four steps. Any cloud. Full governance from the start.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {workflow.map((item, i) => (
-              <div key={i} className="workflow-step flex gap-5 p-6 rounded-xl border border-border bg-card">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-lg bg-white/[0.05] border border-border flex items-center justify-center font-mono text-sm font-bold text-muted-foreground">
-                    {item.step}
-                  </div>
+          <div className="space-y-6">
+            {workflow.map((w, i) => (
+              <div key={i} className="workflow-step flex items-start gap-6 glass-card rounded-xl p-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-card border border-border flex items-center justify-center">
+                  <w.icon className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <item.icon className="w-4 h-4 text-muted-foreground" />
-                    <h3 className="font-semibold">{item.title}</h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="text-xs font-mono text-muted-foreground">{w.step}</span>
+                    <h3 className="font-semibold">{w.title}</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{w.description}</p>
                 </div>
+                {i < workflow.length - 1 && (
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0 mt-4 hidden md:block" />
+                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ Providers ═══ */}
+      {/* Providers */}
       <section id="providers" className="py-24 border-t border-border providers-section">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              One interface, every provider.
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Connect credentials once. Manage infrastructure everywhere.
-            </p>
-          </div>
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+            One Dashboard. <span className="text-muted-foreground">Every Cloud.</span>
+          </h2>
+          <p className="text-muted-foreground mb-12 max-w-lg mx-auto">
+            Connect any combination of providers. Sarge normalizes the interface so your team uses one workflow everywhere.
+          </p>
 
-          <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-            {providers.map((provider, i) => (
-              <div
-                key={i}
-                className="provider-logo flex items-center gap-3 px-6 py-4 rounded-xl border border-border bg-card hover:border-zinc-500/50 transition-all duration-200 min-w-[160px]"
-              >
-                <provider.icon className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-sm">{provider.name}</span>
+          <div className="flex flex-wrap justify-center gap-4">
+            {providers.map((p, i) => (
+              <div key={i} className="provider-logo glass-card rounded-xl px-6 py-4 flex items-center gap-3 min-w-[140px]">
+                <p.icon className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm font-medium">{p.name}</span>
               </div>
             ))}
           </div>
+
+          <p className="text-xs text-muted-foreground mt-8">
+            Custom provider support coming soon via plugin SDK
+          </p>
         </div>
       </section>
 
-      {/* ═══ Security ═══ */}
+      {/* What Sets Sarge Apart */}
       <section className="py-24 border-t border-border">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                Built for teams that
-                <br />
-                care about security.
-              </h2>
-              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Every layer is hardened — from encrypted sessions to row-level database policies. Sarge is built with security-first architecture.
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              Why Teams <span className="text-muted-foreground">Choose Sarge</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="glass-card rounded-xl p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-semibold">Full Visibility</h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                See every deployment, every cost, every drift issue across all projects and providers. Audit trails are automatic — no manual logging required.
               </p>
-              <div className="space-y-4">
+              <div className="mt-6 rounded-lg border border-border bg-card p-4 font-mono text-xs space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Deployments today</span><span>24</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Services healthy</span><span className="text-emerald-400">18/18</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Drift detected</span><span className="text-amber-400">2 configs</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Est. monthly cost</span><span>$247.30</span></div>
+              </div>
+            </div>
+
+            <div className="glass-card rounded-xl p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold">Security First</h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Secrets never leave your environment. OAuth and API key auth for every provider. Role-based access, encrypted storage, and zero-trust by default.
+              </p>
+              <div className="mt-6 space-y-3">
                 {[
-                  { icon: Lock, text: "Encrypted JWTs with Auth.js session management" },
-                  { icon: Shield, text: "Row-level security on all user-facing tables" },
-                  { icon: Key, text: "RBAC policies per project and environment" },
-                  { icon: Eye, text: "Complete audit log for every mutation" },
-                  { icon: Users, text: "Multi-tenant isolation at application and database layers" },
+                  "Encrypted secrets at rest & in transit",
+                  "OAuth + API key provider auth",
+                  "Audit log for every action",
+                  "Role-based access controls",
                 ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/[0.05] border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <item.icon className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <span className="text-sm text-muted-foreground leading-relaxed pt-1.5">{item.text}</span>
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <span className="text-muted-foreground">{item}</span>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Architecture diagram */}
-            <div className="rounded-xl border border-border bg-card p-6">
-              <div className="text-xs text-muted-foreground font-mono mb-4 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                architecture overview
-              </div>
-              <div className="space-y-3 font-mono text-xs">
-                <div className="p-3 rounded-lg border border-border bg-background">
-                  <div className="text-foreground font-medium mb-1">Frontend — Next.js 14</div>
-                  <div className="text-muted-foreground">React 19 • Auth.js • App Router • Tailwind</div>
-                </div>
-                <div className="flex items-center justify-center text-muted-foreground">
-                  <div className="h-6 border-l border-border"></div>
-                </div>
-                <div className="p-3 rounded-lg border border-border bg-background text-center text-muted-foreground">
-                  WebSocket — tRPC subscriptions
-                </div>
-                <div className="flex items-center justify-center text-muted-foreground">
-                  <div className="h-6 border-l border-border"></div>
-                </div>
-                <div className="p-3 rounded-lg border border-border bg-background">
-                  <div className="text-foreground font-medium mb-1">Backend — Node.js</div>
-                  <div className="text-muted-foreground">tRPC Server • Event Emitter • Neon Postgres</div>
-                </div>
-                <div className="flex items-center justify-center text-muted-foreground">
-                  <div className="h-6 border-l border-border"></div>
-                </div>
-                <div className="p-3 rounded-lg border border-border bg-background">
-                  <div className="text-foreground font-medium mb-1">Observability</div>
-                  <div className="text-muted-foreground">Prometheus → Grafana → Alertmanager</div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ CTA ═══ */}
+      {/* CTA */}
       <section ref={ctaRef} className="py-24 border-t border-border">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="cta-element text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            Ready to simplify your DevOps?
-          </h2>
-          <p className="cta-element text-lg text-muted-foreground mb-8">
-            Join engineering teams already using Sarge to ship faster and sleep better.
-          </p>
-
-          <div className="cta-element flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            <Link href="/sign-up">
-              <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 font-medium px-8 h-12 text-base">
-                <Rocket className="w-4 h-4 mr-2" />
-                Start Free
-              </Button>
-            </Link>
-            <Link href="/sign-in">
-              <Button variant="outline" size="lg" className="h-12 text-base border-border hover:bg-card">
-                Sign In
-                <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="cta-element flex items-center justify-center gap-6 text-xs text-muted-foreground">
-            {["Free to start", "No credit card", "Cancel anytime"].map((text, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{text}</span>
-              </div>
-            ))}
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <div className="glass-card rounded-2xl p-12">
+            <h2 className="cta-element text-3xl md:text-4xl font-bold tracking-tight">
+              Ready to <span className="text-muted-foreground">Take Command?</span>
+            </h2>
+            <p className="cta-element text-muted-foreground mt-4 max-w-md mx-auto">
+              Deploy your first project in under 2 minutes. No credit card required.
+            </p>
+            <div className="cta-element flex items-center justify-center gap-4 mt-8">
+              <Link href="/sign-up">
+                <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 h-12 px-8">
+                  <Rocket className="w-4 h-4 mr-2" />
+                  Start Free
+                </Button>
+              </Link>
+              <Link href="/sign-in">
+                <Button variant="outline" size="lg" className="h-12 px-8 border-border">
+                  Sign In <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+            <div className="cta-element flex items-center justify-center gap-6 mt-6 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Free to start</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> No credit card</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> 7 providers</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ Footer ═══ */}
+      {/* Footer */}
       <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="font-bold text-sm">SARGE</span>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-xs text-muted-foreground">DevOps Command Center</span>
-          </div>
-          <div className="flex items-center gap-6 text-xs text-muted-foreground">
-            {["Privacy", "Terms", "Support"].map((item) => (
-              <a key={item} href="#" className="hover:text-foreground transition-colors">
-                {item}
-              </a>
-            ))}
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-emerald-500">Operational</span>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-sm">SARGE</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-xs text-muted-foreground">DevOps Command Center</span>
+            </div>
+            <div className="flex items-center gap-6 text-xs text-muted-foreground">
+              <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+              <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+              <a href="#" className="hover:text-foreground transition-colors">Docs</a>
+              <a href="#" className="hover:text-foreground transition-colors">Status</a>
             </div>
           </div>
-        </div>
-        <div className="max-w-6xl mx-auto px-6 mt-6 pt-6 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">
-            © {new Date().getFullYear()} Sarge. Built with Next.js, Neon, and tRPC.
-          </p>
+          <div className="mt-6 pt-6 border-t border-border text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Sarge. Built with Next.js, deployed everywhere.
+          </div>
         </div>
       </footer>
     </div>
