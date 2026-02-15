@@ -24,6 +24,7 @@ import { kubernetesRouter } from './routers/kubernetes';
 import { costOptimizationRouter } from './routers/cost-optimization';
 import { oneclickRouter } from './routers/oneclick';
 import { auditLogsRouter } from './routers/audit-logs';
+import { rustBridgeRouter } from './routers/rust-bridge';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -51,6 +52,7 @@ export const appRouter = router({
   costOptimization: costOptimizationRouter,
   oneclick: oneclickRouter,
   auditLogs: auditLogsRouter,
+  rustBridge: rustBridgeRouter,
 });
 
 export type AppRouter = typeof appRouter;

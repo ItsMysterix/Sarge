@@ -50,10 +50,7 @@ export const alertsRouter = router({
             input.enabled,
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('alert_rules')) {
-            return { rows: [{ id: `alert-rule-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create alert rule', cause: err })
         })
 
         return {
@@ -89,7 +86,7 @@ export const alertsRouter = router({
         return result?.rows || []
       } catch (err) {
         console.error('[alerts.listRules] Error:', err)
-        return []
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch alert rules', cause: err as Error })
       }
     }),
 
@@ -121,10 +118,7 @@ export const alertsRouter = router({
             input.enabled,
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('notification_channels')) {
-            return { rows: [{ id: `channel-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create notification channel', cause: err })
         })
 
         return {
@@ -180,8 +174,8 @@ export const alertsRouter = router({
         }
 
         const channel = result.rows[0]
-        const config = typeof channel.config === 'string' 
-          ? JSON.parse(channel.config) 
+        const config = typeof channel.config === 'string'
+          ? JSON.parse(channel.config)
           : channel.config
 
         await sendNotification({
@@ -244,10 +238,7 @@ export const alertsRouter = router({
           RETURNING id`,
           [input.ruleId, input.value, input.message]
         ).catch((err: any) => {
-          if (err?.message?.includes('alert_instances')) {
-            return { rows: [{ id: `alert-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to trigger alert', cause: err })
         })
 
         const alertId = alertResult.rows[0].id
@@ -319,7 +310,7 @@ export const alertsRouter = router({
         return result?.rows || []
       } catch (err) {
         console.error('[alerts.listActive] Error:', err)
-        return []
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch active alerts', cause: err as Error })
       }
     }),
 
@@ -336,7 +327,7 @@ export const alertsRouter = router({
            SET status = 'resolved', resolved_at = NOW()
            WHERE id = $1`,
           [input.alertId]
-        ).catch(() => {})
+        ).catch(() => { })
 
         return {
           success: true,

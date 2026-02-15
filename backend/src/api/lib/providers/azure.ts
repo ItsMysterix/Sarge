@@ -2,8 +2,10 @@ import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus
 
 export class AzureProvider implements IProvider {
     id = 'azure'
-    name = 'Microsoft Azure'
+    name = 'Azure'
     kind: 'containers' = 'containers'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         const tenantId = opts.credentials.azure_tenant_id

@@ -1,8 +1,12 @@
-import { router, publicProcedure } from "../../trpc";
+import { router } from "../../trpc";
+import { TRPCError } from '@trpc/server';
 import { secureProcedure } from "../trpc/middlewares/security";
 import createBufferedSubscription from "../lib/realtime";
 import { startQueryTimer } from "../../metrics/exporter";
 import { z } from "zod";
+import { LogAggregator } from "../../services/log-aggregator";
+
+const logAggregator = new LogAggregator();
 
 export const logsRouter = router({
   recent: secureProcedure('logs.recent')
@@ -29,7 +33,7 @@ export const logsRouter = router({
             const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf8'));
             cursorCreatedAt = decoded.created_at ?? null;
             cursorId = decoded.id ?? null;
-          } catch {}
+          } catch { }
         }
 
         // [v90f410f-NOCACHE] First, detect which columns exist
@@ -56,12 +60,12 @@ export const logsRouter = router({
         let sql = `${selects} FROM logs`;
         const params: any[] = [];
         const where: string[] = [];
-        
+
         if (type && type !== 'all') {
           params.push(type);
           where.push(`type = $${params.length}`);
         }
-        
+
         if (service && service !== 'all') {
           params.push(service);
           if (hasServiceId && hasService) {
@@ -72,7 +76,7 @@ export const logsRouter = router({
             where.push(`service = $${params.length}`);
           }
         }
-        
+
         if (search && search.length > 0) {
           params.push(`%${search}%`);
           if (hasServiceId && hasService) {
@@ -85,17 +89,17 @@ export const logsRouter = router({
             where.push(`message ILIKE $${params.length}`);
           }
         }
-        
+
         if (cursorCreatedAt && cursorId != null) {
           params.push(cursorCreatedAt);
           params.push(cursorId);
           where.push(`(created_at, id) < ($${params.length - 1}, $${params.length})`);
         }
-        
+
         if (where.length) {
           sql += ` WHERE ${where.join(' AND ')}`;
         }
-        
+
         sql += ` ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST, id DESC`;
         params.push(limit);
         sql += ` LIMIT $${params.length}`;
@@ -115,13 +119,12 @@ export const logsRouter = router({
         }
         return { items, nextCursor };
       } catch (e) {
-        try { console.warn('[logs.recent] returning empty:', (e as Error).message) } catch {}
-        return { items: [], nextCursor: null } as { items: any[]; nextCursor: string | null };
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch recent logs', cause: e as Error });
       } finally {
         end();
       }
     }),
-  
+
   services: secureProcedure('logs.services').query(async ({ ctx }) => {
     try {
       const result = await ctx.db.query(`
@@ -135,8 +138,7 @@ export const logsRouter = router({
       }
       return result.rows.map((row: any) => row.service).filter(Boolean);
     } catch (e) {
-      try { console.warn('[logs.services] returning []:', (e as Error).message) } catch {}
-      return [];
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch log services', cause: e as Error });
     }
   }),
 
@@ -170,8 +172,7 @@ export const logsRouter = router({
 
         return result?.rows || [];
       } catch (e) {
-        try { console.warn('[logs.tail] returning []:', (e as Error).message) } catch {}
-        return [];
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch log tail', cause: e as Error });
       } finally {
         end();
       }
@@ -208,8 +209,7 @@ export const logsRouter = router({
 
         return result?.rows || [];
       } catch (e) {
-        try { console.warn('[logs.search] returning []:', (e as Error).message) } catch {}
-        return [];
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to search logs', cause: e as Error });
       } finally {
         end();
       }
@@ -218,4 +218,18 @@ export const logsRouter = router({
   stream: secureProcedure('logs.stream').subscription(
     createBufferedSubscription("logs:new", { bufferSize: 500, perTickCap: 100 })
   ),
+
+  /**
+   * Fetch aggregated logs from multiple cloud providers.
+   * Centralizes multi-cloud monitoring into a single stream.
+   */
+  unified: secureProcedure('logs.unified')
+    .input(z.object({
+      deployments: z.array(z.object({ deploymentId: z.string(), providerId: z.string() })),
+      startTime: z.number().optional(),
+      limit: z.number().optional().default(50),
+    }))
+    .query(async ({ ctx, input }) => {
+      return logAggregator.getUnifiedLogs(input.deployments, ctx.db, (ctx as any).userId, input)
+    }),
 });

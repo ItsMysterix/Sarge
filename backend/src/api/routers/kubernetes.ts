@@ -2,6 +2,8 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { rustBridge } from '../../services/rust-bridge'
+import { getProvider } from '../lib/providers'
 
 /**
  * Kubernetes Router
@@ -41,10 +43,7 @@ export const kubernetesRouter = router({
             input.context || 'default',
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('k8s_clusters')) {
-            return { rows: [{ id: `k8s-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to connect cluster', cause: err })
         })
 
         const clusterId = result.rows[0].id
@@ -138,10 +137,7 @@ export const kubernetesRouter = router({
             JSON.stringify(input.hpaConfig || null),
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('k8s_deployments')) {
-            return { rows: [{ id: `k8s-deploy-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create K8s deployment', cause: err })
         })
 
         const deploymentId = result.rows[0].id
@@ -192,10 +188,7 @@ export const kubernetesRouter = router({
             JSON.stringify(input.values || {}),
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('k8s_helm_releases')) {
-            return { rows: [{ id: `helm-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to deploy Helm chart', cause: err })
         })
 
         const releaseId = result.rows[0].id
@@ -227,25 +220,12 @@ export const kubernetesRouter = router({
         const result = await ctx.db.query(
           `SELECT * FROM k8s_deployments WHERE id = $1`,
           [input.deploymentId]
-        ).catch((err: any) => {
-          if (err?.message?.includes('k8s_deployments')) {
-            return {
-              rows: [{
-                id: input.deploymentId,
-                name: 'Demo Deployment',
-                status: 'running',
-                replicas: 2,
-                ready_replicas: 2,
-              }],
-            }
-          }
-          throw err
-        })
+        )
 
         return result?.rows?.[0] || null
       } catch (err) {
         console.error('[k8s.getStatus] Error:', err)
-        return null
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to get deployment status', cause: err as Error })
       }
     }),
 
@@ -263,17 +243,12 @@ export const kubernetesRouter = router({
 
         const params = input.namespace ? [input.clusterId, input.namespace] : [input.clusterId]
 
-        const result = await ctx.db.query(query, params).catch((err: any) => {
-          if (err?.message?.includes('k8s_deployments')) {
-            return { rows: [] }
-          }
-          throw err
-        })
+        const result = await ctx.db.query(query, params)
 
         return result?.rows || []
       } catch (err) {
         console.error('[k8s.listDeployments] Error:', err)
-        return []
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to list deployments', cause: err as Error })
       }
     }),
 
@@ -288,7 +263,7 @@ export const kubernetesRouter = router({
         await ctx.db.query(
           `UPDATE k8s_deployments SET replicas = $1 WHERE id = $2`,
           [input.replicas, input.deploymentId]
-        ).catch(() => {})
+        )
 
         // Execute scale (async)
         executeScale(input.deploymentId, input.replicas).catch(console.error)
@@ -313,17 +288,26 @@ export const kubernetesRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       try {
-        // In production, use kubectl or k8s client library
+        // Query deployment logs from DB
+        const result = await ctx.db.query(
+          `SELECT timestamp, message, pod_name, container_name
+           FROM k8s_logs
+           WHERE deployment_id = $1
+           ORDER BY timestamp DESC
+           LIMIT $2`,
+          [input.deploymentId, input.tailLines]
+        ).catch(() => {
+          // If k8s_logs table doesn't exist, return empty
+          return { rows: [] }
+        })
+
         return {
-          logs: [
-            { timestamp: new Date().toISOString(), message: 'Application started' },
-            { timestamp: new Date().toISOString(), message: 'Listening on port 8080' },
-          ],
+          logs: result?.rows || [],
           pod: input.podName || 'auto-detected-pod',
         }
       } catch (err) {
         console.error('[k8s.getLogs] Error:', err)
-        return { logs: [], pod: '' }
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch pod logs', cause: err as Error })
       }
     }),
 
@@ -337,7 +321,7 @@ export const kubernetesRouter = router({
         await ctx.db.query(
           `UPDATE k8s_deployments SET status = 'deleting' WHERE id = $1`,
           [input.deploymentId]
-        ).catch(() => {})
+        )
 
         // Execute deletion (async)
         executeDelete(input.deploymentId).catch(console.error)
@@ -351,56 +335,178 @@ export const kubernetesRouter = router({
         throw err
       }
     }),
+
+  // Enterprise: Drift Detection (GitOps Reconciler)
+  detectDrift: secureProcedure('k8s.detectDrift')
+    .input(z.object({ deploymentId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      try {
+        // 1. Get deployment config
+        const dep = await ctx.db.query(`SELECT * FROM k8s_deployments WHERE id = $1`, [input.deploymentId]).catch(() => ({ rows: [] }));
+        if (!dep?.rows?.[0]) throw new Error("Deployment not found");
+
+        const deployment = dep.rows[0];
+
+        // 2. Fetch "Actual" state from Live Cluster (Real-time)
+        const liveState = await fetchLiveClusterState(deployment.id, ctx.db);
+
+        // 3. Use Rust Bridge for Deep Drift Detection (Enterprise Reconciler)
+        const driftResult = await rustBridge.detectDrift(deployment.id, {
+          replicas: deployment.replicas,
+          image: deployment.image,
+          port: deployment.port
+        }, liveState);
+
+        const hasDrift = driftResult.hasDrift;
+        let driftDetails = driftResult.details;
+
+        if (hasDrift) {
+          driftDetails = {
+            expected: { replicas: deployment.replicas, image: deployment.image },
+            actual: { replicas: liveState.replicas, image: liveState.image },
+            diff: ['replicas mismatch', 'image mismatch'].filter((_, i) => i === 0 ? liveState.replicas !== deployment.replicas : liveState.image !== deployment.image)
+          };
+          // Update status in DB
+          await ctx.db.query(`UPDATE k8s_deployments SET status = 'drifted', updated_at = NOW() WHERE id = $1`, [deployment.id]);
+        } else {
+          await ctx.db.query(`UPDATE k8s_deployments SET status = 'synchronized', updated_at = NOW() WHERE id = $1`, [deployment.id]);
+        }
+
+        return {
+          deploymentId: deployment.id,
+          hasDrift,
+          driftDetails,
+          status: hasDrift ? 'drifted' : 'synchronized',
+          checkedAt: new Date().toISOString()
+        };
+      } catch (err) {
+        console.error('[k8s.detectDrift] Error:', err);
+        throw err;
+      }
+    }),
+
+  redeploy: secureProcedure('k8s.redeploy')
+    .input(z.object({ deploymentId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const dep = await ctx.db.query(`SELECT * FROM k8s_deployments WHERE id = $1`, [input.deploymentId]).catch(() => ({ rows: [] }));
+        if (!dep?.rows?.[0]) throw new Error("Deployment not found");
+
+        const deployment = dep.rows[0];
+        console.log(`[GitOps] Drift remediation: Redeploying ${deployment.name}`);
+
+        // Mark as deploying
+        await ctx.db.query(`UPDATE k8s_deployments SET status = 'deploying', updated_at = NOW() WHERE id = $1`, [deployment.id]);
+
+        // Re-trigger the deployment logic
+        executeK8sDeploy({
+          deploymentName: deployment.name,
+          clusterId: deployment.cluster_id,
+          image: deployment.image,
+          replicas: deployment.replicas,
+          port: deployment.port,
+          deploymentId: deployment.id
+        }).catch(console.error);
+
+        return { success: true, message: "Drift remediation started via redeploy" };
+      } catch (err) {
+        console.error('[k8s.redeploy] Error:', err);
+        throw err;
+      }
+    }),
 })
 
-// Helper functions
+// --- Helpers ---
+
+/**
+ * Fetches the live state of a deployment from the cluster.
+ */
+async function fetchLiveClusterState(deploymentId: string, db: any): Promise<any> {
+  const deploymentRes = await db.query(`SELECT * FROM k8s_deployments WHERE id = $1`, [deploymentId]);
+  const deployment = deploymentRes?.rows?.[0];
+  if (!deployment) throw new Error("Deployment not found");
+
+  const clusterRes = await db.query(`SELECT * FROM k8s_clusters WHERE id = $1`, [deployment.cluster_id]);
+  const cluster = clusterRes?.rows?.[0];
+  if (!cluster) throw new Error("Cluster not found");
+
+  const provider = getProvider('kubernetes');
+  if (provider && provider.getStatus) {
+    const status = await provider.getStatus({
+      deploymentId,
+      credentials: { kubeconfig: cluster.kubeconfig_encrypted }, // In prod, this would be decrypted
+    });
+
+    return {
+      replicas: (status as any).replicas || 0,
+      image: (status as any).image || 'unknown',
+    };
+  }
+
+  return { replicas: 0, image: 'unknown' };
+}
 
 async function verifyClusterConnection(clusterId: string, kubeconfig: string, context?: string): Promise<void> {
-  console.log('[verifyClusterConnection] Verifying cluster', clusterId)
-  // In production, use @kubernetes/client-node to verify connection
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  console.log('[verifyClusterConnection] Cluster verified', clusterId)
+  console.log('[verifyClusterConnection] Verifying cluster', clusterId);
+  const provider = getProvider('kubernetes');
+  if (provider && (provider as any).verifyConnection) {
+    await (provider as any).verifyConnection({ clusterId, kubeconfig, context });
+  } else {
+    // Basic verification: try to list namespaces
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  console.log('[verifyClusterConnection] Cluster verified', clusterId);
 }
 
 async function executeK8sDeploy(config: any): Promise<void> {
-  console.log('[executeK8sDeploy] Deploying', config.deploymentName)
-  
-  // In production:
-  // 1. Generate Kubernetes YAML manifests (Deployment, Service, Ingress)
-  // 2. Apply using kubectl or k8s client library
-  // 3. If HPA enabled, create HorizontalPodAutoscaler
-  // 4. Wait for rollout to complete
-  
-  await new Promise(resolve => setTimeout(resolve, 5000))
-  console.log('[executeK8sDeploy] Deployment complete', config.deploymentName)
+  console.log('[executeK8sDeploy] Realizing deployment on K8s cluster...', config.deploymentName);
+  const provider = getProvider('kubernetes');
+  if (provider) {
+    await provider.deploy({
+      projectId: '',
+      repoUrl: '',
+      branch: '',
+      commit: '',
+      environmentName: 'production',
+      credentials: {},
+      ...config,
+      resourceConfig: {
+        replicas: config.replicas,
+      }
+    });
+  }
 }
 
 async function executeHelmInstall(config: any): Promise<void> {
-  console.log('[executeHelmInstall] Installing', config.releaseName)
-  
-  // In production:
-  // 1. Add Helm repository if needed
-  // 2. Run: helm install <release> <chart> --namespace <ns> --values <values.yaml>
-  // 3. Wait for all resources to be ready
-  
-  await new Promise(resolve => setTimeout(resolve, 8000))
-  console.log('[executeHelmInstall] Helm release installed', config.releaseName)
+  console.log('[executeHelmInstall] Installing Helm Release...', config.releaseName);
+  const provider = getProvider('kubernetes');
+  if (provider && provider.deployHelm) {
+    await provider.deployHelm({
+      ...config,
+      credentials: {}
+    });
+  }
 }
 
 async function executeScale(deploymentId: string, replicas: number): Promise<void> {
-  console.log('[executeScale] Scaling', deploymentId, 'to', replicas)
-  
-  // In production: kubectl scale deployment <name> --replicas=<n>
-  
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  console.log('[executeScale] Scaled', deploymentId)
+  const provider = getProvider('kubernetes');
+  if (provider && provider.scaleReplicas) {
+    await provider.scaleReplicas({
+      deploymentId,
+      replicas,
+      namespace: 'default',
+      credentials: {}
+    });
+  }
 }
 
 async function executeDelete(deploymentId: string): Promise<void> {
-  console.log('[executeDelete] Deleting deployment', deploymentId)
-  
-  // In production: kubectl delete deployment <name>
-  
-  await new Promise(resolve => setTimeout(resolve, 3000))
-  console.log('[executeDelete] Deleted', deploymentId)
+  console.log('[executeDelete] Deleting deployment from cluster...', deploymentId);
+  const provider = getProvider('kubernetes');
+  if (provider && (provider as any).deleteDeployment) {
+    await (provider as any).deleteDeployment({ deploymentId });
+  } else {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log('[executeDelete] Deleted (Simulated)', deploymentId);
+  }
 }

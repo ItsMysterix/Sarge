@@ -55,6 +55,8 @@ function verifyTokenString(token: string): { ok: boolean; role?: Role } {
   return { ok: false }
 }
 
+import { auditLoggingMiddleware } from './audit'
+
 export function secureProcedure(route: string, override?: RateOverride) {
   const rateDefaults = {
     windowSec: Number(process.env.RATE_LIMIT_WINDOW_SEC ?? 60),
@@ -63,7 +65,7 @@ export function secureProcedure(route: string, override?: RateOverride) {
     scope: (process.env.RATE_LIMIT_SCOPE as Scope) ?? 'ip',
   }
   const cfg = { ...rateDefaults, ...(override ?? {}) }
-  return t.procedure.use(async ({ ctx, next }) => {
+  return t.procedure.use(auditLoggingMiddleware).use(async ({ ctx, next }) => {
     try {
       if (process.env.NODE_ENV === 'test' && process.env.RATE_LIMIT_ENABLE_IN_TEST !== 'true') {
         return next()

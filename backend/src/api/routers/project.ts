@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { router, publicProcedure } from '../../trpc';
+import { router } from '../../trpc';
+import { secureProcedure } from '../trpc/middlewares/security';
 import { TRPCError } from '@trpc/server';
 import { getAIAnalyzer } from '../lib/ai-analyzer';
 
@@ -9,7 +10,6 @@ const createProjectSchema = z.object({
   slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/),
   description: z.string().optional(),
   framework: z.string().optional(),
-  // Align with Neon schema: repositories.id is TEXT/UUID, not integer
   repositoryId: z.string().optional(),
   rootDirectory: z.string().default('./'),
   buildCommand: z.string().default('npm run build'),
@@ -54,19 +54,14 @@ const projectSettingsSchema = z.object({
 
 export const projectRouter = router({
   // List all projects for current user
-  list: publicProcedure.query(async ({ ctx }) => {
+  list: secureProcedure('project.list').query(async ({ ctx }) => {
+    const userId = (ctx as any).userId;
+    if (!userId) {
+      throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
+
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 2000)
-      );
-
-      const userId = ctx.session?.user?.id;
-      if (!userId) {
-        return { projects: [] };
-      }
-
-      const queryPromise = ctx.db.query(
+      const result = await ctx.db.query(
         `SELECT 
           p.*,
           COUNT(DISTINCT d.id) as deployment_count,
@@ -79,30 +74,24 @@ export const projectRouter = router({
         [userId]
       );
 
-      const result = await Promise.race([queryPromise, timeoutPromise]) as any;
       return { projects: result.rows }
     } catch (error) {
       console.error('Error fetching projects:', error)
-      // Return empty array if table doesn't exist yet or DB is unavailable
-      return { projects: [] }
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch projects', cause: error as Error });
     }
   }),
 
   // Get project by ID
-  getById: publicProcedure
+  getById: secureProcedure('project.getById')
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
       try {
-        const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database query timeout')), 2000)
-        )
-
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-          throw new TRPCError({ code: 'UNAUTHORIZED' });
-        }
-
-        const query = ctx.db.query(
+        const result = await ctx.db.query(
           `SELECT 
              p.*,
              COUNT(DISTINCT d.id) as deployment_count,
@@ -112,9 +101,8 @@ export const projectRouter = router({
            WHERE p.id = $1 AND p.user_id = $2
            GROUP BY p.id`,
           [input.id, userId]
-        )
+        );
 
-        const result = await Promise.race([query, timeout]) as any
         const row = result.rows?.[0]
         if (!row) return null
         return {
@@ -141,25 +129,21 @@ export const projectRouter = router({
         }
       } catch (error) {
         console.error('[project.getById] error:', error)
-        return null
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch project', cause: error as Error });
       }
     }),
 
   // Get project by slug
-  getBySlug: publicProcedure
+  getBySlug: secureProcedure('project.getBySlug')
     .input(z.object({ slug: z.string() }))
     .query(async ({ input, ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
       try {
-        const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database query timeout')), 2000)
-        )
-
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-          throw new TRPCError({ code: 'UNAUTHORIZED' });
-        }
-
-        const query = ctx.db.query(
+        const result = await ctx.db.query(
           `SELECT 
              p.*,
              COUNT(DISTINCT d.id) as deployment_count,
@@ -169,9 +153,8 @@ export const projectRouter = router({
            WHERE p.slug = $1 AND p.user_id = $2
            GROUP BY p.id`,
           [input.slug, userId]
-        )
+        );
 
-        const result = await Promise.race([query, timeout]) as any
         const row = result.rows?.[0]
         if (!row) return null
         return {
@@ -198,16 +181,23 @@ export const projectRouter = router({
         }
       } catch (error) {
         console.error('[project.getBySlug] error:', error)
-        return null
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch project', cause: error as Error });
       }
     }),
 
   // Create new project
-  create: publicProcedure
+  create: secureProcedure('project.create')
     .input(createProjectSchema)
     .mutation(async ({ input, ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You must be logged in to create a project',
+        });
+      }
+
       try {
-        // Workspaces removed - AI analyzes directly from GitHub
         let detectedInfo: any = {}
 
         // Optional: Run AI detection if repositoryId provided
@@ -228,14 +218,6 @@ export const projectRouter = router({
           } catch (err) {
             console.error('AI detection failed:', err)
           }
-        }
-
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'You must be logged in to create a project',
-          });
         }
 
         const result = await ctx.db.query(
@@ -272,7 +254,7 @@ export const projectRouter = router({
         )
 
         if (!result || !result.rows || result.rows.length === 0) {
-          throw new Error('Failed to create project record')
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create project record' });
         }
 
         const project = result.rows[0]
@@ -291,122 +273,231 @@ export const projectRouter = router({
 
         return project
       } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
         console.error('Error creating project:', error)
-        throw new Error(`Failed to create project: ${error.message}`)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `Failed to create project: ${error.message}` });
       }
     }),
 
   // Update project
-  update: publicProcedure
+  update: secureProcedure('project.update')
     .input(updateProjectSchema)
     .mutation(async ({ input, ctx }) => {
-      const userId = ctx.session?.user?.id;
+      const userId = (ctx as any).userId;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
       }
 
       const { id, ...updates } = input;
 
-      return {
-        id,
-        userId: userId,
-        name: updates.name || 'My Project',
-        slug: 'my-project',
-        ...updates,
-        updatedAt: new Date().toISOString(),
+      // Build dynamic UPDATE query from provided fields
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      const fieldMap: Record<string, string> = {
+        name: 'name',
+        description: 'description',
+        framework: 'framework',
+        rootDirectory: 'root_directory',
+        buildCommand: 'build_command',
+        outputDirectory: 'output_directory',
+        installCommand: 'install_command',
+        devCommand: 'dev_command',
+        autoDeploy: 'auto_deploy',
+        autoDeployBranch: 'auto_deploy_branch',
+        previewDeployments: 'preview_deployments',
+        status: 'status',
       };
+
+      for (const [key, dbCol] of Object.entries(fieldMap)) {
+        if ((updates as any)[key] !== undefined) {
+          setClauses.push(`${dbCol} = $${paramIndex}`);
+          values.push((updates as any)[key]);
+          paramIndex++;
+        }
+      }
+
+      if (setClauses.length === 0) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No fields to update' });
+      }
+
+      setClauses.push(`updated_at = NOW()`);
+      values.push(id, userId);
+
+      const result = await ctx.db.query(
+        `UPDATE projects SET ${setClauses.join(', ')}
+         WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
+         RETURNING *`,
+        values
+      );
+
+      if (!result.rows[0]) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found or access denied' });
+      }
+
+      return result.rows[0];
     }),
 
   // Delete project
-  delete: publicProcedure
+  delete: secureProcedure('project.delete')
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
-      // TODO: Check user has access to this project
-      // TODO: Delete from database (cascade will handle related data)
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
+      // Verify ownership before deleting
+      const check = await ctx.db.query(
+        `SELECT id FROM projects WHERE id = $1 AND user_id = $2`,
+        [input.id, userId]
+      );
+
+      if (!check.rows[0]) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found or access denied' });
+      }
+
+      await ctx.db.query(`DELETE FROM projects WHERE id = $1`, [input.id]);
 
       return { success: true, id: input.id };
     }),
 
   // Get project settings
-  getSettings: publicProcedure
+  getSettings: secureProcedure('project.getSettings')
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      // TODO: Query database for project settings
-      // Check if user has access to this project
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
 
-      // Mock response
-      return {
-        id: 1,
-        projectId: input.projectId,
-        functionRegion: 'us-east-1',
-        functionMemory: 1024,
-        functionTimeout: 10,
-        functionRuntime: 'nodejs18.x',
-        enableEdge: false,
-        enableAnalytics: true,
-        enableSpeedInsights: true,
-        enableCaching: true,
-        enableWaf: false,
-        passwordProtection: false,
-        nodeVersion: '18.x',
-        customHeaders: [],
-        redirects: [],
-        rewrites: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      try {
+        const result = await ctx.db.query(
+          `SELECT ps.* FROM project_settings ps
+           JOIN projects p ON ps.project_id = p.id
+           WHERE ps.project_id = $1 AND p.user_id = $2`,
+          [input.projectId, userId]
+        );
+
+        if (!result.rows[0]) {
+          // Return null to indicate no settings configured yet — let frontend show setup prompt
+          return null;
+        }
+
+        return result.rows[0];
+      } catch (err) {
+        // If table doesn't exist yet, indicate no settings
+        console.error('[project.getSettings] Error:', err)
+        return null;
+      }
     }),
 
   // Update project settings
-  updateSettings: publicProcedure
+  updateSettings: secureProcedure('project.updateSettings')
     .input(projectSettingsSchema)
     .mutation(async ({ input, ctx }) => {
-      // TODO: Check user has access to this project
-      // TODO: Update settings in database
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
+      // Verify project ownership
+      const project = await ctx.db.query(
+        `SELECT id FROM projects WHERE id = $1 AND user_id = $2`,
+        [input.projectId, userId]
+      );
+
+      if (!project.rows[0]) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found or access denied' });
+      }
 
       const { projectId, ...settings } = input;
 
-      return {
-        id: 1,
-        projectId,
-        ...settings,
-        updatedAt: new Date().toISOString(),
-      };
+      const result = await ctx.db.query(
+        `INSERT INTO project_settings (project_id, settings, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (project_id) DO UPDATE
+         SET settings = $2, updated_at = NOW()
+         RETURNING *`,
+        [projectId, JSON.stringify(settings)]
+      );
+
+      return result.rows[0];
     }),
 
   // Get project stats
-  getStats: publicProcedure
+  getStats: secureProcedure('project.getStats')
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      // TODO: Query aggregated stats from database
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
 
-      return {
-        projectId: input.projectId,
-        totalDeployments: 5,
-        successfulDeployments: 4,
-        failedDeployments: 1,
-        lastDeploymentAt: new Date().toISOString(),
-        totalLogs: 1243,
-        errorCount: 12,
-        activeServices: 3,
-        avgDeployTime: 45, // seconds
-        uptime: 99.9, // percentage
-      };
+      try {
+        // Query real aggregated stats from database
+        const [deployStats, logStats, serviceStats] = await Promise.all([
+          ctx.db.query(
+            `SELECT
+               COUNT(*) as total,
+               COUNT(*) FILTER (WHERE status = 'success') as successful,
+               COUNT(*) FILTER (WHERE status = 'failed') as failed,
+               MAX(created_at) as last_deployed_at,
+               AVG(EXTRACT(EPOCH FROM (completed_at - created_at))) as avg_deploy_time
+             FROM deployments
+             WHERE project_id = $1`,
+            [input.projectId]
+          ),
+          ctx.db.query(
+            `SELECT
+               COUNT(*) as total_logs,
+               COUNT(*) FILTER (WHERE level = 'error') as error_count
+             FROM logs
+             WHERE project_id = $1`,
+            [input.projectId]
+          ),
+          ctx.db.query(
+            `SELECT COUNT(*) as active_services
+             FROM deployments
+             WHERE project_id = $1 AND status = 'running'`,
+            [input.projectId]
+          ),
+        ]);
+
+        const ds = deployStats.rows[0] || {};
+        const ls = logStats.rows[0] || {};
+        const ss = serviceStats.rows[0] || {};
+
+        return {
+          projectId: input.projectId,
+          totalDeployments: Number(ds.total) || 0,
+          successfulDeployments: Number(ds.successful) || 0,
+          failedDeployments: Number(ds.failed) || 0,
+          lastDeploymentAt: ds.last_deployed_at || null,
+          totalLogs: Number(ls.total_logs) || 0,
+          errorCount: Number(ls.error_count) || 0,
+          activeServices: Number(ss.active_services) || 0,
+          avgDeployTime: Math.round(Number(ds.avg_deploy_time) || 0),
+        };
+      } catch (err) {
+        console.error('[project.getStats] Error:', err)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch project stats', cause: err as Error });
+      }
     }),
 
   // Analyze project (AI detection for one-click deploy)
-  analyzeRepository: publicProcedure
+  analyzeRepository: secureProcedure('project.analyzeRepository')
     .input(z.object({
       repositoryId: z.number(),
       owner: z.string(),
       repo: z.string(),
       branch: z.string().optional().default('main'),
     }))
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       try {
         console.log(`[tRPC] Analyzing repository: ${input.owner}/${input.repo}`);
 
-        // Use AI analyzer to analyze the repository
         const analyzer = getAIAnalyzer();
         const analysis = await analyzer.analyzeRepository(
           input.owner,
@@ -419,30 +510,11 @@ export const projectRouter = router({
         return analysis;
       } catch (error) {
         console.error('[tRPC] Analysis failed:', error);
-
-        // Return fallback mock data if AI fails
-        console.warn('[tRPC] Returning fallback mock analysis');
-        return {
-          projectType: 'fullstack' as const,
-          services: [],
-          infrastructure: [],
-          needsDocker: false,
-          dockerComposeYml: null,
-          dockerfiles: {},
-          recommendedPlatform: 'docker' as const,
-          deploymentStrategy: 'Unable to analyze. Please configure manually.',
-          framework: 'Unknown',
-          detectedPorts: [3000],
-          detectedTools: ['node', 'npm'],
-          suggestedBuildCommand: 'npm run build',
-          suggestedOutputDirectory: 'dist',
-          suggestedInstallCommand: 'npm install',
-          suggestedDevCommand: 'npm run dev',
-          summary: `Unable to analyze repository automatically. Please configure manually. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          confidence: 0.3,
-          estimatedBuildTime: 120,
-          requiresEnvironmentVariables: [],
-        };
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Repository analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please configure project settings manually.`,
+          cause: error as Error,
+        });
       }
     }),
 });

@@ -4,6 +4,8 @@ export class LocalProvider implements IProvider {
     id = 'local'
     name = 'Local Docker'
     kind: 'containers' = 'containers'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         // Build and run using Docker/Compose locally

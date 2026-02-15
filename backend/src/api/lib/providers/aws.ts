@@ -8,6 +8,8 @@ export class AWSProvider implements IProvider {
     id = 'aws'
     name = 'AWS'
     kind: 'containers' = 'containers'
+    valid = true
+    errors: string[] = []
 
     private getClients(creds: Record<string, string>) {
         const config = {

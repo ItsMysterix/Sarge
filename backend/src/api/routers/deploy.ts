@@ -1,4 +1,4 @@
-import { router, publicProcedure } from '../../trpc';
+import { router } from '../../trpc';
 import { secureProcedure } from '../trpc/middlewares/security';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
@@ -8,6 +8,10 @@ import { observable } from '@trpc/server/observable';
 import { topicAll, topicOne } from '../lib/deployEmit';
 import { getProvider } from '../lib/providers';
 import { getProviderCredentials } from '../lib/credentials';
+
+// Sub-module imports
+import { deployToProvider, estimateCost, getProviderStatus } from './deploy/provider';
+import { rollback, getRollbackHistory, trackCost, getCostHistory } from './deploy/rollback';
 
 export const deployRouter = router({
   create: secureProcedure('deploy.create')
@@ -195,7 +199,7 @@ export const deployRouter = router({
           successRate: parseInt(row.total) > 0 ? (parseInt(row.success) / parseInt(row.total) * 100).toFixed(1) : '0.0'
         };
       } catch (e) {
-        return { total: 0, success: 0, failed: 0, active: 0, todayCount: 0, successRate: '0.0' };
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch deployment stats', cause: e as Error });
       }
     }),
 
@@ -220,7 +224,7 @@ export const deployRouter = router({
       )
 
       if (!result || !result.rows || result.rows.length === 0) {
-        return null;
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Deployment not found' });
       }
       const deployment = result.rows[0]
 
@@ -248,7 +252,7 @@ export const deployRouter = router({
       )
 
       if (!result || !result.rows || result.rows.length === 0) {
-        return null;
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Deployment not found' });
       }
       const deployment = result.rows[0]
 
@@ -305,352 +309,14 @@ export const deployRouter = router({
       });
     }),
 
-  // New: Deploy to a specific provider with full provider context
-  deployToProvider: secureProcedure('deploy.deployToProvider')
-    .input(z.object({
-      providerId: z.string(), // 'vercel' | 'railway' | etc
-      repoUrl: z.string(),
-      branch: z.string().default('main'),
-      commit: z.string().optional(),
-      buildCommand: z.string().optional(),
-      startCommand: z.string().optional(),
-      environmentName: z.string().default('preview'), // 'preview' | 'staging' | 'production'
-      resourceConfig: z.object({
-        cpu: z.number().optional(),
-        memory: z.number().optional(),
-        replicas: z.number().optional(),
-      }).optional(),
-      env: z.record(z.string(), z.string()).optional(),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const provider = getProvider(input.providerId)
-      if (!provider) {
-        throw new Error(`Provider ${input.providerId} not supported`)
-      }
+  // --- Provider Integration (extracted to deploy/provider.ts) ---
+  deployToProvider,
+  estimateCost,
+  getProviderStatus,
 
-      try {
-        // Get provider-specific deploy credentials from env/DB
-        const credentials = await getProviderCredentials(input.providerId, ctx.db, (ctx as any).userId)
-
-        const deployResult = await provider.deploy({
-          projectId: (ctx as any).projectId || 'sarge-project',
-          repoUrl: input.repoUrl,
-          branch: input.branch,
-          commit: input.commit || '',
-          environmentName: (input.environmentName as any) || 'preview',
-          credentials,
-          buildCommand: input.buildCommand,
-          startCommand: input.startCommand,
-          resourceConfig: input.resourceConfig,
-          env: input.env ? Object.entries(input.env).reduce((acc, [k, v]) => ({ ...acc, [k]: String(v) }), {}) : {},
-        })
-
-        // Create deployment record
-        const summary = `[provider:${input.providerId}] [env:${input.environmentName}] Deployed to ${provider.name}`
-        const result = await ctx.db.query(
-          `INSERT INTO deployments (
-            branch, commit, status, summary, services, created_at
-          ) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
-          [
-            input.branch,
-            input.commit || null,
-            deployResult.success ? 'success' : 'failed',
-            summary,
-            JSON.stringify([])
-          ]
-        )
-
-        if (result?.rows?.[0]) {
-          ctx.ee.emit("deploys:update", {
-            id: result.rows[0].id,
-            status: deployResult.success ? 'success' : 'failed',
-            provider: input.providerId,
-            environment: input.environmentName,
-            previewUrl: deployResult.previewUrl,
-            productionUrl: deployResult.productionUrl,
-          })
-        }
-
-        return {
-          success: deployResult.success,
-          deploymentId: result?.rows?.[0]?.id,
-          previewUrl: deployResult.previewUrl,
-          productionUrl: deployResult.productionUrl,
-          error: deployResult.error,
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Deploy failed'
-        throw new Error(`${input.providerId} deploy error: ${message}`)
-      }
-    }),
-
-  // Get estimated cost for provider + environment
-  estimateCost: secureProcedure('deploy.estimateCost')
-    .input(z.object({
-      providerId: z.string(),
-      environmentName: z.string(),
-      resourceConfig: z.object({
-        cpu: z.number().optional(),
-        memory: z.number().optional(),
-        storage: z.number().optional(),
-      }).optional(),
-    }))
-    .query(async ({ input }) => {
-      const provider = getProvider(input.providerId)
-      if (!provider) {
-        throw new Error(`Provider ${input.providerId} not supported`)
-      }
-
-      try {
-        const cost = await provider.estimateCost({
-          environmentName: input.environmentName,
-          resourceConfig: input.resourceConfig,
-        })
-        return cost
-      } catch (err) {
-        console.error(`[deploy.estimateCost] Error:`, err)
-        return { hourlyRate: 0, monthlyEstimate: 0, breakdown: {} }
-      }
-    }),
-
-  // Get deployment status from provider
-  getProviderStatus: secureProcedure('deploy.getProviderStatus')
-    .input(z.object({
-      providerId: z.string(),
-      deploymentId: z.string(),
-    }))
-    .query(async ({ ctx, input }) => {
-      const provider = getProvider(input.providerId)
-      if (!provider) {
-        throw new Error(`Provider ${input.providerId} not supported`)
-      }
-
-      try {
-        const credentials = await getProviderCredentials(input.providerId, ctx.db, (ctx as any).userId)
-        const status = await provider.getStatus({
-          deploymentId: input.deploymentId,
-          credentials,
-        })
-        return status
-      } catch (err) {
-        console.error(`[deploy.getProviderStatus] Error:`, err)
-        return {
-          status: 'unknown',
-          progress: 0,
-          message: 'Unable to fetch status',
-        }
-      }
-    }),
-
-  // Rollback to a previous deployment
-  rollback: secureProcedure('deploy.rollback')
-    .input(z.object({
-      deploymentId: z.string(),
-      reason: z.string().optional(),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const userId = (ctx as any).userId || 'system'
-
-      try {
-        // Get current deployment info
-        const currentDeploy = await ctx.db.query(
-          `SELECT id, branch, commit, status FROM deployments WHERE id = $1`,
-          [input.deploymentId]
-        )
-
-        if (!currentDeploy?.rows?.[0]) {
-          throw new Error('Deployment not found')
-        }
-
-        // Get previous successful deployment
-        const previousDeploy = await ctx.db.query(
-          `SELECT id, branch, commit FROM deployments 
-           WHERE status = 'success' AND id != $1 AND created_at < (
-             SELECT created_at FROM deployments WHERE id = $1
-           )
-           ORDER BY created_at DESC LIMIT 1`,
-          [input.deploymentId]
-        )
-
-        if (!previousDeploy?.rows?.[0]) {
-          throw new Error('No previous deployment to rollback to')
-        }
-
-        // Create rollback record
-        const rollbackResult = await ctx.db.query(
-          `INSERT INTO deployment_rollbacks (
-            deployment_id, previous_deployment_id, reason, triggered_by, status, created_at
-          ) VALUES ($1, $2, $3, $4, 'in-progress', NOW())
-          RETURNING id`,
-          [
-            input.deploymentId,
-            previousDeploy.rows[0].id,
-            input.reason || 'Manual rollback',
-            userId
-          ]
-        ).catch((err: any) => {
-          if (err?.message?.includes('deployment_rollbacks')) {
-            console.warn('[deploy.rollback] Table not migrated yet')
-            return { rows: [{ id: `rollback-${Date.now()}` }] }
-          }
-          throw err
-        })
-
-        // Mark current deployment as rolled back
-        await ctx.db.query(
-          `UPDATE deployments SET status = 'rolled-back', updated_at = NOW() WHERE id = $1`,
-          [input.deploymentId]
-        )
-
-        // Log the rollback
-        await ctx.db.query(
-          `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
-           VALUES ('deployment.rolledback', 'deployment', $1, $2, $3, NOW())`,
-          [input.deploymentId, userId, JSON.stringify({
-            to: previousDeploy.rows[0].id,
-            reason: input.reason
-          })]
-        ).catch(() => { })
-
-        // Update rollback status
-        await ctx.db.query(
-          `UPDATE deployment_rollbacks SET status = 'completed', completed_at = NOW() WHERE id = $1`,
-          [rollbackResult.rows[0].id]
-        ).catch(() => { })
-
-        return {
-          success: true,
-          rollbackId: rollbackResult.rows[0].id,
-          previousDeploymentId: previousDeploy.rows[0].id,
-        }
-      } catch (err) {
-        console.error('[deploy.rollback] Error:', err)
-        throw err
-      }
-    }),
-
-  // Get rollback history for a deployment
-  getRollbackHistory: secureProcedure('deploy.getRollbackHistory')
-    .input(z.object({
-      deploymentId: z.string().optional(),
-      projectId: z.string().optional(),
-    }))
-    .query(async ({ ctx, input }) => {
-      try {
-        let query = `SELECT * FROM deployment_rollbacks`
-        const params: any[] = []
-
-        if (input.deploymentId) {
-          query += ` WHERE deployment_id = $1 OR previous_deployment_id = $1`
-          params.push(input.deploymentId)
-        }
-
-        query += ` ORDER BY created_at DESC LIMIT 50`
-
-        const result = await ctx.db.query(query, params)
-        if (!result || !result.rows) {
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'No rollback history found' })
-        }
-
-        return result.rows
-      } catch (err) {
-        console.error('[deploy.getRollbackHistory] Error:', err)
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch rollback history', cause: err as Error })
-      }
-    }),
-
-  // Track deployment cost
-  trackCost: secureProcedure('deploy.trackCost')
-    .input(z.object({
-      deploymentId: z.string(),
-      projectId: z.string(),
-      environmentId: z.string(),
-      providerId: z.string(),
-      hourlyRate: z.number(),
-      monthlyEstimate: z.number(),
-      breakdown: z.record(z.string(), z.number()),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      try {
-        const result = await ctx.db.query(
-          `INSERT INTO cost_estimates (
-            project_id, environment_id, provider_id, deployment_id,
-            hourly_rate, monthly_estimate, breakdown, start_date, created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-          RETURNING id`,
-          [
-            input.projectId,
-            input.environmentId,
-            input.providerId,
-            input.deploymentId,
-            input.hourlyRate,
-            input.monthlyEstimate,
-            JSON.stringify(input.breakdown)
-          ]
-        ).catch((err: any) => {
-          if (err?.message?.includes('cost_estimates')) {
-            console.warn('[deploy.trackCost] Table not migrated yet')
-            return { rows: [{ id: `cost-${Date.now()}` }] }
-          }
-          throw err
-        })
-
-        return { costId: result.rows[0].id }
-      } catch (err) {
-        console.error('[deploy.trackCost] Error:', err)
-        throw err
-      }
-    }),
-
-  // Get cost history for a project/environment
-  getCostHistory: secureProcedure('deploy.getCostHistory')
-    .input(z.object({
-      projectId: z.string(),
-      environmentId: z.string().optional(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-    }))
-    .query(async ({ ctx, input }) => {
-      try {
-        let query = `SELECT * FROM cost_estimates WHERE project_id = $1`
-        const params: any[] = [input.projectId]
-
-        if (input.environmentId) {
-          params.push(input.environmentId)
-          query += ` AND environment_id = $${params.length}`
-        }
-
-        if (input.startDate) {
-          params.push(input.startDate)
-          query += ` AND start_date >= $${params.length}`
-        }
-
-        if (input.endDate) {
-          params.push(input.endDate)
-          query += ` AND start_date <= $${params.length}`
-        }
-
-        query += ` ORDER BY start_date DESC LIMIT 100`
-
-        const result = await ctx.db.query(query, params).catch((err: any) => {
-          if (err?.message?.includes('cost_estimates')) {
-            return { rows: [] }
-          }
-          throw err
-        })
-
-        // Calculate totals
-        const costs = result?.rows || []
-        const totalMonthly = costs.reduce((sum, c) => sum + parseFloat(c.monthly_estimate || 0), 0)
-
-        return {
-          costs,
-          totalMonthly,
-          currency: 'USD',
-        }
-      } catch (err) {
-        console.error('[deploy.getCostHistory] Error:', err)
-        return { costs: [], totalMonthly: 0, currency: 'USD' }
-      }
-    }),
+  // --- Rollback & Cost (extracted to deploy/rollback.ts) ---
+  rollback,
+  getRollbackHistory,
+  trackCost,
+  getCostHistory,
 })

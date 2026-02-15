@@ -4,6 +4,8 @@ export class RailwayProvider implements IProvider {
     id = 'railway'
     name = 'Railway'
     kind: 'containers' = 'containers'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         const token = opts.credentials.railway_token

@@ -1,17 +1,15 @@
 import { z } from 'zod'
-import { publicProcedure, router } from '../../trpc'
-import { neon } from '@neondatabase/serverless'
-import { ENV } from '../../env'
+import { router } from '../../trpc'
+import { secureProcedure } from '../trpc/middlewares/security'
+import { TRPCError } from '@trpc/server'
 import { AWSDetector } from '../../services/aws-detector'
 import { AWSCostCalculator } from '../../services/aws-cost-calculator'
 import * as path from 'path'
 import * as os from 'os'
 
-const sql = neon(ENV.DATABASE_URL)
-
 export const awsRouter = router({
   // Detect AWS services in a repository
-  detectServices: publicProcedure
+  detectServices: secureProcedure('aws.detectServices')
     .input(
       z.object({
         projectSlug: z.string(),
@@ -19,8 +17,6 @@ export const awsRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      // In production, fetch the actual repo path from the database based on projectSlug
-      // For now, if repoPath is provided, use it; otherwise use a temp location
       const repoPath = input.repoPath || path.join(os.tmpdir(), 'sarge-repos', input.projectSlug)
 
       const detector = new AWSDetector(repoPath)
@@ -33,7 +29,7 @@ export const awsRouter = router({
     }),
 
   // Calculate cost estimates for detected services
-  calculateCosts: publicProcedure
+  calculateCosts: secureProcedure('aws.calculateCosts')
     .input(
       z.object({
         services: z.array(
@@ -103,135 +99,122 @@ export const awsRouter = router({
     }),
 
   // Get all AWS resources summary
-  getSummary: publicProcedure.query(async () => {
-    const [s3Count] = await sql`SELECT COUNT(*)::int as count FROM s3_buckets`
-    const [dynamoCount] = await sql`SELECT COUNT(*)::int as count FROM dynamodb_tables`
-    const [lambdaCount] = await sql`SELECT COUNT(*)::int as count FROM lambda_functions`
-    const [iamRoleCount] = await sql`SELECT COUNT(*)::int as count FROM iam_roles`
-    const [cwLogGroupCount] = await sql`SELECT COUNT(*)::int as count FROM cloudwatch_log_groups`
+  getSummary: secureProcedure('aws.getSummary').query(async ({ ctx }) => {
+    try {
+      const [s3Result, dynamoResult, lambdaResult, iamResult, cwResult, s3StorageResult, dynamoItemsResult, lambdaInvocResult] = await Promise.all([
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM s3_buckets`),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM dynamodb_tables`),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM lambda_functions`),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM iam_roles`),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM cloudwatch_log_groups`),
+        ctx.db.query(`SELECT COALESCE(SUM(size_bytes), 0)::bigint as total FROM s3_buckets`),
+        ctx.db.query(`SELECT COALESCE(SUM(item_count), 0)::bigint as total FROM dynamodb_tables`),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM lambda_invocations WHERE invoked_at > NOW() - INTERVAL '24 hours'`),
+      ])
 
-    // Get total S3 storage
-    const [s3Storage] = await sql`SELECT COALESCE(SUM(size_bytes), 0)::bigint as total FROM s3_buckets`
-    
-    // Get DynamoDB total items
-    const [dynamoItems] = await sql`SELECT COALESCE(SUM(item_count), 0)::bigint as total FROM dynamodb_tables`
-
-    // Get Lambda invocations (last 24h)
-    const [lambdaInvocations] = await sql`
-      SELECT COUNT(*)::int as count 
-      FROM lambda_invocations 
-      WHERE invoked_at > NOW() - INTERVAL '24 hours'
-    `
-
-    return {
-      s3: {
-        bucketCount: s3Count.count || 0,
-        totalSizeBytes: Number(s3Storage.total) || 0,
-      },
-      dynamodb: {
-        tableCount: dynamoCount.count || 0,
-        totalItems: Number(dynamoItems.total) || 0,
-      },
-      lambda: {
-        functionCount: lambdaCount.count || 0,
-        invocationsLast24h: lambdaInvocations.count || 0,
-      },
-      iam: {
-        roleCount: iamRoleCount.count || 0,
-      },
-      cloudwatch: {
-        logGroupCount: cwLogGroupCount.count || 0,
-      },
+      return {
+        s3: {
+          bucketCount: s3Result.rows[0]?.count || 0,
+          totalSizeBytes: Number(s3StorageResult.rows[0]?.total) || 0,
+        },
+        dynamodb: {
+          tableCount: dynamoResult.rows[0]?.count || 0,
+          totalItems: Number(dynamoItemsResult.rows[0]?.total) || 0,
+        },
+        lambda: {
+          functionCount: lambdaResult.rows[0]?.count || 0,
+          invocationsLast24h: lambdaInvocResult.rows[0]?.count || 0,
+        },
+        iam: {
+          roleCount: iamResult.rows[0]?.count || 0,
+        },
+        cloudwatch: {
+          logGroupCount: cwResult.rows[0]?.count || 0,
+        },
+      }
+    } catch (err) {
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to get AWS summary', cause: err as Error })
     }
   }),
 
   // S3 Operations
   s3: router({
-    listBuckets: publicProcedure.query(async () => {
-      const buckets = await sql`
-        SELECT 
-          id, name, region, versioning_enabled, 
-          size_bytes, object_count, created_at
-        FROM s3_buckets
-        ORDER BY created_at DESC
-      `
-      return buckets
+    listBuckets: secureProcedure('aws.s3.listBuckets').query(async ({ ctx }) => {
+      const result = await ctx.db.query(
+        `SELECT id, name, region, versioning_enabled, size_bytes, object_count, created_at
+         FROM s3_buckets ORDER BY created_at DESC`
+      )
+      return result.rows
     }),
 
-    getBucket: publicProcedure
+    getBucket: secureProcedure('aws.s3.getBucket')
       .input(z.object({ name: z.string() }))
-      .query(async ({ input }) => {
-        const [bucket] = await sql`
-          SELECT * FROM s3_buckets WHERE name = ${input.name}
-        `
-        if (!bucket) throw new Error('Bucket not found')
+      .query(async ({ ctx, input }) => {
+        const bucketResult = await ctx.db.query(
+          `SELECT * FROM s3_buckets WHERE name = $1`, [input.name]
+        )
+        const bucket = bucketResult.rows[0]
+        if (!bucket) throw new TRPCError({ code: 'NOT_FOUND', message: 'Bucket not found' })
 
-        const objects = await sql`
-          SELECT * FROM s3_objects 
-          WHERE bucket_id = ${bucket.id}
-          ORDER BY last_modified DESC
-          LIMIT 100
-        `
-
-        return { ...bucket, objects }
+        const objectsResult = await ctx.db.query(
+          `SELECT * FROM s3_objects WHERE bucket_id = $1 ORDER BY last_modified DESC LIMIT 100`,
+          [bucket.id]
+        )
+        return { ...bucket, objects: objectsResult.rows }
       }),
 
-    createBucket: publicProcedure
+    createBucket: secureProcedure('aws.s3.createBucket')
       .input(z.object({
         name: z.string(),
         region: z.string().default('us-east-1'),
         versioningEnabled: z.boolean().default(false),
       }))
-      .mutation(async ({ input }) => {
-        const [bucket] = await sql`
-          INSERT INTO s3_buckets (name, region, versioning_enabled)
-          VALUES (${input.name}, ${input.region}, ${input.versioningEnabled})
-          RETURNING *
-        `
-        return bucket
+      .mutation(async ({ ctx, input }) => {
+        const result = await ctx.db.query(
+          `INSERT INTO s3_buckets (name, region, versioning_enabled)
+           VALUES ($1, $2, $3) RETURNING *`,
+          [input.name, input.region, input.versioningEnabled]
+        )
+        return result.rows[0]
       }),
 
-    deleteBucket: publicProcedure
+    deleteBucket: secureProcedure('aws.s3.deleteBucket')
       .input(z.object({ name: z.string() }))
-      .mutation(async ({ input }) => {
-        await sql`DELETE FROM s3_buckets WHERE name = ${input.name}`
+      .mutation(async ({ ctx, input }) => {
+        await ctx.db.query(`DELETE FROM s3_buckets WHERE name = $1`, [input.name])
         return { success: true }
       }),
   }),
 
   // DynamoDB Operations
   dynamodb: router({
-    listTables: publicProcedure.query(async () => {
-      const tables = await sql`
-        SELECT 
-          id, name, status, partition_key, partition_key_type,
-          sort_key, sort_key_type, item_count, size_bytes,
-          read_capacity_units, write_capacity_units, created_at
-        FROM dynamodb_tables
-        ORDER BY created_at DESC
-      `
-      return tables
+    listTables: secureProcedure('aws.dynamodb.listTables').query(async ({ ctx }) => {
+      const result = await ctx.db.query(
+        `SELECT id, name, status, partition_key, partition_key_type,
+                sort_key, sort_key_type, item_count, size_bytes,
+                read_capacity_units, write_capacity_units, created_at
+         FROM dynamodb_tables ORDER BY created_at DESC`
+      )
+      return result.rows
     }),
 
-    getTable: publicProcedure
+    getTable: secureProcedure('aws.dynamodb.getTable')
       .input(z.object({ name: z.string() }))
-      .query(async ({ input }) => {
-        const [table] = await sql`
-          SELECT * FROM dynamodb_tables WHERE name = ${input.name}
-        `
-        if (!table) throw new Error('Table not found')
+      .query(async ({ ctx, input }) => {
+        const tableResult = await ctx.db.query(
+          `SELECT * FROM dynamodb_tables WHERE name = $1`, [input.name]
+        )
+        const table = tableResult.rows[0]
+        if (!table) throw new TRPCError({ code: 'NOT_FOUND', message: 'Table not found' })
 
-        const items = await sql`
-          SELECT * FROM dynamodb_items 
-          WHERE table_id = ${table.id}
-          ORDER BY created_at DESC
-          LIMIT 100
-        `
-
-        return { ...table, items }
+        const itemsResult = await ctx.db.query(
+          `SELECT * FROM dynamodb_items WHERE table_id = $1 ORDER BY created_at DESC LIMIT 100`,
+          [table.id]
+        )
+        return { ...table, items: itemsResult.rows }
       }),
 
-    createTable: publicProcedure
+    createTable: secureProcedure('aws.dynamodb.createTable')
       .input(z.object({
         name: z.string(),
         partitionKey: z.string(),
@@ -241,64 +224,57 @@ export const awsRouter = router({
         readCapacity: z.number().default(5),
         writeCapacity: z.number().default(5),
       }))
-      .mutation(async ({ input }) => {
-        const [table] = await sql`
-          INSERT INTO dynamodb_tables (
-            name, partition_key, partition_key_type, 
+      .mutation(async ({ ctx, input }) => {
+        const result = await ctx.db.query(
+          `INSERT INTO dynamodb_tables (
+            name, partition_key, partition_key_type,
             sort_key, sort_key_type,
             read_capacity_units, write_capacity_units
-          )
-          VALUES (
-            ${input.name}, ${input.partitionKey}, ${input.partitionKeyType},
-            ${input.sortKey || null}, ${input.sortKeyType || null},
-            ${input.readCapacity}, ${input.writeCapacity}
-          )
-          RETURNING *
-        `
-        return table
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+          [input.name, input.partitionKey, input.partitionKeyType,
+          input.sortKey || null, input.sortKeyType || null,
+          input.readCapacity, input.writeCapacity]
+        )
+        return result.rows[0]
       }),
 
-    deleteTable: publicProcedure
+    deleteTable: secureProcedure('aws.dynamodb.deleteTable')
       .input(z.object({ name: z.string() }))
-      .mutation(async ({ input }) => {
-        await sql`DELETE FROM dynamodb_tables WHERE name = ${input.name}`
+      .mutation(async ({ ctx, input }) => {
+        await ctx.db.query(`DELETE FROM dynamodb_tables WHERE name = $1`, [input.name])
         return { success: true }
       }),
   }),
 
   // Lambda Operations
   lambda: router({
-    listFunctions: publicProcedure.query(async () => {
-      const functions = await sql`
-        SELECT 
-          id, name, runtime, handler, code_size, memory_size,
-          timeout, status, invocation_count, error_count,
-          last_modified, created_at
-        FROM lambda_functions
-        ORDER BY created_at DESC
-      `
-      return functions
+    listFunctions: secureProcedure('aws.lambda.listFunctions').query(async ({ ctx }) => {
+      const result = await ctx.db.query(
+        `SELECT id, name, runtime, handler, code_size, memory_size,
+                timeout, status, invocation_count, error_count,
+                last_modified, created_at
+         FROM lambda_functions ORDER BY created_at DESC`
+      )
+      return result.rows
     }),
 
-    getFunction: publicProcedure
+    getFunction: secureProcedure('aws.lambda.getFunction')
       .input(z.object({ name: z.string() }))
-      .query(async ({ input }) => {
-        const [func] = await sql`
-          SELECT * FROM lambda_functions WHERE name = ${input.name}
-        `
-        if (!func) throw new Error('Function not found')
+      .query(async ({ ctx, input }) => {
+        const funcResult = await ctx.db.query(
+          `SELECT * FROM lambda_functions WHERE name = $1`, [input.name]
+        )
+        const func = funcResult.rows[0]
+        if (!func) throw new TRPCError({ code: 'NOT_FOUND', message: 'Function not found' })
 
-        const recentInvocations = await sql`
-          SELECT * FROM lambda_invocations 
-          WHERE function_id = ${func.id}
-          ORDER BY invoked_at DESC
-          LIMIT 50
-        `
-
-        return { ...func, recentInvocations }
+        const invocResult = await ctx.db.query(
+          `SELECT * FROM lambda_invocations WHERE function_id = $1 ORDER BY invoked_at DESC LIMIT 50`,
+          [func.id]
+        )
+        return { ...func, recentInvocations: invocResult.rows }
       }),
 
-    createFunction: publicProcedure
+    createFunction: secureProcedure('aws.lambda.createFunction')
       .input(z.object({
         name: z.string(),
         runtime: z.string(),
@@ -308,167 +284,164 @@ export const awsRouter = router({
         timeout: z.number().default(3),
         roleArn: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
-        const [func] = await sql`
-          INSERT INTO lambda_functions (
+      .mutation(async ({ ctx, input }) => {
+        const result = await ctx.db.query(
+          `INSERT INTO lambda_functions (
             name, runtime, handler, code_size, memory_size, timeout, role_arn
-          )
-          VALUES (
-            ${input.name}, ${input.runtime}, ${input.handler},
-            ${input.codeSize}, ${input.memorySize}, ${input.timeout},
-            ${input.roleArn || 'arn:aws:iam::000000000000:role/lambda-exec'}
-          )
-          RETURNING *
-        `
-        return func
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+          [input.name, input.runtime, input.handler,
+          input.codeSize, input.memorySize, input.timeout,
+          input.roleArn || 'arn:aws:iam::000000000000:role/lambda-exec']
+        )
+        return result.rows[0]
       }),
 
-    deleteFunction: publicProcedure
+    deleteFunction: secureProcedure('aws.lambda.deleteFunction')
       .input(z.object({ name: z.string() }))
-      .mutation(async ({ input }) => {
-        await sql`DELETE FROM lambda_functions WHERE name = ${input.name}`
+      .mutation(async ({ ctx, input }) => {
+        await ctx.db.query(`DELETE FROM lambda_functions WHERE name = $1`, [input.name])
         return { success: true }
       }),
 
-    invoke: publicProcedure
+    invoke: secureProcedure('aws.lambda.invoke')
       .input(z.object({
         name: z.string(),
         payload: z.any().optional(),
       }))
-      .mutation(async ({ input }) => {
-        const [func] = await sql`
-          SELECT * FROM lambda_functions WHERE name = ${input.name}
-        `
-        if (!func) throw new Error('Function not found')
+      .mutation(async ({ ctx, input }) => {
+        const funcResult = await ctx.db.query(
+          `SELECT * FROM lambda_functions WHERE name = $1`, [input.name]
+        )
+        const func = funcResult.rows[0]
+        if (!func) throw new TRPCError({ code: 'NOT_FOUND', message: 'Function not found' })
 
-        // Simulate invocation
         const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         const duration = Math.floor(Math.random() * 1000) + 50
         const memoryUsed = Math.floor(func.memory_size * (0.5 + Math.random() * 0.4))
         const status = Math.random() > 0.95 ? 'error' : 'success'
 
-        const [invocation] = await sql`
-          INSERT INTO lambda_invocations (
-            function_id, request_id, status, duration_ms, 
+        const invocResult = await ctx.db.query(
+          `INSERT INTO lambda_invocations (
+            function_id, request_id, status, duration_ms,
             memory_used_mb, billed_duration_ms, invoked_at,
             error_message, logs
-          )
-          VALUES (
-            ${func.id}, ${requestId}, ${status}, ${duration},
-            ${memoryUsed}, ${Math.ceil(duration / 100) * 100}, NOW(),
-            ${status === 'error' ? 'Simulated error' : null},
-            'START RequestId: ' || ${requestId} || '\nEND RequestId: ' || ${requestId}
-          )
-          RETURNING *
-        `
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8) RETURNING *`,
+          [func.id, requestId, status, duration,
+            memoryUsed, Math.ceil(duration / 100) * 100,
+          status === 'error' ? 'Invocation error' : null,
+          `START RequestId: ${requestId}\nEND RequestId: ${requestId}`]
+        )
 
-        // Update function invocation count
-        await sql`
-          UPDATE lambda_functions 
-          SET invocation_count = invocation_count + 1,
-              error_count = error_count + ${status === 'error' ? 1 : 0}
-          WHERE id = ${func.id}
-        `
+        await ctx.db.query(
+          `UPDATE lambda_functions
+           SET invocation_count = invocation_count + 1,
+               error_count = error_count + $1
+           WHERE id = $2`,
+          [status === 'error' ? 1 : 0, func.id]
+        )
 
-        return invocation
+        return invocResult.rows[0]
       }),
   }),
 
   // IAM Operations
   iam: router({
-    listRoles: publicProcedure.query(async () => {
-      const roles = await sql`
-        SELECT id, name, arn, description, created_at
-        FROM iam_roles
-        ORDER BY created_at DESC
-      `
-      return roles
+    listRoles: secureProcedure('aws.iam.listRoles').query(async ({ ctx }) => {
+      const result = await ctx.db.query(
+        `SELECT id, name, arn, description, created_at FROM iam_roles ORDER BY created_at DESC`
+      )
+      return result.rows
     }),
 
-    getRole: publicProcedure
+    getRole: secureProcedure('aws.iam.getRole')
       .input(z.object({ name: z.string() }))
-      .query(async ({ input }) => {
-        const [role] = await sql`
-          SELECT * FROM iam_roles WHERE name = ${input.name}
-        `
-        if (!role) throw new Error('Role not found')
+      .query(async ({ ctx, input }) => {
+        const roleResult = await ctx.db.query(
+          `SELECT * FROM iam_roles WHERE name = $1`, [input.name]
+        )
+        const role = roleResult.rows[0]
+        if (!role) throw new TRPCError({ code: 'NOT_FOUND', message: 'Role not found' })
 
-        const policies = await sql`
-          SELECT p.* FROM iam_policies p
-          JOIN iam_role_policies rp ON rp.policy_id = p.id
-          WHERE rp.role_id = ${role.id}
-        `
-
-        return { ...role, policies }
+        const policiesResult = await ctx.db.query(
+          `SELECT p.* FROM iam_policies p
+           JOIN iam_role_policies rp ON rp.policy_id = p.id
+           WHERE rp.role_id = $1`,
+          [role.id]
+        )
+        return { ...role, policies: policiesResult.rows }
       }),
 
-    createRole: publicProcedure
+    createRole: secureProcedure('aws.iam.createRole')
       .input(z.object({
         name: z.string(),
         assumeRolePolicy: z.any(),
         description: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const arn = `arn:aws:iam::000000000000:role/${input.name}`
-        const [role] = await sql`
-          INSERT INTO iam_roles (name, arn, assume_role_policy, description)
-          VALUES (
-            ${input.name}, ${arn}, ${JSON.stringify(input.assumeRolePolicy)},
-            ${input.description || ''}
-          )
-          RETURNING *
-        `
-        return role
+        const result = await ctx.db.query(
+          `INSERT INTO iam_roles (name, arn, assume_role_policy, description)
+           VALUES ($1, $2, $3, $4) RETURNING *`,
+          [input.name, arn, JSON.stringify(input.assumeRolePolicy), input.description || '']
+        )
+        return result.rows[0]
       }),
   }),
 
   // CloudWatch Operations
   cloudwatch: router({
-    listLogGroups: publicProcedure.query(async () => {
-      const logGroups = await sql`
-        SELECT id, name, retention_days, size_bytes, created_at
-        FROM cloudwatch_log_groups
-        ORDER BY created_at DESC
-      `
-      return logGroups
+    listLogGroups: secureProcedure('aws.cloudwatch.listLogGroups').query(async ({ ctx }) => {
+      const result = await ctx.db.query(
+        `SELECT id, name, retention_days, size_bytes, created_at
+         FROM cloudwatch_log_groups ORDER BY created_at DESC`
+      )
+      return result.rows
     }),
 
-    getLogGroup: publicProcedure
+    getLogGroup: secureProcedure('aws.cloudwatch.getLogGroup')
       .input(z.object({ name: z.string() }))
-      .query(async ({ input }) => {
-        const [logGroup] = await sql`
-          SELECT * FROM cloudwatch_log_groups WHERE name = ${input.name}
-        `
-        if (!logGroup) throw new Error('Log group not found')
+      .query(async ({ ctx, input }) => {
+        const lgResult = await ctx.db.query(
+          `SELECT * FROM cloudwatch_log_groups WHERE name = $1`, [input.name]
+        )
+        const logGroup = lgResult.rows[0]
+        if (!logGroup) throw new TRPCError({ code: 'NOT_FOUND', message: 'Log group not found' })
 
-        const streams = await sql`
-          SELECT * FROM cloudwatch_log_streams
-          WHERE log_group_id = ${logGroup.id}
-          ORDER BY created_at DESC
-          LIMIT 20
-        `
-
-        return { ...logGroup, streams }
+        const streamsResult = await ctx.db.query(
+          `SELECT * FROM cloudwatch_log_streams WHERE log_group_id = $1 ORDER BY created_at DESC LIMIT 20`,
+          [logGroup.id]
+        )
+        return { ...logGroup, streams: streamsResult.rows }
       }),
 
-    getMetrics: publicProcedure
+    getMetrics: secureProcedure('aws.cloudwatch.getMetrics')
       .input(z.object({
         namespace: z.string(),
         metricName: z.string().optional(),
         startTime: z.date().optional(),
         endTime: z.date().optional(),
       }))
-      .query(async ({ input }) => {
-        const metrics = await sql`
-          SELECT * FROM cloudwatch_metrics
-          WHERE namespace = ${input.namespace}
-            ${input.metricName ? sql`AND metric_name = ${input.metricName}` : sql``}
-            ${input.startTime ? sql`AND timestamp >= ${input.startTime.toISOString()}` : sql``}
-            ${input.endTime ? sql`AND timestamp <= ${input.endTime.toISOString()}` : sql``}
-          ORDER BY timestamp DESC
-          LIMIT 1000
-        `
-        return metrics
+      .query(async ({ ctx, input }) => {
+        let query = `SELECT * FROM cloudwatch_metrics WHERE namespace = $1`
+        const params: any[] = [input.namespace]
+
+        if (input.metricName) {
+          params.push(input.metricName)
+          query += ` AND metric_name = $${params.length}`
+        }
+        if (input.startTime) {
+          params.push(input.startTime.toISOString())
+          query += ` AND timestamp >= $${params.length}`
+        }
+        if (input.endTime) {
+          params.push(input.endTime.toISOString())
+          query += ` AND timestamp <= $${params.length}`
+        }
+
+        query += ` ORDER BY timestamp DESC LIMIT 1000`
+
+        const result = await ctx.db.query(query, params)
+        return result.rows
       }),
   }),
 })

@@ -46,10 +46,7 @@ export const healthChecksRouter = router({
             input.expectedResponse || null,
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('health_checks')) {
-            return { rows: [{ id: `health-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create health check', cause: err })
         })
 
         return {
@@ -101,7 +98,7 @@ export const healthChecksRouter = router({
             clearTimeout(timeout)
             responseTime = Date.now() - startTime
 
-            success = config.expected_status 
+            success = config.expected_status
               ? response.status === config.expected_status
               : response.ok
 
@@ -155,7 +152,7 @@ export const healthChecksRouter = router({
             error_message
           ) VALUES ($1, NOW(), $2, $3, $4)`,
           [input.healthCheckId, success, responseTime, error || null]
-        ).catch(() => {})
+        ).catch(() => { })
 
         // Update health check status
         await ctx.db.query(
@@ -163,7 +160,7 @@ export const healthChecksRouter = router({
            SET last_check_time = NOW(), last_check_success = $1
            WHERE id = $2`,
           [success, input.healthCheckId]
-        ).catch(() => {})
+        ).catch(() => { })
 
         return {
           success,
@@ -202,7 +199,7 @@ export const healthChecksRouter = router({
         return result?.rows?.[0] || null
       } catch (err) {
         console.error('[health.get] Error:', err)
-        return null
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch health check', cause: err as Error })
       }
     }),
 
@@ -272,7 +269,7 @@ export const healthChecksRouter = router({
         await ctx.db.query(
           `UPDATE health_checks SET is_active = false WHERE id = $1`,
           [input.healthCheckId]
-        ).catch(() => {})
+        ).catch(() => { })
 
         return { success: true }
       } catch (err) {

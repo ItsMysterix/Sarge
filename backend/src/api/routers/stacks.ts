@@ -1,29 +1,27 @@
 import { z } from 'zod'
-import { publicProcedure, router } from '../../trpc'
-import { neon } from '@neondatabase/serverless'
-import { ENV } from '../../env'
-
-const sql = neon(ENV.DATABASE_URL)
+import { router } from '../../trpc'
+import { secureProcedure } from '../trpc/middlewares/security'
+import { TRPCError } from '@trpc/server'
 
 export const stacksRouter = router({
-    /**
-     * ---
-     * Example usage (tRPC mutation):
-     * stacks.createFromRepo({
-     *   owner: 'acme',
-     *   repo: 'my-nextjs-app',
-     *   branch: 'main',
-     *   accessToken: 'ghp_...',
-     *   name: 'Acme Next.js Stack',
-     *   description: 'Stack for Acme Next.js repo'
-     * })
-     * Returns: { success, stack, blueprint }
-     * ---
-     */
+  /**
+   * ---
+   * Example usage (tRPC mutation):
+   * stacks.createFromRepo({
+   *   owner: 'acme',
+   *   repo: 'my-nextjs-app',
+   *   branch: 'main',
+   *   accessToken: 'ghp_...',
+   *   name: 'Acme Next.js Stack',
+   *   description: 'Stack for Acme Next.js repo'
+   * })
+   * Returns: { success, stack, blueprint }
+   * ---
+   */
   // Get all stacks
-  list: publicProcedure.query(async () => {
+  list: secureProcedure('stacks.list').query(async ({ ctx }) => {
     try {
-      const stacks = await sql`
+      const result = await ctx.db.query(`
         SELECT 
           id, 
           name, 
@@ -36,20 +34,20 @@ export const stacksRouter = router({
           updated_at
         FROM stacks
         ORDER BY created_at DESC
-      `
-      return stacks
+      `)
+      return result?.rows || []
     } catch (error) {
-      console.error('Error fetching stacks:', error)
-      return []
+      console.error('[stacks.list] Error:', error)
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch stacks', cause: error as Error })
     }
   }),
 
   // Get single stack by ID
-  getById: publicProcedure
+  getById: secureProcedure('stacks.getById')
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       try {
-        const stack = await sql`
+        const result = await ctx.db.query(`
           SELECT 
             s.*,
             COALESCE(
@@ -67,162 +65,148 @@ export const stacksRouter = router({
             ) as service_details
           FROM stacks s
           LEFT JOIN stack_services ss ON s.id = ss.stack_id
-          WHERE s.id = ${input.id}
+          WHERE s.id = $1
           GROUP BY s.id
-        `
-        return stack[0] || null
+        `, [input.id])
+        return result?.rows?.[0] || null
       } catch (error) {
-        console.error('Error fetching stack:', error)
-        return null
+        console.error('[stacks.getById] Error:', error)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch stack', cause: error as Error })
       }
     }),
 
   // Create a new stack
-  create: publicProcedure
+  create: secureProcedure('stacks.create')
     .input(z.object({
       name: z.string(),
       description: z.string().optional(),
       services: z.array(z.any()).default([]),
       environment: z.record(z.string(), z.string()).default({}),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        const result = await sql`
-          INSERT INTO stacks (name, description, status, services, environment)
-          VALUES (
-            ${input.name},
-            ${input.description || ''},
-            'stopped',
-            ${JSON.stringify(input.services)}::jsonb,
-            ${JSON.stringify(input.environment)}::jsonb
-          )
-          RETURNING *
-        `
-        return { success: true, stack: result[0] }
+        const result = await ctx.db.query(
+          `INSERT INTO stacks (name, description, status, services, environment)
+           VALUES ($1, $2, 'stopped', $3::jsonb, $4::jsonb)
+           RETURNING *`,
+          [input.name, input.description || '', JSON.stringify(input.services), JSON.stringify(input.environment)]
+        )
+        return { success: true, stack: result?.rows?.[0] }
       } catch (error) {
-        console.error('Error creating stack:', error)
-        return { success: false, error: 'Failed to create stack' }
+        console.error('[stacks.create] Error:', error)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create stack', cause: error as Error })
       }
     }),
 
   // Update stack status
-  updateStatus: publicProcedure
+  updateStatus: secureProcedure('stacks.updateStatus')
     .input(z.object({
       id: z.string(),
       status: z.enum(['running', 'stopped', 'deploying', 'error']),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        await sql`
-          UPDATE stacks 
-          SET status = ${input.status}, updated_at = NOW()
-          WHERE id = ${input.id}
-        `
+        await ctx.db.query(
+          `UPDATE stacks SET status = $1, updated_at = NOW() WHERE id = $2`,
+          [input.status, input.id]
+        )
         return { success: true }
       } catch (error) {
-        console.error('Error updating stack status:', error)
-        return { success: false, error: 'Failed to update status' }
+        console.error('[stacks.updateStatus] Error:', error)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update status', cause: error as Error })
       }
     }),
 
   // Delete a stack
-  delete: publicProcedure
+  delete: secureProcedure('stacks.delete')
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        await sql`DELETE FROM stacks WHERE id = ${input.id}`
+        await ctx.db.query(`DELETE FROM stacks WHERE id = $1`, [input.id])
         return { success: true }
       } catch (error) {
-        console.error('Error deleting stack:', error)
-        return { success: false, error: 'Failed to delete stack' }
+        console.error('[stacks.delete] Error:', error)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to delete stack', cause: error as Error })
       }
     }),
 
   // Get stack deployments history
-  getDeployments: publicProcedure
+  getDeployments: secureProcedure('stacks.getDeployments')
     .input(z.object({ stackId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       try {
-        const deployments = await sql`
-          SELECT *
-          FROM stack_deployments
-          WHERE stack_id = ${input.stackId}
-          ORDER BY deployed_at DESC
-          LIMIT 10
-        `
-        return deployments
+        const result = await ctx.db.query(
+          `SELECT * FROM stack_deployments WHERE stack_id = $1 ORDER BY deployed_at DESC LIMIT 10`,
+          [input.stackId]
+        )
+        return result?.rows || []
       } catch (error) {
-        console.error('Error fetching deployments:', error)
-        return []
+        console.error('[stacks.getDeployments] Error:', error)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch deployments', cause: error as Error })
       }
     }),
 
   // Get stack statistics
-  getStats: publicProcedure.query(async () => {
+  getStats: secureProcedure('stacks.getStats').query(async ({ ctx }) => {
     try {
-      const stats = await sql`
+      const result = await ctx.db.query(`
         SELECT 
           COUNT(*) as total_stacks,
           COUNT(*) FILTER (WHERE status = 'running') as running,
           COUNT(*) FILTER (WHERE status = 'stopped') as stopped,
           COUNT(*) FILTER (WHERE status = 'error') as error
         FROM stacks
-      `
-      return stats[0] || { total_stacks: 0, running: 0, stopped: 0, error: 0 }
+      `)
+      return result?.rows?.[0] || { total_stacks: 0, running: 0, stopped: 0, error: 0 }
     } catch (error) {
-      console.error('Error fetching stats:', error)
-      return { total_stacks: 0, running: 0, stopped: 0, error: 0 }
+      console.error('[stacks.getStats] Error:', error)
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch stats', cause: error as Error })
     }
   }),
 
-    /**
-     * Create a stack from connected repository metadata/services
-     * Usage: stacks.createFromRepo({ owner, repo, branch, accessToken, name?, description? })
-     * This analyzes the repo using GitHubScanner and creates a stack with detected services.
-     */
-    createFromRepo: publicProcedure
-      .input(z.object({
-        owner: z.string(),
-        repo: z.string(),
-        branch: z.string().default('main'),
-        accessToken: z.string(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        try {
-          // Dynamically import GitHubScanner
-          const { createGitHubScanner } = require('../../services/github-scanner')
-          const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
-          // Analyze repo for services and metadata
-          const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
+  /**
+   * Create a stack from connected repository metadata/services
+   * Usage: stacks.createFromRepo({ owner, repo, branch, accessToken, name?, description? })
+   * This analyzes the repo using GitHubScanner and creates a stack with detected services.
+   */
+  createFromRepo: secureProcedure('stacks.createFromRepo')
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      branch: z.string().default('main'),
+      accessToken: z.string(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Dynamically import GitHubScanner
+        const { createGitHubScanner } = require('../../services/github-scanner')
+        const scanner = createGitHubScanner(input.accessToken, !!process.env.ANTHROPIC_API_KEY)
+        // Analyze repo for services and metadata
+        const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
 
-          // Prepare stack fields
-          const stackName = input.name || `${input.owner}/${input.repo} Stack`
-          const stackDescription = input.description || `Stack generated from ${input.owner}/${input.repo}@${input.branch}`
-          const services = blueprint.services || []
-          const environment: Record<string, string> = {}
-          if (Array.isArray(blueprint.envKeys)) {
-            blueprint.envKeys.forEach((key: string) => { environment[key] = '' })
-          }
-
-          // Insert stack into DB
-          const result = await sql`
-            INSERT INTO stacks (name, description, status, services, environment)
-            VALUES (
-              ${stackName},
-              ${stackDescription},
-              'stopped',
-              ${JSON.stringify(services)}::jsonb,
-              ${JSON.stringify(environment)}::jsonb
-            )
-            RETURNING *
-          `
-          return { success: true, stack: result[0], blueprint }
-        } catch (error) {
-          console.error('Error creating stack from repo:', error)
-          const details = (error instanceof Error && error.message) ? error.message : String(error);
-          return { success: false, error: 'Failed to create stack from repo', details };
+        // Prepare stack fields
+        const stackName = input.name || `${input.owner}/${input.repo} Stack`
+        const stackDescription = input.description || `Stack generated from ${input.owner}/${input.repo}@${input.branch}`
+        const services = blueprint.services || []
+        const environment: Record<string, string> = {}
+        if (Array.isArray(blueprint.envKeys)) {
+          blueprint.envKeys.forEach((key: string) => { environment[key] = '' })
         }
-      }),
+
+        // Insert stack into DB
+        const result = await ctx.db.query(
+          `INSERT INTO stacks (name, description, status, services, environment)
+             VALUES ($1, $2, 'stopped', $3::jsonb, $4::jsonb)
+             RETURNING *`,
+          [stackName, stackDescription, JSON.stringify(services), JSON.stringify(environment)]
+        )
+        return { success: true, stack: result?.rows?.[0], blueprint }
+      } catch (error) {
+        console.error('[stacks.createFromRepo] Error:', error)
+        const details = (error instanceof Error && error.message) ? error.message : String(error);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create stack from repo: ' + details, cause: error as Error })
+      }
+    }),
 })

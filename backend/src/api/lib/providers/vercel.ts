@@ -4,6 +4,8 @@ export class VercelProvider implements IProvider {
     id = 'vercel'
     name = 'Vercel'
     kind: 'static' = 'static'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         const token = opts.credentials.vercel_token

@@ -13,7 +13,10 @@ import {
   Box,
   Terminal,
   LogOut,
-  FolderKanban
+  FolderKanban,
+  Shield,
+  Coins,
+  GitCompare
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProject } from "@/lib/project-context"
@@ -22,10 +25,9 @@ import { trpc } from "@/lib/trpc"
 
 // Navigation items (only shown when project exists)
 const projectNavigation = [
-  { name: "Environments", href: "/environments", icon: Layers },
-  { name: "Pipelines", href: "/deployments", icon: GitBranch },
-  { name: "Logs", href: "/logs", icon: Terminal },
-  { name: "Metrics", href: "/observability", icon: Activity },
+  { name: "Orchestration", href: "/orchestration", icon: Layers },
+  { name: "Governance", href: "/governance", icon: Shield },
+  { name: "Observability", href: "/observability", icon: Activity },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 

@@ -1,0 +1,15 @@
+[package]
+name = "sarge-gtm"
+version = "0.1.0"
+edition = "2021"
+authors = ["Sarge Team"]
+description = "High-performance Global Traffic Manager for multi-cluster routing"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+chrono = "0.4"
+reqwest = { version = "0.11", features = ["json"] }
+dashmap = "5.5"

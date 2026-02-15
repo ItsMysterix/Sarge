@@ -1,6 +1,7 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import { getProvider } from '../lib/providers'
 import { getProviderCredentials } from '../lib/credentials'
 
@@ -51,12 +52,8 @@ export const environmentsRouter = router({
         }
       }
 
-      // Absolute fallback
-      return [
-        { name: 'preview', status: 'active', type: 'preview' },
-        { name: 'staging', status: 'active', type: 'staging' },
-        { name: 'production', status: 'active', type: 'production' },
-      ]
+      // No mock fallback — throw if DB and provider both failed
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch environments' })
     }),
 
   create: secureProcedure('environments.create')
@@ -106,22 +103,14 @@ export const environmentsRouter = router({
         if (result?.rows?.[0]) {
           return {
             ...result.rows[0],
-            resource_config: typeof result.rows[0].resource_config === 'string' 
-              ? JSON.parse(result.rows[0].resource_config) 
+            resource_config: typeof result.rows[0].resource_config === 'string'
+              ? JSON.parse(result.rows[0].resource_config)
               : result.rows[0].resource_config,
           }
         }
 
-        // Fallback response
-        return {
-          id: `env-${Date.now()}`,
-          name: input.name,
-          provider_id: input.providerId,
-          type: input.type,
-          region: input.region || 'us-east-1',
-          resource_config: input.resourceConfig || {},
-          status: 'active',
-        }
+        // No fallback - if DB fails, throw
+        throw new Error('Failed to create environment')
       } catch (err) {
         throw new Error(`Failed to create environment: ${err instanceof Error ? err.message : 'Unknown error'}`)
       }
@@ -261,7 +250,7 @@ export const environmentsRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        // Get source environment
+        // 1. Get source environment
         const source = await ctx.db.query(
           `SELECT * FROM environments WHERE id = $1`,
           [input.sourceEnvironmentId]
@@ -276,7 +265,7 @@ export const environmentsRouter = router({
           ? JSON.parse(sourceEnv.resource_config)
           : sourceEnv.resource_config
 
-        // Create cloned environment
+        // 2. Create cloned environment record
         const result = await ctx.db.query(
           `INSERT INTO environments (
             project_id, provider_id, name, type, region,
@@ -296,40 +285,88 @@ export const environmentsRouter = router({
             input.sourceEnvironmentId,
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('environments')) {
-            return { rows: [{ id: `env-clone-${Date.now()}` }] }
-          }
-          throw err
+          throw new Error('Failed to clone environment: ' + (err?.message || 'Unknown error'))
         })
 
         const cloneId = result.rows[0].id
 
-        // Copy secrets if requested
+        // 3. SECRETS CLONING
         if (input.copySecrets) {
           await ctx.db.query(
-            `INSERT INTO secrets (environment_id, key, value_encrypted, created_at)
-             SELECT $1, key, value_encrypted, NOW()
+            `INSERT INTO secrets (environment_id, key, value_encrypted, provider, created_at)
+             SELECT $1, key, value_encrypted, provider, NOW()
              FROM secrets
              WHERE environment_id = $2`,
             [cloneId, input.sourceEnvironmentId]
           ).catch(console.error)
         }
 
-        // Copy databases if requested (create clones, not copies)
+        // 4. SERVICES CLONING (The "Full Fidelity" Engine)
+        const services = await ctx.db.query(
+          `SELECT * FROM services WHERE environment_id = $1`,
+          [input.sourceEnvironmentId]
+        ).catch(() => ({ rows: [] }));
+
+        for (const service of services?.rows || []) {
+          console.log(`[Clone] Duplicating service: ${service.name} into environment: ${input.cloneName}`);
+
+          // a. Create new service record
+          const newService = await ctx.db.query(
+            `INSERT INTO services (
+                    environment_id, name, type, repo_url, branch, 
+                    build_command, start_command, port, status, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'starting', NOW())
+                RETURNING id`,
+            [
+              cloneId, service.name, service.type, service.repo_url, service.branch,
+              service.build_command, service.start_command, service.port
+            ]
+          ).catch(console.error);
+
+          // b. Trigger actual deployment via provider
+          const provider = getProvider(sourceEnv.provider_id);
+          if (provider && newService?.rows?.[0]) {
+            const credentials = await getProviderCredentials(sourceEnv.provider_id, ctx.db, "system").catch(() => ({}));
+
+            provider.deploy({
+              projectId: sourceEnv.project_id,
+              repoUrl: service.repo_url,
+              branch: service.branch,
+              commit: 'HEAD', // Default to HEAD for cloned deployments
+              environmentName: input.cloneType as any,
+              credentials,
+              buildCommand: service.build_command,
+              env: { SARGE_CLONED: 'true' }
+            }).catch(e => console.error(`[Clone] Deployment failed for ${service.name}:`, e));
+          }
+        }
+
+        // 5. DATABASES CLONING
         if (input.copyDatabases) {
-          // This would trigger database cloning via the databases router
           console.log('[clone] Would clone databases from', input.sourceEnvironmentId)
+          // Integration with databasesRouter.cloneInstance would go here
         }
 
         return {
           success: true,
           environmentId: cloneId,
           name: input.cloneName,
-          message: 'Environment cloning started',
+          message: 'Full-fidelity environment cloning started',
         }
       } catch (err) {
         console.error('[environments.clone] Error:', err)
         throw err
+      }
+    }),
+
+  // List all environments (admin view)
+  all: secureProcedure('environments.all')
+    .query(async ({ ctx }) => {
+      try {
+        const result = await ctx.db.query("SELECT * FROM environments ORDER BY created_at DESC");
+        return result.rows;
+      } catch (e) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch all environments' });
       }
     }),
 
@@ -367,10 +404,7 @@ export const environmentsRouter = router({
             JSON.stringify(input.defaultSecrets || {}),
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('environment_templates')) {
-            return { rows: [{ id: `template-${Date.now()}` }] }
-          }
-          throw err
+          throw new Error('Failed to create environment template: ' + (err?.message || 'Unknown error'))
         })
 
         return {
@@ -438,10 +472,7 @@ export const environmentsRouter = router({
             input.templateId,
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('environments')) {
-            return { rows: [{ id: `env-from-tmpl-${Date.now()}` }] }
-          }
-          throw err
+          throw new Error('Failed to create environment from template: ' + (err?.message || 'Unknown error'))
         })
 
         const envId = result.rows[0].id
@@ -489,7 +520,7 @@ export const environmentsRouter = router({
         return result?.rows || []
       } catch (err) {
         console.error('[environments.listTemplates] Error:', err)
-        return []
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch templates', cause: err as Error })
       }
     }),
 })

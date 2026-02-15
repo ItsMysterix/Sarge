@@ -4,6 +4,8 @@ export class FlyProvider implements IProvider {
     id = 'fly'
     name = 'Fly.io'
     kind: 'containers' = 'containers'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         // Fly.io: Global Anycast deployment

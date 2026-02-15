@@ -1,6 +1,7 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import { createGitHubScanner } from '../../services/github-scanner'
 import { createDeploymentOrchestrator } from '../../services/deployment-orchestrator'
 import { DeploymentExecutor } from '../../services/deployment-executor'
@@ -11,70 +12,15 @@ import * as path from 'path'
 import * as os from 'os'
 import { spawn } from 'child_process'
 import * as fs from 'fs'
-
-// Global orchestrator instance
-const orchestrator = createDeploymentOrchestrator()
-
-// Helper to save logs to database
-async function saveLogs(logs: Array<{ type: string; message: string; service: string; severity?: string; timestamp?: string }>) {
-  try {
-    // FIXED: Save directly to database instead of HTTP call to avoid Vercel deployment protection issues
-    const { db } = await import('../lib/db');
-
-    for (const log of logs) {
-      try {
-        // Try with service_id first (new schema), fallback to service (old schema)
-        await db.query(
-          `INSERT INTO logs (type, message, service_id, timestamp, severity, created_at)
-           VALUES ($1, $2, $3, $4, $5, NOW())`,
-          [log.type, log.message, log.service, log.timestamp || new Date().toISOString(), log.severity || 'info']
-        ).catch(async (err) => {
-          // If service_id doesn't exist, try service column
-          if (err?.message?.includes('service_id')) {
-            await db.query(
-              `INSERT INTO logs (type, message, service, timestamp, severity, created_at)
-               VALUES ($1, $2, $3, $4, $5, NOW())`,
-              [log.type, log.message, log.service, log.timestamp || new Date().toISOString(), log.severity || 'info']
-            );
-          } else {
-            throw err;
-          }
-        });
-      } catch (logErr) {
-        console.error('[saveLogs] Failed to insert log:', logErr);
-      }
-    }
-
-    console.log('[saveLogs] Successfully saved', logs.length, 'log(s) to database')
-  } catch (err) {
-    console.error('[saveLogs] Database error:', err)
-  }
-}
-
-async function getCore(): Promise<any> {
-  // Import sarge-core at runtime to avoid bundler static resolution during Next build
-  // Use non-literal module name to prevent webpack from resolving it at build time
-  const modName = ['sarge', '-', 'core'].join('')
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  try { return require(modName) } catch (e: any) {
-    if ((globalThis as any).__sargeCoreMock) return (globalThis as any).__sargeCoreMock
-    if (e?.code === 'ERR_REQUIRE_ESM') {
-      const mod = await import(modName)
-      return mod
-    }
-    throw e
-  }
-}
+import { saveLogs, getCore, getDataRoot } from './shared/sarge-helpers'
 import createBufferedSubscription from '../lib/realtime'
+import { PlatformRouter, ServiceProfile } from '../../services/platform-router'
 
-function getDataRoot() {
-  // On Vercel/serverless, use /tmp (only writable location)
-  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    return require('path').join('/tmp', '.sarge')
-  }
-  const base = process.env.SARGE_DATA_DIR ? require('path').resolve(process.cwd(), process.env.SARGE_DATA_DIR) : require('path').resolve(process.cwd(), 'data/sarge/workspaces/default')
-  return base
-}
+// Global instances
+const orchestrator = createDeploymentOrchestrator()
+const platformRouter = new PlatformRouter()
+
+
 
 const DetectRepoInput = z.object({ path: z.string().min(1) })
 const BlueprintSchema = z.object({
@@ -209,145 +155,58 @@ export const oneclickRouter = router({
           framework: String(blueprint?.framework || ''),
         }
 
-        /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
-        const useAI = !!process.env.ANTHROPIC_API_KEY
-        console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
-        
-        // Use GitHub scanner with AI support
-        const scanner = createGitHubScanner(input.accessToken, useAI)
-        const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
-        
-        console.log('[OneClick] Returning test response')
-        return testResponse
-        
-        /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
-        const useAI = !!process.env.ANTHROPIC_API_KEY
-        console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
-        
-        // Use GitHub scanner with AI support
-        const scanner = createGitHubScanner(input.accessToken, useAI)
-        const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
-        
-        console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
-        console.log(`[OneClick] Blueprint type:`, typeof blueprint, 'Keys:', Object.keys(blueprint))
-        
-        // Convert to legacy blueprint format for compatibility
-        // Ensure all data is serializable (no undefined, functions, etc.)
-        const safeServices = Array.isArray(blueprint.services) ? blueprint.services.filter(s => s != null) : []
-        const safeExternalServices = Array.isArray(blueprint.externalServices) ? blueprint.externalServices.filter(e => e != null) : []
-        const safeEnvKeys = Array.isArray(blueprint.envKeys) ? blueprint.envKeys.filter(k => k != null) : []
-        
-        console.log(`[OneClick] Safe arrays - services: ${safeServices.length}, external: ${safeExternalServices.length}, envKeys: ${safeEnvKeys.length}`)
-        
-        // Build response with NO undefined values to prevent SuperJSON serialization crashes
-        const safePorts = safeServices
-          .flatMap(s => (s && Array.isArray(s.ports) ? s.ports : []))
-          .filter(p => p != null && typeof p === 'number')
-        
-        const safeEnvKeysFiltered = safeEnvKeys
-          .filter(k => k != null && typeof k === 'string' && k.length > 0)
-        
-        const safeComposeFiles = (blueprint?.docker && Array.isArray(blueprint.docker.composeFiles))
-          ? blueprint.docker.composeFiles.filter(f => f != null && typeof f === 'string' && f.length > 0)
-          : []
-        
-        console.log(`[OneClick] Building response object...`)
-        
-        // Return ultra-simple structure - absolutely NO filter operations
-        const simpleResponse = {
-          services: safeServices.map(s => {
-            // Manually build safe port array
-            const safePorts: number[] = []
-            if (s?.ports && Array.isArray(s.ports)) {
-              for (const p of s.ports) {
-                if (typeof p === 'number') safePorts.push(p)
-              }
-            }
-            
-            // Manually build safe envKeys array
-            const safeEnvKeys: string[] = []
-            if (s?.envKeys && Array.isArray(s.envKeys)) {
-              for (const k of s.envKeys) {
-                if (typeof k === 'string' && k) safeEnvKeys.push(k)
-              }
-            }
-            
-            return {
-              name: String(s?.name || 'unknown'),
-              type: String(s?.type || 'api'),
-              cwd: String(s?.cwd || '.'),
-              startCommand: String(s?.startCommand || ''),
-              buildCommand: String(s?.buildCommand || ''),
-              ports: safePorts,
-              envKeys: safeEnvKeys,
-              framework: String(s?.framework || ''),
-            }
-          }),
-          resources: {
-            s3Buckets: [],
-            dynamoTables: [],
-            lambdaFunctions: [],
-          },
-          ports: safePorts.map(p => Number(p)),
-          envKeys: safeEnvKeysFiltered.map(k => String(k)),
-          docker: {
-            dockerfile: Boolean(blueprint?.docker?.dockerfile),
-            dockerCompose: Boolean(blueprint?.docker?.dockerCompose),
-            composeFiles: safeComposeFiles.map(f => String(f)),
-          },
-          awsSdks: [],
-          externalServices: safeExternalServices.map(s => {
-            // Manually build safe port array
-            const extSafePorts: number[] = []
-            if (s?.ports && Array.isArray(s.ports)) {
-              for (const p of s.ports) {
-                if (typeof p === 'number') extSafePorts.push(p)
-              }
-            }
-            
-            // Manually build safe envKeys array
-            const extSafeEnvKeys: string[] = []
-            if (s?.envKeys && Array.isArray(s.envKeys)) {
-              for (const k of s.envKeys) {
-                if (typeof k === 'string' && k) extSafeEnvKeys.push(k)
-              }
-            }
-            
-            return {
-              name: String(s?.name || 'unknown'),
-              type: String(s?.type || 'database'),
-              ports: extSafePorts,
-              envKeys: extSafeEnvKeys,
-              version: String(s?.version || ''),
-              dockerImage: String(s?.dockerImage || ''),
-            }
-          }),
-          projectType: String(blueprint?.projectType || 'unknown'),
-          packageManager: String(blueprint?.packageManager || 'npm'),
-          framework: String(blueprint?.framework || ''),
-        }
-        
-        console.log('[OneClick] Simple response ready, services:', simpleResponse.services.length)
-        return simpleResponse
-        */
       } catch (error) {
         console.error('[OneClick] detectRepo error:', error)
         console.error('[OneClick] Error stack:', error instanceof Error ? error.stack : 'no stack')
         console.error('[OneClick] Error name:', error instanceof Error ? error.name : typeof error)
-        // Return a resilient, mock-first response instead of throwing to avoid 500s on serverless
-        return {
-          services: [],
-          resources: { s3Buckets: [], dynamoTables: [], lambdaFunctions: [] },
-          ports: [],
-          envKeys: [],
-          docker: { dockerfile: false, dockerCompose: false, composeFiles: [] },
-          awsSdks: [],
-          externalServices: [],
-          projectType: 'unknown',
-          packageManager: 'npm',
-          framework: '',
-          error: error instanceof Error ? error.message : 'Failed to analyze repository',
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to analyze repository: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          cause: error as Error,
+        })
+      }
+    }),
+
+  /**
+   * Recommend platforms for the current stack blueprint.
+   * Uses the Platform Selection Intelligence Engine.
+   */
+  recommendPlatforms: secureProcedure('sarge.oneclick.recommendPlatforms')
+    .input(z.object({
+      blueprint: z.any(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const blueprint = input.blueprint
+        if (!blueprint || !Array.isArray(blueprint.services)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid blueprint provided' })
         }
+
+        const results = blueprint.services.map((service: any) => {
+          const profile: ServiceProfile = {
+            name: service.name,
+            techStack: [service.framework || '', service.language || ''].filter(Boolean),
+            type: service.type as ServiceProfile['type'],
+            requirements: {
+              websockets: service.ports && service.ports.length > 0, // Heuristic
+              longRunning: service.type !== 'web', // Heuristic for static vs server
+              // Add more heuristics based on frameworks/detected patterns
+            },
+          }
+          return platformRouter.recommend(profile)
+        })
+
+        return {
+          results,
+          overallRecommendation: results.length > 0 ? results[0].primary.platformId : 'local',
+        }
+      } catch (error) {
+        console.error('[OneClick] recommendPlatforms error:', error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to generate platform recommendations',
+          cause: error as Error,
+        })
       }
     }),
 

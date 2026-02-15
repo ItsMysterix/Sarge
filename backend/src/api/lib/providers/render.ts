@@ -4,6 +4,8 @@ export class RenderProvider implements IProvider {
     id = 'render'
     name = 'Render'
     kind: 'containers' = 'containers'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         const token = opts.credentials.render_token

@@ -14,6 +14,9 @@ import { getProviderCredentials } from '../lib/credentials'
  * - Traffic splitting
  * - A/B testing
  */
+import { DeploymentStrategies } from '../../services/deployment-strategies'
+
+const deploymentStrategies = new DeploymentStrategies()
 
 export const trafficRouter = router({
   // Create blue/green deployment config
@@ -43,10 +46,7 @@ export const trafficRouter = router({
             input.config.switchDuration,
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('traffic_configs')) {
-            return { rows: [{ id: `traffic-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create blue/green config', cause: err })
         })
 
         return {
@@ -89,10 +89,7 @@ export const trafficRouter = router({
             input.config.intervalMinutes,
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('traffic_configs')) {
-            return { rows: [{ id: `traffic-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create canary config', cause: err })
         })
 
         return {
@@ -111,22 +108,29 @@ export const trafficRouter = router({
     .input(z.object({
       trafficConfigId: z.string(),
       targetColor: z.enum(['blue', 'green']),
+      providerId: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        // Get config
+        // 1. Get config
         const config = await ctx.db.query(
           `SELECT * FROM traffic_configs WHERE id = $1`,
           [input.trafficConfigId]
         ).catch(() => ({ rows: [] }))
 
         if (!config?.rows?.[0]) {
-          throw new Error('Traffic config not found')
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Traffic config not found' })
         }
 
         const currentConfig = config.rows[0]
 
-        // Swap weights
+        // 2. Trigger provider-level switch via DeploymentStrategies
+        const provider = getProvider(input.providerId)
+        if (provider) {
+          await deploymentStrategies.promote(currentConfig.deployment_id, provider)
+        }
+
+        // 3. Update DB state
         const newBlueWeight = input.targetColor === 'blue' ? 100 : 0
         const newGreenWeight = input.targetColor === 'green' ? 100 : 0
 
@@ -135,9 +139,9 @@ export const trafficRouter = router({
            SET blue_weight = $1, green_weight = $2, last_switched_at = NOW()
            WHERE id = $3`,
           [newBlueWeight, newGreenWeight, input.trafficConfigId]
-        ).catch(() => {})
+        )
 
-        // Create audit log
+        // Audit log
         await ctx.db.query(
           `INSERT INTO audit_logs (
             user_id, action_type, resource_type, resource_id,
@@ -153,7 +157,7 @@ export const trafficRouter = router({
               previousGreen: currentConfig.green_weight,
             }),
           ]
-        ).catch(() => {})
+        ).catch(() => { })
 
         return {
           success: true,
@@ -169,6 +173,7 @@ export const trafficRouter = router({
   incrementCanary: secureProcedure('traffic.execute')
     .input(z.object({
       trafficConfigId: z.string(),
+      providerId: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
       try {
@@ -178,10 +183,17 @@ export const trafficRouter = router({
         ).catch(() => ({ rows: [] }))
 
         if (!config?.rows?.[0]) {
-          throw new Error('Traffic config not found')
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Traffic config not found' })
         }
 
         const current = config.rows[0]
+
+        // Trigger promotion via DeploymentStrategies
+        const provider = getProvider(input.providerId)
+        if (provider) {
+          await deploymentStrategies.promote(current.deployment_id, provider)
+        }
+
         const newCanaryWeight = Math.min(100, current.canary_weight + current.increment_step)
         const newStableWeight = 100 - newCanaryWeight
 
@@ -190,7 +202,7 @@ export const trafficRouter = router({
            SET canary_weight = $1, stable_weight = $2, last_switched_at = NOW()
            WHERE id = $3`,
           [newCanaryWeight, newStableWeight, input.trafficConfigId]
-        ).catch(() => {})
+        )
 
         const isComplete = newCanaryWeight >= 100
 
@@ -199,7 +211,7 @@ export const trafficRouter = router({
           canaryWeight: newCanaryWeight,
           stableWeight: newStableWeight,
           isComplete,
-          message: isComplete 
+          message: isComplete
             ? 'Canary deployment complete'
             : `Canary traffic increased to ${newCanaryWeight}%`,
         }
@@ -213,15 +225,29 @@ export const trafficRouter = router({
   rollbackCanary: secureProcedure('traffic.execute')
     .input(z.object({
       trafficConfigId: z.string(),
+      providerId: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
       try {
+        const config = await ctx.db.query(
+          `SELECT * FROM traffic_configs WHERE id = $1`,
+          [input.trafficConfigId]
+        ).catch(() => ({ rows: [] }))
+
+        if (config?.rows?.[0]) {
+          const current = config.rows[0]
+          const provider = getProvider(input.providerId)
+          if (provider) {
+            await deploymentStrategies.rollback(current.deployment_id, provider)
+          }
+        }
+
         await ctx.db.query(
           `UPDATE traffic_configs
            SET canary_weight = 0, stable_weight = 100, is_active = false
            WHERE id = $1`,
           [input.trafficConfigId]
-        ).catch(() => {})
+        )
 
         return {
           success: true,
@@ -246,17 +272,12 @@ export const trafficRouter = router({
            ORDER BY created_at DESC
            LIMIT 1`,
           [input.deploymentId]
-        ).catch((err: any) => {
-          if (err?.message?.includes('traffic_configs')) {
-            return { rows: [] }
-          }
-          throw err
-        })
+        )
 
         return result?.rows?.[0] || null
       } catch (err) {
         console.error('[traffic.get] Error:', err)
-        return null
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch traffic config', cause: err as Error })
       }
     }),
 

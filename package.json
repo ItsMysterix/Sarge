@@ -28,6 +28,7 @@
     "docs:links": "markdown-link-check -q -p -v -c .mlc-config.json README.md docs/**/*.md"
   },
   "dependencies": {
+    "axios": "^1.6.0",
     "@auth/pg-adapter": "^1.11.1",
     "@aws-sdk/client-eventbridge": "^3.917.0",
     "@aws-sdk/client-sns": "^3.917.0",

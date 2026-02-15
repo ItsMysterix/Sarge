@@ -7,7 +7,7 @@ import { storeProviderCredentials } from "@/lib/provider-credentials"
 import bcrypt from "bcryptjs"
 
 // Detailed environment validation logging
-console.log('🔍 [AUTH CONFIG] Initializing NextAuth...')
+// console.log('🔍 [AUTH CONFIG] Initializing NextAuth...')
 console.log('🔍 [AUTH CONFIG] NODE_ENV:', process.env.NODE_ENV)
 console.log('🔍 [AUTH CONFIG] NEXTAUTH_URL:', process.env.NEXTAUTH_URL || '❌ NOT SET')
 console.log('🔍 [AUTH CONFIG] NEXTAUTH_SECRET:', process.env.NEXTAUTH_SECRET ? '✅ SET (length: ' + process.env.NEXTAUTH_SECRET.length + ')' : '❌ NOT SET')
@@ -32,25 +32,25 @@ if (!nextAuthUrl) {
 export const authOptions: NextAuthOptions = {
   // Don't use database adapter - use pure JWT for now
   // adapter: PostgresAdapter(getDbPool()) as Adapter,
-  
+
   providers: [
     // GitHub OAuth provider (optional, requires GITHUB_ID and GITHUB_SECRET)
     ...(process.env.GITHUB_ID && process.env.GITHUB_SECRET
       ? [
-          GithubProvider({
-            clientId: process.env.GITHUB_ID,
-            clientSecret: process.env.GITHUB_SECRET,
-            // Request scopes needed to list org/private repos and clone via token
-            // Users must re-consent after this change to grant the new scopes.
-            authorization: {
-              params: {
-                scope: 'read:user user:email repo read:org',
-              },
+        GithubProvider({
+          clientId: process.env.GITHUB_ID,
+          clientSecret: process.env.GITHUB_SECRET,
+          // Request scopes needed to list org/private repos and clone via token
+          // Users must re-consent after this change to grant the new scopes.
+          authorization: {
+            params: {
+              scope: 'read:user user:email repo read:org',
             },
-          }),
-        ]
+          },
+        }),
+      ]
       : []),
-    
+
     // Credentials provider with database validation
     CredentialsProvider({
       name: "Credentials",
@@ -64,7 +64,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const pool = getDbPool()
-        
+
         // Get user and password hash
         const result = await pool.query(
           `SELECT u.id, u.email, u.name, u.image, u.email_verified, c.password_hash
@@ -108,18 +108,18 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  
+
   pages: {
     signIn: "/sign-in",
     signOut: "/",
     error: "/sign-in", // Keep simple - will show error in URL params
   },
-  
+
   session: {
     strategy: "jwt", // Use JWT instead of database sessions for OAuth
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  
+
   cookies: {
     sessionToken: {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
@@ -131,9 +131,9 @@ export const authOptions: NextAuthOptions = {
       },
     },
   },
-  
+
   useSecureCookies: process.env.NODE_ENV === 'production',
-  
+
   callbacks: {
     async signIn({ user, account, profile }) {
       const logPrefix = `🔵 [SIGNIN ${account?.provider?.toUpperCase() || 'UNKNOWN'}]`
@@ -144,16 +144,16 @@ export const authOptions: NextAuthOptions = {
       console.log(`${logPrefix} User Name:`, user?.name)
       console.log(`${logPrefix} Account Type:`, account?.type)
       console.log(`${logPrefix} Account Provider Account ID:`, account?.providerAccountId)
-      
+
       try {
         // For OAuth providers (GitHub), create/update user in database
         if (account?.provider === "github" && user?.email) {
           console.log(`${logPrefix} Processing GitHub OAuth for:`, user.email)
-          
+
           try {
             const pool = getDbPool()
             console.log(`${logPrefix} Database pool acquired`)
-            
+
             // Atomic UPSERT: Insert new user or update existing one
             const result = await pool.query(
               `INSERT INTO users (id, email, name, image, email_verified, created_at, updated_at)
@@ -167,7 +167,7 @@ export const authOptions: NextAuthOptions = {
                RETURNING id, email`,
               [user.email, user.name || user.email.split('@')[0], user.image]
             )
-            
+
             console.log(`${logPrefix} ✅ User upserted successfully:`, {
               id: result.rows[0]?.id,
               email: result.rows[0]?.email
@@ -186,7 +186,7 @@ export const authOptions: NextAuthOptions = {
         console.error(`${logPrefix} Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
         // Don't block sign-in if database operations fail
       }
-      
+
       console.log(`${logPrefix} ✅ Returning true - sign-in successful`)
       console.log(`${logPrefix} ========== SIGNIN CALLBACK END ==========`)
       return true
@@ -196,7 +196,7 @@ export const authOptions: NextAuthOptions = {
       console.log('🟢 [SESSION] Token sub (user ID):', token.sub)
       console.log('🟢 [SESSION] Token email:', token.email)
       console.log('🟢 [SESSION] Session user before:', session.user)
-      
+
       if (session.user && token.sub) {
         session.user.id = token.sub
       }
@@ -205,7 +205,7 @@ export const authOptions: NextAuthOptions = {
         session.accessToken = token.accessToken as string
         console.log('🟢 [SESSION] GitHub access token attached to session')
       }
-      
+
       console.log('🟢 [SESSION] Session user after:', {
         id: session.user?.id,
         email: session.user?.email,
@@ -216,26 +216,32 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async jwt({ token, user, account, profile, trigger }) {
-      console.log('🟡 [JWT] ========== JWT CALLBACK START ==========')
-      console.log('🟡 [JWT] Trigger:', trigger || 'sign-in')
-      console.log('🟡 [JWT] User:', user ? { id: user.id, email: user.email } : 'null')
-      console.log('🟡 [JWT] Account provider:', account?.provider)
-      console.log('🟡 [JWT] Token before:', { sub: token.sub, email: token.email })
-      
       if (user) {
         token.id = user.id
-        console.log('🟡 [JWT] User attached to token, ID:', user.id)
+
+        // Ensure token.sub uses our database UUID instead of the provider ID
+        // This is critical for matching users with their projects in the database
+        try {
+          const pool = getDbPool()
+          const result = await pool.query("SELECT id FROM users WHERE email = $1", [user.email])
+          if (result.rows[0]) {
+            token.sub = result.rows[0].id
+            console.log('🟡 [JWT] Database ID found and assigned to token.sub:', token.sub)
+          } else {
+            console.warn('🟡 [JWT] User not found in database for email:', user.email)
+          }
+        } catch (error) {
+          console.error('🟡 [JWT] Failed to fetch database ID for user:', error)
+        }
       }
-      
+
       // Store GitHub access token on first sign in
       if (account?.provider === "github" && account.access_token) {
         token.accessToken = account.access_token
-        console.log('🟡 [JWT] GitHub access token stored in JWT')
-        
+
         const userEmail = user?.email || (profile as any)?.email || token.email
         if (userEmail) {
           try {
-            console.log('🟡 [JWT] Storing provider credentials for:', userEmail)
             await storeProviderCredentials(
               "github",
               {
@@ -245,20 +251,16 @@ export const authOptions: NextAuthOptions = {
               },
               userEmail
             )
-            console.log('🟡 [JWT] ✅ Provider credentials stored successfully')
           } catch (error) {
             console.error('🟡 [JWT] ❌ Failed to store GitHub credentials:', error)
-            console.error('🟡 [JWT] Error details:', error instanceof Error ? error.message : String(error))
           }
         }
       }
-      
-      console.log('🟡 [JWT] Token after:', { sub: token.sub, email: token.email, hasAccessToken: !!token.accessToken })
-      console.log('🟡 [JWT] ========== JWT CALLBACK END ==========')
+
       return token
     },
   },
-  
+
   secret: process.env.NEXTAUTH_SECRET,
 }
 

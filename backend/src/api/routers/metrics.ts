@@ -1,8 +1,12 @@
-import { router, publicProcedure } from "../../trpc";
+import { router } from "../../trpc";
+import { TRPCError } from '@trpc/server';
 import { secureProcedure } from "../trpc/middlewares/security";
 import createBufferedSubscription from "../lib/realtime";
 import { startQueryTimer, setServiceCpu, setServiceMemoryBytes, observeServiceLatencyMs } from "../../metrics/exporter";
 import { z } from "zod";
+import { MetricAggregator } from "../../services/metric-aggregator";
+
+const metricAggregator = new MetricAggregator();
 
 export const metricsRouter = router({
   latest: secureProcedure('metrics.latest').query(async ({ ctx }) => {
@@ -27,9 +31,7 @@ export const metricsRouter = router({
       }
       return row || null;
     } catch (e) {
-      // If table is missing or DB unavailable, degrade gracefully
-      try { console.warn('[metrics.latest] returning null:', (e as Error).message) } catch {}
-      return null;
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch latest metrics', cause: e as Error });
     } finally {
       end();
     }
@@ -56,8 +58,7 @@ export const metricsRouter = router({
         );
         return result?.rows || [];
       } catch (e) {
-        try { console.warn('[metrics.workspace] returning []:', (e as Error).message) } catch {}
-        return [];
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch workspace metrics', cause: e as Error });
       } finally {
         end();
       }
@@ -83,8 +84,7 @@ export const metricsRouter = router({
         );
         return result?.rows?.[0] || null;
       } catch (e) {
-        try { console.warn('[metrics.workspaceHealth] returning null:', (e as Error).message) } catch {}
-        return null;
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch workspace health', cause: e as Error });
       } finally {
         end();
       }
@@ -125,8 +125,7 @@ export const metricsRouter = router({
         );
         return { success: true, id: result.rows[0].id };
       } catch (e) {
-        console.error('[metrics.record] Error:', e);
-        return { success: false, error: 'Failed to record metric' };
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to record metric', cause: e as Error });
       } finally {
         end();
       }
@@ -152,8 +151,7 @@ export const metricsRouter = router({
         );
         return result?.rows || [];
       } catch (e) {
-        try { console.warn('[metrics.servicesSummary] returning []:', (e as Error).message) } catch {}
-        return [];
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch services summary', cause: e as Error });
       } finally {
         end();
       }
@@ -162,4 +160,16 @@ export const metricsRouter = router({
   live: secureProcedure('metrics.live').subscription(
     createBufferedSubscription("metrics:new", { bufferSize: 100 })
   ),
+
+  /**
+   * Get a calculated health score for a cross-platform stack.
+   * Normalizes metrics and alerts on anomalies.
+   */
+  stackHealth: secureProcedure('metrics.stackHealth')
+    .input(z.object({
+      deployments: z.array(z.object({ deploymentId: z.string(), providerId: z.string() })),
+    }))
+    .query(async ({ ctx, input }) => {
+      return metricAggregator.getStackHealth(input.deployments, ctx.db, (ctx as any).userId)
+    }),
 });

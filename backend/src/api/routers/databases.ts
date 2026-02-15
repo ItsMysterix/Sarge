@@ -68,10 +68,7 @@ export const databasesRouter = router({
             'provisioning',
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('database_instances')) {
-            return { rows: [{ id: `db-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create database', cause: err })
         })
 
         const dbId = result.rows[0].id
@@ -110,27 +107,17 @@ export const databasesRouter = router({
         const result = await ctx.db.query(
           `SELECT * FROM database_instances WHERE id = $1`,
           [input.databaseId]
-        ).catch((err: any) => {
-          if (err?.message?.includes('database_instances')) {
-            return {
-              rows: [{
-                id: input.databaseId,
-                name: 'Demo Database',
-                engine: 'postgresql',
-                version: '15',
-                provider: 'aws',
-                status: 'running',
-                endpoint: `${input.databaseId}.postgres.aws.example.com:5432`,
-              }],
-            }
-          }
-          throw err
-        })
+        )
 
-        return result?.rows?.[0] || null
+        if (!result.rows[0]) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Database instance not found' })
+        }
+
+        return result.rows[0]
       } catch (err) {
+        if (err instanceof TRPCError) throw err
         console.error('[database.get] Error:', err)
-        return null
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch database', cause: err as Error })
       }
     }),
 
@@ -298,10 +285,7 @@ export const databasesRouter = router({
             'cloning',
           ]
         ).catch((err: any) => {
-          if (err?.message?.includes('database_instances')) {
-            return { rows: [{ id: `db-clone-${Date.now()}` }] }
-          }
-          throw err
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to clone database', cause: err })
         })
 
         const cloneId = result.rows[0].id

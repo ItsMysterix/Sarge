@@ -1,0 +1,13 @@
+[package]
+name = "sarge-rbac"
+version = "0.1.0"
+edition = "2021"
+authors = ["Sarge Team"]
+description = "High-performance RBAC and policy enforcement engine"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+dashmap = "5.5"
+tokio = { version = "1.0", features = ["full"] }

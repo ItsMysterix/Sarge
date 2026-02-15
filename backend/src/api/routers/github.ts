@@ -1,4 +1,5 @@
-import { router, publicProcedure } from '../../trpc'
+import { router } from '../../trpc'
+import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 
 /**
@@ -6,14 +7,14 @@ import { z } from 'zod'
  */
 export const githubRouter = router({
   // Get repository info
-  getRepoInfo: publicProcedure
+  getRepoInfo: secureProcedure('github.getRepoInfo')
     .input(z.object({
       owner: z.string(),
       repo: z.string(),
     }))
     .query(async ({ input }) => {
       const { owner, repo } = input
-      
+
       try {
         const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
           headers: {
@@ -29,7 +30,7 @@ export const githubRouter = router({
         }
 
         const data = await response.json() as any
-        
+
         return {
           name: data.name,
           fullName: data.full_name,
@@ -53,7 +54,7 @@ export const githubRouter = router({
     }),
 
   // Get repository commits
-  getCommits: publicProcedure
+  getCommits: secureProcedure('github.getCommits')
     .input(z.object({
       owner: z.string(),
       repo: z.string(),
@@ -61,7 +62,7 @@ export const githubRouter = router({
     }))
     .query(async ({ input }) => {
       const { owner, repo, limit } = input
-      
+
       try {
         const response = await fetch(
           `https://api.github.com/repos/${owner}/${repo}/commits?per_page=${limit}`,
@@ -80,7 +81,7 @@ export const githubRouter = router({
         }
 
         const data = await response.json() as any[]
-        
+
         return data.map((commit: any) => ({
           sha: commit.sha.substring(0, 7),
           message: commit.commit.message,
@@ -95,14 +96,14 @@ export const githubRouter = router({
     }),
 
   // Get repository languages
-  getLanguages: publicProcedure
+  getLanguages: secureProcedure('github.getLanguages')
     .input(z.object({
       owner: z.string(),
       repo: z.string(),
     }))
     .query(async ({ input }) => {
       const { owner, repo } = input
-      
+
       try {
         const response = await fetch(
           `https://api.github.com/repos/${owner}/${repo}/languages`,
@@ -121,7 +122,7 @@ export const githubRouter = router({
         }
 
         const data = await response.json() as Record<string, number>
-        
+
         // Calculate percentages
         const total = Object.values(data).reduce((sum: number, bytes: number) => sum + bytes, 0)
         const languages = Object.entries(data).map(([name, bytes]) => ({
@@ -129,7 +130,7 @@ export const githubRouter = router({
           bytes,
           percentage: ((bytes / total) * 100).toFixed(1),
         }))
-        
+
         return languages.sort((a, b) => b.bytes - a.bytes)
       } catch (error) {
         console.error('Error fetching languages:', error)
@@ -138,7 +139,7 @@ export const githubRouter = router({
     }),
 
   // Get repository contributors
-  getContributors: publicProcedure
+  getContributors: secureProcedure('github.getContributors')
     .input(z.object({
       owner: z.string(),
       repo: z.string(),
@@ -146,7 +147,7 @@ export const githubRouter = router({
     }))
     .query(async ({ input }) => {
       const { owner, repo, limit } = input
-      
+
       try {
         const response = await fetch(
           `https://api.github.com/repos/${owner}/${repo}/contributors?per_page=${limit}`,
@@ -165,7 +166,7 @@ export const githubRouter = router({
         }
 
         const data = await response.json() as any[]
-        
+
         return data.map((contributor: any) => ({
           login: contributor.login,
           avatar: contributor.avatar_url,
@@ -179,14 +180,14 @@ export const githubRouter = router({
     }),
 
   // Get repository activity (issues, PRs, etc.)
-  getActivity: publicProcedure
+  getActivity: secureProcedure('github.getActivity')
     .input(z.object({
       owner: z.string(),
       repo: z.string(),
     }))
     .query(async ({ input }) => {
       const { owner, repo } = input
-      
+
       try {
         // Fetch issues and PRs
         const [issuesRes, prsRes] = await Promise.all([
@@ -210,7 +211,7 @@ export const githubRouter = router({
 
         const issues = await issuesRes.json() as any[]
         const prs = await prsRes.json() as any[]
-        
+
         return {
           openIssues: issues.length,
           openPRs: prs.length,

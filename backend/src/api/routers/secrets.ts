@@ -1,6 +1,7 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import { encryptCredentials, decryptCredentials, maskCredential } from '../lib/credentials'
 
 /**
@@ -38,7 +39,7 @@ export const secretsRouter = router({
 
         // Group by key, show only latest version with masked value
         const secretsByKey = new Map<string, any>()
-        
+
         for (const row of result?.rows || []) {
           if (!secretsByKey.has(row.key)) {
             secretsByKey.set(row.key, {
@@ -56,7 +57,7 @@ export const secretsRouter = router({
         return Array.from(secretsByKey.values())
       } catch (err) {
         console.error('[secrets.list] Error:', err)
-        return []
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch secrets', cause: err as Error })
       }
     }),
 
@@ -234,7 +235,7 @@ export const secretsRouter = router({
         return result?.rows || []
       } catch (err) {
         console.error('[secrets.history] Error:', err)
-        return []
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch secret history', cause: err as Error })
       }
     }),
 
@@ -289,7 +290,7 @@ export const secretsRouter = router({
           `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
            VALUES ('secret.rolledback', 'secret', $1, $2, $3, NOW())`,
           [result.rows[0].id, userId, JSON.stringify({ key: input.key, from_version: input.targetVersion, to_version: nextVersion })]
-        ).catch(() => {})
+        ).catch(() => { })
 
         return {
           success: true,
@@ -324,7 +325,7 @@ export const secretsRouter = router({
         })
 
         const secrets: Record<string, string> = {}
-        
+
         for (const row of result?.rows || []) {
           const decrypted = decryptCredentials(row.value_encrypted)
           secrets[row.key] = decrypted
@@ -335,7 +336,7 @@ export const secretsRouter = router({
           `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
            VALUES ('secrets.exported', 'environment', $1, $2, $3, NOW())`,
           [input.environmentId, (ctx as any).userId || 'system', JSON.stringify({ projectId: input.projectId, count: Object.keys(secrets).length })]
-        ).catch(() => {})
+        ).catch(() => { })
 
         return secrets
       } catch (err) {

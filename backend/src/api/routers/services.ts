@@ -1,4 +1,4 @@
-import { router, publicProcedure } from "../../trpc"
+import { router } from "../../trpc"
 import { secureProcedure } from "../trpc/middlewares/security"
 import { z } from "zod"
 

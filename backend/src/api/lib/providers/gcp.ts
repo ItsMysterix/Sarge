@@ -4,6 +4,8 @@ export class GCPProvider implements IProvider {
     id = 'gcp'
     name = 'Google Cloud Platform'
     kind: 'containers' = 'containers'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         const serviceAccountKey = opts.credentials.gcp_service_account_key

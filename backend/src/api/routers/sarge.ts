@@ -1,4 +1,4 @@
-import { router, publicProcedure } from "../../trpc"
+import { router } from "../../trpc"
 import { secureProcedure } from "../trpc/middlewares/security"
 import { z } from "zod"
 import createBufferedSubscription from "../lib/realtime"
@@ -12,9 +12,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 async function getCore(): Promise<any> {
   // Avoid static resolution of sarge-core during Next build by obfuscating module name
-  const modName = ['sarge','-','core'].join('')
+  const modName = ['sarge', '-', 'core'].join('')
   try { return require(modName) } catch (e: any) {
-    if ((globalThis as any).__sargeCoreMock) return (globalThis as any).__sargeCoreMock
     if (e?.code === 'ERR_REQUIRE_ESM') {
       const mod = await import(modName)
       return mod
@@ -126,13 +125,15 @@ export const sargeRouter = router({
 
   cost: router({
     estimate: secureProcedure('sarge.cost.estimate')
-      .input(z.object({ stackId: z.string().default('default'), usage: z.object({
-        s3: z.object({ putRequests: z.number().optional(), getRequests: z.number().optional() }).optional(),
-        dynamo: z.object({ readRequests: z.number().optional(), writeRequests: z.number().optional() }).optional(),
-        lambda: z.object({ requests: z.number().optional(), gbSeconds: z.number().optional() }).optional(),
-        sqs: z.object({ requests: z.number().optional() }).optional(),
-        sns: z.object({ requests: z.number().optional() }).optional(),
-      }).partial().optional() }))
+      .input(z.object({
+        stackId: z.string().default('default'), usage: z.object({
+          s3: z.object({ putRequests: z.number().optional(), getRequests: z.number().optional() }).optional(),
+          dynamo: z.object({ readRequests: z.number().optional(), writeRequests: z.number().optional() }).optional(),
+          lambda: z.object({ requests: z.number().optional(), gbSeconds: z.number().optional() }).optional(),
+          sqs: z.object({ requests: z.number().optional() }).optional(),
+          sns: z.object({ requests: z.number().optional() }).optional(),
+        }).partial().optional()
+      }))
       .query(async ({ input }) => {
         const dataRoot = getDataRoot()
         const core = await getCore()
@@ -168,7 +169,7 @@ export const sargeRouter = router({
       .query(async ({ input }) => {
         const core = await getCore()
         const dataRoot = getDataRoot()
-        
+
         // Gather context from local filesystem
         const context = await core.explainer.gatherStackContext(
           input.stackId,
@@ -180,14 +181,14 @@ export const sargeRouter = router({
             includeLastDeploy: input.includeLastDeploy ?? true,
           }
         )
-        
+
         // Generate explanation
         const explanation = core.explainer.explainStack({
           stackId: input.stackId,
           dataRoot,
           context,
         })
-        
+
         return explanation
       })
   }),
@@ -222,8 +223,8 @@ async function makeSnapshotManager(dataRoot: string) {
   const core = await getCore()
   let S3Ctor: any
   let DdbcCtor: any
-  try { S3Ctor = require('sarge-services-s3').S3Service } catch { S3Ctor = class { async createBucket(){} async listObjectsV2(){ return { contents: [] } } async getObject(){ return { body: Buffer.from(''), meta: { contentType: 'application/octet-stream' } } } async putObject(){} } }
-  try { DdbcCtor = require('sarge-services-dynamo').DynamoService } catch { DdbcCtor = class { async listTables(){ return { TableNames: [] } } async describeTable(_n: string){ return { Table: { KeySchema: [], AttributeDefinitions: [] } } } async scan(){ return { Items: [] } } async createTable(){ } async putItem(){ } } }
+  try { S3Ctor = require('sarge-services-s3').S3Service } catch { S3Ctor = class { async createBucket() { } async listObjectsV2() { return { contents: [] } } async getObject() { return { body: Buffer.from(''), meta: { contentType: 'application/octet-stream' } } } async putObject() { } } }
+  try { DdbcCtor = require('sarge-services-dynamo').DynamoService } catch { DdbcCtor = class { async listTables() { return { TableNames: [] } } async describeTable(_n: string) { return { Table: { KeySchema: [], AttributeDefinitions: [] } } } async scan() { return { Items: [] } } async createTable() { } async putItem() { } } }
   const s3 = new S3Ctor({ dataRoot })
   const ddb = new DdbcCtor({ dataRoot })
   return new core.SnapshotManager({

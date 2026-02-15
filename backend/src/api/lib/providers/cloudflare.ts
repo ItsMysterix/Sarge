@@ -4,6 +4,8 @@ export class CloudflareProvider implements IProvider {
     id = 'cloudflare'
     name = 'Cloudflare Pages'
     kind: 'static' = 'static'
+    valid = true
+    errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         const token = opts.credentials.cloudflare_token
