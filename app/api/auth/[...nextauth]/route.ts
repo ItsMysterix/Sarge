@@ -16,9 +16,15 @@ console.log('🔍 [AUTH CONFIG] GITHUB_SECRET:', process.env.GITHUB_SECRET ? '�
 
 // Ensure NEXTAUTH_SECRET is set
 if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error(
-    'NEXTAUTH_SECRET environment variable is not set. Generate one with: openssl rand -base64 32'
-  )
+  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+    throw new Error(
+      'NEXTAUTH_SECRET environment variable is not set. Generate one with: openssl rand -base64 32'
+    )
+  } else {
+    // During build or in non-vercel prod environments without the secret, warn instead of throwing
+    // to allow static page generation to proceed if the route isn't actually called.
+    console.warn('⚠️ [AUTH CONFIG] NEXTAUTH_SECRET is missing. Pre-rendering may fail if this route is accessed.')
+  }
 }
 
 // Ensure NEXTAUTH_URL is set

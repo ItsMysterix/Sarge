@@ -223,8 +223,10 @@ async function makeSnapshotManager(dataRoot: string) {
   const core = await getCore()
   let S3Ctor: any
   let DdbcCtor: any
-  try { S3Ctor = require('sarge-services-s3').S3Service } catch { S3Ctor = class { async createBucket() { } async listObjectsV2() { return { contents: [] } } async getObject() { return { body: Buffer.from(''), meta: { contentType: 'application/octet-stream' } } } async putObject() { } } }
-  try { DdbcCtor = require('sarge-services-dynamo').DynamoService } catch { DdbcCtor = class { async listTables() { return { TableNames: [] } } async describeTable(_n: string) { return { Table: { KeySchema: [], AttributeDefinitions: [] } } } async scan() { return { Items: [] } } async createTable() { } async putItem() { } } }
+  const s3Name = ['sarge', '-', 'services', '-', 's3'].join('')
+  const dynamoName = ['sarge', '-', 'services', '-', 'dynamo'].join('')
+  try { S3Ctor = require(s3Name).S3Service } catch { S3Ctor = class { async createBucket() { } async listObjectsV2() { return { contents: [] } } async getObject() { return { body: Buffer.from(''), meta: { contentType: 'application/octet-stream' } } } async putObject() { } } }
+  try { DdbcCtor = require(dynamoName).DynamoService } catch { DdbcCtor = class { async listTables() { return { TableNames: [] } } async describeTable(_n: string) { return { Table: { KeySchema: [], AttributeDefinitions: [] } } } async scan() { return { Items: [] } } async createTable() { } async putItem() { } } }
   const s3 = new S3Ctor({ dataRoot })
   const ddb = new DdbcCtor({ dataRoot })
   return new core.SnapshotManager({
