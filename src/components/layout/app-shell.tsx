@@ -10,9 +10,10 @@ import { ModeToggle } from "@/components/ui/mode-toggle"
 interface AppShellProps {
   children: React.ReactNode
   title?: React.ReactNode
+  actions?: React.ReactNode
 }
 
-export function AppShell({ children, title }: AppShellProps) {
+export function AppShell({ children, title, actions }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
@@ -46,6 +47,14 @@ export function AppShell({ children, title }: AppShellProps) {
             
             {/* Actions */}
             <div className="flex items-center gap-3">
+              {/* Custom Page Actions */}
+              {actions && (
+                <>
+                  {actions}
+                  <div className="w-px h-4 bg-white/[0.06] mx-1" />
+                </>
+              )}
+
               {/* Search */}
               <form onSubmit={handleSearch} className="relative group">
                 <div className="relative">

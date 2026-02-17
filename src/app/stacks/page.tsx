@@ -84,14 +84,14 @@ export default function StacksPage() {
       <ToastContainer />
       <div className="p-6 max-w-6xl mx-auto animate-fade-in">
         
-        {/* Header Removed - managed by AppShell */}
-        <div className="flex items-center justify-end mb-6">
-          {stacks.length > 0 && (
+        <div className="flex items-center justify-between mb-6">
+           <h2 className="text-lg font-semibold text-white/50">Your Stacks</h2>
+           {stacks.length > 0 && (
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors h-9 text-xs"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               Create Stack
             </button>
           )}

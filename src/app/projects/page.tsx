@@ -2,6 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { AppShell } from '@/components/layout/app-shell';
+import { useToast } from '@/components/ui/toast';
+import { trpc } from '@/lib/trpc';
+import { GridLoader } from '@/components/ui/grid-loader';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Plus, 
   Search, 
@@ -9,16 +16,23 @@ import {
   Github,
   RefreshCw,
   Box,
-  Rocket
+  Rocket,
+  MoreVertical,
+  Settings,
+  Play,
+  Pause,
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
-import { AppShell } from '@/components/layout/app-shell';
-import { trpc } from '@/lib/trpc';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/toast";
-import { GridLoader } from '@/components/ui/grid-loader';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+// ...
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -30,19 +44,39 @@ export default function ProjectsPage() {
 
   // Use tRPC for data fetching
   const { data, isLoading, refetch } = trpc.project.list.useQuery();
+  
   const createMutation = trpc.project.create.useMutation({
     onSuccess: (result) => {
       toast({ type: "success", title: "Project created", description: "Your new project is ready." });
       setShowCreateModal(false);
       setName('');
       refetch();
-      // Navigate to the new project
       if (result?.slug) {
         router.push(`/projects/${result.slug}`);
       }
     },
     onError: (error: any) => {
       toast({ type: "error", title: "Error", description: error.message });
+    }
+  });
+
+  const updateMutation = trpc.project.update.useMutation({
+    onSuccess: () => {
+      toast({ type: "success", title: "Project updated" });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ type: "error", title: "Update failed", description: error.message });
+    }
+  });
+
+  const deleteMutation = trpc.project.delete.useMutation({
+    onSuccess: () => {
+       toast({ type: "success", title: "Project deleted", description: "The project has been permanently removed." });
+       refetch();
+    },
+    onError: (error: any) => {
+       toast({ type: "error", title: "Delete failed", description: error.message });
     }
   });
 
@@ -63,7 +97,22 @@ export default function ProjectsPage() {
     });
   };
 
-  // Loading state
+  const handleStatusToggle = (project: any) => {
+    const newStatus = project.status === 'active' ? 'paused' : 'active';
+    updateMutation.mutate({
+      id: project.id,
+      status: newStatus
+    });
+  };
+
+  const handleDelete = (project: any) => {
+    if (confirm(`Are you sure you want to delete ${project.name}? This cannot be undone.`)) {
+      deleteMutation.mutate({ id: project.id });
+    }
+  };
+
+
+
   if (isLoading) {
     return (
       <AppShell>
@@ -74,7 +123,6 @@ export default function ProjectsPage() {
     );
   }
 
-  // Onboarding view - no projects yet
   if (!hasProjects) {
     return (
       <AppShell>
@@ -120,14 +168,7 @@ export default function ProjectsPage() {
 
                   <Button 
                      size="lg"
-                     onClick={(e) => {
-                        e.preventDefault();
-                        createMutation.mutate({
-                           name,
-                           autoDeploy: true,
-                           repositoryId: undefined,
-                        });
-                     }} 
+                     onClick={handleCreate} 
                      disabled={createMutation.isPending || !name.trim()}
                      className="w-full h-10 bg-white text-black hover:bg-white/90 text-sm font-medium rounded-lg shadow-lg hover:shadow-xl transition-all"
                   >
@@ -151,18 +192,7 @@ export default function ProjectsPage() {
       <div className="p-8 w-full max-w-7xl mx-auto animate-fade-in">
         <ToastContainer />
         
-        {/* Header Removed - managed by AppShell */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end mb-8 gap-4">
-          <Button 
-            onClick={() => setShowCreateModal(true)}
-            className="bg-white text-black hover:bg-white/90 font-medium shadow-lg hover:shadow-xl transition-all"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Project
-          </Button>
-        </div>
-
-        {/* Search */}
+        {/* Actions & Search */}
         <div className="flex items-center gap-3 mb-8">
           <div className="relative flex-1 max-w-md group">
             <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 to-purple-500/20 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
@@ -176,10 +206,19 @@ export default function ProjectsPage() {
               />
             </div>
           </div>
-          <Button variant="outline" onClick={() => refetch()} className="h-10 border-white/[0.08] hover:bg-white/[0.05] text-muted-foreground hover:text-foreground">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-3 ml-auto">
+            <Button variant="outline" onClick={() => refetch()} className="h-10 border-white/[0.08] hover:bg-white/[0.05] text-muted-foreground hover:text-foreground">
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button 
+              onClick={() => setShowCreateModal(true)}
+              className="bg-white text-black hover:bg-white/90 font-medium shadow-lg hover:shadow-xl transition-all h-10 px-4"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Project
+            </Button>
+          </div>
         </div>
 
         {/* Projects Grid */}
@@ -197,13 +236,18 @@ export default function ProjectsPage() {
             </div>
           ) : (
             filteredProjects.map((project: any) => (
-              <ProjectCard key={project.id} project={project} router={router} />
+              <ProjectCard 
+                key={project.id} 
+                project={project} 
+                router={router} 
+                onToggleStatus={() => handleStatusToggle(project)}
+                onDelete={() => handleDelete(project)}
+              />
             ))
           )}
         </div>
       </div>
 
-        {/* Create Modal */}
       {showCreateModal && (
         <CreateProjectModal 
           onClose={() => setShowCreateModal(false)}
@@ -218,6 +262,7 @@ export default function ProjectsPage() {
 }
 
 function CreateProjectModal({ onClose, onSubmit, name, setName, isPending }: any) {
+  // ... (same as before) ...
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
       <div className="w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-xl p-6 shadow-2xl scale-100 animate-in fade-in zoom-in-95 duration-200">
@@ -266,13 +311,13 @@ function CreateProjectModal({ onClose, onSubmit, name, setName, isPending }: any
   )
 }
 
-function ProjectCard({ project, router }: { project: any, router: any }) {
+function ProjectCard({ project, router, onToggleStatus, onDelete }: { project: any, router: any, onToggleStatus: () => void, onDelete: () => void }) {
   const isOnline = project.status === 'active';
   
   return (
     <div 
-      onClick={() => router.push(`/projects/${project.slug}`)}
       className="group relative flex flex-col justify-between h-[200px] p-6 rounded-xl border border-white/[0.06] bg-black/40 hover:bg-white/[0.02] hover:border-violet-500/30 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-sm"
+      onClick={() => router.push(`/projects/${project.slug}`)}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
@@ -297,16 +342,61 @@ function ProjectCard({ project, router }: { project: any, router: any }) {
               </div>
             </div>
           </div>
-          {project.status && (
-            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium uppercase tracking-wider ${
-              isOnline 
-                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]' 
-                : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'
-            }`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'}`} />
-              {project.status}
-            </div>
-          )}
+          
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+             {project.status && (
+               <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium uppercase tracking-wider ${
+                 isOnline 
+                   ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]' 
+                   : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'
+               }`}>
+                 <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'}`} />
+                 {project.status}
+               </div>
+             )}
+
+             <DropdownMenu>
+               <DropdownMenuTrigger asChild>
+                 <button className="h-6 w-6 flex items-center justify-center p-0 hover:bg-white/10 rounded-md text-muted-foreground hover:text-white transition-colors">
+                   <MoreVertical className="w-4 h-4" />
+                   <span className="sr-only">Open menu</span>
+                 </button>
+               </DropdownMenuTrigger>
+               <DropdownMenuContent align="end" className="w-48">
+                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                 <DropdownMenuItem onClick={() => router.push(`/projects/${project.slug}`)}>
+                   <ExternalLink className="w-4 h-4 mr-2" />
+                   Open Dashboard
+                 </DropdownMenuItem>
+                 <DropdownMenuItem onClick={() => router.push(`/projects/${project.slug}/settings`)}>
+                   <Settings className="w-4 h-4 mr-2" />
+                   Settings
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem onClick={onToggleStatus}>
+                   {isOnline ? (
+                      <>
+                        <Pause className="w-4 h-4 mr-2" />
+                        Pause Project
+                      </>
+                   ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Resume Project
+                      </>
+                   )}
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem 
+                    className="text-red-400 focus:text-red-400 focus:bg-red-400/10"
+                    onClick={onDelete}
+                 >
+                   <Trash2 className="w-4 h-4 mr-2" />
+                   Delete Project
+                 </DropdownMenuItem>
+               </DropdownMenuContent>
+             </DropdownMenu>
+          </div>
         </div>
         
         <div className="space-y-2 mt-4">
@@ -339,8 +429,6 @@ function ProjectCard({ project, router }: { project: any, router: any }) {
     </div>
   );
 }
-
-
 
 function formatTimeAgo(date: Date) {
   const diff = (new Date().getTime() - date.getTime()) / 1000;
