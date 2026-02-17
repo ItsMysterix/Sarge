@@ -335,6 +335,89 @@ export async function ensureRateLimitTables(db: Pool) {
     `)
 
     await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS deployments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+        branch TEXT NOT NULL,
+        commit TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        summary TEXT,
+        services JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS deployment_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        deployment_id UUID REFERENCES deployments(id) ON DELETE CASCADE,
+        step TEXT,
+        type TEXT,
+        message TEXT,
+        timestamp TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS deployment_rollbacks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        deployment_id UUID REFERENCES deployments(id) ON DELETE CASCADE,
+        previous_deployment_id UUID REFERENCES deployments(id),
+        reason TEXT,
+        triggered_by TEXT,
+        status TEXT DEFAULT 'in-progress',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        completed_at TIMESTAMPTZ
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS stacks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        description TEXT,
+        status TEXT DEFAULT 'stopped',
+        services JSONB DEFAULT '[]',
+        environment JSONB DEFAULT '{}',
+        resource_usage JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS stack_services (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        stack_id UUID REFERENCES stacks(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        type TEXT,
+        status TEXT,
+        port INTEGER,
+        config JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS stack_deployments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        stack_id UUID REFERENCES stacks(id) ON DELETE CASCADE,
+        status TEXT,
+        summary TEXT,
+        deployed_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    // Ensure cost_estimates has all needed columns
+    await (db as any).query(`ALTER TABLE cost_estimates ADD COLUMN IF NOT EXISTS environment_id TEXT;`)
+    await (db as any).query(`ALTER TABLE cost_estimates ADD COLUMN IF NOT EXISTS deployment_id UUID;`)
+    await (db as any).query(`ALTER TABLE cost_estimates ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC(10,4);`)
+    await (db as any).query(`ALTER TABLE cost_estimates ADD COLUMN IF NOT EXISTS breakdown JSONB DEFAULT '{}';`)
+    await (db as any).query(`ALTER TABLE cost_estimates ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ DEFAULT NOW();`)
+
+    await (db as any).query(`
       CREATE TABLE IF NOT EXISTS connected_providers (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         project_slug TEXT NOT NULL,
