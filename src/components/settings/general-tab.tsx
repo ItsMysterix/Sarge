@@ -48,7 +48,11 @@ export function GeneralTab({
             </div>
             <select 
               value={defaultRegion}
-              onChange={(e) => setDefaultRegion(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value
+                setDefaultRegion(val)
+                updateSettings?.({ defaultRegion: val })
+              }}
               className="glass-card px-4 py-2 rounded border border-white/10 focus:border-accent focus:outline-none bg-transparent"
             >
               <option value="us-east-1" className="bg-[#1a1a1a]">US East (N. Virginia)</option>
@@ -66,7 +70,11 @@ export function GeneralTab({
             </div>
             <select 
               value={defaultEnvironment}
-              onChange={(e) => setDefaultEnvironment(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value
+                setDefaultEnvironment(val)
+                updateSettings?.({ defaultEnvironment: val })
+              }}
               className="glass-card px-4 py-2 rounded border border-white/10 focus:border-accent focus:outline-none bg-transparent"
             >
               <option value="development" className="bg-[#1a1a1a]">Development</option>

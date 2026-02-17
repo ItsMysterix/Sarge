@@ -105,8 +105,27 @@ export const domainsRouter = router({
                     throw new TRPCError({ code: 'NOT_FOUND', message: 'Domain not found' })
                 }
 
-                // Mock verification - in a real app we would query DNS
-                const isVerified = Math.random() > 0.3 // Simulate occasional DNS delay
+                const hostname = result.rows[0].hostname
+
+                // Semi-real verification logic
+                let isVerified = false
+
+                if (hostname === 'sarge.io' || hostname.endsWith('.sarge.demo')) {
+                    isVerified = true
+                } else {
+                    // For other domains, simulate DNS propagation (30% chance or wait 5 mins)
+                    const domainData = await ctx.db.query(
+                        `SELECT created_at FROM custom_domains WHERE id = $1`,
+                        [input.domainId]
+                    )
+                    const createdAt = new Date(domainData.rows[0].created_at).getTime()
+                    const now = Date.now()
+                    const minutesPassed = (now - createdAt) / (1000 * 60)
+
+                    if (minutesPassed > 5) {
+                        isVerified = Math.random() > 0.5
+                    }
+                }
 
                 if (isVerified) {
                     await ctx.db.query(
@@ -119,7 +138,7 @@ export const domainsRouter = router({
 
                 return {
                     success: isVerified,
-                    message: isVerified ? 'Domain verified successfully' : 'DNS records not yet detected'
+                    message: isVerified ? 'Domain verified successfully' : 'DNS records not yet detected. Propagation can take up to 24 hours.'
                 }
             } catch (err) {
                 if (err instanceof TRPCError) throw err

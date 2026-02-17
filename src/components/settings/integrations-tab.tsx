@@ -6,18 +6,20 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface IntegrationsTabProps {
+  githubConnected: boolean
   slackAlerts: boolean
   autoRebuild: boolean
   webhookConfigured: boolean
   isTestingWebhook: boolean
   providers: any[]
-  onToggle: (key: "slack_alerts" | "auto_rebuild", value: boolean) => Promise<void>
+  onToggle: (key: "slackAlerts" | "autoRebuild", value: boolean) => Promise<void>
   onTestWebhook: () => Promise<void>
   onConnectGitHub: () => void
   onToggleProvider: (id: string, currentStatus: string) => void
 }
 
 export function IntegrationsTab({
+  githubConnected,
   slackAlerts,
   autoRebuild,
   webhookConfigured,
@@ -118,13 +120,15 @@ export function IntegrationsTab({
             <h3 className="text-lg font-semibold">Repository Management</h3>
           </div>
           <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-             <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4">
                 <div className="text-sm font-medium">GitHub Status</div>
                 <div className="flex items-center gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                   <span className="text-[10px] text-emerald-500 font-bold uppercase">Connected</span>
+                   <div className={cn("w-1.5 h-1.5 rounded-full", githubConnected ? "bg-emerald-500" : "bg-red-500")} />
+                   <span className={cn("text-[10px] font-bold uppercase", githubConnected ? "text-emerald-500" : "text-red-500")}>
+                     {githubConnected ? "Connected" : "Disconnected"}
+                   </span>
                 </div>
-             </div>
+              </div>
              <Button onClick={onConnectGitHub} className="w-full text-xs h-9">Manage GitHub Access</Button>
           </div>
         </div>
@@ -138,11 +142,11 @@ export function IntegrationsTab({
           <div className="space-y-3">
              <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
                 <div className="text-xs">AI Slack Summaries</div>
-                <Toggle enabled={slackAlerts} onChange={() => onToggle('slack_alerts', !slackAlerts)} />
+                <Toggle enabled={slackAlerts} onChange={() => onToggle('slackAlerts', !slackAlerts)} />
              </div>
              <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
                 <div className="text-xs">Auto Infrastructure Healing</div>
-                <Toggle enabled={autoRebuild} onChange={() => onToggle('auto_rebuild', !autoRebuild)} />
+                <Toggle enabled={autoRebuild} onChange={() => onToggle('autoRebuild', !autoRebuild)} />
              </div>
           </div>
         </div>

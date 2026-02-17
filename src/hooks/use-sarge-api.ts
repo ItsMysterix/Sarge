@@ -52,13 +52,14 @@ export const useTriggerDeployment = () => {
 
 // Settings API
 export type UserSettings = {
-    id: string
-    user_id: string
-    slack_alerts: boolean
-    auto_rebuild: boolean
-    enable_animations?: boolean
-    theme_mode?: 'dark' | 'light' | 'auto'
-    notifications?: {
+    userId: string
+    slackAlerts: boolean
+    autoRebuild: boolean
+    enableAnimations: boolean
+    themeMode: 'dark' | 'light' | 'system'
+    defaultRegion: string
+    defaultEnvironment: string
+    notifications: {
         deploySuccess: boolean
         deployFailure: boolean
         serviceDown: boolean

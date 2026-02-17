@@ -37,7 +37,7 @@ function writeTokens(items: StoredToken[]) {
   fs.writeFileSync(tokensFile(), JSON.stringify(items, null, 2))
 }
 
-const CreateInput = z.object({ role: z.enum(['admin','operator','viewer'] as const), token: z.string().min(8).optional() })
+const CreateInput = z.object({ role: z.enum(['admin', 'operator', 'viewer'] as const), token: z.string().min(8).optional() })
 const RotateInput = z.object({ id: z.string().min(8), newToken: z.string().min(8).optional() })
 const RevokeInput = z.object({ id: z.string().min(8) })
 
@@ -71,6 +71,17 @@ export const authRouter = router({
     writeTokens(items)
     return { ok: true as const }
   }),
+
+  // Get linked accounts (NextAuth providers)
+  getLinkedAccounts: secureProcedure('auth.getLinkedAccounts')
+    .query(async ({ ctx }) => {
+      const result = await ctx.db.query(
+        `SELECT provider FROM accounts WHERE user_id = $1`,
+        [ctx.session!.user!.id]
+      ).catch(() => ({ rows: [] }))
+
+      return result.rows.map((row: any) => row.provider)
+    }),
 })
 
 export type AuthRouter = typeof authRouter

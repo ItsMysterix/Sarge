@@ -53,6 +53,9 @@ export default function Settings() {
     { enabled: !!currentProject?.id }
   )
 
+  const accountsQuery = t.auth.getLinkedAccounts.useQuery()
+  const channelsQuery = t.alerts.listChannels.useQuery({ projectId: currentProject?.id || 'global' })
+
   const toggleProviderMutation = t.providers.toggle.useMutation({
     onSuccess: () => {
       providersQuery.refetch()
@@ -118,11 +121,21 @@ export default function Settings() {
     }
   })
 
+  const testWebhookMutation = t.alerts.testChannel.useMutation({
+    onSuccess: () => {
+      addToast({ type: "success", title: "Test Success", description: "Slack webhook test successful! Message sent." })
+    },
+    onError: (err: any) => {
+      addToast({ type: "error", title: "Test Failed", description: err.message })
+    },
+    onSettled: () => setTestingWebhook(false)
+  })
+
   // ... handleToggle, handleThemeChange, handleAnimationsToggle, handleNotificationToggle, etc. ...
-  const handleToggle = async (key: "slack_alerts" | "auto_rebuild", value: boolean) => {
+  const handleToggle = async (key: "slackAlerts" | "autoRebuild", value: boolean) => {
     try {
       await updateSettings({ [key]: value })
-      addToast({ type: "success", title: "Settings Updated", description: `${key.replace("_", " ")} ${value ? "enabled" : "disabled"}` })
+      addToast({ type: "success", title: "Settings Updated", description: `${key.replace(/([A-Z])/g, ' $1').toLowerCase()} ${value ? "enabled" : "disabled"}` })
     } catch (error) {
       addToast({ type: "error", title: "Update Failed", description: "Failed to update settings" })
     }
@@ -131,7 +144,7 @@ export default function Settings() {
   const handleThemeChange = async (mode: "dark" | "light" | "system") => {
     setTheme(mode)
     try {
-      await updateSettings({ theme_mode: mode as any })
+      await updateSettings({ themeMode: mode as any })
       addToast({ type: "success", title: "Theme Updated" })
     } catch (error) {
       addToast({ type: "error", title: "Update Failed" })
@@ -141,7 +154,7 @@ export default function Settings() {
   const handleAnimationsToggle = async (enabled: boolean) => {
     try {
       posthog.setPersonProperties({ 'enable-animations': enabled })
-      await updateSettings({ enable_animations: enabled })
+      await updateSettings({ enableAnimations: enabled })
       addToast({ type: "success", title: "Animations Updated" })
     } catch (error) {
       addToast({ type: "error", title: "Update Failed" })
@@ -159,16 +172,14 @@ export default function Settings() {
   }
 
   const handleWebhookTest = async () => {
-    setTestingWebhook(true)
-    try {
-      const response = await fetch("/api/slack/test", { method: "POST" })
-      const result = await response.json()
-      addToast({ type: result.success ? "success" : "error", title: result.success ? "Success" : "Failed", description: result.message })
-    } catch (error) {
-      addToast({ type: "error", title: "Test Error" })
-    } finally {
-      setTestingWebhook(false)
+    const webhookChannel = channelsQuery.data?.find((c: any) => c.type === 'slack' || c.type === 'webhook')
+    if (!webhookChannel) {
+      addToast({ type: "error", title: "No Webhook", description: "Please configure a Slack or Webhook channel first." })
+      return
     }
+
+    setTestingWebhook(true)
+    testWebhookMutation.mutate({ channelId: webhookChannel.id })
   }
 
   const handleExportSettings = () => { /* ... */ }
@@ -213,7 +224,7 @@ export default function Settings() {
           {activeTab === "appearance" && (
             <AppearanceTab
               themeMode={(theme as "dark" | "light" | "system") || "dark"}
-              enableAnimations={settings?.enable_animations ?? true}
+              enableAnimations={settings?.enableAnimations ?? true}
               onThemeChange={handleThemeChange}
               onAnimationsToggle={handleAnimationsToggle}
             />
@@ -228,15 +239,17 @@ export default function Settings() {
 
           {activeTab === "integrations" && (
             <IntegrationsTab
-              slackAlerts={settings?.slack_alerts ?? false}
-              autoRebuild={settings?.auto_rebuild ?? false}
-              webhookConfigured={false}
+              githubConnected={accountsQuery.data?.includes('github') ?? false}
+              slackAlerts={settings?.slackAlerts ?? false}
+              autoRebuild={settings?.autoRebuild ?? false}
+              webhookConfigured={channelsQuery.data?.some((c: any) => c.type === 'slack' || c.type === 'webhook') ?? false}
               isTestingWebhook={isTestingWebhook}
               providers={providersQuery.data || []}
               onToggle={handleToggle}
               onTestWebhook={handleWebhookTest}
               onConnectGitHub={() => {
-                addToast({ type: "info", title: "GitHub", description: "Repository management active" })
+                // In a real app, this would start the OAuth flow or redirect to account settings
+                addToast({ type: "info", title: "GitHub", description: "GitHub linkage is managed via your Auth account." })
               }}
               onToggleProvider={handleToggleProvider}
             />
