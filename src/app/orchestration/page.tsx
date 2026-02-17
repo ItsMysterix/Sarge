@@ -142,7 +142,7 @@ const PipelinesTab = ({ t }: any) => {
                   </div>
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1"><GitBranch className="w-2.5 h-2.5" /> {deploy.branch}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {formatDistanceToNow(new Date(deploy.createdAt))} ago</span>
+                    <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {formatDistanceToNow(new Date(deploy.created_at))} ago</span>
                   </div>
                 </div>
                 <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />

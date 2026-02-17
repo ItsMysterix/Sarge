@@ -25,7 +25,7 @@ import { GridLoader } from "@/components/ui/grid-loader"
 // --- Metrics Tab ---
 const MetricsTab = ({ t }: any) => {
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d">("24h")
-  const metricsQuery = t.metrics?.current?.useQuery?.()
+  const metricsQuery = t.metrics?.latest?.useQuery?.()
   const metrics = metricsQuery?.data || { cpu: 32, memory: 1024, latency: 45, errors: 2, requests: 1250 }
 
   return (
