@@ -316,16 +316,13 @@ export default function GovernancePage() {
   ]
 
   return (
-    <AppShell>
+    <AppShell title="Governance Center">
       <ToastContainer />
       <div className="p-6 max-w-7xl mx-auto">
-        {/* Header Section */}
+        {/* Header Section Removed - title in AppShell */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
-              <h1 className="text-3xl font-bold tracking-tight">Governance Center</h1>
-            </div>
+           {/* Summary line moved or kept minimal if needed, but removing large title */}
+           <div>
             <p className="text-muted-foreground text-sm max-w-lg">
               Sovereign control plane for cost optimization, security compliance, and GitOps state reconciliation.
             </p>

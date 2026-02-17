@@ -3,14 +3,16 @@
 import React, { useState } from "react"
 import { Sidebar } from "./sidebar"
 import { usePathname, useRouter } from "next/navigation"
-import { Search, Plus, Bell } from "lucide-react"
+import { Search } from "lucide-react"
 import { NotificationPopover } from "../ui/notification-popover"
+import { ModeToggle } from "@/components/ui/mode-toggle"
 
 interface AppShellProps {
   children: React.ReactNode
+  title?: React.ReactNode
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, title }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
@@ -39,7 +41,7 @@ export function AppShell({ children }: AppShellProps) {
           <header className="h-16 px-6 flex items-center justify-between glass-header shrink-0 z-10">
             {/* Breadcrumb / Page Title */}
             <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-muted-foreground/60">Dashboard</span>
+              <span className="text-sm font-medium text-muted-foreground/90">{title || "Dashboard"}</span>
             </div>
             
             {/* Actions */}
@@ -61,6 +63,10 @@ export function AppShell({ children }: AppShellProps) {
                 </div>
               </form>
 
+              <div className="w-px h-4 bg-white/[0.06] mx-1" />
+              
+              <ModeToggle />
+              
               <div className="w-px h-4 bg-white/[0.06] mx-1" />
               
               <a href="mailto:support@sarge.dev" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Feedback</a>

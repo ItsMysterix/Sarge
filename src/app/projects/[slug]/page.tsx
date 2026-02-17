@@ -35,26 +35,18 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   }
 
   return (
-    <AppShell>
+    <AppShell title={
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground/50">Projects</span>
+        <span className="text-muted-foreground/30">/</span>
+        <span>{displayProject.name}</span>
+      </div>
+    }>
       <div className="flex-1 p-8 overflow-y-auto animate-fade-in">
         <div className="max-w-6xl mx-auto">
           
-          {/* Project Hero */}
-          <div className="mb-8 flex items-center justify-between">
-             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20 flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">{displayProject.name.substring(0,2).toUpperCase()}</span>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold">{displayProject.name}</h2>
-                  <div className="flex items-center gap-3 mt-1">
-                     <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20 text-[10px] uppercase tracking-wider px-2 py-0">Running</Badge>
-                     <a href="#" className="text-xs text-muted-foreground hover:text-white flex items-center gap-1">
-                       {displayProject.slug}.vercel.app <ArrowUpRight className="w-3 h-3" />
-                     </a>
-                  </div>
-                </div>
-             </div>
+          {/* Project Hero (Actions only) */}
+          <div className="mb-8 flex items-center justify-end">
              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 border border-indigo-500/50">
                 <Plus className="w-4 h-4 mr-2" /> New Deployment
              </Button>

@@ -203,17 +203,10 @@ export default function Settings() {
   }
 
   return (
-    <AppShell>
+    <AppShell title="Settings">
       <ToastContainer />
       <main className="flex-1 p-6 max-w-5xl mx-auto animate-fade-in">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <SettingsIcon className="w-6 h-6 text-muted-foreground" />
-            <h1 className="text-2xl font-semibold">Settings</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Manage your project configuration and preferences</p>
-        </div>
+        {/* Header Removed - managed by AppShell */}
 
         {/* Tabs Navigation */}
         <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />

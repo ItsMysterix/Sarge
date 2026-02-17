@@ -80,16 +80,12 @@ export default function StacksPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell title="Stacks">
       <ToastContainer />
       <div className="p-6 max-w-6xl mx-auto animate-fade-in">
         
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold mb-1">Stacks</h1>
-            <p className="text-sm text-muted-foreground">Compose services into isolated environments</p>
-          </div>
+        {/* Header Removed - managed by AppShell */}
+        <div className="flex items-center justify-end mb-6">
           {stacks.length > 0 && (
             <button
               onClick={() => setShowModal(true)}

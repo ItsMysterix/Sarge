@@ -147,16 +147,12 @@ export default function ProjectsPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell title="Projects">
       <div className="p-8 w-full max-w-7xl mx-auto animate-fade-in">
         <ToastContainer />
         
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-            <p className="text-muted-foreground mt-1">Manage and deploy your applications.</p>
-          </div>
+        {/* Header Removed - managed by AppShell */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end mb-8 gap-4">
           <Button 
             onClick={() => setShowCreateModal(true)}
             className="bg-white text-black hover:bg-white/90 font-medium shadow-lg hover:shadow-xl transition-all"
