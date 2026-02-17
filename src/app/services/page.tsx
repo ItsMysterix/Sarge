@@ -6,11 +6,12 @@ import { AppShell } from "@/components/layout/app-shell"
 import { 
   Server, Database, Cpu, Globe, RefreshCcw, Settings, TrendingUp, 
   Activity, AlertTriangle, MoreVertical, Play, Pause, RotateCcw, 
-  ExternalLink, Loader2
+  ExternalLink
 } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
+import { GridLoader } from "@/components/ui/grid-loader"
 
 export default function ServicesPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -45,16 +46,16 @@ export default function ServicesPage() {
   }
 
   const getGrade = (uptime: number) => {
-    if (uptime >= 99.5) return { grade: "A", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" }
-    if (uptime >= 98) return { grade: "B", color: "bg-amber-500/20 text-amber-400 border-amber-500/30" }
-    return { grade: "C", color: "bg-red-500/20 text-red-400 border-red-500/30" }
+    if (uptime >= 99.5) return { grade: "A", color: "bg-foreground/10 text-foreground border-foreground/20" }
+    if (uptime >= 98) return { grade: "B", color: "bg-muted text-muted-foreground border-border" }
+    return { grade: "C", color: "bg-muted text-muted-foreground border-border" }
   }
 
   if (isLoading) {
     return (
       <AppShell>
         <div className="p-6 flex items-center justify-center flex-1">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <GridLoader className="w-6 h-6 text-muted-foreground" />
         </div>
       </AppShell>
     )
@@ -67,12 +68,12 @@ export default function ServicesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold mb-1">Services</h1>
+            <h1 className="text-2xl font-semibold mb-1 text-foreground">Services</h1>
             <p className="text-sm text-muted-foreground">Manage running services and containers</p>
           </div>
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.06] text-sm hover:bg-white/[0.05] transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border text-sm hover:bg-muted transition-colors text-foreground"
           >
             <RefreshCcw className="w-4 h-4" />
             Refresh
@@ -93,15 +94,12 @@ export default function ServicesPage() {
               className={cn(
                 "p-4 rounded-xl text-left transition-all border",
                 stat.active 
-                  ? "bg-white/[0.05] border-white/[0.15]" 
-                  : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]"
+                  ? "bg-muted border-foreground/20" 
+                  : "bg-card border-border hover:bg-muted/50"
               )}
             >
               <div className={cn(
-                "text-2xl font-semibold mb-1",
-                stat.color === "emerald" && "text-emerald-400",
-                stat.color === "amber" && "text-amber-400",
-                stat.color === "red" && "text-red-400"
+                "text-2xl font-semibold mb-1 text-foreground",
               )}>
                 {stat.value}
               </div>
@@ -117,7 +115,7 @@ export default function ServicesPage() {
             placeholder="Search services..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full max-w-md px-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg text-sm focus:outline-none focus:border-white/20"
+            className="w-full max-w-md px-4 py-2 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:border-foreground/20 text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
@@ -125,7 +123,7 @@ export default function ServicesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 stagger-children">
           {filteredServices.length === 0 ? (
             <div className="col-span-2 text-center py-12">
-              <Server className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <Server className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-muted-foreground">No services found</p>
             </div>
           ) : (
@@ -136,22 +134,22 @@ export default function ServicesPage() {
               return (
                 <div
                   key={service.id}
-                  className="glass-card p-5 hover:border-white/20 transition-all group"
+                  className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 transition-all group"
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
                         <Icon className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-medium">{service.name}</h3>
+                        <h3 className="font-medium text-foreground">{service.name}</h3>
                         <div className="flex items-center gap-2 mt-0.5">
                           <div className={cn(
                             "w-2 h-2 rounded-full",
-                            service.status === "up" && "bg-emerald-500",
-                            service.status === "degraded" && "bg-amber-500",
-                            service.status === "down" && "bg-red-500"
+                            service.status === "up" && "bg-foreground",
+                            service.status === "degraded" && "bg-muted-foreground",
+                            service.status === "down" && "bg-muted-foreground/50"
                           )} />
                           <span className="text-xs text-muted-foreground capitalize">{service.status}</span>
                           <span className="text-xs text-muted-foreground">• {service.instance_count || 3} instances</span>
@@ -163,7 +161,7 @@ export default function ServicesPage() {
                       <div className={cn("px-2.5 py-1 rounded-lg text-sm font-bold border", grade.color)}>
                         {grade.grade}
                       </div>
-                      <button className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-foreground">
+                      <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
                         <MoreVertical className="w-4 h-4" />
                       </button>
                     </div>
@@ -177,9 +175,9 @@ export default function ServicesPage() {
                       { label: "Req/min", value: service.requests || "1.2k" },
                       { label: "Latency", value: service.latency || "45ms" },
                     ].map((metric) => (
-                      <div key={metric.label} className="p-2 rounded-lg bg-white/[0.02]">
+                      <div key={metric.label} className="p-2 rounded-lg bg-muted/30 border border-border">
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{metric.label}</div>
-                        <div className="text-sm font-medium">{metric.value}</div>
+                        <div className="text-sm font-medium text-foreground">{metric.value}</div>
                       </div>
                     ))}
                   </div>
@@ -190,12 +188,12 @@ export default function ServicesPage() {
                       <span>24h uptime</span>
                       <span>{Number(service.uptime_percent).toFixed(1)}%</span>
                     </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div 
                         className={cn(
                           "h-full rounded-full transition-all",
-                          Number(service.uptime_percent) >= 99.5 ? "bg-emerald-500" :
-                          Number(service.uptime_percent) >= 98 ? "bg-amber-500" : "bg-red-500"
+                          Number(service.uptime_percent) >= 99.5 ? "bg-foreground" :
+                          Number(service.uptime_percent) >= 98 ? "bg-muted-foreground" : "bg-muted-foreground/50"
                         )}
                         style={{ width: `${Math.min(100, Number(service.uptime_percent))}%` }}
                       />
@@ -203,18 +201,18 @@ export default function ServicesPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
                     <span className="text-xs text-muted-foreground">
                       Deployed {formatDistanceToNow(new Date(service.created_at || Date.now()))} ago
                     </span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 rounded hover:bg-white/5 text-muted-foreground hover:text-foreground" title="Restart">
+                      <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Restart">
                         <RotateCcw className="w-3.5 h-3.5" />
                       </button>
-                      <button className="p-1.5 rounded hover:bg-white/5 text-muted-foreground hover:text-foreground" title="View Logs">
+                      <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="View Logs">
                         <ExternalLink className="w-3.5 h-3.5" />
                       </button>
-                      <button className="p-1.5 rounded hover:bg-white/5 text-muted-foreground hover:text-foreground" title="Settings">
+                      <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Settings">
                         <Settings className="w-3.5 h-3.5" />
                       </button>
                     </div>

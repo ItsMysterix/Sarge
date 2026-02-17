@@ -3,9 +3,18 @@
 import React, { useState } from "react"
 import { Sidebar } from "./sidebar"
 import { usePathname, useRouter } from "next/navigation"
-import { Search } from "lucide-react"
+import { Search, ChevronsUpDown, Check, Plus } from "lucide-react"
 import { NotificationPopover } from "../ui/notification-popover"
 import { ModeToggle } from "@/components/ui/mode-toggle"
+import { useProject } from "@/lib/project-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -17,6 +26,7 @@ export function AppShell({ children, title, actions }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const { currentProject, projects, setCurrentProject, isLoading: isProjectLoading } = useProject()
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,10 +49,50 @@ export function AppShell({ children, title, actions }: AppShellProps) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Global Header */}
         {!hideSidebar && (
-          <header className="h-16 px-6 flex items-center justify-between glass-header shrink-0 z-10">
+          <header className="h-16 px-6 flex items-center justify-between glass-header shrink-0 z-10 border-b border-border">
             {/* Breadcrumb / Page Title */}
             <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-muted-foreground/90">{title || "Dashboard"}</span>
+               {/* Project Switcher */}
+              <div className="flex items-center gap-2 text-sm">
+                 <span className="text-muted-foreground/60 hidden sm:inline-block">Projects</span>
+                 <span className="text-muted-foreground/30 hidden sm:inline-block">/</span>
+                 
+                 <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-2 font-medium hover:text-foreground transition-colors outline-none group">
+                       <span className="truncate max-w-[150px]">
+                         {isProjectLoading ? "Loading..." : (currentProject?.name || "Select Project")}
+                       </span>
+                       <ChevronsUpDown className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[200px]">
+                       <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Project</DropdownMenuLabel>
+                       <DropdownMenuSeparator />
+                       {projects.map((p) => (
+                          <DropdownMenuItem 
+                            key={p.id} 
+                            onClick={() => setCurrentProject(p)}
+                            className="justify-between"
+                          >
+                             <span className="truncate">{p.name}</span>
+                             {currentProject?.id === p.id && <Check className="w-3 h-3" />}
+                          </DropdownMenuItem>
+                       ))}
+                       <DropdownMenuSeparator />
+                       <DropdownMenuItem 
+                         className="text-muted-foreground cursor-pointer"
+                         onClick={() => router.push('/projects')}
+                       >
+                          <Plus className="w-3 h-3 mr-2" />
+                          Create Project
+                       </DropdownMenuItem>
+                    </DropdownMenuContent>
+                 </DropdownMenu>
+              </div>
+
+               {/* Separator if title exists */}
+               {title && <div className="h-4 w-px bg-border hidden sm:block" />}
+               
+              <span className="text-sm font-medium text-foreground">{title}</span>
             </div>
             
             {/* Actions */}
@@ -51,7 +101,7 @@ export function AppShell({ children, title, actions }: AppShellProps) {
               {actions && (
                 <>
                   {actions}
-                  <div className="w-px h-4 bg-white/[0.06] mx-1" />
+                  <div className="w-px h-4 bg-border mx-1" />
                 </>
               )}
 
@@ -64,19 +114,19 @@ export function AppShell({ children, title, actions }: AppShellProps) {
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-64 h-9 pl-9 pr-3 rounded-lg bg-accent/20 border border-border text-xs text-muted-foreground focus:text-foreground focus:border-accent focus:bg-accent/30 transition-all outline-none placeholder:text-muted-foreground/50 transition-all duration-300"
+                    className="w-64 h-9 pl-9 pr-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground focus:text-foreground focus:border-ring focus:bg-background transition-all outline-none placeholder:text-muted-foreground/50"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
-                    <kbd className="text-[10px] bg-accent/20 px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground font-semibold">↵</kbd>
+                    <kbd className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground font-semibold">↵</kbd>
                   </div>
                 </div>
               </form>
 
-              <div className="w-px h-4 bg-white/[0.06] mx-1" />
+              <div className="w-px h-4 bg-border mx-1" />
               
               <ModeToggle />
               
-              <div className="w-px h-4 bg-white/[0.06] mx-1" />
+              <div className="w-px h-4 bg-border mx-1" />
               
               <a href="mailto:support@sarge.dev" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Feedback</a>
               <a href="/docs" className="text-xs text-muted-foreground hover:text-foreground transition-colors mr-2">Docs</a>

@@ -15,7 +15,6 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Loader2,
   ArrowUpRight,
   Search,
   X,
@@ -25,17 +24,19 @@ import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { SecretsDashboard } from "@/components/rust-core/SecretsDashboard"
+import { GridLoader } from "@/components/ui/grid-loader"
 
 // --- Environments Tab ---
 const EnvironmentsTab = ({ t, setShowModal }: any) => {
-  const envsQuery = t.environments?.list?.useQuery?.()
+  // Use .all() to get global environments list
+  const envsQuery = t.environments?.all?.useQuery?.()
   const environments = envsQuery?.data || []
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "prod": return "bg-red-500/20 text-red-400 border-red-500/30"
-      case "staging": return "bg-amber-500/20 text-amber-400 border-amber-500/30"
-      default: return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+      case "prod": return "bg-foreground/10 text-foreground border-foreground/20"
+      case "staging": return "bg-muted/50 text-muted-foreground border-muted-foreground/20"
+      default: return "bg-muted/30 text-muted-foreground border-muted-foreground/20"
     }
   }
 
@@ -47,7 +48,7 @@ const EnvironmentsTab = ({ t, setShowModal }: any) => {
         </h3>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-black text-[10px] font-bold uppercase transition-all hover:scale-105"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-foreground text-background text-[10px] font-bold uppercase transition-all hover:scale-105"
         >
           <Plus className="w-3 h-3" /> New Cluster
         </button>
@@ -55,20 +56,20 @@ const EnvironmentsTab = ({ t, setShowModal }: any) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {environments.length === 0 ? (
-          <div className="col-span-full py-12 text-center glass-card border-dashed">
-            <Layers className="w-8 h-8 text-white/5 mx-auto mb-2" />
+          <div className="col-span-full py-12 text-center border border-dashed border-border rounded-xl">
+            <Layers className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
             <p className="text-xs text-muted-foreground">No environments configured yet.</p>
           </div>
         ) : (
           environments.map((env: any) => (
-            <div key={env.id} className="glass-card p-5 group hover:border-white/20 transition-all">
+            <div key={env.id} className="bg-card border border-border rounded-xl p-5 group hover:border-foreground/20 transition-all">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                    <Layers className="w-4 h-4 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                    <Layers className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium">{env.name}</h4>
+                    <h4 className="text-sm font-medium text-foreground">{env.name}</h4>
                     <span className={cn("text-[8px] px-1.5 py-0.5 rounded-full border uppercase font-bold", getTypeColor(env.type))}>
                       {env.type}
                     </span>
@@ -78,15 +79,15 @@ const EnvironmentsTab = ({ t, setShowModal }: any) => {
               </div>
               <div className="space-y-2 mb-4 text-[11px] text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <GitBranch className="w-3 h-3" /> <code>{env.branch}</code>
+                  <GitBranch className="w-3 h-3" /> <code>{env.branch || 'main'}</code>
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="w-3 h-3" /> {env.name.toLowerCase()}.sarge.io
                 </div>
               </div>
-              <div className="flex items-center justify-between pt-3 border-t border-white/[0.05] text-[10px]">
+              <div className="flex items-center justify-between pt-3 border-t border-border text-[10px]">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-foreground animate-pulse" />
                   <span className="text-muted-foreground uppercase font-bold tracking-tighter">Active</span>
                 </div>
                 <span className="text-muted-foreground">Updated {formatDistanceToNow(new Date(env.last_deploy || Date.now()))} ago</span>
@@ -116,27 +117,27 @@ const PipelinesTab = ({ t }: any) => {
            <input 
               type="text" 
               placeholder="Filter pipelines..."
-              className="w-full pl-9 pr-4 py-1.5 bg-black/40 border border-white/5 rounded-xl text-[10px] focus:outline-none focus:border-white/20"
+              className="w-full pl-9 pr-4 py-1.5 bg-muted/50 border border-border rounded-xl text-[10px] focus:outline-none focus:border-foreground/20 placeholder:text-muted-foreground"
            />
         </div>
       </div>
 
-      <div className="glass-card overflow-hidden">
-        <div className="divide-y divide-white/[0.05]">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="divide-y divide-border">
           {isLoading ? (
-            <div className="p-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>
+            <div className="p-12 text-center flex justify-center"><GridLoader className="w-6 h-6 text-muted-foreground" /></div>
           ) : items.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground italic">No recent deployments.</div>
           ) : (
             items.map((deploy: any) => (
-              <div key={deploy.id} className="p-4 flex items-center gap-4 hover:bg-white/[0.02] cursor-pointer group transition-colors">
+              <div key={deploy.id} className="p-4 flex items-center gap-4 hover:bg-muted/30 cursor-pointer group transition-colors">
                 <div className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  deploy.status === 'success' ? "bg-emerald-500" : "bg-red-500"
+                  deploy.status === 'success' ? "bg-foreground" : "bg-muted-foreground"
                 )} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold">{deploy.summary || 'Production Release'}</span>
+                    <span className="text-xs font-semibold text-foreground">{deploy.summary || 'Production Release'}</span>
                     <span className="text-[10px] font-mono text-muted-foreground">{deploy.commit?.slice(0,7)}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
@@ -144,7 +145,7 @@ const PipelinesTab = ({ t }: any) => {
                     <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {formatDistanceToNow(new Date(deploy.createdAt))} ago</span>
                   </div>
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-white transition-colors" />
+                <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
             ))
           )}
@@ -172,17 +173,17 @@ export default function OrchestrationHub() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div className="animate-slide-down">
             <div className="flex items-center gap-3 mb-1.5">
-              <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
+              <div className="p-2 rounded-xl bg-muted text-foreground">
                 <Layers className="w-6 h-6" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight">Orchestration Hub</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Orchestration Hub</h1>
             </div>
             <p className="text-muted-foreground text-sm max-w-md">
               The engine room for your cloud resources. Deploy services, manage cluster states, and secure sensitive configurations.
             </p>
           </div>
 
-          <div className="flex bg-black/40 p-1 rounded-2xl border border-white/[0.08] self-start md:self-auto">
+          <div className="flex bg-muted/50 p-1 rounded-2xl border border-border self-start md:self-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -190,8 +191,8 @@ export default function OrchestrationHub() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-tight",
                   activeTab === tab.id 
-                    ? "bg-white text-zinc-950 shadow-xl scale-105" 
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                    ? "bg-background text-foreground shadow-sm scale-105" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 )}
               >
                 <tab.icon className="w-3.5 h-3.5" />
@@ -206,11 +207,11 @@ export default function OrchestrationHub() {
           {activeTab === 'envs' && <EnvironmentsTab t={t} setShowModal={setShowModal} />}
           {activeTab === 'pipelines' && <PipelinesTab t={t} />}
           {activeTab === 'secrets' && (
-             <div className="glass-card p-8 animate-fade-in border-violet-500/10 bg-violet-500/[0.02]">
+             <div className="bg-card p-8 animate-fade-in border border-border rounded-xl">
                 <div className="flex items-center gap-3 mb-8">
-                   <ShieldAlert className="w-5 h-5 text-violet-400" />
+                   <ShieldAlert className="w-5 h-5 text-foreground" />
                    <div>
-                     <h3 className="font-semibold">Enterprise Secret Vault</h3>
+                     <h3 className="font-semibold text-foreground">Enterprise Secret Vault</h3>
                      <p className="text-xs text-muted-foreground">Hardened encryption for environment variables and cloud keys.</p>
                    </div>
                 </div>

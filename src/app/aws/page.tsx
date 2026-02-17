@@ -4,10 +4,11 @@ export const dynamic = "force-dynamic"
 import { useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { 
-  Cloud, Database, Zap, Shield, Activity, Plus, Loader2 
+  Cloud, Database, Zap, Shield, Activity, Plus
 } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
+import { GridLoader } from "@/components/ui/grid-loader"
 
 export default function AWSPage() {
   const [activeTab, setActiveTab] = useState<"s3" | "dynamo" | "lambda" | "iam" | "cloudwatch">("s3")
@@ -42,8 +43,8 @@ export default function AWSPage() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
-            <Cloud className="w-6 h-6 text-amber-400" />
-            <h1 className="text-2xl font-semibold">AWS Emulation</h1>
+            <Cloud className="w-6 h-6 text-foreground" />
+            <h1 className="text-2xl font-semibold text-foreground">AWS Emulation</h1>
           </div>
           <p className="text-sm text-muted-foreground">LocalStack-powered AWS services for local development</p>
         </div>
@@ -57,21 +58,21 @@ export default function AWSPage() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium whitespace-nowrap transition-all",
                 activeTab === tab.id
-                  ? "bg-white/[0.05] border-white/20 text-foreground"
-                  : "bg-white/[0.02] border-white/[0.06] text-muted-foreground hover:text-foreground hover:border-white/15"
+                  ? "bg-muted text-foreground border-foreground/20"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
               <tab.icon className="w-4 h-4" />
               <span>{tab.label}</span>
               {tab.count > 0 && (
-                <span className="px-1.5 py-0.5 text-xs rounded bg-white/10">{tab.count}</span>
+                <span className="px-1.5 py-0.5 text-xs rounded bg-muted-foreground/20 text-foreground">{tab.count}</span>
               )}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        <div className="glass-card p-6 min-h-[400px]">
+        <div className="bg-card border border-border rounded-xl p-6 min-h-[400px]">
           
           {/* S3 */}
           {activeTab === "s3" && (
@@ -81,13 +82,13 @@ export default function AWSPage() {
               items={s3Query?.data || []}
               empty={{ icon: Database, message: "No buckets created" }}
               renderItem={(bucket: any) => (
-                <div key={bucket.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                <div key={bucket.id} className="p-4 rounded-lg border border-border hover:border-foreground/20 transition-all bg-muted/10">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Database className="w-4 h-4 text-amber-400" />
-                      <h3 className="font-medium">{bucket.name}</h3>
+                      <Database className="w-4 h-4 text-foreground" />
+                      <h3 className="font-medium text-foreground">{bucket.name}</h3>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded bg-white/5">{bucket.region}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">{bucket.region}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div><span className="text-muted-foreground">Objects:</span> {bucket.object_count}</div>
@@ -107,19 +108,19 @@ export default function AWSPage() {
               items={dynamoQuery?.data || []}
               empty={{ icon: Zap, message: "No tables created" }}
               renderItem={(table: any) => (
-                <div key={table.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                <div key={table.id} className="p-4 rounded-lg border border-border hover:border-foreground/20 transition-all bg-muted/10">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-yellow-400" />
-                      <h3 className="font-medium">{table.name}</h3>
+                      <Zap className="w-4 h-4 text-foreground" />
+                      <h3 className="font-medium text-foreground">{table.name}</h3>
                     </div>
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded",
-                      table.status === "ACTIVE" ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-500/20"
+                      table.status === "ACTIVE" ? "bg-foreground/10 text-foreground" : "bg-muted text-muted-foreground"
                     )}>{table.status}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div><span className="text-muted-foreground">PK:</span> <code className="text-[10px] bg-black/30 px-1 rounded">{table.partition_key}</code></div>
+                    <div><span className="text-muted-foreground">PK:</span> <code className="text-[10px] bg-muted px-1 rounded text-foreground">{table.partition_key}</code></div>
                     <div><span className="text-muted-foreground">Items:</span> {table.item_count?.toLocaleString()}</div>
                     <div><span className="text-muted-foreground">Size:</span> {formatBytes(table.size_bytes)}</div>
                     <div><span className="text-muted-foreground">RCU/WCU:</span> {table.read_capacity_units}/{table.write_capacity_units}</div>
@@ -137,19 +138,19 @@ export default function AWSPage() {
               items={lambdaQuery?.data || []}
               empty={{ icon: Zap, message: "No functions created" }}
               renderItem={(fn: any) => (
-                <div key={fn.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                <div key={fn.id} className="p-4 rounded-lg border border-border hover:border-foreground/20 transition-all bg-muted/10">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-orange-400" />
-                      <h3 className="font-medium">{fn.name}</h3>
+                      <Zap className="w-4 h-4 text-foreground" />
+                      <h3 className="font-medium text-foreground">{fn.name}</h3>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded bg-white/5">{fn.runtime}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">{fn.runtime}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-xs">
                     <div><span className="text-muted-foreground">Memory:</span> {fn.memory_size}MB</div>
                     <div><span className="text-muted-foreground">Timeout:</span> {fn.timeout}s</div>
                     <div><span className="text-muted-foreground">Invokes:</span> {fn.invocation_count}</div>
-                    <div><span className="text-muted-foreground">Errors:</span> <span className={fn.error_count > 0 ? "text-red-400" : "text-emerald-400"}>{fn.error_count}</span></div>
+                    <div><span className="text-muted-foreground">Errors:</span> <span className={fn.error_count > 0 ? "text-red-500" : "text-foreground"}>{fn.error_count}</span></div>
                   </div>
                 </div>
               )}
@@ -164,12 +165,12 @@ export default function AWSPage() {
               items={iamQuery?.data || []}
               empty={{ icon: Shield, message: "No roles created" }}
               renderItem={(role: any) => (
-                <div key={role.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                <div key={role.id} className="p-4 rounded-lg border border-border hover:border-foreground/20 transition-all bg-muted/10">
                   <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-4 h-4 text-blue-400" />
-                    <h3 className="font-medium">{role.name}</h3>
+                    <Shield className="w-4 h-4 text-foreground" />
+                    <h3 className="font-medium text-foreground">{role.name}</h3>
                   </div>
-                  <code className="block text-[10px] text-muted-foreground bg-black/30 px-2 py-1 rounded overflow-x-auto">{role.arn}</code>
+                  <code className="block text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded overflow-x-auto">{role.arn}</code>
                   {role.description && <p className="text-xs text-muted-foreground mt-2">{role.description}</p>}
                 </div>
               )}
@@ -184,10 +185,10 @@ export default function AWSPage() {
               items={cwQuery?.data || []}
               empty={{ icon: Activity, message: "No log groups created" }}
               renderItem={(lg: any) => (
-                <div key={lg.id} className="p-4 rounded-lg border border-white/[0.06] hover:border-white/15 transition-all">
+                <div key={lg.id} className="p-4 rounded-lg border border-border hover:border-foreground/20 transition-all bg-muted/10">
                   <div className="flex items-center gap-2 mb-2">
-                    <Activity className="w-4 h-4 text-violet-400" />
-                    <h3 className="font-medium">{lg.name}</h3>
+                    <Activity className="w-4 h-4 text-foreground" />
+                    <h3 className="font-medium text-foreground">{lg.name}</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="text-muted-foreground">Retention:</span> {lg.retention_days ? `${lg.retention_days}d` : "Never"}</div>
@@ -213,7 +214,7 @@ function ResourceList({ title, loading, items, empty, renderItem }: {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <GridLoader className="w-6 h-6 text-muted-foreground" />
       </div>
     )
   }
@@ -222,10 +223,10 @@ function ResourceList({ title, loading, items, empty, renderItem }: {
     const Icon = empty.icon
     return (
       <div className="text-center py-16">
-        <Icon className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-        <h3 className="font-medium mb-1">{empty.message}</h3>
+        <Icon className="w-10 h-10 text-muted-foreground/30 mx-auto mb-4" />
+        <h3 className="font-medium mb-1 text-foreground">{empty.message}</h3>
         <p className="text-sm text-muted-foreground mb-6">Create resources via API or code</p>
-        <button className="flex items-center gap-2 px-4 py-2 mx-auto rounded-lg bg-white/[0.05] border border-white/10 text-sm hover:bg-white/10 transition-colors">
+        <button className="flex items-center gap-2 px-4 py-2 mx-auto rounded-lg bg-card border border-border text-sm hover:bg-muted transition-colors text-foreground">
           <Plus className="w-4 h-4" />
           Create {title.split(" ")[0]}
         </button>
@@ -235,7 +236,7 @@ function ResourceList({ title, loading, items, empty, renderItem }: {
 
   return (
     <div>
-      <h3 className="font-medium mb-4">{title}</h3>
+      <h3 className="font-medium mb-4 text-foreground">{title}</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
         {items.map(renderItem)}
       </div>

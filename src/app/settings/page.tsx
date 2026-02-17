@@ -20,8 +20,9 @@ import { DomainsTab } from "@/components/settings/domains-tab"
 import { MembersTab } from "@/components/settings/members-tab"
 import { WebhooksTab } from "@/components/settings/webhooks-tab"
 import { AppShell } from '@/components/layout/app-shell'
-import { Settings as SettingsIcon, Loader2 } from 'lucide-react'
+import { Settings as SettingsIcon } from 'lucide-react'
 import posthog from 'posthog-js'
+import { GridLoader } from "@/components/ui/grid-loader"
 
 export default function Settings() {
   const { data: settings, loading, updateSettings } = useUserSettings()
@@ -196,7 +197,7 @@ export default function Settings() {
     return (
       <AppShell>
         <div className="flex flex-1 items-center justify-center p-6">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <GridLoader className="w-6 h-6 text-muted-foreground" />
         </div>
       </AppShell>
     )

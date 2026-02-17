@@ -1,7 +1,7 @@
 "use client"
 
 import { AppShell } from "@/components/layout/app-shell"
-import { AlertTriangle, Github, Loader2 } from "lucide-react"
+import { AlertTriangle, Github } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/clerk-safe"
 import { trpc } from "@/lib/trpc"
@@ -116,12 +116,12 @@ export default function ProfilePage() {
       <div className="flex-1 p-8 max-w-5xl mx-auto w-full animate-fade-in">
         <ToastContainer />
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Account Settings</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Account Settings</h1>
           <p className="text-muted-foreground mt-1">Manage your profile, security, and preferences.</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-black/20 border border-white/5 p-1">
+          <TabsList className="bg-muted border border-border p-1">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
@@ -134,13 +134,13 @@ export default function ProfilePage() {
               user={user} name={name} setName={setName} 
               handleSaveProfile={handleSaveProfile} isSaving={isSaving} 
             />
-            <div className="glass-card p-6 border border-red-900/20 bg-red-900/5 rounded-xl space-y-4 mt-6">
+            <div className="bg-card p-6 border border-destructive/20 bg-destructive/5 rounded-xl space-y-4 mt-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-red-400">Danger Zone</h3>
-                  <p className="text-sm text-red-400/60">Irreversible actions for your account.</p>
+                  <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
+                  <p className="text-sm text-destructive/60">Irreversible actions for your account.</p>
                 </div>
-                <AlertTriangle className="w-5 h-5 text-red-400" />
+                <AlertTriangle className="w-5 h-5 text-destructive" />
               </div>
               <Button variant="destructive" size="sm">Delete Account</Button>
             </div>
@@ -183,11 +183,11 @@ export default function ProfilePage() {
 
         {!isGitHubConnected && showGithubModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-             <div className="w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-xl p-6 shadow-2xl">
+             <div className="w-full max-w-md bg-card border border-border rounded-xl p-6 shadow-2xl">
                 <div className="flex items-center gap-3 mb-4">
-                   <div className="p-2 bg-white/5 rounded-lg"><Github className="w-6 h-6" /></div>
+                   <div className="p-2 bg-muted rounded-lg"><Github className="w-6 h-6 text-foreground" /></div>
                    <div>
-                      <h3 className="font-semibold">Connect GitHub</h3>
+                      <h3 className="font-semibold text-foreground">Connect GitHub</h3>
                       <p className="text-xs text-muted-foreground">Authorize access to your repositories.</p>
                    </div>
                 </div>

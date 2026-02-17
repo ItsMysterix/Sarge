@@ -7,25 +7,20 @@ import {
   Activity, 
   Terminal, 
   Map, 
-  Search, 
   Pause, 
   Play, 
-  Download, 
-  Info, 
-  AlertTriangle, 
-  AlertCircle,
   Cpu,
   Server,
   Gauge,
   TrendingUp,
-  ShieldAlert,
-  Loader2
+  ShieldAlert
 } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { GtmManager } from "@/components/rust-core/GtmManager"
 import { RemediationLogs } from "@/components/rust-core/RemediationLogs"
+import { GridLoader } from "@/components/ui/grid-loader"
 
 // --- Metrics Tab ---
 const MetricsTab = ({ t }: any) => {
@@ -36,42 +31,42 @@ const MetricsTab = ({ t }: any) => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-card p-4">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-2 text-xs font-bold uppercase">
              <Cpu className="w-3.5 h-3.5" /> CPU
           </div>
-          <div className="text-2xl font-bold">{metrics.cpu}%</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.cpu}%</div>
         </div>
-        <div className="glass-card p-4">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-2 text-xs font-bold uppercase">
              <Server className="w-3.5 h-3.5" /> Memory
           </div>
-          <div className="text-2xl font-bold">{metrics.memory}MB</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.memory}MB</div>
         </div>
-        <div className="glass-card p-4">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-2 text-xs font-bold uppercase">
              <Gauge className="w-3.5 h-3.5" /> Latency
           </div>
           <div className="text-2xl font-bold text-emerald-400">{metrics.latency}ms</div>
         </div>
-        <div className="glass-card p-4">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-2 text-xs font-bold uppercase">
              <TrendingUp className="w-3.5 h-3.5" /> Requests
           </div>
-          <div className="text-2xl font-bold">{metrics.requests?.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.requests?.toLocaleString()}</div>
         </div>
       </div>
 
-      <div className="glass-card p-6">
-         <h3 className="font-semibold text-sm mb-6 flex items-center gap-2">
-           <Activity className="w-4 h-4 text-blue-400" /> Infrastructure Health Score
+      <div className="bg-card border border-border rounded-xl p-6">
+         <h3 className="font-semibold text-sm mb-6 flex items-center gap-2 text-foreground">
+           <Activity className="w-4 h-4 text-foreground" /> Infrastructure Health Score
          </h3>
          <div className="flex items-center gap-8">
-            <div className="w-24 h-24 rounded-full border-4 border-emerald-500/20 flex items-center justify-center text-3xl font-bold text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+            <div className="w-24 h-24 rounded-full border-4 border-foreground/20 flex items-center justify-center text-3xl font-bold text-foreground shadow-sm">
                94
             </div>
             <div className="space-y-2">
-               <p className="font-medium">All Systems Optimal</p>
+               <p className="font-medium text-foreground">All Systems Optimal</p>
                <p className="text-xs text-muted-foreground leading-relaxed">
                  Infrastructure is running at 94% efficiency. <br/>
                  Detected 0 critical bottlenecks in the last 24 hours.
@@ -92,17 +87,17 @@ const LogsTab = ({ t }: any) => {
   return (
     <div className="space-y-4 animate-fade-in">
        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
-             <div className={cn("w-2 h-2 rounded-full", isPaused ? "bg-zinc-500" : "bg-emerald-500 animate-pulse")} />
+          <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-xl border border-border">
+             <div className={cn("w-2 h-2 rounded-full", isPaused ? "bg-muted-foreground" : "bg-foreground animate-pulse")} />
              <span className="text-[10px] font-bold text-muted-foreground uppercase">{isPaused ? 'Paused' : 'Streaming...'}</span>
           </div>
-          <button onClick={() => setIsPaused(!isPaused)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10">
+          <button onClick={() => setIsPaused(!isPaused)} className="p-2 rounded-xl bg-muted/50 hover:bg-muted text-foreground">
              {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
           </button>
        </div>
 
-       <div className="glass-card overflow-hidden bg-black/40 border-white/[0.08]">
-          <div className="p-4 border-b border-white/5 bg-white/5 flex items-center gap-2">
+       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-inner bg-black/50">
+          <div className="p-4 border-b border-border bg-muted/10 flex items-center gap-2">
              <Terminal className="w-3.5 h-3.5 text-muted-foreground" />
              <span className="text-[10px] font-mono text-muted-foreground opacity-60">SOVEREIGN_LENSE_V1</span>
           </div>
@@ -112,9 +107,9 @@ const LogsTab = ({ t }: any) => {
                   <span className="text-muted-foreground/40 shrink-0">[{formatDistanceToNow(new Date(log.timestamp), { addSuffix: false })}]</span>
                   <span className={cn(
                     "font-bold shrink-0 uppercase w-12",
-                    log.type === 'error' ? "text-red-400" : log.type === 'warn' ? "text-amber-400" : "text-emerald-400"
+                    log.type === 'error' ? "text-foreground" : log.type === 'warn' ? "text-muted-foreground" : "text-muted-foreground"
                   )}>{log.type}</span>
-                  <span className="text-white/80">{log.message}</span>
+                  <span className="text-foreground/80">{log.message}</span>
                </div>
              ))}
           </div>
@@ -127,22 +122,22 @@ const LogsTab = ({ t }: any) => {
 const TrafficTab = () => {
   return (
     <div className="space-y-8 animate-fade-in">
-       <div className="glass-card p-6 border-blue-500/10 bg-blue-500/[0.02]">
+       <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-8">
              <div className="flex items-center gap-3">
-                <Map className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold">Global Traffic Control</h3>
+                <Map className="w-5 h-5 text-foreground" />
+                <h3 className="font-semibold text-foreground">Global Traffic Control</h3>
              </div>
-             <div className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold tracking-widest uppercase">
+             <div className="px-3 py-1 rounded-full bg-muted text-foreground text-[10px] font-bold tracking-widest uppercase">
                 Active Edge
              </div>
           </div>
           <GtmManager />
        </div>
 
-       <div className="glass-card p-6">
-          <h3 className="font-semibold mb-6 flex items-center gap-2">
-             <ShieldAlert className="w-4 h-4 text-emerald-400" /> Self-Healing Incident Logs
+       <div className="bg-card border border-border rounded-xl p-6">
+          <h3 className="font-semibold mb-6 flex items-center gap-2 text-foreground">
+             <ShieldAlert className="w-4 h-4 text-foreground" /> Self-Healing Incident Logs
           </h3>
           <RemediationLogs />
        </div>
@@ -166,17 +161,17 @@ export default function ObservabilityHub() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div className="animate-slide-down">
             <div className="flex items-center gap-3 mb-1.5">
-              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+              <div className="p-2 rounded-xl bg-muted text-foreground">
                 <Activity className="w-6 h-6" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight">Observability Hub</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Observability Hub</h1>
             </div>
             <p className="text-muted-foreground text-sm max-w-md">
               High-fidelity monitoring for the resilient enterprise. Telemetry, streaming logs, and global edge orchestration.
             </p>
           </div>
 
-          <div className="flex bg-black/40 p-1 rounded-2xl border border-white/[0.08]">
+          <div className="flex bg-muted/50 p-1 rounded-2xl border border-border">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -184,8 +179,8 @@ export default function ObservabilityHub() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-tight",
                   activeTab === tab.id 
-                    ? "bg-white text-zinc-950 shadow-xl scale-105" 
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                    ? "bg-background text-foreground shadow-sm scale-105" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 )}
               >
                 <tab.icon className="w-3.5 h-3.5" />
