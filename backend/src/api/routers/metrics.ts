@@ -9,33 +9,44 @@ import { MetricAggregator } from "../../services/metric-aggregator";
 const metricAggregator = new MetricAggregator();
 
 export const metricsRouter = router({
-  latest: secureProcedure('metrics.latest').query(async ({ ctx }) => {
-    const end = startQueryTimer('metrics.latest');
-    try {
-      const result = await ctx.db.query(
-        `SELECT id, project_id, deployment_id, service_name,
-                cpu_usage as cpu, memory_usage as memory, latency_ms as latency, 
-                cost_daily as cost, uptime_percent, "timestamp", created_at
-         FROM metrics
-         ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST
-         LIMIT 1`
-      );
-      if (!result || !result.rows || result.rows.length === 0) {
-        return null;
+  latest: secureProcedure('metrics.latest')
+    .input(z.object({ projectId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const end = startQueryTimer('metrics.latest');
+      try {
+        const sql = input?.projectId
+          ? `SELECT id, project_id, deployment_id, service_name,
+                    cpu_usage as cpu, memory_usage as memory, latency_ms as latency, 
+                    cost_daily as cost, uptime_percent, "timestamp", created_at
+             FROM metrics
+             WHERE project_id = $1
+             ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST
+             LIMIT 1`
+          : `SELECT id, project_id, deployment_id, service_name,
+                    cpu_usage as cpu, memory_usage as memory, latency_ms as latency, 
+                    cost_daily as cost, uptime_percent, "timestamp", created_at
+             FROM metrics
+             ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST
+             LIMIT 1`;
+
+        const params = input?.projectId ? [input.projectId] : [];
+        const result = await ctx.db.query(sql, params);
+        if (!result || !result.rows || result.rows.length === 0) {
+          return null;
+        }
+        const row = result.rows[0] as any;
+        if (row && row.project_id) {
+          if (typeof row.cpu === 'number') setServiceCpu(String(row.project_id), Number(row.cpu));
+          if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.project_id), Number(row.memory));
+          if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.project_id), Number(row.latency));
+        }
+        return row || null;
+      } catch (e) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch latest metrics', cause: e as Error });
+      } finally {
+        end();
       }
-      const row = result.rows[0];
-      if (row && row.project_id) {
-        if (typeof row.cpu === 'number') setServiceCpu(String(row.project_id), Number(row.cpu));
-        if (typeof row.memory === 'number') setServiceMemoryBytes(String(row.project_id), Number(row.memory));
-        if (typeof row.latency === 'number') observeServiceLatencyMs(String(row.project_id), Number(row.latency));
-      }
-      return row || null;
-    } catch (e) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch latest metrics', cause: e as Error });
-    } finally {
-      end();
-    }
-  }),
+    }),
 
   // Workspace/project metrics (now backed by metrics table)
   getWorkspaceMetrics: secureProcedure('metrics.workspace')
