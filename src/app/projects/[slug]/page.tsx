@@ -6,50 +6,33 @@ import { AppShell } from "@/components/layout/app-shell"
 import { trpc } from "@/lib/trpc"
 import { 
   GitBranch, 
-  Github, 
-  ArrowUpRight,
-  Box,
   Layout,
-  Settings as SettingsIcon,
-  Key,
   Plus,
-  Shield,
-  Trash2,
-  Save
+  Box,
+  ShieldCheck,
+  ArrowRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/toast"
 import { GridLoader } from "@/components/ui/grid-loader"
+import { useProject } from "@/lib/project-context"
 
 export default function ProjectDetailsPage({ params }: { params: { slug: string } }) {
   const router = useRouter()
+  const { currentProject } = useProject()
   const { addToast, ToastContainer } = useToast()
-  const { data, isLoading } = trpc.project.list.useQuery()
-  const project = data?.projects?.find((p: any) => p.slug === params.slug)
   
-  // Placeholder state for variables
-  const [variables, setVariables] = useState([
-    { key: "DATABASE_URL", value: "***************", env: "Production" },
-    { key: "API_KEY", value: "***************", env: "All" }
-  ])
+  // We can use the context project or fetch specific
+  const projectSlug = params.slug
 
-  if (isLoading) return (
-    <AppShell>
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <GridLoader className="w-10 h-10 text-muted-foreground" />
-      </div>
-    </AppShell>
-  )
+  // In a real app we might fetch more dashboard-specific stats here
   
-  const displayProject = project || {
-    name: params.slug,
-    slug: params.slug,
-    framework: 'nextjs',
-    status: 'active'
+  const displayProject = currentProject || {
+    name: projectSlug,
+    slug: projectSlug,
   }
 
   return (
@@ -63,35 +46,83 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                <h1 className="text-2xl font-semibold tracking-tight">{displayProject.name}</h1>
                <p className="text-sm text-muted-foreground font-mono mt-1">{displayProject.slug}</p>
             </div>
-             <Button className="bg-foreground text-background hover:bg-foreground/90">
-                <Plus className="w-4 h-4 mr-2" /> New Deployment
-             </Button>
+             <div className="flex gap-2">
+               <Button variant="outline" onClick={() => router.push('/settings')}>
+                  Project Settings
+               </Button>
+               <Button className="bg-foreground text-background hover:bg-foreground/90">
+                  <Plus className="w-4 h-4 mr-2" /> New Deployment
+               </Button>
+             </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="environments" className="w-full">
+        {/* Dashboard Content */}
+        <Tabs defaultValue="overview" className="w-full">
           <TabsList className="bg-muted/30 w-full sm:w-auto justify-start border border-border rounded-lg p-1 mb-8">
-            <TabTrigger value="environments" icon={<Layout className="w-3.5 h-3.5" />} label="Environments" />
+            <TabTrigger value="overview" icon={<Layout className="w-3.5 h-3.5" />} label="Overview" />
             <TabTrigger value="rules" icon={<GitBranch className="w-3.5 h-3.5" />} label="Deployment Rules" />
-            <TabTrigger value="variables" icon={<Key className="w-3.5 h-3.5" />} label="Variables" />
-            <TabTrigger value="settings" icon={<SettingsIcon className="w-3.5 h-3.5" />} label="Settings" />
           </TabsList>
 
-          {/* Environments Tab */}
-          <TabsContent value="environments" className="space-y-6">
-            <div className="min-h-[400px] flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 border border-dashed border-border rounded-xl bg-muted/5">
-                <div className="p-6 rounded-full bg-muted/30 mb-6">
-                   <Box className="w-10 h-10 text-muted-foreground" />
+          {/* Overview Tab (Environments & Status) */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Quick Stats / Health (Mock) */}
+              <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <div className="bg-card border border-border p-4 rounded-xl">
+                    <div className="text-xs text-muted-foreground uppercase font-bold mb-1">Total Deployments</div>
+                    <div className="text-2xl font-semibold text-foreground">24</div>
+                 </div>
+                 <div className="bg-card border border-border p-4 rounded-xl">
+                    <div className="text-xs text-muted-foreground uppercase font-bold mb-1">Avg. Build Time</div>
+                    <div className="text-2xl font-semibold text-foreground">1m 42s</div>
+                 </div>
+                 <div className="bg-card border border-border p-4 rounded-xl">
+                    <div className="text-xs text-muted-foreground uppercase font-bold mb-1">Success Rate</div>
+                    <div className="text-2xl font-semibold text-emerald-500">98.5%</div>
+                 </div>
+                 <div className="bg-card border border-border p-4 rounded-xl">
+                    <div className="text-xs text-muted-foreground uppercase font-bold mb-1">Active Services</div>
+                    <div className="text-2xl font-semibold text-foreground">3</div>
+                 </div>
+              </div>
+
+              {/* Environments Area */}
+              <div className="md:col-span-2 space-y-4">
+                 <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Box className="w-4 h-4" /> Environments
+                 </h3>
+                 <div className="min-h-[300px] flex flex-col items-center justify-center text-center border border-dashed border-border rounded-xl bg-muted/5 p-8">
+                    <div className="p-4 rounded-full bg-muted/30 mb-4">
+                       <Layout className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-1 text-foreground">No Active Environments</h3>
+                    <p className="text-muted-foreground text-sm max-w-sm mb-6">
+                      You haven't deployed any environments yet. Start by creating your first environment.
+                    </p>
+                    <Button onClick={() => router.push('/orchestration')} className="h-9 px-4 bg-foreground text-background hover:bg-foreground/90">
+                       <Plus className="w-4 h-4 mr-2" />
+                       Create Environment
+                    </Button>
                 </div>
-                
-                <h3 className="text-lg font-medium mb-2 text-foreground">Create your Environment first</h3>
-                <p className="text-muted-foreground text-sm max-w-md mb-8">
-                  Deploying an environment is necessary to start managing your application lifecycle.
-                </p>
-                <Button className="h-10 px-6 bg-foreground text-background hover:bg-foreground/90">
-                   <Plus className="w-4 h-4 mr-2" />
-                   Create Environment
-                </Button>
+              </div>
+
+              {/* Recent Activity / Side Panel */}
+              <div className="space-y-4">
+                 <h3 className="font-semibold text-foreground">Recent Activity</h3>
+                 <div className="bg-card border border-border rounded-xl p-4 min-h-[300px]">
+                    <div className="space-y-4">
+                       {[1,2,3].map(i => (
+                         <div key={i} className="flex gap-3 items-start">
+                            <div className="w-2 h-2 mt-1.5 rounded-full bg-muted-foreground/50" />
+                            <div>
+                               <p className="text-sm text-foreground">Project created</p>
+                               <p className="text-xs text-muted-foreground">2 days ago by You</p>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -99,16 +130,19 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
           <TabsContent value="rules" className="space-y-6">
              <div className="bg-card border border-border rounded-xl p-6">
                 <div className="flex items-center justify-between mb-6">
-                   <h3 className="font-semibold text-foreground">Branch Protection</h3>
+                   <div>
+                     <h3 className="font-semibold text-foreground">Branch Protection Rules</h3>
+                     <p className="text-sm text-muted-foreground">Control how code is deployed to your environments.</p>
+                   </div>
                    <Button variant="outline" size="sm" className="text-xs">Add Rule</Button>
                 </div>
                 <div className="space-y-4">
                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
                       <div className="flex items-center gap-3">
-                         <GitBranch className="w-4 h-4 text-muted-foreground" />
+                         <ShieldCheck className="w-4 h-4 text-emerald-500" />
                          <div>
-                            <p className="text-sm font-medium text-foreground">main</p>
-                            <p className="text-xs text-muted-foreground">Require approval for production deployments</p>
+                            <p className="text-sm font-medium text-foreground">Production Freeze</p>
+                            <p className="text-xs text-muted-foreground">Main branch requires approval before promotion</p>
                          </div>
                       </div>
                       <Badge variant="outline" className="text-xs">Active</Badge>
@@ -116,60 +150,6 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                 </div>
              </div>
           </TabsContent>
-
-           {/* Variables Tab */}
-           <TabsContent value="variables" className="space-y-6">
-             <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                   <h3 className="font-semibold text-foreground">Environment Variables</h3>
-                   <Button size="sm" className="text-xs bg-foreground text-background hover:bg-foreground/90"><Plus className="w-3.5 h-3.5 mr-2" /> Add Variable</Button>
-                </div>
-                <div className="space-y-1">
-                   <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs font-medium text-muted-foreground uppercase">
-                      <div className="col-span-4">Key</div>
-                      <div className="col-span-5">Value</div>
-                      <div className="col-span-3">Environment</div>
-                   </div>
-                   {variables.map((v, i) => (
-                      <div key={i} className="grid grid-cols-12 gap-4 px-4 py-3 bg-muted/30 rounded-lg border border-border items-center">
-                         <div className="col-span-4 font-mono text-sm text-foreground">{v.key}</div>
-                         <div className="col-span-5 font-mono text-xs text-muted-foreground">{v.value}</div>
-                         <div className="col-span-3 flex items-center justify-between">
-                            <Badge variant="secondary" className="text-[10px]">{v.env}</Badge>
-                            <Button variant="ghost" size="icon" className="h-6 w-6"><SettingsIcon className="w-3 h-3" /></Button>
-                         </div>
-                      </div>
-                   ))}
-                </div>
-             </div>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
-             <div className="bg-card border border-border rounded-xl p-6">
-                <h3 className="font-semibold text-foreground mb-4">General Settings</h3>
-                <div className="grid gap-4 max-w-xl">
-                   <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">Project Name</label>
-                      <div className="flex gap-3">
-                         <Input value={displayProject.name} disabled className="bg-muted/30 border-border" />
-                         <Button variant="outline">Rename</Button>
-                      </div>
-                   </div>
-                </div>
-             </div>
-
-             <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-6">
-                <h3 className="font-semibold text-destructive mb-2">Danger Zone</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                   Deleting this project will permanently remove all associated resources, deployments, and data.
-                </p>
-                <Button variant="destructive" size="sm">
-                   <Trash2 className="w-4 h-4 mr-2" /> Delete Project
-                </Button>
-             </div>
-          </TabsContent>
-
         </Tabs>
       </div>
     </AppShell>
@@ -188,6 +168,6 @@ function TabTrigger({ value, icon, label }: { value: string, icon: any, label: s
     >
       {icon}
       <span>{label}</span>
-    </TabsTrigger>
+      </TabsTrigger>
   )
 }

@@ -27,9 +27,9 @@ import { SecretsDashboard } from "@/components/rust-core/SecretsDashboard"
 import { GridLoader } from "@/components/ui/grid-loader"
 
 // --- Environments Tab ---
-const EnvironmentsTab = ({ t, setShowModal }: any) => {
+const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void }) => {
   // Use .all() to get global environments list
-  const envsQuery = t.environments?.all?.useQuery?.()
+  const envsQuery = trpc.environments.all.useQuery()
   const environments = envsQuery?.data || []
 
   const getTypeColor = (type: string) => {
@@ -101,10 +101,13 @@ const EnvironmentsTab = ({ t, setShowModal }: any) => {
 }
 
 // --- Pipelines Tab ---
-const PipelinesTab = ({ t }: any) => {
+const PipelinesTab = () => {
   const [searchQuery, setSearchQuery] = useState("")
-  const { data, isLoading } = t.deploy.getDeployments.useInfiniteQuery({ limit: 20 })
-  const items = data?.pages[0]?.items || []
+  const { data, isLoading } = trpc.deploy.getDeployments.useInfiniteQuery(
+    { limit: 20 },
+    { getNextPageParam: (lastPage) => lastPage.nextCursor }
+  )
+  const items = data?.pages.flatMap(page => page.items) || []
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -158,7 +161,6 @@ const PipelinesTab = ({ t }: any) => {
 export default function OrchestrationHub() {
   const [activeTab, setActiveTab] = useState<'envs' | 'pipelines' | 'secrets'>('envs')
   const [showModal, setShowModal] = useState(false)
-  const t = trpc as any
 
   const tabs = [
     { id: 'envs', name: 'Environments', icon: Layers },
@@ -191,8 +193,8 @@ export default function OrchestrationHub() {
 
         {/* Dynamic Content Area */}
         <div className="min-h-[600px] stagger-children">
-          {activeTab === 'envs' && <EnvironmentsTab t={t} setShowModal={setShowModal} />}
-          {activeTab === 'pipelines' && <PipelinesTab t={t} />}
+          {activeTab === 'envs' && <EnvironmentsTab setShowModal={setShowModal} />}
+          {activeTab === 'pipelines' && <PipelinesTab />}
           {activeTab === 'secrets' && (
              <div className="bg-card p-8 animate-fade-in border border-border rounded-xl">
                 <div className="flex items-center gap-3 mb-8">

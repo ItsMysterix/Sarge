@@ -23,9 +23,9 @@ import { RemediationLogs } from "@/components/rust-core/RemediationLogs"
 import { GridLoader } from "@/components/ui/grid-loader"
 
 // --- Metrics Tab ---
-const MetricsTab = ({ t }: any) => {
+const MetricsTab = () => {
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d">("24h")
-  const metricsQuery = t.metrics?.latest?.useQuery?.()
+  const metricsQuery = trpc.metrics.latest.useQuery()
   const metrics = metricsQuery?.data || { cpu: 32, memory: 1024, latency: 45, errors: 2, requests: 1250 }
 
   return (
@@ -79,9 +79,9 @@ const MetricsTab = ({ t }: any) => {
 }
 
 // --- Logs Tab ---
-const LogsTab = ({ t }: any) => {
+const LogsTab = () => {
   const [isPaused, setIsPaused] = useState(false)
-  const logsQuery = t.logs.recent.useQuery({}, { refetchInterval: isPaused ? false : 5000 })
+  const logsQuery = trpc.logs.recent.useQuery({}, { refetchInterval: isPaused ? false : 5000 })
   const logs = logsQuery.data?.items || []
 
   return (
@@ -147,7 +147,6 @@ const TrafficTab = () => {
 
 export default function ObservabilityHub() {
   const [activeTab, setActiveTab] = useState<'metrics' | 'logs' | 'traffic'>('metrics')
-  const t = trpc as any
 
   const tabs = [
     { id: 'metrics', name: 'Performance', icon: Activity },
@@ -179,8 +178,8 @@ export default function ObservabilityHub() {
         </div>
 
         <div className="min-h-[600px]">
-          {activeTab === 'metrics' && <MetricsTab t={t} />}
-          {activeTab === 'logs' && <LogsTab t={t} />}
+          {activeTab === 'metrics' && <MetricsTab />}
+          {activeTab === 'logs' && <LogsTab />}
           {activeTab === 'traffic' && <TrafficTab />}
         </div>
       </div>
