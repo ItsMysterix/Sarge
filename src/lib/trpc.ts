@@ -2,7 +2,7 @@
 import { createTRPCReact } from '@trpc/react-query'
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client'
 // import superjson from 'superjson'
-import type { AppRouter } from '../backend/src/api/root' 
+import type { AppRouter } from "../../backend/src/api/root"
 
 // React hooks client
 export const trpc = createTRPCReact<AppRouter>()

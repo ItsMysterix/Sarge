@@ -15,8 +15,8 @@ let createContext: any;
 
 async function getBackendModules() {
   if (!appRouter) {
-    const rootModule = await import('../../../../backend/src/api/root');
-    const contextModule = await import('../../../../backend/src/context');
+    const rootModule = await import('../../../../../backend/src/api/root');
+    const contextModule = await import('../../../../../backend/src/context');
     appRouter = rootModule.appRouter;
     createContext = contextModule.createContext;
   }
@@ -26,7 +26,7 @@ async function getBackendModules() {
 async function handler(req: NextRequest) {
   // Lazy load backend modules at runtime to avoid build-time evaluation
   const { appRouter, createContext } = await getBackendModules();
-  
+
   return fetchRequestHandler({
     endpoint: '/api/trpc',
     req,

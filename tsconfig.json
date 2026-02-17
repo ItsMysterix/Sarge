@@ -20,19 +20,19 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
+        "src/*"
       ],
       "@lib/*": [
-        "lib/*"
+        "src/lib/*"
       ],
       "@hooks/*": [
-        "hooks/*"
+        "src/hooks/*"
       ],
       "@components/*": [
-        "components/*"
+        "src/components/*"
       ],
       "@styles/*": [
-        "styles/*"
+        "src/styles/*"
       ],
       "@backend/*": [
         "../backend/src/*"
