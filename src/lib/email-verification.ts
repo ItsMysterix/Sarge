@@ -29,7 +29,7 @@ export async function createVerificationCode(email: string): Promise<string> {
  */
 export async function verifyCode(email: string, code: string): Promise<boolean> {
   const pool = getDbPool()
-  
+
   const result = await pool.query(
     `DELETE FROM email_verification_codes 
      WHERE email = $1 AND code = $2 AND expires_at > NOW()
@@ -48,12 +48,16 @@ export async function cleanupExpiredCodes(): Promise<void> {
   await pool.query(`DELETE FROM email_verification_codes WHERE expires_at <= NOW()`)
 }
 
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 /**
- * Send verification email (mock for now - integrate with your email service)
+ * Send verification email via Resend
  */
 export async function sendVerificationEmail(email: string, code: string): Promise<void> {
   // In development, just log to console
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && !process.env.RESEND_API_KEY) {
     console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📧 VERIFICATION EMAIL (DEV MODE)
@@ -64,22 +68,14 @@ Code: ${code}
     return
   }
 
-  // Production email sending with nodemailer (SendGrid SMTP)
-  const nodemailer = require('nodemailer')
-  
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER || 'apikey',
-      pass: process.env.SMTP_PASS,
-    },
-  })
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY is missing, falling back to console log');
+    return;
+  }
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || 'noreply@sarge.dev',
-    to: email,
+  const { data, error } = await resend.emails.send({
+    from: process.env.SMTP_FROM || 'Sarge <noreply@sarge.dev>',
+    to: [email],
     subject: 'Verify Your Email - SARGE Command Center',
     html: `
       <!DOCTYPE html>
@@ -177,6 +173,11 @@ Code: ${code}
       </body>
       </html>
     `,
-  })
+  });
+
+  if (error) {
+    console.error('[email] Resend error:', error);
+    throw new Error('Failed to send verification email');
+  }
 }
 

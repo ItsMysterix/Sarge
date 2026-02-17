@@ -21,6 +21,7 @@ import { MembersTab } from "@/components/settings/members-tab"
 import { WebhooksTab } from "@/components/settings/webhooks-tab"
 import { AppShell } from '@/components/layout/app-shell'
 import { Settings as SettingsIcon, Loader2 } from 'lucide-react'
+import posthog from 'posthog-js'
 
 export default function Settings() {
   const { data: settings, loading, updateSettings } = useUserSettings()
@@ -89,6 +90,10 @@ export default function Settings() {
   const handleAnimationsToggle = async (enabled: boolean) => {
     setEnableAnimations(enabled)
     try {
+      // Sync with PostHog (Service Modernization)
+      posthog.setPersonProperties({ 'enable-animations': enabled })
+      posthog.capture('set_animations', { enabled })
+
       await updateSettings({ enable_animations: enabled })
       addToast({
         type: "success",

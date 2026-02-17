@@ -2,6 +2,8 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { eq, and } from 'drizzle-orm'
+import { connectedProviders } from '../lib/drizzle-schema'
 
 export type ProviderKind = 'containers' | 'functions' | 'static'
 export type ProviderStatus = 'connected' | 'disconnected'
@@ -14,7 +16,7 @@ export interface ProviderRecord {
   description: string
   costHint: string
   status: ProviderStatus
-  connectedAt?: string
+  connectedAt?: string | Date | null
 }
 
 const defaults: ProviderRecord[] = [
@@ -35,23 +37,26 @@ export const providersRouter = router({
     .query(async ({ ctx, input }) => {
       const slug = input?.projectSlug || 'global'
       try {
-        const result = await ctx.db.query(
-          `SELECT provider_id as id, status, connected_at as "connectedAt" 
-           FROM connected_providers 
-           WHERE project_slug = $1`,
-          [slug]
-        ).catch(() => ({ rows: [] }))
+        const result = await ctx.drizzleDb
+          .select({
+            id: connectedProviders.providerId,
+            status: connectedProviders.status,
+            connectedAt: connectedProviders.connectedAt
+          })
+          .from(connectedProviders)
+          .where(eq(connectedProviders.projectSlug, slug))
 
         // Merge DB status with defaults
         return defaults.map(d => {
-          const dbRow = result.rows.find((r: any) => r.id === d.id)
+          const dbRow = result.find((r: any) => r.id === d.id)
           return {
             ...d,
-            status: dbRow?.status || 'disconnected',
+            status: (dbRow?.status as ProviderStatus) || 'disconnected',
             connectedAt: dbRow?.connectedAt
           }
         })
       } catch (e) {
+        console.error('[providers.list] Drizzle error:', e)
         return defaults
       }
     }),
@@ -65,21 +70,29 @@ export const providersRouter = router({
     .mutation(async ({ ctx, input }) => {
       const slug = input.projectSlug || 'global'
       const status = input.status || 'connected'
-      const connectedAt = status === 'connected' ? new Date().toISOString() : null
+      const connectedAt = status === 'connected' ? new Date() : null
 
       try {
-        await ctx.db.query(
-          `INSERT INTO connected_providers (project_slug, provider_id, status, connected_at, updated_at)
-           VALUES ($1, $2, $3, $4, NOW())
-           ON CONFLICT (project_slug, provider_id)
-           DO UPDATE SET 
-             status = EXCLUDED.status,
-             connected_at = EXCLUDED.connected_at,
-             updated_at = NOW()`,
-          [slug, input.providerId, status, connectedAt]
-        )
-        return { id: input.providerId, status, connectedAt }
+        await ctx.drizzleDb.insert(connectedProviders)
+          .values({
+            projectSlug: slug,
+            providerId: input.providerId,
+            status: status as 'connected' | 'disconnected',
+            connectedAt: connectedAt,
+            updatedAt: new Date()
+          })
+          .onConflictDoUpdate({
+            target: [connectedProviders.projectSlug, connectedProviders.providerId],
+            set: {
+              status: status as 'connected' | 'disconnected',
+              connectedAt: connectedAt,
+              updatedAt: new Date()
+            }
+          })
+
+        return { id: input.providerId, status, connectedAt: connectedAt?.toISOString() }
       } catch (e) {
+        console.error('[providers.toggle] Drizzle error:', e)
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update provider status' })
       }
     }),

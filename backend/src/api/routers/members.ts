@@ -2,6 +2,8 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { eq, and } from 'drizzle-orm'
+import { users, projectMembers, projects } from '../lib/drizzle-schema'
 
 /**
  * Members Router
@@ -19,33 +21,45 @@ export const membersRouter = router({
         }))
         .query(async ({ ctx, input }) => {
             try {
-                const result = await ctx.db.query(
-                    `SELECT u.id, u.email, u.name, u.image, pm.role, pm.joined_at
-           FROM project_members pm
-           JOIN users u ON pm.user_id = u.id
-           WHERE pm.project_id = $1
-           ORDER BY pm.joined_at ASC`,
-                    [input.projectId]
-                ).catch(async (err: any) => {
-                    if (err?.message?.includes('project_members')) {
-                        // Fallback: the project owner is always a member
-                        const projectPrompt = ctx.db.query(
-                            `SELECT user_id FROM projects WHERE id = $1`,
-                            [input.projectId]
-                        ).then(async (res: any) => {
-                            const userId = res.rows[0]?.user_id;
-                            if (userId) {
-                                const user = await ctx.db.query(`SELECT id, email, name, image FROM users WHERE id = $1`, [userId]);
-                                return [{ ...user.rows[0], role: 'owner', joined_at: new Date() }];
-                            }
-                            return [];
-                        })
-                        return { rows: await projectPrompt }
-                    }
-                    throw err
-                })
+                const result = await ctx.drizzleDb
+                    .select({
+                        id: users.id,
+                        email: users.email,
+                        name: users.name,
+                        image: users.image,
+                        role: projectMembers.role,
+                        joinedAt: projectMembers.joinedAt
+                    })
+                    .from(projectMembers)
+                    .innerJoin(users, eq(projectMembers.userId, users.id))
+                    .where(eq(projectMembers.projectId, input.projectId))
+                    .orderBy(projectMembers.joinedAt)
 
-                return result?.rows || []
+                if (result.length === 0) {
+                    // Fallback: the project owner is always a member
+                    const [project] = await ctx.drizzleDb
+                        .select({ userId: projects.userId })
+                        .from(projects)
+                        .where(eq(projects.id, input.projectId))
+
+                    if (project?.userId) {
+                        const [user] = await ctx.drizzleDb
+                            .select({
+                                id: users.id,
+                                email: users.email,
+                                name: users.name,
+                                image: users.image
+                            })
+                            .from(users)
+                            .where(eq(users.id, project.userId))
+
+                        if (user) {
+                            return [{ ...user, role: 'owner', joinedAt: new Date() }]
+                        }
+                    }
+                }
+
+                return result
             } catch (err) {
                 console.error('[members.list] Error:', err)
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch members' })
@@ -61,32 +75,37 @@ export const membersRouter = router({
         .mutation(async ({ ctx, input }) => {
             try {
                 // Find user by email
-                const userResult = await ctx.db.query(
-                    `SELECT id FROM users WHERE email = $1`,
-                    [input.email]
-                )
+                const [user] = await ctx.drizzleDb
+                    .select({ id: users.id })
+                    .from(users)
+                    .where(eq(users.email, input.email))
 
-                if (!userResult.rows[0]) {
+                if (!user) {
                     throw new TRPCError({ code: 'NOT_FOUND', message: 'User with this email not found in Sarge' })
                 }
 
-                const userId = userResult.rows[0].id
-
                 // Check if already a member
-                const existing = await ctx.db.query(
-                    `SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2`,
-                    [input.projectId, userId]
-                ).catch(() => ({ rows: [] }))
+                const [existing] = await ctx.drizzleDb
+                    .select({ role: projectMembers.role })
+                    .from(projectMembers)
+                    .where(
+                        and(
+                            eq(projectMembers.projectId, input.projectId),
+                            eq(projectMembers.userId, user.id)
+                        )
+                    )
 
-                if (existing?.rows?.[0]) {
+                if (existing) {
                     throw new TRPCError({ code: 'CONFLICT', message: 'User is already a member of this project' })
                 }
 
-                await ctx.db.query(
-                    `INSERT INTO project_members (project_id, user_id, role, joined_at)
-           VALUES ($1, $2, $3, NOW())`,
-                    [input.projectId, userId, input.role]
-                )
+                await ctx.drizzleDb.insert(projectMembers)
+                    .values({
+                        projectId: input.projectId,
+                        userId: user.id,
+                        role: input.role,
+                        joinedAt: new Date()
+                    })
 
                 return { success: true }
             } catch (err) {
@@ -104,12 +123,15 @@ export const membersRouter = router({
         }))
         .mutation(async ({ ctx, input }) => {
             try {
-                await ctx.db.query(
-                    `UPDATE project_members 
-           SET role = $1 
-           WHERE project_id = $2 AND user_id = $3`,
-                    [input.role, input.projectId, input.userId]
-                )
+                await ctx.drizzleDb
+                    .update(projectMembers)
+                    .set({ role: input.role })
+                    .where(
+                        and(
+                            eq(projectMembers.projectId, input.projectId),
+                            eq(projectMembers.userId, input.userId)
+                        )
+                    )
                 return { success: true }
             } catch (err) {
                 console.error('[members.updateRole] Error:', err)
@@ -124,11 +146,14 @@ export const membersRouter = router({
         }))
         .mutation(async ({ ctx, input }) => {
             try {
-                await ctx.db.query(
-                    `DELETE FROM project_members 
-           WHERE project_id = $1 AND user_id = $2`,
-                    [input.projectId, input.userId]
-                )
+                await ctx.drizzleDb
+                    .delete(projectMembers)
+                    .where(
+                        and(
+                            eq(projectMembers.projectId, input.projectId),
+                            eq(projectMembers.userId, input.userId)
+                        )
+                    )
                 return { success: true }
             } catch (err) {
                 console.error('[members.remove] Error:', err)

@@ -1,5 +1,5 @@
 import type { IncomingMessage } from 'http';
-import type { db } from './api/lib/db';
+import type { db, drizzleDb } from './api/lib/db';
 import type { ee } from './api/lib/events';
 import { getToken } from 'next-auth/jwt';
 
@@ -21,6 +21,7 @@ export type Session = {
 
 export type Context = {
   db: typeof db;
+  drizzleDb: typeof drizzleDb;
   ee: typeof ee;
   requestMeta: RequestMeta;
   session?: Session | null;
@@ -30,7 +31,7 @@ export type Context = {
 export async function createContext(opts?: {
   req?: IncomingMessage | Request;
 }): Promise<Context> {
-  const { db } = await import('./api/lib/db');
+  const { db, drizzleDb } = await import('./api/lib/db');
   const { ee } = await import('./api/lib/events');
 
   const requestMeta: RequestMeta = {};
@@ -75,6 +76,7 @@ export async function createContext(opts?: {
 
   return {
     db,
+    drizzleDb,
     ee,
     requestMeta,
     session,

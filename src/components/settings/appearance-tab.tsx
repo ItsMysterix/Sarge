@@ -74,9 +74,14 @@ export function AppearanceTab({
 
       {/* Animation Settings */}
       <div className="glass-card p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Sparkles className="w-5 h-5 text-accent dark:text-accent-foreground" />
-          <h3 className="text-lg font-semibold">Animations</h3>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-accent dark:text-accent-foreground" />
+            <h3 className="text-lg font-semibold">Animations</h3>
+          </div>
+          <div className="px-2 py-1 rounded text-[10px] bg-accent/10 border border-accent/20 text-accent font-bold uppercase tracking-wider">
+            Service Powered
+          </div>
         </div>
         
         <div className="grid grid-cols-1 gap-4">

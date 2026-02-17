@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ProjectProvider } from "@/lib/project-context";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { PostHogProvider } from "@/components/providers/posthog-provider";
 import "./globals.css";
 
 // Force dynamic rendering for all pages (no static generation)
@@ -86,14 +87,16 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           <SessionProviderWrapper>
-            <ProjectProvider>
-            <TrpcReactProvider>
-                <ErrorBoundary>
-                  {children}
-                </ErrorBoundary>
-                <JsonLd />
-              </TrpcReactProvider>
-            </ProjectProvider>
+            <PostHogProvider>
+              <ProjectProvider>
+                <TrpcReactProvider>
+                  <ErrorBoundary>
+                    {children}
+                  </ErrorBoundary>
+                  <JsonLd />
+                </TrpcReactProvider>
+              </ProjectProvider>
+            </PostHogProvider>
           </SessionProviderWrapper>
         </ThemeProvider>
       </body>
