@@ -175,6 +175,9 @@ export async function ensureRateLimitTables(db: Pool) {
     await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_detected_tools JSONB;`)
     await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_analysis_summary TEXT;`)
     await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_analyzed_at TIMESTAMPTZ;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS auto_deploy BOOLEAN DEFAULT TRUE;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS auto_deploy_branch TEXT DEFAULT 'main';`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS preview_deployments BOOLEAN DEFAULT TRUE;`)
 
     await (db as any).query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
