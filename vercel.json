@@ -14,11 +14,10 @@
     "autoJobCancelation": true
   },
   "functions": {
-    "app/api/trpc/[trpc]/route.ts": {
-      "maxDuration": 60,
-      "memory": 1024
+    "src/app/api/trpc/[trpc]/route.ts": {
+      "maxDuration": 60
     },
-    "app/api/**/*.ts": {
+    "src/app/api/**/*.ts": {
       "maxDuration": 10
     }
   },

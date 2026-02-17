@@ -1,31 +1,41 @@
-# dependencies
+# Professional .gitignore for Sarge
+
+# Dependencies
 node_modules/
 **/node_modules/
 .pnpm-debug.log*
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
 
-# Next.js build
+# Next.js Build & Outputs
 .next/
 out/
-
-# Express / Node build
 build/
 dist/
 **/dist/
+
+# Configuration & Cache
+.vercel/
+.turbo/
+.cache/
+.contentlayer/
+.next-env.d.ts
 *.tsbuildinfo
 
-# Rust build artifacts
+# Rust & Bridge Artifacts
 target/
 debug/
 release/
 *.rs.bk
+rust-bridge/target/
+bridge/target/
 
 # Environment & Secrets (CRITICAL)
 .env*
 *.env
 !.env.example
-.vercel/
-.turbo/
-.cache/
+!.env.vercel.production
 
 # Logs
 logs/
@@ -35,12 +45,16 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Test coverage
+# Test Coverage & Results
 coverage/
 *.lcov
 .vitest-result/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
-# Tooling & Editor
+# Editor & Tooling
 .vscode/
 .idea/
 *.suo
@@ -48,7 +62,14 @@ coverage/
 *.njsproj
 *.sln
 *.sw?
+.eslintcache
+.stylelintcache
 
-# macOS
+# macOS & OS Secrets
 .DS_Store
 Thumbs.db
+.AppleDouble
+.LSOverride
+Icon
+.Spotlight-V100
+.Trashes
