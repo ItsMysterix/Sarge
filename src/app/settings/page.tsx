@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { useUserSettings } from "@/hooks/useApi"
+import { useUserSettings } from "@/hooks/use-sarge-api"
 import { useToast } from "@/components/ui/toast"
 import { useAppStore } from "@/lib/store"
 import { TabsNavigation, type SettingsTab } from "@/components/settings/tabs-navigation"

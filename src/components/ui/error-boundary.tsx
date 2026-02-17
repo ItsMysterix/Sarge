@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 interface Props {
   children: ReactNode
   fallbackType?: "user" | "developer" | "auto"
-  userRole?: string // Pass from parent: 'developer' | 'manager' | 'viewer'
 }
 
 interface State {
@@ -15,7 +14,11 @@ interface State {
   error: Error | null
 }
 
-export class AnimationErrorBoundary extends Component<Props, State> {
+/**
+ * Consolidated Error Boundary
+ * Provides professional recovery UI for users and deep debugging for developers.
+ */
+export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
     this.state = { hasError: false, error: null }
@@ -26,21 +29,17 @@ export class AnimationErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Animation Error:", error, errorInfo)
-    
-    // Log to external monitoring (e.g., Sentry, LogRocket)
-    // if (window.Sentry) window.Sentry.captureException(error, { extra: errorInfo })
+    console.error("[ErrorBoundary] Uncaught error:", error, errorInfo)
+    // Future: Sentry.captureException(error, { extra: errorInfo })
   }
 
   render() {
     if (this.state.hasError) {
       const isDev = process.env.NODE_ENV === "development"
-      const userRole = this.props.userRole || "viewer"
       
-      // Auto-detect: show developer view if in dev mode OR user role is developer
       let fallbackType = this.props.fallbackType || "auto"
       if (fallbackType === "auto") {
-        fallbackType = (isDev || userRole === "developer") ? "developer" : "user"
+        fallbackType = isDev ? "developer" : "user"
       }
 
       if (fallbackType === "user") {
@@ -53,25 +52,13 @@ export class AnimationErrorBoundary extends Component<Props, State> {
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-warning/10 border border-warning/30">
-                  <Users className="w-3 h-3 text-warning" />
-                  <span className="text-xs text-warning font-medium">User View</span>
-                </div>
                 <h2 className="text-2xl font-bold text-white">Temporary Display Issue</h2>
               </div>
               <p className="text-gray-400">
                 We're experiencing a minor issue with the dashboard interface. 
-                Your infrastructure is still running normally, but some visual elements may not display correctly.
+                Your infrastructure is still running normally.
               </p>
-              <div className="bg-black/30 p-4 rounded-lg border border-white/10 text-left">
-                <p className="text-sm text-gray-300 mb-2">What you can do:</p>
-                <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
-                  <li>Refresh the page to retry loading</li>
-                  <li>Check your system status via CLI if urgent</li>
-                  <li>Contact DevOps team if issue persists</li>
-                </ul>
-              </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pt-4">
                 <Button
                   onClick={() => window.location.reload()}
                   className="w-full bg-accent hover:bg-accent/90 text-black font-bold"
@@ -80,7 +67,7 @@ export class AnimationErrorBoundary extends Component<Props, State> {
                   Refresh Dashboard
                 </Button>
                 <p className="text-xs text-gray-500">
-                  Status: All systems operational • Issue ID: {Date.now().toString(36)}
+                  Status: All systems operational
                 </p>
               </div>
             </div>
@@ -98,14 +85,14 @@ export class AnimationErrorBoundary extends Component<Props, State> {
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-error">Animation Error</h2>
+                  <h2 className="text-xl font-bold text-error">Runtime Exception</h2>
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-error/10 border border-error/30">
                     <Code className="w-3 h-3 text-error" />
                     <span className="text-xs text-error font-medium">Developer Mode</span>
                   </div>
                 </div>
                 <p className="text-gray-400 text-sm">
-                  Framer Motion encountered a rendering error. Full debugging details below.
+                  The application encountered an unhandled error. Debugging details below.
                 </p>
               </div>
             </div>
@@ -140,16 +127,6 @@ export class AnimationErrorBoundary extends Component<Props, State> {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Reload Page
               </Button>
-            </div>
-
-            <div className="text-xs text-gray-500 border-t border-white/10 pt-4">
-              <p className="font-bold mb-2">Troubleshooting:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Check if framer-motion is properly installed</li>
-                <li>Verify all motion components have valid props</li>
-                <li>Look for ref forwarding issues</li>
-                <li>Check for conflicting CSS transitions</li>
-              </ul>
             </div>
           </div>
         </div>

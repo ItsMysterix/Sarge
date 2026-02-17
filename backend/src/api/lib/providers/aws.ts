@@ -226,7 +226,7 @@ export class AWSProvider implements IProvider {
                 limit: opts.limit || 100,
             }))
 
-            return (events || []).map(e => ({
+            return (events || []).map((e: any) => ({
                 timestamp: new Date(e.timestamp!).toISOString(),
                 message: e.message || '',
                 stream: logStreams[0].logStreamName,
