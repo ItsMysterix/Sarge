@@ -132,6 +132,37 @@ export async function ensureRateLimitTables(db: Pool) {
     `)
 
     await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS projects (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        description TEXT,
+        repository_id TEXT,
+        framework TEXT,
+        detected_framework TEXT,
+        detected_package_manager TEXT,
+        detected_languages JSONB,
+        build_command TEXT,
+        dev_command TEXT,
+        install_command TEXT,
+        auto_deploy BOOLEAN DEFAULT TRUE,
+        auto_deploy_branch TEXT DEFAULT 'main',
+        preview_deployments BOOLEAN DEFAULT TRUE,
+        ai_detected_ports JSONB,
+        ai_detected_tools JSONB,
+        ai_analysis_summary TEXT,
+        ai_analyzed_at TIMESTAMPTZ,
+        status TEXT DEFAULT 'active',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    // Ensure description column exists (migration)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT;`)
+
+    await (db as any).query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id TEXT,
@@ -139,6 +170,18 @@ export async function ensureRateLimitTables(db: Pool) {
         resource_type TEXT,
         resource_id TEXT,
         metadata JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT,
+        is_read BOOLEAN DEFAULT FALSE,
+        type TEXT DEFAULT 'info', -- info, success, warning, error
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `)

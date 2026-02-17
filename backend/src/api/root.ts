@@ -28,6 +28,7 @@ import { rustBridgeRouter } from './routers/rust-bridge';
 import { domainsRouter } from './routers/domains';
 import { membersRouter } from './routers/members';
 import { tokensRouter } from './routers/tokens';
+import { notificationRouter } from './routers/notification';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -59,6 +60,7 @@ export const appRouter = router({
   domains: domainsRouter,
   members: membersRouter,
   tokens: tokensRouter,
+  notification: notificationRouter,
 });
 
 export type AppRouter = typeof appRouter;

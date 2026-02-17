@@ -62,8 +62,19 @@ export default function ProjectsPage() {
     });
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <AppShell>
+        <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] animate-fade-in">
+          <GridLoader className="w-14 h-14 text-white" />
+        </div>
+      </AppShell>
+    );
+  }
+
   // Onboarding view - no projects yet
-  if (!isLoading && !hasProjects) {
+  if (!hasProjects) {
     return (
       <AppShell>
         <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in min-h-[calc(100vh-4rem)]">
@@ -176,11 +187,7 @@ export default function ProjectsPage() {
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
-          {isLoading ? (
-             <div className="col-span-full flex items-center justify-center py-20">
-               <GridLoader className="w-8 h-8" />
-             </div>
-          ) : filteredProjects.length === 0 ? (
+          {filteredProjects.length === 0 ? (
             <div className="col-span-full">
               <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
                 <Box className="w-12 h-12 text-muted-foreground/30 mb-4" />
