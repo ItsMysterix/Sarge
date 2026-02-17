@@ -104,7 +104,7 @@ jobs:
           promtool --version
 
       - name: Prometheus config check
-        run: promtool check config prometheus/prometheus.yml
+        run: promtool check config ops/infra/prometheus/prometheus.yml
 
       - name: Prometheus rules test
-        run: promtool test rules prometheus/tests/rules.test.yml
+        run: promtool test rules ops/infra/prometheus/tests/rules.test.yml

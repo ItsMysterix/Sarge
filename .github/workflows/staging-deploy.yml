@@ -91,7 +91,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.service }}/Dockerfile
+          file: ${{ matrix.service == 'backend' && 'backend/Dockerfile' || 'ops/Dockerfile' }}
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/sarge-${{ matrix.service }}:staging-${{ github.sha }}

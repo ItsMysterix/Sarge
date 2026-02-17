@@ -99,7 +99,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.service }}/Dockerfile
+          file: ${{ matrix.service == 'backend' && 'backend/Dockerfile' || 'ops/Dockerfile' }}
           tags: sarge-${{ matrix.service }}:scan
           load: true
           cache-from: type=gha

@@ -76,7 +76,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: app/Dockerfile
+          file: ops/Dockerfile
           tags: ghcr.io/${{ github.repository }}/sarge-app:dryrun-${{ github.sha }}
           push: false
           load: true
@@ -118,7 +118,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.service == 'backend' && 'backend/Dockerfile' || 'app/Dockerfile' }}
+          file: ${{ matrix.service == 'backend' && 'backend/Dockerfile' || 'ops/Dockerfile' }}
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/sarge-${{ matrix.service }}:${{ github.sha }}
