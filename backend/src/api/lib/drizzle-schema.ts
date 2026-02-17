@@ -117,6 +117,7 @@ export const connectedProviders = pgTable('connected_providers', {
     projectSlug: text('project_slug').notNull(),
     providerId: text('provider_id').notNull(),
     status: text('status').notNull().default('disconnected'),
+    credentials: jsonb('credentials').default({}),
     connectedAt: timestamp('connected_at', { withTimezone: true }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (t) => ({

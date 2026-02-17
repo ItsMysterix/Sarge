@@ -26,30 +26,84 @@ export const costOptimizationRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       try {
-        const result = await ctx.db.query(
+        const breakdown: any[] = []
+        let totalCost = 0
+
+        // 1. Fetch real-time spend from connected providers
+        const project = await ctx.db.query(
+          `SELECT slug FROM projects WHERE id = $1`,
+          [input.projectId]
+        ).then(res => res.rows[0])
+
+        if (project) {
+          const connected = await ctx.db.query(
+            `SELECT provider_id, status, credentials FROM connected_providers WHERE project_slug = $1 AND status = 'connected'`,
+            [project.slug]
+          ).catch(() => ({ rows: [] }))
+
+          for (const row of connected.rows) {
+            const provider = getProvider(row.provider_id)
+            if (provider && provider.getActualSpend) {
+              try {
+                // Use stored credentials
+                const creds = typeof row.credentials === 'string'
+                  ? JSON.parse(row.credentials)
+                  : row.credentials
+
+                const spend = await provider.getActualSpend({
+                  environmentName: 'production',
+                  credentials: {
+                    ...creds,
+                    aws_token: creds.aws_token || process.env.AWS_ACCESS_KEY_ID || '',
+                    aws_secret: creds.aws_secret || process.env.AWS_SECRET_ACCESS_KEY || '',
+                    vercel_token: creds.vercel_token || process.env.VERCEL_TOKEN || ''
+                  }
+                })
+
+                breakdown.push({
+                  provider: provider.name,
+                  total_cost: spend.total,
+                  is_actual: true,
+                  breakdown: spend.breakdown
+                })
+                totalCost += spend.total
+              } catch (e) {
+                console.error(`[CostExplorer] Failed to fetch spend for ${provider.id}:`, e)
+              }
+            }
+          }
+        }
+
+        // 2. Fallback/Augment with historical estimates if real-time data is missing for some providers
+        const historical = await ctx.db.query(
           `SELECT 
             provider_id as provider,
             SUM(monthly_estimate) as total_cost,
             COUNT(*) as resource_count
            FROM cost_estimates
            WHERE project_id = $1 
-           AND created_at > NOW() - INTERVAL '${input.timeRange === '24h' ? '1 day' : input.timeRange === '7d' ? '7 days' : input.timeRange === '30d' ? '30 days' : '90 days'}'
+           AND created_at > NOW() - INTERVAL '30 days'
+           AND provider_id NOT IN (${breakdown.map(b => `'${b.provider.toLowerCase()}'`).join(',') || "''"})
            GROUP BY provider_id`,
           [input.projectId]
-        ).catch((err: any) => {
-          if (err?.message?.includes('cost_estimates')) {
-            return { rows: [] }
-          }
-          throw err
-        })
+        ).catch(() => ({ rows: [] }))
 
-        const breakdown = result?.rows || []
+        for (const item of historical.rows || []) {
+          const cost = parseFloat(item.total_cost || '0')
+          breakdown.push({
+            provider: item.provider,
+            total_cost: cost,
+            is_actual: false
+          })
+          totalCost += cost
+        }
 
         return {
-          totalCost: breakdown.reduce((sum, item) => sum + parseFloat(item.total_cost || '0'), 0),
+          totalCost,
           breakdown,
           currency: 'USD',
           timeRange: input.timeRange,
+          updatedAt: new Date().toISOString()
         }
       } catch (err) {
         console.error('[cost.overview] Error:', err)

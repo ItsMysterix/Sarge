@@ -14,8 +14,54 @@ export interface IProvider {
     // Generate preview URL for an environment
     generatePreviewUrl(opts: PreviewOptions): Promise<string>
 
-    // Get cost estimate
-    estimateCost(opts: CostOptions): Promise<CostEstimate>
+    // PLANNING: Forecast cost BEFORE deployment (e.g. for Docker/Local planning)
+    forecastPreDeploy(opts: CostOptions): Promise<CostEstimate>
+
+    // REAL-WORLD: Get actual spend from the provider's billing API (Post-deployment)
+    getActualSpend?(opts: CostOptions & { credentials: Record<string, string> }): Promise<{
+        total: number
+        currency: string
+        breakdown: Record<string, number>
+    }>
+
+    /**
+     * COMMAND CENTER: Resource Inventory
+     * Discover absolutely everything in the account (S3, RDS, VPC, Lambda, etc.)
+     */
+    discoverResources?(opts: DiscoverOptions): Promise<DiscoveredResource[]>
+
+    /**
+     * COMMAND CENTER: Observability Streams
+     */
+    getAccountLogs?(opts: { credentials: Record<string, string>; resourceId?: string; limit?: number }): Promise<LogEntry[]>
+    getAccountMetrics?(opts: { credentials: Record<string, string>; resourceId?: string; timeRange: string }): Promise<ProviderMetric[]>
+
+    /**
+     * COMMAND CENTER: Security & Governance
+     * Fetches guardrails, compliance alerts, and security findings (e.g. GuardDuty, WAF).
+     */
+    getSecurityAlerts?(opts: { credentials: Record<string, string> }): Promise<SecurityFinding[]>
+
+    /**
+     * COMMAND CENTER: Audit Trail
+     * Fetches account-wide activity logs (e.g. CloudTrail).
+     */
+    getAuditLogs?(opts: { credentials: Record<string, string>; limit?: number }): Promise<LogEntry[]>
+
+    /**
+     * COMMAND CENTER: Inventory Deep-Dive
+     */
+    getDomains?(opts: { credentials: Record<string, string> }): Promise<DomainInfo[]>
+    getStorage?(opts: { credentials: Record<string, string> }): Promise<StorageInfo[]>
+    getFirewall?(opts: { credentials: Record<string, string> }): Promise<FirewallInfo[]>
+
+    /**
+     * COMMAND CENTER: Usage & Analytics
+     */
+    getDetailedUsage?(opts: { credentials: Record<string, string> }): Promise<UsageRecord[]>
+    getAnalytics?(opts: { credentials: Record<string, string> }): Promise<AnalyticsData[]>
+
+    // --- Deployment & Lifecycle ---
 
     // List environments
     listEnvironments(opts: ListEnvOptions): Promise<Environment[]>
@@ -42,9 +88,6 @@ export interface IProvider {
 
     // Get metrics from provider (for unified aggregation)
     getMetrics?(opts: MetricsOptions): Promise<ProviderMetric[]>
-
-    // Discover existing unmanaged resources in the cloud account
-    discoverResources?(opts: DiscoverOptions): Promise<DiscoveredResource[]>
 }
 
 // --- Core types ---
@@ -218,4 +261,56 @@ export interface DiscoveredResource {
     status: string
     region: string
     metadata: Record<string, any>
+}
+
+export interface SecurityFinding {
+    id: string
+    severity: 'critical' | 'high' | 'medium' | 'low' | 'info'
+    title: string
+    description: string
+    timestamp: string
+    resourceId?: string
+}
+
+export interface DomainInfo {
+    domain: string
+    status: 'active' | 'pending' | 'expired' | 'error'
+    expiresAt?: string
+    sslStatus: 'valid' | 'invalid' | 'generating'
+    provider: string
+}
+
+export interface StorageInfo {
+    id: string
+    name: string
+    type: 's3' | 'rds' | 'redis' | 'dynamodb' | 'kv' | 'blob' | 'pv' | 'ebs'
+    usage: number
+    unit: string
+    status: string
+    metadata: Record<string, any>
+}
+
+export interface FirewallInfo {
+    id: string
+    name: string
+    type: 'waf' | 'security_group' | 'firewall_rule' | 'network_policy'
+    status: 'enabled' | 'disabled'
+    rulesCount: number
+    description: string
+}
+
+export interface UsageRecord {
+    metric: string
+    current: number
+    limit: number
+    unit: string
+    resetDate: string
+}
+
+export interface AnalyticsData {
+    name: string
+    value: number
+    change?: number
+    unit: string
+    timeRange: string
 }

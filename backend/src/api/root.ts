@@ -33,11 +33,13 @@ import { supportRouter } from './routers/support';
 import { systemRouter } from './routers/system';
 import { settingsRouter } from './routers/settings';
 import { jobsRouter } from './routers/jobs';
+import { commandCenterRouter } from './routers/command-center';
 
 export const appRouter = router({
   metrics: metricsRouter,
   logs: logsRouter,
   deploy: deployRouter,
+  commandCenter: commandCenterRouter,
   services: servicesRouter,
   settings: settingsRouter,
   traces: tracesRouter,

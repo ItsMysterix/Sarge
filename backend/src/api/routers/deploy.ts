@@ -174,6 +174,10 @@ export const deployRouter = router({
       today.setHours(0, 0, 0, 0);
 
       try {
+        const projectId = input?.projectId;
+        const whereClause = projectId ? 'WHERE project_id = $1' : 'WHERE 1=1';
+        const params = projectId ? [projectId] : [];
+
         // Parallel queries for efficiency
         const [counts, todayCount] = await Promise.all([
           ctx.db.query(`
@@ -183,20 +187,25 @@ export const deployRouter = router({
                COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
                COUNT(CASE WHEN status = 'running' OR status = 'pending' THEN 1 END) as active
              FROM deployments
-           `),
+             ${whereClause}
+           `, params),
           ctx.db.query(`
-             SELECT COUNT(*) as count FROM deployments WHERE created_at >= $1
-           `, [today.toISOString()])
+             SELECT COUNT(*) as count FROM deployments 
+             ${whereClause} AND created_at >= $${params.length + 1}
+           `, [...params, today.toISOString()])
         ]);
 
         const row = counts.rows[0];
+        const total = parseInt(row.total) || 0;
+        const success = parseInt(row.success) || 0;
+
         return {
-          total: parseInt(row.total),
-          success: parseInt(row.success),
-          failed: parseInt(row.failed),
-          active: parseInt(row.active),
-          todayCount: parseInt(todayCount.rows[0].count),
-          successRate: parseInt(row.total) > 0 ? (parseInt(row.success) / parseInt(row.total) * 100).toFixed(1) : '0.0'
+          total,
+          success,
+          failed: parseInt(row.failed) || 0,
+          active: parseInt(row.active) || 0,
+          todayCount: parseInt(todayCount.rows[0].count) || 0,
+          successRate: total > 0 ? (success / total * 100).toFixed(1) : '0.0'
         };
       } catch (e) {
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch deployment stats', cause: e as Error });

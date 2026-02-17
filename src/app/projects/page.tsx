@@ -127,9 +127,7 @@ export default function ProjectsPage() {
   if (isLoading) {
     return (
       <AppShell>
-        <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] animate-fade-in">
-          <GridLoader className="w-14 h-14 text-muted-foreground" />
-        </div>
+        <GridLoader fullPage />
       </AppShell>
     );
   }

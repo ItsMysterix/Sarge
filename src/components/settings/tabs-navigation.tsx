@@ -1,8 +1,8 @@
 "use client"
 
-import { SettingsIcon, Bell, Palette, Keyboard, Zap, Shield, Key, Cloud, Globe, Users, Webhook } from "lucide-react"
+import { SettingsIcon, Bell, Palette, Keyboard, Zap, Shield, Key, Cloud, Globe, Users, Webhook, CreditCard } from "lucide-react"
 
-export type SettingsTab = "general" | "variables" | "targets" | "notifications" | "appearance" | "integrations" | "security" | "shortcuts" | "domains" | "members" | "webhooks"
+export type SettingsTab = "general" | "variables" | "targets" | "notifications" | "appearance" | "integrations" | "billing" | "security" | "shortcuts" | "domains" | "members" | "webhooks"
 
 interface TabsNavigationProps {
   activeTab: SettingsTab
@@ -14,6 +14,7 @@ const tabs = [
   { id: "variables" as SettingsTab, label: "Variables", icon: Key },
   { id: "targets" as SettingsTab, label: "Targets", icon: Cloud },
   { id: "integrations" as SettingsTab, label: "Integrations", icon: Zap },
+  { id: "billing" as SettingsTab, label: "Billing", icon: CreditCard },
   { id: "notifications" as SettingsTab, label: "Notifications", icon: Bell },
   { id: "domains" as SettingsTab, label: "Domains", icon: Globe },
   { id: "members" as SettingsTab, label: "Members", icon: Users },

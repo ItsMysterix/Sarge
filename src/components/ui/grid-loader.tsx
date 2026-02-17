@@ -2,13 +2,13 @@
 
 import { motion } from "framer-motion";
 
-export function GridLoader({ className }: { className?: string }) {
-  return (
-    <div className={`grid grid-cols-2 gap-1 w-8 h-8 ${className}`}>
+export function GridLoader({ className, fullPage }: { className?: string, fullPage?: boolean }) {
+  const content = (
+    <div className={cn("grid grid-cols-2 gap-1.5 w-10 h-10", className)}>
       {[0, 1, 3, 2].map((index) => (
         <motion.div
           key={index}
-          className="bg-white rounded-[1px]"
+          className="bg-foreground rounded-[2px]"
           initial={{ opacity: 0.2 }}
           animate={{ opacity: [0.2, 1, 0.2] }}
           transition={{
@@ -21,4 +21,16 @@ export function GridLoader({ className }: { className?: string }) {
       ))}
     </div>
   );
+
+  if (fullPage) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] w-full animate-fade-in">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
 }
+
+import { cn } from "@/lib/utils";

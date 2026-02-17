@@ -1,65 +1,15 @@
 "use client"
 
-import { Cloud, Globe2, Zap, Plug, Link as LinkIcon, Check } from "lucide-react"
-import { trpc } from "@/lib/trpc"
-import { useProject } from "@/lib/project-context"
-import { useToast } from "@/components/ui/toast"
+import { Cloud, Globe2, Zap, Plug, Link as LinkIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const defaultProviders = [
-  { id: "vercel", name: "Vercel", kind: "functions" as const, description: "Serverless deployments", badge: "Edge" },
-  { id: "railway", name: "Railway", kind: "containers" as const, description: "Container hosting", badge: "Docker" },
-  { id: "fly", name: "Fly.io", kind: "containers" as const, description: "Global edge containers", badge: "Edge" },
-  { id: "netlify", name: "Netlify", kind: "static" as const, description: "Static sites & functions", badge: "JAMstack" },
-  { id: "aws", name: "AWS", kind: "containers" as const, description: "Full cloud infrastructure", badge: "Enterprise" },
-]
+interface TargetsTabProps {
+  providers: any[]
+  onToggleProvider: (id: string, currentStatus: string) => void
+}
 
-export function TargetsTab() {
-  const { currentProject } = useProject()
-  const { addToast } = useToast()
-  const t = trpc as any
-  
-  const providersQuery = t.providers?.list?.useQuery(
-    { projectSlug: currentProject?.slug },
-    { enabled: !!currentProject?.slug }
-  )
-  
-  const toggleMutation = t.providers?.toggle?.useMutation({
-    onSuccess: () => {
-      providersQuery?.refetch()
-    }
-  })
-
-  // Merge API data with defaults
-  const providers = defaultProviders.map(p => {
-    const apiProvider = providersQuery?.data?.find((ap: any) => ap.id === p.id)
-    return {
-      ...p,
-      status: apiProvider?.status || "disconnected"
-    }
-  })
-
-  const handleToggle = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === "connected" ? "disconnected" : "connected"
-    
-    try {
-      await toggleMutation?.mutateAsync({
-        providerId: id,
-        projectSlug: currentProject?.slug,
-        status: newStatus
-      })
-      addToast({
-        type: newStatus === "connected" ? "success" : "info",
-        title: newStatus === "connected" ? "Connected" : "Disconnected",
-        description: `Provider ${newStatus === "connected" ? "ready for deployment" : "disconnected"}`
-      })
-    } catch (err) {
-      console.error('Failed to trigger test notification:', err);
-      addToast({ type: "error", title: "Failed", description: "Could not update provider" })
-    }
-  }
-
-  const getIcon = (kind: "containers" | "functions" | "static") => {
+export function TargetsTab({ providers, onToggleProvider }: TargetsTabProps) {
+  const getIcon = (kind: "containers" | "functions" | "static" | string) => {
     if (kind === "static") return <Globe2 className="w-5 h-5" />
     if (kind === "functions") return <Zap className="w-5 h-5" />
     return <Cloud className="w-5 h-5" />
@@ -84,17 +34,17 @@ export function TargetsTab() {
           <div
             key={provider.id}
             className={cn(
-              "glass-card p-5 flex flex-col gap-4 transition-all",
+              "glass-card border border-white/10 p-5 flex flex-col gap-4 transition-all hover:border-white/20 group",
               provider.status === "connected" && "border-emerald-500/30"
             )}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center",
+                  "w-10 h-10 rounded-lg flex items-center justify-center border transition-colors",
                   provider.status === "connected" 
-                    ? "bg-emerald-500/10 text-emerald-400" 
-                    : "bg-white/5 text-muted-foreground"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                    : "bg-white/5 text-muted-foreground border-white/10 group-hover:bg-white/10"
                 )}>
                   {getIcon(provider.kind)}
                 </div>
@@ -104,40 +54,40 @@ export function TargetsTab() {
                 </div>
               </div>
               
-              {provider.status === "connected" && (
-                <div className="flex items-center gap-1 text-xs text-emerald-400">
-                  <Check className="w-3 h-3" />
-                  Connected
-                </div>
-              )}
+              <div className={cn(
+                "text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border tracking-widest",
+                provider.status === 'connected' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-muted-foreground border-white/10"
+              )}>
+                {provider.status}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground uppercase font-bold tracking-tighter">
                 {provider.badge}
+              </span>
+              <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest opacity-70">
+                {provider.costHint}
               </span>
             </div>
 
             <button
-              onClick={() => handleToggle(provider.id, provider.status)}
-              disabled={toggleMutation?.isLoading}
+              onClick={() => onToggleProvider(provider.id, provider.status)}
               className={cn(
-                "w-full py-2 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2",
-                provider.status === "connected"
-                  ? "border-white/10 text-muted-foreground hover:border-white/20"
-                  : "border-white/20 text-foreground hover:bg-white/5"
+                "w-full py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                provider.status === 'connected' 
+                  ? "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20" 
+                  : "bg-white/10 text-foreground border border-white/20 hover:bg-white/20"
               )}
             >
-              {provider.status === "connected" ? (
-                <>
-                  <Plug className="w-4 h-4" />
-                  Disconnect
-                </>
+              {provider.status === 'connected' ? (
+                <span className="flex items-center justify-center gap-2">
+                   <Plug className="w-3 h-3" /> Disconnect
+                </span>
               ) : (
-                <>
-                  <LinkIcon className="w-4 h-4" />
-                  Connect
-                </>
+                <span className="flex items-center justify-center gap-2">
+                   <LinkIcon className="w-3 h-3" /> Connect Account
+                </span>
               )}
             </button>
           </div>

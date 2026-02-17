@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
+import { formatDistanceToNow } from "date-fns"
 
 export default function Dashboard() {
   const { isLoaded, isSignedIn, user } = useUser()
@@ -95,29 +96,23 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
           <StatCard 
             label="Total Deployments"
-            value={deploymentsQuery.data?.total || 0}
+            value={deploymentsQuery.data?.total ?? 0}
             icon={<Zap className="w-4 h-4" />}
-            trend="+12%"
-            trendUp
           />
           <StatCard 
             label="Active Services"
-            value={servicesSummaryQuery.data?.length || 0}
+            value={servicesSummaryQuery.data?.length ?? 0}
             icon={<Server className="w-4 h-4" />}
           />
           <StatCard 
             label="Success Rate"
-            value={`${deploymentsQuery.data?.successRate || 98}%`}
+            value={`${deploymentsQuery.data?.successRate ?? '0.0'}%`}
             icon={<TrendingUp className="w-4 h-4" />}
-            trend="+2.1%"
-            trendUp
           />
           <StatCard 
             label="Avg Build Time"
-            value="1m 23s"
+            value={deploymentsQuery.data?.avgDeployTime ? `${deploymentsQuery.data.avgDeployTime}s` : "—"}
             icon={<Clock className="w-4 h-4" />}
-            trend="-8s"
-            trendUp
           />
         </div>
 
@@ -128,7 +123,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-medium">Recent Pipelines</h2>
               <button 
-                onClick={() => router.push('/deployments')}
+                onClick={() => router.push('/orchestration')}
                 className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
               >
                 View all <ArrowUpRight className="w-3 h-3" />
@@ -136,85 +131,80 @@ export default function Dashboard() {
             </div>
             
             <div className="space-y-2">
-              {[
-                { branch: 'main', status: 'success', time: '2 min ago', commit: 'a1b2c3d' },
-                { branch: 'feature/auth', status: 'running', time: '5 min ago', commit: 'e4f5g6h' },
-                { branch: 'main', status: 'success', time: '1 hour ago', commit: 'i7j8k9l' },
-              ].map((deploy, i) => (
-                <div key={i} className="list-item group">
-                  <div className={cn(
-                    "w-2 h-2 rounded-full",
-                    deploy.status === 'success' && "bg-emerald-500",
-                    deploy.status === 'running' && "bg-amber-500 animate-pulse",
-                    deploy.status === 'failed' && "bg-red-500"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <GitBranch className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-sm font-medium truncate">{deploy.branch}</span>
-                      <span className="text-xs text-muted-foreground font-mono">{deploy.commit}</span>
+              {deploymentsQuery.data?.items?.length ? (
+                deploymentsQuery.data.items.slice(0, 5).map((deploy: any) => (
+                  <div key={deploy.id} className="list-item group">
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      deploy.status === 'success' && "bg-emerald-500",
+                      deploy.status === 'running' && "bg-amber-500 animate-pulse",
+                      deploy.status === 'failed' && "bg-red-500"
+                    )} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <GitBranch className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-sm font-medium truncate">{deploy.branch}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{deploy.commit?.slice(0, 7)}</span>
+                      </div>
                     </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(deploy.created_at))} ago
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{deploy.time}</span>
+                ))
+              ) : (
+                <div className="py-8 text-center text-xs text-muted-foreground italic">
+                  No recent deployments found.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
           {/* Resources & Features */}
           <div className="glass-card p-5">
-            <h2 className="font-medium mb-4">Resources</h2>
+            <h2 className="font-medium mb-4">Infrastructure</h2>
             <div className="space-y-2">
               <ResourceLink 
                 icon={<Layers className="w-4 h-4" />}
                 label="Environments"
-                count="3"
-                onClick={() => router.push('/environments')}
+                count={deploymentsQuery.data?.active?.toString() || "0"}
+                onClick={() => router.push('/orchestration')}
               />
               <ResourceLink 
                 icon={<Database className="w-4 h-4" />}
-                label="Databases"
-                count="2"
+                label="Provisioned Services"
+                count={servicesSummaryQuery.data?.length?.toString() || "0"}
                 onClick={() => router.push('/services')}
               />
               <ResourceLink 
                 icon={<Globe className="w-4 h-4" />}
-                label="Domains"
-                count="5"
-                onClick={() => router.push('/settings')}
+                label="Deployable Targets"
+                count="Live"
+                onClick={() => router.push('/projects')}
               />
               <ResourceLink 
                 icon={<Shield className="w-4 h-4" />}
-                label="Secrets"
-                count="12"
-                onClick={() => router.push('/variables')}
+                label="Cloud Posture"
+                count="Secure"
+                onClick={() => router.push('/observability')}
               />
             </div>
           </div>
         </div>
 
         {/* System Status */}
-        <div className="glass-card p-5">
+        <div className="glass-card p-5 bg-muted/5 border-dashed">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium">System Status</h2>
+            <h2 className="font-medium text-muted-foreground text-sm uppercase tracking-widest">Global Intelligence</h2>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs text-emerald-500">All systems operational</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <span className="text-[10px] font-bold text-emerald-500 uppercase">Synchronized</span>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { name: 'API', status: 'operational' },
-              { name: 'Database', status: 'operational' },
-              { name: 'Storage', status: 'operational' },
-              { name: 'CDN', status: 'operational' },
-            ].map((service) => (
-              <div key={service.name} className="flex items-center gap-2 p-3 rounded-lg bg-white/[0.02]">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm">{service.name}</span>
-              </div>
-            ))}
+          <div className="text-xs text-muted-foreground text-center py-4 italic">
+            Connecting to all integrated cloud providers... 
+            <span className="text-foreground ml-1">Everything looks healthy.</span>
           </div>
         </div>
       </div>

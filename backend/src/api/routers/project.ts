@@ -551,4 +551,33 @@ export const projectRouter = router({
         });
       }
     }),
+
+  // Get project activity
+  getActivity: secureProcedure('project.getActivity')
+    .input(z.object({
+      projectId: z.string().uuid(),
+      limit: z.number().min(1).max(50).default(10)
+    }))
+    .query(async ({ input, ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
+      try {
+        const result = await ctx.db.query(
+          `SELECT id, action, details, created_at
+           FROM project_activity
+           WHERE project_id = $1
+           ORDER BY created_at DESC
+           LIMIT $2`,
+          [input.projectId, input.limit]
+        );
+
+        return result.rows || [];
+      } catch (error) {
+        console.error('[project.getActivity] Error:', error);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch activity', cause: error as Error });
+      }
+    }),
 });

@@ -79,14 +79,16 @@ export const providersRouter = router({
             providerId: input.providerId,
             status: status as 'connected' | 'disconnected',
             connectedAt: connectedAt,
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            credentials: status === 'disconnected' ? {} : undefined
           })
           .onConflictDoUpdate({
             target: [connectedProviders.projectSlug, connectedProviders.providerId],
             set: {
               status: status as 'connected' | 'disconnected',
               connectedAt: connectedAt,
-              updatedAt: new Date()
+              updatedAt: new Date(),
+              ...(status === 'disconnected' ? { credentials: {} } : {})
             }
           })
 
@@ -94,6 +96,42 @@ export const providersRouter = router({
       } catch (e) {
         console.error('[providers.toggle] Drizzle error:', e)
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update provider status' })
+      }
+    }),
+
+  saveCredentials: secureProcedure('providers.saveCredentials')
+    .input(z.object({
+      providerId: z.string(),
+      projectSlug: z.string().optional(),
+      credentials: z.record(z.string(), z.any()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const slug = input.projectSlug || 'global'
+
+      try {
+        await ctx.drizzleDb.insert(connectedProviders)
+          .values({
+            projectSlug: slug,
+            providerId: input.providerId,
+            status: 'connected',
+            credentials: input.credentials,
+            connectedAt: new Date(),
+            updatedAt: new Date()
+          })
+          .onConflictDoUpdate({
+            target: [connectedProviders.projectSlug, connectedProviders.providerId],
+            set: {
+              status: 'connected',
+              credentials: input.credentials,
+              connectedAt: new Date(),
+              updatedAt: new Date()
+            }
+          })
+
+        return { success: true, providerId: input.providerId }
+      } catch (e) {
+        console.error('[providers.saveCredentials] Drizzle error:', e)
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to save provider credentials' })
       }
     }),
 })

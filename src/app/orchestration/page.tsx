@@ -34,8 +34,9 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "prod": return "bg-foreground/10 text-foreground border-foreground/20"
+      case "production": return "bg-foreground/10 text-foreground border-foreground/20"
       case "staging": return "bg-muted/50 text-muted-foreground border-muted-foreground/20"
+      case "development": return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
       default: return "bg-muted/30 text-muted-foreground border-muted-foreground/20"
     }
   }
@@ -55,10 +56,18 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {environments.length === 0 ? (
+        {envsQuery.isLoading ? (
+          <div className="col-span-full py-20 flex justify-center"><GridLoader /></div>
+        ) : environments.length === 0 ? (
           <div className="col-span-full py-12 text-center border border-dashed border-border rounded-xl">
             <Layers className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">No environments configured yet.</p>
+            <p className="text-xs text-muted-foreground mb-4">No environments configured yet.</p>
+            <button
+               onClick={() => setShowModal(true)}
+               className="text-[10px] uppercase font-bold text-foreground border border-foreground/20 px-4 py-2 rounded-lg hover:bg-foreground/5"
+            >
+               Provision Infrastructure
+            </button>
           </div>
         ) : (
           environments.map((env: any) => (
@@ -82,15 +91,20 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
                   <GitBranch className="w-3 h-3" /> <code>{env.branch || 'main'}</code>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Globe className="w-3 h-3" /> {env.name.toLowerCase()}.sarge.io
+                  <Globe className="w-3 h-3" /> {env.provider_id.toUpperCase()} Edge Network
                 </div>
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-border text-[10px]">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-foreground animate-pulse" />
-                  <span className="text-muted-foreground uppercase font-bold tracking-tighter">Active</span>
+                  <div className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    env.status === 'active' ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"
+                  )} />
+                  <span className="text-muted-foreground uppercase font-bold tracking-tighter">{env.status}</span>
                 </div>
-                <span className="text-muted-foreground">Updated {formatDistanceToNow(new Date(env.last_deploy || Date.now()))} ago</span>
+                <span className="text-muted-foreground">
+                  Created {formatDistanceToNow(new Date(env.created_at))} ago
+                </span>
               </div>
             </div>
           ))
