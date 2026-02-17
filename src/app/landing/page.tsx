@@ -88,40 +88,42 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <HeroSection handleLaunchClick={handleLaunchClick} />
-      <StatsSection />
-      <FeaturesSection />
-      <WorkflowSection />
-      <ProvidersSection />
+      <main>
+        <HeroSection handleLaunchClick={handleLaunchClick} />
+        <StatsSection />
+        <FeaturesSection />
+        <WorkflowSection />
+        <ProvidersSection />
 
-      <section className="py-24 border-t border-border">
-        <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="reveal-on-scroll glass-card rounded-xl p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                <Eye className="w-5 h-5 text-emerald-400" />
+        <section className="py-24 border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="reveal-on-scroll glass-card rounded-xl p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-semibold">Full Visibility</h3>
               </div>
-              <h3 className="text-lg font-semibold">Full Visibility</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                See every deployment, every cost, every drift issue across all projects and providers. Audit trails are automatic.
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              See every deployment, every cost, every drift issue across all projects and providers. Audit trails are automatic.
-            </p>
-          </div>
-          <div className="glass-card rounded-xl p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-blue-400" />
+            <div className="glass-card rounded-xl p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold">Security First</h3>
               </div>
-              <h3 className="text-lg font-semibold">Security First</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Secrets never leave your environment. OAuth and API key auth for every provider. Role-based access.
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Secrets never leave your environment. OAuth and API key auth for every provider. Role-based access.
-            </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <CTASection />
+        <CTASection />
+      </main>
       <Footer />
     </div>
   )
