@@ -194,8 +194,19 @@ export async function ensureRateLimitTables(db: Pool) {
         user_id TEXT NOT NULL,
         title TEXT NOT NULL,
         message TEXT,
-        is_read BOOLEAN DEFAULT FALSE,
         type TEXT DEFAULT 'info', -- info, success, warning, error
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS project_activity (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        details JSONB DEFAULT '{}',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `)

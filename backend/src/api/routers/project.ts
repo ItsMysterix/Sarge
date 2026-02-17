@@ -212,19 +212,23 @@ export const projectRouter = router({
         if (input.repositoryId) {
           try {
             const modName = ['sarge', '-', 'core'].join('')
+            // Use try/catch for the require as well
             const core = require(modName)
-            const detection = await core.detector.detectStack(input.repositoryId)
-            detectedInfo = {
-              detected_framework: detection.name,
-              detected_package_manager: detection.packageManager,
-              detected_languages: detection.languages || [],
-              ai_detected_ports: detection.ports || [],
-              ai_detected_tools: detection.tools || [],
-              ai_analysis_summary: detection.summary || '',
-              ai_analyzed_at: new Date().toISOString(),
+            if (core && core.detector) {
+              const detection = await core.detector.detectStack(input.repositoryId)
+              detectedInfo = {
+                detected_framework: detection.name,
+                detected_package_manager: detection.packageManager,
+                detected_languages: detection.languages || [],
+                ai_detected_ports: detection.ports || [],
+                ai_detected_tools: detection.tools || [],
+                ai_analysis_summary: detection.summary || '',
+                ai_analyzed_at: new Date().toISOString(),
+              }
             }
           } catch (err) {
-            console.error('AI detection failed:', err)
+            console.error('[project.create] AI detection failed (non-fatal):', err)
+            // Continue without detection info
           }
         }
 
@@ -267,29 +271,34 @@ export const projectRouter = router({
 
         const project = result.rows[0]
 
-        // Log activity
-        await ctx.db.query(
-          `INSERT INTO project_activity (project_id, user_id, action, details)
-           VALUES ($1, $2, $3, $4)`,
-          [
-            project.id,
-            userId,
-            'created',
-            JSON.stringify({ name: input.name, repository_id: input.repositoryId }),
-          ]
-        )
+        // Activity and Notification logging should not block project return if they fail
+        try {
+          // Log activity
+          await ctx.db.query(
+            `INSERT INTO project_activity (project_id, user_id, action, details)
+             VALUES ($1, $2, $3, $4)`,
+            [
+              project.id,
+              userId,
+              'created',
+              JSON.stringify({ name: input.name, repository_id: input.repositoryId }),
+            ]
+          )
 
-        // Add notification
-        await ctx.db.query(
-          `INSERT INTO notifications (user_id, title, message, type)
-           VALUES ($1, $2, $3, $4)`,
-          [
-            userId,
-            'Project Created',
-            `Project "${input.name}" has been created successfully.`,
-            'success'
-          ]
-        )
+          // Add notification
+          await ctx.db.query(
+            `INSERT INTO notifications (user_id, title, message, type)
+             VALUES ($1, $2, $3, $4)`,
+            [
+              userId,
+              'Project Created',
+              `Project "${input.name}" has been created successfully.`,
+              'success'
+            ]
+          )
+        } catch (logErr) {
+          console.error('[project.create] Failed to log activity/notification (non-fatal):', logErr)
+        }
 
         return project
       } catch (error: any) {

@@ -89,11 +89,37 @@ export async function ensureCoreSchema(pool: Pool) {
     console.warn('[schema] Could not add slug to projects:', e)
   }
 
+  // project_activity
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_activity (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id TEXT NOT NULL, -- UUID or TEXT
+      user_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      details JSONB DEFAULT '{}',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `)
+
+  // notifications
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      type TEXT DEFAULT 'info',
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `)
+
   // Helpful indexes
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_repositories_user_id ON repositories(user_id);`)
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_repositories_primary ON repositories(user_id, is_primary) WHERE is_primary = true;`)
   try {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_repository_id ON projects(repository_id);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_project_activity_project_id ON project_activity(project_id);`)
   } catch (e) {
     // Projects table might not exist; ignore
   }
