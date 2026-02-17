@@ -1,9 +1,10 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { Sidebar } from "./sidebar"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Search, Plus, Bell } from "lucide-react"
+import { NotificationPopover } from "../ui/notification-popover"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -11,6 +12,15 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/projects?q=${encodeURIComponent(searchQuery)}`)
+    }
+  }
 
   // Hide sidebar only on landing and auth pages
   const hideSidebar = pathname === "/landing" || 
@@ -35,26 +45,29 @@ export function AppShell({ children }: AppShellProps) {
             {/* Actions */}
             <div className="flex items-center gap-3">
               {/* Search */}
-              <div className="relative group">
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:text-foreground hover:border-white/10 hover:bg-white/[0.05] transition-all w-64">
-                  <Search className="w-3.5 h-3.5" />
-                  <span className="text-xs">Search...</span>
-                  <div className="flex gap-0.5 ml-auto">
-                    <kbd className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5 font-mono">⌘K</kbd>
+              <form onSubmit={handleSearch} className="relative group">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
+                  <input 
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-64 h-9 pl-9 pr-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-muted-foreground focus:text-foreground focus:border-white/10 focus:bg-white/[0.05] transition-all outline-none placeholder:text-muted-foreground/50"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
+                    <kbd className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5 font-mono text-muted-foreground">↵</kbd>
                   </div>
-                </button>
-              </div>
+                </div>
+              </form>
 
               <div className="w-px h-4 bg-white/[0.06] mx-1" />
               
-              <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Feedback</a>
-              <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors mr-2">Docs</a>
+              <a href="mailto:support@sarge.dev" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Feedback</a>
+              <a href="/docs" className="text-xs text-muted-foreground hover:text-foreground transition-colors mr-2">Docs</a>
               
               {/* Notifications */}
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors relative">
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-black" />
-              </button>
+              <NotificationPopover />
             </div>
           </header>
         )}

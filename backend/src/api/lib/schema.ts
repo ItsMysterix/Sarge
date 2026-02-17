@@ -161,6 +161,20 @@ export async function ensureRateLimitTables(db: Pool) {
 
     // Ensure description column exists (migration)
     await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS framework TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS repository_id TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS build_command TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS dev_command TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS install_command TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS output_directory TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS root_directory TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS detected_framework TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS detected_package_manager TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS detected_languages JSONB;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_detected_ports JSONB;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_detected_tools JSONB;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_analysis_summary TEXT;`)
+    await (db as any).query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_analyzed_at TIMESTAMPTZ;`)
 
     await (db as any).query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
@@ -182,6 +196,33 @@ export async function ensureRateLimitTables(db: Pool) {
         message TEXT,
         is_read BOOLEAN DEFAULT FALSE,
         type TEXT DEFAULT 'info', -- info, success, warning, error
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL, -- 'bug', 'feedback'
+        subject TEXT NOT NULL,
+        description TEXT NOT NULL,
+        status TEXT DEFAULT 'open', -- 'open', 'resolved'
+        priority TEXT DEFAULT 'medium', -- 'low', 'medium', 'high'
+        metadata JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS system_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        level TEXT NOT NULL, -- 'error', 'warn', 'info'
+        source TEXT NOT NULL, -- 'trpc', 'worker', 'auth', 'client'
+        message TEXT NOT NULL,
+        stack_trace TEXT,
+        context JSONB,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `)

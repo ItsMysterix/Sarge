@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Plus, 
   Search, 
@@ -22,8 +22,9 @@ import { GridLoader } from '@/components/ui/grid-loader';
 
 export default function ProjectsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast: toast, ToastContainer } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get('q') || '');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState('');
 

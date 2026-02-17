@@ -29,6 +29,8 @@ import { domainsRouter } from './routers/domains';
 import { membersRouter } from './routers/members';
 import { tokensRouter } from './routers/tokens';
 import { notificationRouter } from './routers/notification';
+import { supportRouter } from './routers/support';
+import { systemRouter } from './routers/system';
 
 export const appRouter = router({
   metrics: metricsRouter,
@@ -61,6 +63,8 @@ export const appRouter = router({
   members: membersRouter,
   tokens: tokensRouter,
   notification: notificationRouter,
+  support: supportRouter,
+  system: systemRouter,
 });
 
 export type AppRouter = typeof appRouter;

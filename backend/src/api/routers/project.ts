@@ -279,6 +279,18 @@ export const projectRouter = router({
           ]
         )
 
+        // Add notification
+        await ctx.db.query(
+          `INSERT INTO notifications (user_id, title, message, type)
+           VALUES ($1, $2, $3, $4)`,
+          [
+            userId,
+            'Project Created',
+            `Project "${input.name}" has been created successfully.`,
+            'success'
+          ]
+        )
+
         return project
       } catch (error: any) {
         if (error instanceof TRPCError) throw error;

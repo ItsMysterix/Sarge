@@ -12,9 +12,9 @@ export function GridLoader({ className }: { className?: string }) {
           initial={{ opacity: 0.2 }}
           animate={{ opacity: [0.2, 1, 0.2] }}
           transition={{
-            duration: 1.2,
+            duration: 0.8,
             repeat: Infinity,
-            delay: index * 0.2,
+            delay: index * 0.15,
             ease: "easeInOut",
           }}
         />
