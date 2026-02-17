@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import type React from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { TrpcReactProvider } from "@/lib/trpc-provider"; 
-import { AuthDebug } from "@/components/debug/auth-debug";
 import { SessionProviderWrapper } from "@/components/providers/session-provider-wrapper";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ProjectProvider } from "@/lib/project-context";
@@ -92,7 +91,6 @@ export default function RootLayout({
                 <ErrorBoundary>
                   {children}
                 </ErrorBoundary>
-                <AuthDebug />
                 <JsonLd />
               </TrpcReactProvider>
             </ProjectProvider>
