@@ -1,70 +1,28 @@
 "use client"
 
-import { useState } from "react"
 import * as Dialog from "@radix-ui/react-dialog"
-import { X, Bug, MessageSquare, Send, AlertCircle } from "lucide-react"
+import { X, Bug, MessageSquare, ExternalLink, Github, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { trpc } from "@/lib/trpc"
-import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
 interface SupportModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  defaultTab?: 'bug' | 'feedback'
 }
 
-export function SupportModal({ open, onOpenChange, defaultTab = 'bug' }: SupportModalProps) {
-  const [tab, setTab] = useState<'bug' | 'feedback'>(defaultTab)
-  const [subject, setSubject] = useState("")
-  const [description, setDescription] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const { addToast: toast } = useToast()
-
-  const createTicketMutation = trpc.support.createTicket.useMutation({
-    onSuccess: () => {
-      toast({ type: "success", title: "Sent!", description: "We've received your message." })
-      setSubject("")
-      setDescription("")
-      onOpenChange(false)
-    },
-    onError: (error) => {
-      toast({ type: "error", title: "Error", description: error.message })
-    },
-    onSettled: () => {
-      setIsSubmitting(false)
-    }
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    const metadata = {
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-      screenSize: `${window.innerWidth}x${window.innerHeight}`,
-    }
-
-    createTicketMutation.mutate({
-      type: tab,
-      subject,
-      description,
-      priority: tab === 'bug' ? 'medium' : 'low',
-      metadata,
-    })
-  }
+export function SupportModal({ open, onOpenChange }: SupportModalProps) {
+  // Constants for professional tools
+  const GITHUB_ISSUES_URL = "https://github.com/ItsMysterix/Sarge/issues/new"
+  const CANNY_FEEDBACK_URL = "https://sarge.canny.io/feedback" // Placeholder
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl p-6 z-[101] outline-none">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl p-6 z-[101] outline-none">
           <div className="flex items-center justify-between mb-6">
             <Dialog.Title className="text-xl font-semibold text-white">
-              {tab === 'bug' ? 'Report a Bug' : 'Give Feedback'}
+              Support Center
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-1 hover:bg-white/5 rounded-lg text-muted-foreground transition-colors">
@@ -73,74 +31,70 @@ export function SupportModal({ open, onOpenChange, defaultTab = 'bug' }: Support
             </Dialog.Close>
           </div>
 
-          <div className="flex gap-2 mb-6">
-            <button 
-              onClick={() => setTab('bug')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border transition-all text-sm font-medium",
-                tab === 'bug' 
-                  ? "bg-red-500/10 border-red-500/30 text-red-500" 
-                  : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
-              )}
+          <p className="text-sm text-muted-foreground mb-8">
+            Choose how you'd like to reach out. We use professional tools to track and prioritize requests.
+          </p>
+
+          <div className="grid gap-4">
+            {/* GitHub Issues - Bugs */}
+            <a 
+              href={GITHUB_ISSUES_URL} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all"
             >
-              <Bug className="w-4 h-4" />
-              Bug Report
-            </button>
-            <button 
-              onClick={() => setTab('feedback')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border transition-all text-sm font-medium",
-                tab === 'feedback' 
-                  ? "bg-blue-500/10 border-blue-500/30 text-blue-500" 
-                  : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
-              )}
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 group-hover:scale-110 transition-transform">
+                <Bug className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-medium text-white">Report a Bug</h3>
+                  <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Track technical issues and contribute directly via <strong>GitHub Issues</strong>.
+                </p>
+              </div>
+            </a>
+
+            {/* Canny - Feedback & Roadmap */}
+            <a 
+              href={CANNY_FEEDBACK_URL} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all"
             >
-              <MessageSquare className="w-4 h-4" />
-              Feedback
-            </button>
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 group-hover:scale-110 transition-transform">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-medium text-white">Feature Requests</h3>
+                  <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Suggest features and upvote upcoming roadmap items on <strong>Canny</strong>.
+                </p>
+              </div>
+            </a>
+
+            {/* Discord/Community Placeholder */}
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01] opacity-60">
+              <div className="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500 border border-violet-500/20">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-white/70">Community Discord</h3>
+                <p className="text-xs text-muted-foreground italic">Coming soon</p>
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
-              <Input 
-                id="subject" 
-                placeholder={tab === 'bug' ? "What's broken?" : "What's on your mind?"}
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required
-                className="bg-black border-white/10"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <textarea 
-                id="description"
-                rows={4}
-                placeholder={tab === 'bug' ? "Please describe the steps to reproduce..." : "How can we improve Sarge?"}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-                className="w-full bg-black border border-white/10 rounded-lg p-3 text-sm focus:border-violet-500/50 outline-none transition-all resize-none"
-              />
-            </div>
-
-            <div className="bg-white/5 border border-white/5 rounded-lg p-3 flex gap-3 text-xs text-muted-foreground">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <p>System info (browser, route, timestamp) will be automatically attached to help us debug.</p>
-            </div>
-
-            <div className="pt-2">
-              <Button 
-                type="submit" 
-                className="w-full bg-white text-black hover:bg-white/90" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Sending..." : "Send Message"}
-                <Send className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </form>
+          <div className="mt-8 flex justify-end">
+            <Dialog.Close asChild>
+              <Button variant="ghost" className="text-xs h-8">Close</Button>
+            </Dialog.Close>
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
