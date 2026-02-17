@@ -1,6 +1,7 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 
 export type ProviderKind = 'containers' | 'functions' | 'static'
 export type ProviderStatus = 'connected' | 'disconnected'
@@ -28,24 +29,31 @@ const defaults: ProviderRecord[] = [
   { id: 'render', name: 'Render', kind: 'containers', badge: 'Containers', description: 'Apps, static, cron, DB', costHint: 'Starter $7+/mo; static free', status: 'disconnected' },
 ]
 
-const store = new Map<string, ProviderRecord[]>()
-
-const getKey = (projectSlug?: string | null) => projectSlug || 'global'
-
-function getState(projectSlug?: string | null): ProviderRecord[] {
-  const key = getKey(projectSlug)
-  if (!store.has(key)) {
-    // clone defaults
-    store.set(key, defaults.map((d) => ({ ...d })))
-  }
-  return store.get(key) ?? []
-}
-
 export const providersRouter = router({
   list: secureProcedure('providers.list')
     .input(z.object({ projectSlug: z.string().optional() }).optional())
-    .query(async ({ input }) => {
-      return getState(input?.projectSlug)
+    .query(async ({ ctx, input }) => {
+      const slug = input?.projectSlug || 'global'
+      try {
+        const result = await ctx.db.query(
+          `SELECT provider_id as id, status, connected_at as "connectedAt" 
+           FROM connected_providers 
+           WHERE project_slug = $1`,
+          [slug]
+        ).catch(() => ({ rows: [] }))
+
+        // Merge DB status with defaults
+        return defaults.map(d => {
+          const dbRow = result.rows.find((r: any) => r.id === d.id)
+          return {
+            ...d,
+            status: dbRow?.status || 'disconnected',
+            connectedAt: dbRow?.connectedAt
+          }
+        })
+      } catch (e) {
+        return defaults
+      }
     }),
 
   toggle: secureProcedure('providers.toggle')
@@ -54,22 +62,25 @@ export const providersRouter = router({
       projectSlug: z.string().optional(),
       status: z.enum(['connected', 'disconnected']).optional(),
     }))
-    .mutation(async ({ input }) => {
-      const items = getState(input.projectSlug)
-      const idx = items.findIndex((p) => p.id === input.providerId)
-      if (idx === -1) {
-        const fresh: ProviderRecord = { ...defaults.find((d) => d.id === input.providerId)! }
-        fresh.status = input.status ?? 'connected'
-        fresh.connectedAt = fresh.status === 'connected' ? new Date().toISOString() : undefined
-        items.push(fresh)
-        return fresh
+    .mutation(async ({ ctx, input }) => {
+      const slug = input.projectSlug || 'global'
+      const status = input.status || 'connected'
+      const connectedAt = status === 'connected' ? new Date().toISOString() : null
+
+      try {
+        await ctx.db.query(
+          `INSERT INTO connected_providers (project_slug, provider_id, status, connected_at, updated_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           ON CONFLICT (project_slug, provider_id)
+           DO UPDATE SET 
+             status = EXCLUDED.status,
+             connected_at = EXCLUDED.connected_at,
+             updated_at = NOW()`,
+          [slug, input.providerId, status, connectedAt]
+        )
+        return { id: input.providerId, status, connectedAt }
+      } catch (e) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update provider status' })
       }
-      const nextStatus = input.status ?? (items[idx].status === 'connected' ? 'disconnected' : 'connected')
-      items[idx] = {
-        ...items[idx],
-        status: nextStatus,
-        connectedAt: nextStatus === 'connected' ? new Date().toISOString() : undefined,
-      }
-      return items[idx]
     }),
 })

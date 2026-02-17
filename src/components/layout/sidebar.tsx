@@ -68,14 +68,14 @@ export function Sidebar() {
         aria-label="Main navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-16 flex flex-col",
-          "bg-black/60 backdrop-blur-xl border-r border-white/[0.06]",
+          "glass-panel border-r",
           "transform transition-transform duration-300 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full",
           "lg:translate-x-0 lg:static"
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-center border-b border-white/[0.06] relative">
+        <div className="h-16 flex items-center justify-center border-b border-border relative">
           <Link href="/projects" className="group relative">
             <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500" />
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-900 to-black border border-white/10 flex items-center justify-center shadow-lg group-hover:border-violet-500/50 transition-all duration-300 relative overflow-hidden">
@@ -100,8 +100,8 @@ export function Sidebar() {
                 className={cn(
                   "sidebar-icon group relative transition-all duration-200",
                   pathname === "/projects" 
-                    ? "bg-violet-500/10 text-violet-400 shadow-[inset_3px_0_0_0_rgba(139,92,246,1)]" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    ? "sidebar-icon-active" 
+                    : "sidebar-icon"
                 )}
                 title="Projects"
                 aria-label="Projects"
@@ -133,8 +133,8 @@ export function Sidebar() {
                         className={cn(
                           "sidebar-icon group relative transition-all duration-200",
                           isActive 
-                            ? "bg-violet-500/10 text-violet-400 shadow-[inset_3px_0_0_0_rgba(139,92,246,1)]" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                            ? "sidebar-icon-active" 
+                            : "sidebar-icon"
                         )}
                         title={item.name}
                         aria-label={item.name}
@@ -178,7 +178,7 @@ export function Sidebar() {
             )}
             
             {/* Tooltip */}
-            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-popover border border-border rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
               Profile
             </div>
           </Link>
@@ -192,7 +192,7 @@ export function Sidebar() {
             <LogOut className="w-4 h-4" />
             
             {/* Tooltip */}
-            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-popover border border-border rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
               Sign out
             </div>
           </button>

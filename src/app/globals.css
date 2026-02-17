@@ -4,25 +4,20 @@
 
 @layer base {
   :root {
-    /* Ultra Deep Dark Theme */
+    /* Ultra Deep Dark Theme (Default) */
     --background: 0 0% 4%;
-    /* #0a0a0a - deeper than before */
     --foreground: 0 0% 98%;
-    /* #fafafa */
 
     --card: 0 0% 6%;
-    /* #0f0f0f - subtle lift from background */
     --card-foreground: 0 0% 98%;
 
     --popover: 0 0% 8%;
     --popover-foreground: 0 0% 98%;
 
     --primary: 0 0% 98%;
-    /* White for primary actions */
     --primary-foreground: 0 0% 9%;
 
     --secondary: 0 0% 12%;
-    /* Subtle gray */
     --secondary-foreground: 0 0% 98%;
 
     --muted: 0 0% 15%;
@@ -35,7 +30,6 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 14%;
-    /* Subtle borders */
     --input: 0 0% 14%;
     --ring: 0 0% 80%;
 
@@ -48,36 +42,50 @@
 
     /* Brand accent */
     --brand: 217 91% 60%;
+
+    /* Glass Tokens - Dark Mode */
+    --glass-bg: 0 0% 100% / 0.03;
+    --glass-border: 0 0% 100% / 0.06;
+    --glass-header: 0 0% 0% / 0.4;
+    --glass-shadow: 0 0% 0% / 0.5;
   }
 
   .light {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --background: 210 20% 98%;
+    /* Soft blue-gray white */
+    --foreground: 220 15% 15%;
+    /* Dark charcoal */
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 220 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 220 15% 15%;
 
-    --primary: 0 0% 9%;
+    --primary: 220 15% 15%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 220 15% 15%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 210 20% 94%;
+    --accent-foreground: 220 15% 15%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 9%;
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 220 15% 15%;
+
+    /* Glass Tokens - Light Mode (Frosted) */
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 210 20% 85% / 0.4;
+    --glass-header: 0 0% 100% / 0.5;
+    --glass-shadow: 220 15% 15% / 0.05;
   }
 }
 
@@ -92,7 +100,6 @@
     letter-spacing: -0.02em;
   }
 
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
@@ -103,63 +110,71 @@
   /* Icon Sidebar Style */
   .sidebar-icon {
     @apply w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200;
-    @apply text-muted-foreground hover:text-foreground hover:bg-white/5;
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent/50;
   }
 
   .sidebar-icon-active {
-    @apply bg-white/10 text-foreground;
+    @apply bg-accent text-foreground shadow-sm;
   }
 
   /* Glass Panels */
   .glass-panel {
-    @apply bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] shadow-2xl;
+    background-color: hsla(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    border-color: hsla(var(--glass-border));
+    box-shadow: 0 25px 50px -12px hsla(var(--glass-shadow));
+    @apply border;
   }
 
   .glass-card {
-    @apply bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-xl;
-    @apply transition-all duration-300 hover:bg-white/[0.05] hover:border-white/[0.1];
+    background-color: hsla(var(--glass-bg));
+    backdrop-filter: blur(8px);
+    border-color: hsla(var(--glass-border));
+    @apply border rounded-xl transition-all duration-300;
+    @apply hover:bg-white/[0.01] dark:hover:bg-white/[0.05];
   }
 
   .glass-header {
-    @apply bg-black/40 backdrop-blur-md border-b border-white/[0.05];
+    background-color: hsla(var(--glass-header));
+    backdrop-filter: blur(16px);
+    border-bottom-color: hsla(var(--glass-border));
+    @apply border-b;
   }
 
   /* Cards */
   .card-elevated {
     @apply bg-card border border-border rounded-xl p-4;
-    @apply transition-all duration-200 hover:border-white/20;
+    @apply transition-all duration-200 hover:border-accent;
   }
 
   .card-interactive {
     @apply card-elevated cursor-pointer;
-    @apply hover:bg-white/[0.02] hover:scale-[1.01];
+    @apply hover:bg-accent/[0.03] hover:scale-[1.01];
   }
 
   /* Status badges */
   .badge-success {
-    @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+    @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20;
   }
 
   .badge-warning {
-    @apply bg-amber-500/10 text-amber-400 border border-amber-500/20;
+    @apply bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20;
   }
 
   .badge-error {
-    @apply bg-red-500/10 text-red-400 border border-red-500/20;
+    @apply bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20;
   }
 
   /* Integration cards */
   .integration-card {
     @apply flex flex-col items-center justify-center p-4 rounded-xl;
-    @apply bg-white/[0.02] border border-white/[0.05];
-    @apply transition-all duration-200 hover:bg-white/[0.05] hover:border-white/[0.1];
-    @apply cursor-pointer;
+    @apply glass-card cursor-pointer;
   }
 
   /* List items */
   .list-item {
     @apply flex items-center gap-4 p-4 rounded-lg;
-    @apply border border-transparent hover:bg-white/[0.02] hover:border-white/[0.05];
+    @apply border border-transparent hover:glass-card;
     @apply transition-all duration-150;
   }
 }

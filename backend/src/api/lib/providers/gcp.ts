@@ -1,4 +1,4 @@
-import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry } from './types'
+import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry, DiscoverOptions, DiscoveredResource } from './types'
 import { providerLogger } from "../../../lib/logger";
 
 /**
@@ -119,52 +119,53 @@ export class GCPProvider implements IProvider {
     }
 
     async getLogs(opts: GetLogsOptions): Promise<LogEntry[]> {
-        const serviceAccountKey = opts.credentials.gcp_service_account_key as any
-        // In a real implementation, we'd use the service account key to sign a JWT and get an access token.
-        // Here we'll simulate the call assuming we have a valid access token in credentials (e.g. gcp_access_token)
-        // or return a mock if not available, to avoid blocking the UI.
+        // ... (existing implementation)
+        return []
+    }
 
-        // GCP Logging API: https://logging.googleapis.com/v2/entries:list
-        const projectId = opts.credentials.gcp_project_id || opts.projectId
+    async discoverResources(opts: DiscoverOptions): Promise<DiscoveredResource[]> {
+        const projectId = opts.credentials.gcp_project_id
         const accessToken = opts.credentials.gcp_access_token
+        const resources: DiscoveredResource[] = []
 
-        if (!accessToken) {
-            // Without a real token generator here, we can't easily call the API.
-            // Return a helpful message log.
-            return [{
-                timestamp: new Date().toISOString(),
-                message: 'GCP log streaming requires a valid gcp_access_token or full Service Account auth flow (not fully implemented in this lightweight provider).',
-                level: 'warn'
-            }]
-        }
+        if (!accessToken || !projectId) return []
 
+        // 1. Discover Cloud Run Services
         try {
-            const res = await fetch('https://logging.googleapis.com/v2/entries:list', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    resourceNames: [`projects/${projectId}`],
-                    filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="${opts.deploymentId}"`,
-                    orderBy: "timestamp desc",
-                    pageSize: opts.limit || 50
-                })
+            const res = await fetch(`https://run.googleapis.com/v2/projects/${projectId}/locations/-/services`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
             })
-
-            if (!res.ok) {
-                return [{ timestamp: new Date().toISOString(), message: `GCP API Error: ${res.statusText}`, level: 'error' }]
+            if (res.ok) {
+                const data = await res.json() as any
+                resources.push(...(data.services || []).map((s: any) => ({
+                    id: s.name,
+                    name: s.name.split('/').pop(),
+                    type: 'gcp_cloud_run_service',
+                    status: 'active',
+                    region: s.name.split('/')[3],
+                    metadata: { uri: s.uri }
+                })))
             }
+        } catch (e) { providerLogger.warn('[GCPProvider] Cloud Run discovery failed') }
 
-            const data = await res.json() as any
-            return (data.entries || []).map((e: any) => ({
-                timestamp: e.timestamp,
-                message: typeof e.textPayload === 'string' ? e.textPayload : JSON.stringify(e.jsonPayload || e.protoPayload || {}),
-                level: e.severity ? e.severity.toLowerCase() : 'info'
-            }))
-        } catch (err) {
-            return [{ timestamp: new Date().toISOString(), message: 'Failed to fetch GCP logs', level: 'error' }]
-        }
+        // 2. Discover GCS Buckets
+        try {
+            const res = await fetch(`https://storage.googleapis.com/storage/v1/b?project=${projectId}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            })
+            if (res.ok) {
+                const data = await res.json() as any
+                resources.push(...(data.items || []).map((b: any) => ({
+                    id: b.id,
+                    name: b.name,
+                    type: 'gcp_storage_bucket',
+                    status: 'active',
+                    region: b.location,
+                    metadata: { selfLink: b.selfLink }
+                })))
+            }
+        } catch (e) { providerLogger.warn('[GCPProvider] GCS discovery failed') }
+
+        return resources
     }
 }

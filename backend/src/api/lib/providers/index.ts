@@ -9,9 +9,10 @@ import { FlyProvider } from './fly'
 import { GCPProvider } from './gcp'
 import { AzureProvider } from './azure'
 import { KubernetesProvider } from './kubernetes'
+import { TerraformProvider } from './terraform'
 
 export * from './types'
-export { LocalProvider, VercelProvider, RailwayProvider, RenderProvider, CloudflareProvider, AWSProvider, FlyProvider, GCPProvider, AzureProvider, KubernetesProvider }
+export { LocalProvider, VercelProvider, RailwayProvider, RenderProvider, CloudflareProvider, AWSProvider, FlyProvider, GCPProvider, AzureProvider, KubernetesProvider, TerraformProvider }
 
 /**
  * Factory to get provider instance
@@ -38,10 +39,12 @@ export function getProvider(providerId: string): IProvider | null {
       return new AzureProvider()
     case 'kubernetes':
       return new KubernetesProvider()
+    case 'terraform':
+      return new TerraformProvider()
     default:
       // Fallback to local provider if no match
       return new LocalProvider()
   }
 }
 
-export default { getProvider, LocalProvider, VercelProvider, RailwayProvider, RenderProvider, CloudflareProvider, AWSProvider, FlyProvider, GCPProvider, AzureProvider, KubernetesProvider }
+export default { getProvider, LocalProvider, VercelProvider, RailwayProvider, RenderProvider, CloudflareProvider, AWSProvider, FlyProvider, GCPProvider, AzureProvider, KubernetesProvider, TerraformProvider }

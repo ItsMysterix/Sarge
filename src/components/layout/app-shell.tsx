@@ -36,7 +36,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Global Header */}
         {!hideSidebar && (
-          <header className="h-16 px-6 flex items-center justify-between border-b border-white/[0.06] bg-black/40 backdrop-blur-xl shrink-0 z-10">
+          <header className="h-16 px-6 flex items-center justify-between glass-header shrink-0 z-10">
             {/* Breadcrumb / Page Title */}
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-muted-foreground/60">Dashboard</span>
@@ -53,10 +53,10 @@ export function AppShell({ children }: AppShellProps) {
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-64 h-9 pl-9 pr-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-muted-foreground focus:text-foreground focus:border-white/10 focus:bg-white/[0.05] transition-all outline-none placeholder:text-muted-foreground/50"
+                    className="w-64 h-9 pl-9 pr-3 rounded-lg bg-accent/20 border border-border text-xs text-muted-foreground focus:text-foreground focus:border-accent focus:bg-accent/30 transition-all outline-none placeholder:text-muted-foreground/50 transition-all duration-300"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
-                    <kbd className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5 font-mono text-muted-foreground">↵</kbd>
+                    <kbd className="text-[10px] bg-accent/20 px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground font-semibold">↵</kbd>
                   </div>
                 </div>
               </form>

@@ -42,6 +42,9 @@ export interface IProvider {
 
     // Get metrics from provider (for unified aggregation)
     getMetrics?(opts: MetricsOptions): Promise<ProviderMetric[]>
+
+    // Discover existing unmanaged resources in the cloud account
+    discoverResources?(opts: DiscoverOptions): Promise<DiscoveredResource[]>
 }
 
 // --- Core types ---
@@ -202,4 +205,17 @@ export interface ProviderMetric {
     unit: string           // e.g., 'percent', 'MB', 'req/s'
     timestamp: string
     labels?: Record<string, string>
+}
+
+export interface DiscoverOptions {
+    credentials: Record<string, string>
+}
+
+export interface DiscoveredResource {
+    id: string
+    name: string
+    type: string           // e.g., 'rds_instance', 's3_bucket', 'lambda_function'
+    status: string
+    region: string
+    metadata: Record<string, any>
 }

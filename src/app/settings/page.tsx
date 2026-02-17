@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { useUserSettings } from "@/hooks/use-sarge-api"
+import { trpc } from "@/lib/trpc"
+import { useProject } from "@/lib/project-context"
 import { useToast } from "@/components/ui/toast"
 import { useAppStore } from "@/lib/store"
 import { TabsNavigation, type SettingsTab } from "@/components/settings/tabs-navigation"
@@ -25,6 +27,14 @@ export default function Settings() {
   const { isTestingWebhook, setTestingWebhook } = useAppStore()
   const { addToast, ToastContainer } = useToast()
   const { theme, setTheme } = useTheme()
+  const { currentProject } = useProject()
+  const t = trpc as any
+
+  const channelsQuery = t.alerts?.listChannels?.useQuery(
+    { projectId: currentProject?.id },
+    { enabled: !!currentProject?.id }
+  )
+  const webhookConfigured = channelsQuery?.data?.some((c: any) => c.type === 'webhook' || c.type === 'slack' || c.type === 'discord') || false
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
   const [enableAnimations, setEnableAnimations] = useState(true)
@@ -157,9 +167,23 @@ export default function Settings() {
     input.click()
   }
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      addToast({ type: 'warning', title: 'Clear Data', description: 'This feature will be implemented soon' })
+      try {
+        const response = await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "clear_data" }),
+        })
+        const result = await response.json()
+        addToast({
+          type: result.success ? "success" : "error",
+          title: result.success ? "Data Cleared" : "Action Failed",
+          description: result.message || result.error,
+        })
+      } catch (error) {
+        addToast({ type: "error", title: "Action Failed", description: "Failed to clear data" })
+      }
     }
   }
 
@@ -224,7 +248,7 @@ export default function Settings() {
           <IntegrationsTab
             slackAlerts={settings?.slack_alerts ?? false}
             autoRebuild={settings?.auto_rebuild ?? false}
-            webhookConfigured={true}
+            webhookConfigured={webhookConfigured}
             isTestingWebhook={isTestingWebhook}
             onToggle={handleToggle}
             onTestWebhook={handleWebhookTest}

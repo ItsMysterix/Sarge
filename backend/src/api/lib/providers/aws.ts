@@ -1,8 +1,8 @@
-import { S3Client, CreateBucketCommand } from '@aws-sdk/client-s3'
+import { S3Client, CreateBucketCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { EKSClient, ListClustersCommand as ListEKSClustersCommand, DescribeClusterCommand } from '@aws-sdk/client-eks'
 import { ECSClient, CreateServiceCommand, DescribeServicesCommand, ListClustersCommand as ListECSClustersCommand } from '@aws-sdk/client-ecs'
 import { CloudWatchLogsClient, GetLogEventsCommand, DescribeLogStreamsCommand } from '@aws-sdk/client-cloudwatch-logs'
-import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry } from './types'
+import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry, DiscoverOptions, DiscoveredResource } from './types'
 import { providerLogger } from "../../../lib/logger";
 
 export class AWSProvider implements IProvider {
@@ -235,5 +235,40 @@ export class AWSProvider implements IProvider {
             console.warn('[AWSProvider] Failed to fetch logs:', err)
             return []
         }
+    }
+
+    async discoverResources(opts: DiscoverOptions): Promise<DiscoveredResource[]> {
+        const { eks, s3 } = this.getClients(opts.credentials)
+        const resources: DiscoveredResource[] = []
+
+        try {
+            const { clusters } = await eks.send(new ListEKSClustersCommand({}))
+            if (clusters) {
+                resources.push(...clusters.map(c => ({
+                    id: c,
+                    name: c,
+                    type: 'aws_eks_cluster',
+                    status: 'active',
+                    region: opts.credentials.aws_region || 'us-east-1',
+                    metadata: { provider: 'aws' }
+                })))
+            }
+        } catch (e) { providerLogger.warn('[AWSProvider] EKS discovery failed') }
+
+        try {
+            const { Buckets } = await s3.send(new ListBucketsCommand({}))
+            if (Buckets) {
+                resources.push(...Buckets.map(b => ({
+                    id: b.Name || 'unknown',
+                    name: b.Name || 'unknown',
+                    type: 'aws_s3_bucket',
+                    status: 'active',
+                    region: 'global',
+                    metadata: {}
+                })))
+            }
+        } catch (e) { providerLogger.warn('[AWSProvider] S3 discovery failed') }
+
+        return resources
     }
 }

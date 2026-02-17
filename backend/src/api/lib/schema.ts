@@ -238,6 +238,110 @@ export async function ensureRateLimitTables(db: Pool) {
       );
     `)
 
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS metrics (
+        id BIGSERIAL PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        service_name TEXT,
+        cpu_usage NUMERIC(5,2),
+        memory_usage NUMERIC(10,2),
+        latency_ms INTEGER,
+        "timestamp" TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS user_settings (
+        user_id TEXT PRIMARY KEY,
+        theme_mode TEXT DEFAULT 'system',
+        enable_animations BOOLEAN DEFAULT TRUE,
+        notifications JSONB DEFAULT '{}',
+        slack_alerts BOOLEAN DEFAULT FALSE,
+        auto_rebuild BOOLEAN DEFAULT FALSE,
+        default_region TEXT DEFAULT 'us-east-1',
+        default_environment TEXT DEFAULT 'development',
+        resources JSONB DEFAULT '{"cpu": 0.5, "memory": 512, "replicas": 1}',
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS project_members (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        joined_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(project_id, user_id)
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS notification_channels (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        config JSONB NOT NULL,
+        enabled BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS alert_rules (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        rule_type TEXT NOT NULL,
+        events JSONB DEFAULT '[]',
+        condition JSONB NOT NULL,
+        severity TEXT NOT NULL,
+        notification_channels JSONB DEFAULT '[]',
+        enabled BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS alert_instances (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        rule_id UUID REFERENCES alert_rules(id) ON DELETE CASCADE,
+        triggered_at TIMESTAMPTZ DEFAULT NOW(),
+        value NUMERIC,
+        message TEXT,
+        status TEXT DEFAULT 'firing',
+        resolved_at TIMESTAMPTZ
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS custom_domains (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+        hostname TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        is_verified BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        verified_at TIMESTAMPTZ,
+        deleted_at TIMESTAMPTZ,
+        UNIQUE(hostname)
+      );
+    `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS connected_providers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_slug TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'disconnected',
+        connected_at TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(project_slug, provider_id)
+      );
+    `)
+
     ensured = true
   } catch (e) {
     // Don't throw from ensure; callers will gracefully degrade on errors

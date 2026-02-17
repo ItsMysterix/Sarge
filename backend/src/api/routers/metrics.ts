@@ -172,4 +172,50 @@ export const metricsRouter = router({
     .query(async ({ ctx, input }) => {
       return metricAggregator.getStackHealth(input.deployments, ctx.db, (ctx as any).userId)
     }),
+
+  /**
+   * OpenTelemetry-compatible intake.
+   * Maps OTel resource metrics to Sarge's unified metrics table.
+   */
+  otelIntake: secureProcedure('metrics.otelIntake')
+    .input(z.object({
+      resourceMetrics: z.array(z.any()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const end = startQueryTimer('metrics.otelIntake');
+      try {
+        // Simple mapping from OTel schema to Sarge schema
+        for (const rm of input.resourceMetrics) {
+          const serviceName = rm.resource?.attributes?.find((a: any) => a.key === 'service.name')?.value?.stringValue || 'unknown-otel-service';
+          const projectId = rm.resource?.attributes?.find((a: any) => a.key === 'sarge.project_id')?.value?.stringValue;
+
+          if (!projectId) continue;
+
+          for (const sm of rm.scopeMetrics || []) {
+            for (const m of sm.metrics || []) {
+              const name = m.name;
+              const value = m.sum?.dataPoints?.[0]?.asDouble || m.gauge?.dataPoints?.[0]?.asDouble || 0;
+
+              // Record based on metric name mapping
+              let cpu = 0, memory = 0, latency = 0;
+              if (name.includes('cpu')) cpu = value;
+              if (name.includes('memory')) memory = value;
+              if (name.includes('latency') || name.includes('duration')) latency = value;
+
+              await ctx.db.query(
+                `INSERT INTO metrics (
+                   project_id, service_name, cpu_usage, memory_usage, latency_ms, "timestamp"
+                 ) VALUES ($1, $2, $3, $4, $5, NOW())`,
+                [projectId, serviceName, cpu, memory, latency]
+              );
+            }
+          }
+        }
+        return { success: true };
+      } catch (e) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to process OTel metrics', cause: e as Error });
+      } finally {
+        end();
+      }
+    }),
 });

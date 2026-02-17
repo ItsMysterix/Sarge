@@ -30,9 +30,9 @@ export function AppearanceTab({
       className="space-y-6"
     >
       {/* Theme Selection */}
-      <div className="glass-card p-6 border border-white/10">
+      <div className="glass-card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <Palette className="w-5 h-5 text-accent" />
+          <Palette className="w-5 h-5 text-accent dark:text-accent-foreground" />
           <h3 className="text-lg font-semibold">Theme</h3>
         </div>
         
@@ -49,19 +49,19 @@ export function AppearanceTab({
                   p-4 rounded-lg border-2 transition-all
                   ${isActive 
                     ? 'bg-accent/20 border-accent' 
-                    : 'glass-card border-white/10 hover:border-white/20'
+                    : 'glass-card hover:border-accent/40'
                   }
                 `}
               >
                 <div className="flex flex-col items-center gap-3">
-                  <div className={`p-3 rounded-full ${isActive ? 'bg-accent/20' : 'bg-white/5'}`}>
-                    <Icon className={`w-6 h-6 ${isActive ? 'text-accent' : 'text-gray-400'}`} />
+                  <div className={`p-3 rounded-full ${isActive ? 'bg-accent/20' : 'bg-muted'}`}>
+                    <Icon className={`w-6 h-6 ${isActive ? 'text-accent dark:text-accent-foreground' : 'text-muted-foreground'}`} />
                   </div>
                   <div className="text-center">
                     <div className={`font-medium ${isActive ? 'text-accent' : ''}`}>
                       {theme.label}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {theme.description}
                     </div>
                   </div>
@@ -73,23 +73,23 @@ export function AppearanceTab({
       </div>
 
       {/* Animation Settings */}
-      <div className="glass-card p-6 border border-white/10">
+      <div className="glass-card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <Sparkles className="w-5 h-5 text-accent" />
+          <Sparkles className="w-5 h-5 text-accent dark:text-accent-foreground" />
           <h3 className="text-lg font-semibold">Animations</h3>
         </div>
         
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="flex items-center justify-between p-4 glass-card">
             <div>
               <div className="font-medium">Enable Animations</div>
-              <div className="text-sm text-gray-400">Show smooth transitions and effects</div>
+              <div className="text-sm text-muted-foreground">Show smooth transitions and effects</div>
             </div>
             <button
               onClick={() => onAnimationsToggle(!enableAnimations)}
               className={`
                 relative w-12 h-6 rounded-full transition-colors
-                ${enableAnimations ? 'bg-accent' : 'bg-white/10'}
+                ${enableAnimations ? 'bg-accent' : 'bg-muted'}
               `}
             >
               <div
@@ -101,15 +101,15 @@ export function AppearanceTab({
             </button>
           </div>
           
-          <div className="p-4 glass-card rounded border border-white/10 opacity-50">
+          <div className="p-4 glass-card opacity-50">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">Reduce Motion</div>
-                <div className="text-sm text-gray-400">Minimize animations for accessibility</div>
+                <div className="text-sm text-muted-foreground">Minimize animations for accessibility</div>
               </div>
               <button
                 disabled
-                className="relative w-12 h-6 rounded-full bg-white/10 cursor-not-allowed"
+                className="relative w-12 h-6 rounded-full bg-muted cursor-not-allowed"
               >
                 <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
               </button>
@@ -120,21 +120,21 @@ export function AppearanceTab({
       </div>
 
       {/* Display Settings */}
-      <div className="glass-card p-6 border border-white/10">
+      <div className="glass-card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <Monitor className="w-5 h-5 text-accent" />
+          <Monitor className="w-5 h-5 text-accent dark:text-accent-foreground" />
           <h3 className="text-lg font-semibold">Display</h3>
         </div>
         
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10 opacity-50">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="flex items-center justify-between p-4 glass-card opacity-50">
             <div>
               <div className="font-medium">Compact Mode</div>
-              <div className="text-sm text-gray-400">Reduce spacing for denser layout</div>
+              <div className="text-sm text-muted-foreground">Reduce spacing for denser layout</div>
             </div>
             <button
               disabled
-              className="relative w-12 h-6 rounded-full bg-white/10 cursor-not-allowed"
+              className="relative w-12 h-6 rounded-full bg-muted cursor-not-allowed"
             >
               <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
             </button>

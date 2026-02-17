@@ -39,8 +39,9 @@ export interface RepositoryAnalysis {
   dockerfiles: Record<string, string>; // service name -> Dockerfile content
 
   // Deployment recommendations
-  recommendedPlatform: 'vercel' | 'docker' | 'kubernetes' | 'traditional';
+  recommendedPlatform: 'vercel' | 'docker' | 'kubernetes' | 'terraform' | 'traditional';
   deploymentStrategy: string;        // Detailed explanation
+  terraformConfig?: string | null;   // Generated Terraform/OpenTofu code
 
   // Original fields (for backward compatibility)
   framework: string;
@@ -238,8 +239,9 @@ Analyze the repository structure and provide a comprehensive deployment analysis
     "serviceName": "Dockerfile content as string"
   },
   
-  "recommendedPlatform": "vercel | docker | kubernetes | traditional",
+  "recommendedPlatform": "vercel | docker | kubernetes | terraform | traditional",
   "deploymentStrategy": "string (detailed explanation of how to deploy)",
+  "terraformConfig": "string (complete production-ready Terraform/OpenTofu code using community modules for all detected services and infrastructure, or null)",
   
   "framework": "string (primary framework)",
   "detectedPorts": [all ports needed],
@@ -286,7 +288,14 @@ CRITICAL ANALYSIS REQUIREMENTS:
    - Kubernetes: Microservices, high scale
    - Traditional: Simple apps, VPS deployment
 
-6. PORT DETECTION:
+6. TERRAFORM GENERATION:
+   - If project needs cloud-specific services beyond simple containers (RDS, S3, Pub/Sub, etc.)
+   - Generate high-quality, production-ready Terraform/OpenTofu code
+   - Use standard providers (hashicorp/aws, azure/azurerm, google)
+   - Include variables for secrets (DB passwords, API keys)
+   - Ensure resources are logically grouped and tagged
+
+7. PORT DETECTION:
    - Check server.listen() in code
    - Check PORT env var usage
    - Check Dockerfile EXPOSE
@@ -326,8 +335,9 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
         needsDocker: analysis.needsDocker ?? true,
         dockerComposeYml: analysis.dockerComposeYml || null,
         dockerfiles: analysis.dockerfiles || {},
-        recommendedPlatform: analysis.recommendedPlatform || 'docker',
-        deploymentStrategy: analysis.deploymentStrategy || 'Deploy using Docker Compose',
+        recommendedPlatform: analysis.recommendedPlatform || 'terraform',
+        deploymentStrategy: analysis.deploymentStrategy || 'Provision using generated Terraform code',
+        terraformConfig: analysis.terraformConfig || null,
 
         // Backward compatibility fields
         framework: analysis.framework || 'Unknown',
