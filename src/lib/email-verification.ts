@@ -50,7 +50,7 @@ export async function cleanupExpiredCodes(): Promise<void> {
 
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend: Resend | null = null;
 
 /**
  * Send verification email via Resend
@@ -68,8 +68,12 @@ Code: ${code}
     return
   }
 
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY is missing, falling back to console log');
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+
+  if (!resend) {
+    console.warn('[email] Resend client not initialized, falling back to console log');
     return;
   }
 

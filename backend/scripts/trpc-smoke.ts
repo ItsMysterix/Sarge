@@ -3,7 +3,7 @@ import WebSocket from "ws";
 (global as any).WebSocket = WebSocket;
 
 import { appRouter } from "../src/api/root";
-import { db } from "../src/api/lib/db";
+import { db, drizzleDb } from "../src/api/lib/db";
 import { ee } from "../src/api/lib/events";
 
 const PROJECT_ID = "febe0ac4-dd7f-4d53-bb53-8d1c87c9c224";
@@ -11,6 +11,7 @@ const PROJECT_ID = "febe0ac4-dd7f-4d53-bb53-8d1c87c9c224";
 async function main() {
   const caller = appRouter.createCaller({
     db,
+    drizzleDb,
     ee,
     requestMeta: {},
     session: { user: { id: "smoke-user" } },

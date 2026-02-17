@@ -9,22 +9,22 @@ vi.mock('../src/api/lib/realtime', () => {
   } as any
 })
 
-// Provide a global mock that the router will use when require('sarge-core') is unavailable
-;(globalThis as any).__sargeCoreMock = {
-  detector: {
-    detectStack: vi.fn(async (p: string) => ({ services: [], resources: { s3Buckets: [], dynamoTables: [], lambdaFunctions: [] }, ports: [], envKeys: [], docker: { dockerfile: false, composeFiles: [] }, awsSdks: [] }))
-  },
-  planner: {
-    planApply: vi.fn(async (bp: any) => ({ blueprint: bp, assignedPorts: [], issues: [], resourceOps: [], serviceOps: [], telemetry: { prometheus: true, cloudwatchLogs: true }, rollbackPoints: [], planText: '' }))
-  },
-  apply: {
-    apply: vi.fn(async () => ({ ok: true, startedServices: [], errors: [], stop: async () => {} }))
+  // Provide a global mock that the router will use when require('sarge-core') is unavailable
+  ; (globalThis as any).__sargeCoreMock = {
+    detector: {
+      detectStack: vi.fn(async (p: string) => ({ services: [], resources: { s3Buckets: [], dynamoTables: [], lambdaFunctions: [] }, ports: [], envKeys: [], docker: { dockerfile: false, composeFiles: [] }, awsSdks: [] }))
+    },
+    planner: {
+      planApply: vi.fn(async (bp: any) => ({ blueprint: bp, assignedPorts: [], issues: [], resourceOps: [], serviceOps: [], telemetry: { prometheus: true, cloudwatchLogs: true }, rollbackPoints: [], planText: '' }))
+    },
+    apply: {
+      apply: vi.fn(async () => ({ ok: true, startedServices: [], errors: [], stop: async () => { } }))
+    }
   }
-}
 
 import { oneclickRouter } from '../src/api/routers/oneclick'
 
-function ctx() { return { db: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {}, session: { user: { id: 'test-user', email: 'test@example.com' } } } }
+function ctx() { return { db: {} as any, drizzleDb: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {}, session: { user: { id: 'test-user', email: 'test@example.com' } } } }
 
 describe('oneclick router', () => {
   test('detectRepo returns a blueprint', async () => {

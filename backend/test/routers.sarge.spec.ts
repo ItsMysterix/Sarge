@@ -13,7 +13,7 @@ import { sargeRouter } from '../src/api/routers/sarge'
 
 describe('sargeRouter', () => {
   test('workspace.status returns deterministic default', async () => {
-    const caller = sargeRouter.createCaller({ db: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {} })
+    const caller = sargeRouter.createCaller({ db: {} as any, drizzleDb: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {} })
     const status = await caller.workspace.status()
     expect(status.id).toBe('default')
     expect(status.dataRoot).toContain('data/sarge/workspaces/default')
@@ -21,14 +21,14 @@ describe('sargeRouter', () => {
   })
 
   test('stacks.list returns empty by default', async () => {
-    const caller = sargeRouter.createCaller({ db: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {} })
+    const caller = sargeRouter.createCaller({ db: {} as any, drizzleDb: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {} })
     const list = await caller.stacks.list()
     expect(Array.isArray(list)).toBe(true)
     expect(list.length).toBe(0)
   })
 
   test('aws.s3.listBuckets returns empty array deterministically', async () => {
-    const caller = sargeRouter.createCaller({ db: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {} })
+    const caller = sargeRouter.createCaller({ db: {} as any, drizzleDb: {} as any, ee: { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any, requestMeta: {} })
     const buckets = await caller.aws.s3.listBuckets()
     expect(buckets).toEqual([])
   })

@@ -6,7 +6,7 @@ import WebSocket from 'ws';
 (global as any).WebSocket = WebSocket;
 
 import { appRouter } from '../src/api/root';
-import { db } from '../src/api/lib/db';
+import { db, drizzleDb } from '../src/api/lib/db';
 import { ee } from '../src/api/lib/events';
 
 let projectId: string;
@@ -24,7 +24,7 @@ beforeAll(async () => {
 
   // Seed a metric row (respecting check constraints)
   await db.query(
-    `INSERT INTO metrics (project_id, service_name, cpu_usage, memory_usage, latency_ms, cost_daily, uptime_percent) VALUES ($1, 'api', 10.5, 42.5, 120, 0.5, 99.5)` ,
+    `INSERT INTO metrics (project_id, service_name, cpu_usage, memory_usage, latency_ms, cost_daily, uptime_percent) VALUES ($1, 'api', 10.5, 42.5, 120, 0.5, 99.5)`,
     [projectId]
   );
 });
@@ -32,6 +32,7 @@ beforeAll(async () => {
 describe('tRPC smoke (db-backed)', () => {
   const caller = appRouter.createCaller({
     db,
+    drizzleDb,
     ee,
     requestMeta: {},
     session: { user: { id: 'vitest-user' } },

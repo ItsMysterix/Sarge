@@ -10,4 +10,5 @@ declare module '@aws-sdk/client-s3' {
   export class DeleteObjectCommand { constructor(input: any) }
   export class DeleteBucketCommand { constructor(input: any) }
   export class ListObjectsV2Command { constructor(input: any) }
+  export class ListBucketsCommand { constructor(input: any) }
 }

@@ -258,7 +258,7 @@ export class AWSProvider implements IProvider {
         try {
             const { Buckets } = await s3.send(new ListBucketsCommand({}))
             if (Buckets) {
-                resources.push(...Buckets.map(b => ({
+                resources.push(...Buckets.map((b: any) => ({
                     id: b.Name || 'unknown',
                     name: b.Name || 'unknown',
                     type: 'aws_s3_bucket',
