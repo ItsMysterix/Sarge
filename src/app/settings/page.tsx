@@ -206,7 +206,7 @@ export default function Settings() {
   return (
     <AppShell title="Settings">
       <ToastContainer />
-      <main className="flex-1 p-6 max-w-5xl mx-auto animate-fade-in">
+      <main className="flex-1 p-6 max-w-6xl mx-auto animate-fade-in">
         {/* Header Removed - managed by AppShell */}
 
         {/* Tabs Navigation */}

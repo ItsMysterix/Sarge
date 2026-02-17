@@ -21,10 +21,10 @@ export interface StatCardProps {
 }
 
 const colorMap: Record<string, any> = {
-  accent: { icon: "text-accent", bg: "bg-accent/10", border: "border-accent/30" },
-  success: { icon: "text-success", bg: "bg-success/10", border: "border-success/30" },
-  warning: { icon: "text-warning", bg: "bg-warning/10", border: "border-warning/30" },
-  error: { icon: "text-error", bg: "bg-error/10", border: "border-error/30" },
+  accent: { icon: "text-foreground", bg: "bg-foreground/10", border: "border-foreground/20" },
+  success: { icon: "text-foreground", bg: "bg-foreground/10", border: "border-foreground/20" },
+  warning: { icon: "text-muted-foreground", bg: "bg-muted/30", border: "border-muted-foreground/20" },
+  error: { icon: "text-muted-foreground", bg: "bg-muted/30", border: "border-muted-foreground/20" },
 }
 
 export function StatCard({
@@ -40,7 +40,7 @@ export function StatCard({
   size = "default"
 }: StatCardProps) {
   const isNamedColor = colorMap[color]
-  const colors = isNamedColor || { icon: color, bg: "bg-white/5", border: "border-white/10" }
+  const colors = isNamedColor || { icon: "text-foreground", bg: "bg-foreground/5", border: "border-foreground/10" }
   const isClickable = !!onClick
 
   return (
@@ -51,9 +51,9 @@ export function StatCard({
       whileHover={isClickable ? { y: -4, scale: 1.02 } : {}}
       onClick={onClick}
       className={cn(
-        "p-4 rounded-lg border backdrop-blur-sm bg-gradient-to-br from-white/[0.07] to-white/[0.03] transition-all duration-300",
+        "p-4 rounded-lg border backdrop-blur-sm bg-card transition-all duration-300",
         colors.border,
-        isClickable && "cursor-pointer hover:bg-white/10",
+        isClickable && "cursor-pointer hover:bg-muted/50",
         size === "lg" && "p-6"
       )}
     >
@@ -62,7 +62,7 @@ export function StatCard({
           <Icon className={cn("w-5 h-5", colors.icon, size === "lg" && "w-6 h-6")} />
         </div>
         {trend && (
-          <div className={cn("flex items-center gap-1 text-xs", trend.direction === "up" ? "text-success" : "text-error")}>
+          <div className={cn("flex items-center gap-1 text-xs text-muted-foreground")}>
             {trend.direction === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             <span className="font-mono">{Math.abs(trend.value)}%</span>
           </div>

@@ -112,10 +112,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <AppShell>
-      <div className="flex-1 p-8 max-w-5xl mx-auto w-full animate-fade-in">
+    <AppShell title="Account Settings">
+      <div className="flex-1 p-6 max-w-6xl mx-auto w-full animate-fade-in">
         <ToastContainer />
-        <div className="mb-8">
+        <div className="mb-8 hidden">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Account Settings</h1>
           <p className="text-muted-foreground mt-1">Manage your profile, security, and preferences.</p>
         </div>

@@ -37,7 +37,7 @@ export function RemediationLogs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             Self-Healing Logs
           </h2>
           <p className="text-muted-foreground">

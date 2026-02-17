@@ -43,49 +43,24 @@
     /* Brand accent */
     --brand: 217 91% 60%;
 
-    /* Glass Tokens - Dark Mode */
-    --glass-bg: 0 0% 100% / 0.03;
-    --glass-border: 0 0% 100% / 0.06;
-    --glass-header: 0 0% 0% / 0.4;
-    --glass-shadow: 0 0% 0% / 0.5;
+    /* Glass Tokens - Dark Mode (Refined) */
+    --glass-bg: 0 0% 100% / 0.02;
+    --glass-border: 0 0% 100% / 0.05;
+    --glass-header: 0 0% 4% / 0.8; /* More opaque header for better contrast */
+    --glass-shadow: 0 0% 0% / 0; /* Remove shadow for flat minimal look */
   }
 
   .light {
-    --background: 210 20% 98%;
-    /* Soft blue-gray white */
-    --foreground: 220 15% 15%;
-    /* Dark charcoal */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    
+    /* ... (keep other light mode vars minimal) ... */
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
-
-    --primary: 220 15% 15%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 220 15% 15%;
-
-    --muted: 210 20% 94%;
-    --muted-foreground: 220 10% 45%;
-
-    --accent: 210 20% 94%;
-    --accent-foreground: 220 15% 15%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 210 20% 90%;
-    --input: 210 20% 90%;
-    --ring: 220 15% 15%;
-
-    /* Glass Tokens - Light Mode (Frosted) */
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 210 20% 85% / 0.4;
-    --glass-header: 0 0% 100% / 0.5;
-    --glass-shadow: 220 15% 15% / 0.05;
+    /* Glass Tokens - Light Mode (Refined) */
+    --glass-bg: 0 0% 0% / 0.02;
+    --glass-border: 0 0% 0% / 0.05;
+    --glass-header: 0 0% 100% / 0.8;
+    --glass-shadow: 0 0% 0% / 0;
   }
 }
 
@@ -95,13 +70,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    letter-spacing: -0.02em;
-  }
-
-  html {
-    scroll-behavior: smooth;
   }
 }
 
@@ -109,36 +79,28 @@
 
   /* Icon Sidebar Style */
   .sidebar-icon {
-    @apply w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200;
-    @apply text-muted-foreground hover:text-foreground hover:bg-accent/50;
+    @apply w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200;
+    @apply text-muted-foreground hover:text-foreground hover:bg-muted/50;
   }
 
   .sidebar-icon-active {
-    @apply bg-accent text-foreground shadow-sm;
+    @apply bg-muted text-foreground;
   }
 
   /* Glass Panels */
   .glass-panel {
-    background-color: hsla(var(--glass-bg));
-    backdrop-filter: blur(12px);
-    border-color: hsla(var(--glass-border));
-    box-shadow: 0 25px 50px -12px hsla(var(--glass-shadow));
-    @apply border;
+    @apply bg-card border border-border;
   }
 
   .glass-card {
-    background-color: hsla(var(--glass-bg));
-    backdrop-filter: blur(8px);
-    border-color: hsla(var(--glass-border));
-    @apply border rounded-xl transition-all duration-300;
-    @apply hover:bg-white/[0.01] dark:hover:bg-white/[0.05];
+    @apply bg-card border border-border rounded-lg transition-all duration-200;
+    @apply hover:bg-muted/50;
   }
 
   .glass-header {
     background-color: hsla(var(--glass-header));
-    backdrop-filter: blur(16px);
-    border-bottom-color: hsla(var(--glass-border));
-    @apply border-b;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid hsla(var(--glass-border));
   }
 
   /* Cards */

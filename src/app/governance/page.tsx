@@ -318,27 +318,18 @@ export default function GovernancePage() {
   return (
     <AppShell title="Governance Center">
       <ToastContainer />
-      <div className="p-6 max-w-7xl mx-auto">
-        {/* Header Section Removed - title in AppShell */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-           {/* Summary line moved or kept minimal if needed, but removing large title */}
-           <div>
-            <p className="text-muted-foreground text-sm max-w-lg">
-              Sovereign control plane for cost optimization, security compliance, and GitOps state reconciliation.
-            </p>
-          </div>
-          
-          {/* Tab Switcher - Minimalist Pill style */}
-          <div className="flex bg-black/40 p-1 rounded-2xl border border-white/[0.08]">
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+          <div className="flex bg-muted/30 p-1 rounded-lg border border-border">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all",
+                  "flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
                   activeTab === tab.id 
-                    ? "bg-white text-zinc-950 shadow-lg" 
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 )}
               >
                 <tab.icon className="w-3.5 h-3.5" />
@@ -358,6 +349,7 @@ export default function GovernancePage() {
     </AppShell>
   )
 }
+
 
 // Internal Activity sub-component fix
 const Activity = ({ className }: { className: string }) => <RefreshCw className={className} />;

@@ -22,7 +22,7 @@ export function GtmManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             Global Traffic Manager
           </h2>
           <p className="text-muted-foreground">
@@ -51,6 +51,7 @@ export function GtmManager() {
           trend={{ value: 0.2, direction: "up" }} 
           subtitle="Avg. uptime across regions"
           icon={ShieldCheck}
+          color="success"
         />
         <StatCard 
           title="Avg. Latency" 
@@ -58,47 +59,49 @@ export function GtmManager() {
           trend={{ value: 12, direction: "down" }} 
           subtitle="Edge-to-cluster resolution"
           icon={Zap}
+          color="warning"
         />
         <StatCard 
           title="Active Regions" 
           value="12" 
           subtitle="Clusters across 3 clouds"
           icon={Globe}
+          color="accent"
         />
       </div>
 
       <div className="grid gap-4">
         {clusters.map((cluster) => (
-          <Card key={cluster.id} className="bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] transition-all duration-300">
+          <Card key={cluster.id} className="bg-muted/20 border-border hover:bg-muted/30 transition-all duration-300">
             <CardContent className="p-0">
-              <div className="flex items-center justify-between p-4 border-b border-white/[0.05]">
+              <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center">
-                    <Server className="w-4 h-4 text-white/60" />
+                  <div className="w-8 h-8 rounded bg-muted/50 flex items-center justify-center">
+                    <Server className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white/90">{cluster.region}</h3>
-                    <p className="text-[10px] text-white/40 uppercase tracking-tighter">{cluster.type} Cluster • {cluster.id}</p>
+                    <h3 className="text-sm font-semibold text-foreground">{cluster.region}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">{cluster.type} Cluster • {cluster.id}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-right">
-                    <div className="text-xs font-mono text-white/60">{cluster.latency}</div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-tighter">Latency</p>
+                    <div className="text-xs font-mono text-muted-foreground">{cluster.latency}</div>
+                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-tighter">Latency</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-mono text-white/60">{cluster.load}%</div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-tighter">Current Load</p>
+                    <div className="text-xs font-mono text-muted-foreground">{cluster.load}%</div>
+                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-tighter">Current Load</p>
                   </div>
                   <StatusBadge status={cluster.status.toLowerCase()} />
                 </div>
               </div>
-              <div className="px-4 py-2 flex items-center justify-between bg-black/20">
+              <div className="px-4 py-2 flex items-center justify-between bg-muted/40">
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-3 h-3 text-white/20" />
-                  <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Routing active</span>
+                  <MapPin className="w-3 h-3 text-muted-foreground/60" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Routing active</span>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-white/60 hover:text-white">
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">
                   Configure <ArrowRight className="w-3 h-3 ml-1" />
                 </Button>
               </div>

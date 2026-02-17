@@ -38,7 +38,7 @@ export function SecretsDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             Secret Management
           </h2>
           <p className="text-muted-foreground">
@@ -47,7 +47,7 @@ export function SecretsDashboard() {
         </div>
         <Button 
           onClick={() => setIsAdding(true)}
-          className="bg-violet-600 hover:bg-violet-700 shadow-lg shadow-violet-500/20"
+          className="bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/20"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Secret
@@ -55,7 +55,7 @@ export function SecretsDashboard() {
       </div>
 
       {isAdding && (
-        <Card className="bg-white/[0.03] border-white/[0.08] backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300">
+        <Card className="bg-muted/30 border-border backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300">
           <CardHeader>
             <CardTitle className="text-sm font-medium">New Secret</CardTitle>
           </CardHeader>
@@ -67,7 +67,7 @@ export function SecretsDashboard() {
                   placeholder="e.g. DATABASE_URL" 
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
-                  className="bg-black/20 border-white/10 focus:border-violet-500/50"
+                  className="bg-background/50 border-border focus:border-foreground/50"
                 />
               </div>
               <div className="space-y-2">
@@ -77,7 +77,7 @@ export function SecretsDashboard() {
                   placeholder="Secret value" 
                   value={newValue}
                   onChange={(e) => setNewValue(e.target.value)}
-                  className="bg-black/20 border-white/10 focus:border-violet-500/50"
+                  className="bg-background/50 border-border focus:border-foreground/50"
                 />
               </div>
             </div>
@@ -93,27 +93,27 @@ export function SecretsDashboard() {
 
       <div className="grid gap-4">
         {mockSecrets.map((secret) => (
-          <Card key={secret.key} className="group bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300 backdrop-blur-sm">
+          <Card key={secret.key} className="group bg-muted/20 border-border hover:bg-muted/40 transition-all duration-300 backdrop-blur-sm">
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                  <Lock className="w-5 h-5 text-violet-400" />
+                <div className="w-10 h-10 rounded-lg bg-muted/30 border border-border flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                  <Lock className="w-5 h-5 text-foreground" />
                 </div>
                 <div>
-                  <div className="font-mono text-sm font-medium text-white/90">{secret.key}</div>
+                  <div className="font-mono text-sm font-medium text-foreground">{secret.key}</div>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-white/40 border-white/10">
+                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground border-border">
                       {secret.provider}
                     </Badge>
-                    <span className="text-[10px] text-white/30 italic">Version {secret.version} • Updated {secret.updatedAt}</span>
+                    <span className="text-[10px] text-muted-foreground italic">Version {secret.version} • Updated {secret.updatedAt}</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 hover:text-white">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                   <RefreshCw className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400/50 hover:text-red-400 hover:bg-red-400/10">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -122,9 +122,9 @@ export function SecretsDashboard() {
         ))}
       </div>
 
-      <div className="flex items-start gap-4 p-4 rounded-xl bg-violet-500/5 border border-violet-500/10">
-        <Shield className="w-5 h-5 text-violet-400 mt-0.5" />
-        <div className="text-xs text-violet-300/60 leading-relaxed">
+      <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/20 border border-border">
+        <Shield className="w-5 h-5 text-foreground mt-0.5" />
+        <div className="text-xs text-muted-foreground leading-relaxed">
           SARGE uses isolated memory regions and AES-GCM-256 (Rust-native) to process your secrets. 
           Keys never touch persistent storage unencrypted.
         </div>

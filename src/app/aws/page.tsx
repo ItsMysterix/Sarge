@@ -37,17 +37,10 @@ export default function AWSPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell title="AWS Emulation">
       <div className="p-6 max-w-6xl mx-auto animate-fade-in">
         
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Cloud className="w-6 h-6 text-foreground" />
-            <h1 className="text-2xl font-semibold text-foreground">AWS Emulation</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">LocalStack-powered AWS services for local development</p>
-        </div>
+        {/* Header Removed - managed by AppShell */}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">

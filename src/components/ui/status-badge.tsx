@@ -16,44 +16,44 @@ interface StatusBadgeProps {
 const statusConfig = {
   success: {
     icon: CheckCircle2,
-    color: "text-success",
-    bgColor: "bg-success/10",
-    borderColor: "border-success/30",
+    color: "text-foreground",
+    bgColor: "bg-foreground/10",
+    borderColor: "border-foreground/20",
     label: "Success"
   },
   error: {
     icon: XCircle,
-    color: "text-error",
-    bgColor: "bg-error/10",
-    borderColor: "border-error/30",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    borderColor: "border-muted-foreground/20",
     label: "Error"
   },
   failed: {
     icon: XCircle,
-    color: "text-error",
-    bgColor: "bg-error/10",
-    borderColor: "border-error/30",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    borderColor: "border-muted-foreground/20",
     label: "Failed"
   },
   warning: {
     icon: AlertCircle,
-    color: "text-warning",
-    bgColor: "bg-warning/10",
-    borderColor: "border-warning/30",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    borderColor: "border-muted-foreground/20",
     label: "Warning"
   },
   pending: {
     icon: Clock,
-    color: "text-gray-400",
-    bgColor: "bg-gray-400/10",
-    borderColor: "border-gray-400/30",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    borderColor: "border-muted-foreground/20",
     label: "Pending"
   },
   running: {
     icon: Loader2,
-    color: "text-accent",
-    bgColor: "bg-accent/10",
-    borderColor: "border-accent/30",
+    color: "text-foreground",
+    bgColor: "bg-foreground/5",
+    borderColor: "border-foreground/20",
     label: "Running"
   }
 }

@@ -28,6 +28,7 @@ const projectNavigation = [
   { name: "Orchestration", href: "/orchestration", icon: Layers },
   { name: "Governance", href: "/governance", icon: Shield },
   { name: "Observability", href: "/observability", icon: Activity },
+  { name: "Services", href: "/services", icon: Box },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 

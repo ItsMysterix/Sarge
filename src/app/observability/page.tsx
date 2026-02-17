@@ -47,7 +47,7 @@ const MetricsTab = ({ t }: any) => {
           <div className="flex items-center gap-2 text-muted-foreground mb-2 text-xs font-bold uppercase">
              <Gauge className="w-3.5 h-3.5" /> Latency
           </div>
-          <div className="text-2xl font-bold text-emerald-400">{metrics.latency}ms</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.latency}ms</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-2 text-xs font-bold uppercase">
@@ -156,30 +156,18 @@ export default function ObservabilityHub() {
   ]
 
   return (
-    <AppShell>
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div className="animate-slide-down">
-            <div className="flex items-center gap-3 mb-1.5">
-              <div className="p-2 rounded-xl bg-muted text-foreground">
-                <Activity className="w-6 h-6" />
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Observability Hub</h1>
-            </div>
-            <p className="text-muted-foreground text-sm max-w-md">
-              High-fidelity monitoring for the resilient enterprise. Telemetry, streaming logs, and global edge orchestration.
-            </p>
-          </div>
-
-          <div className="flex bg-muted/50 p-1 rounded-2xl border border-border">
+    <AppShell title="Observability">
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+          <div className="flex bg-muted/30 p-1 rounded-lg border border-border">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-tight",
+                  "flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
                   activeTab === tab.id 
-                    ? "bg-background text-foreground shadow-sm scale-105" 
+                    ? "bg-background text-foreground shadow-sm" 
                     : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 )}
               >

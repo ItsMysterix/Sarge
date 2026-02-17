@@ -198,42 +198,42 @@ export default function ProjectsPage() {
 
   return (
     <AppShell title="Projects">
-      <div className="p-8 w-full max-w-7xl mx-auto animate-fade-in">
+      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
         <ToastContainer />
         
         {/* Actions & Search */}
         <div className="flex items-center gap-3 mb-8">
           <div className="relative flex-1 max-w-md group">
-            <div className="relative bg-muted/50 rounded-lg">
+            <div className="relative bg-muted/30 rounded-lg border border-transparent focus-within:border-border transition-all">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
               <Input
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 bg-transparent border-transparent focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/50"
+                className="pl-10 h-10 bg-transparent border-none focus:ring-0 focus:outline-none placeholder:text-muted-foreground/50 text-sm"
               />
             </div>
           </div>
           <div className="flex items-center gap-3 ml-auto">
-            <Button variant="outline" onClick={() => refetch()} className="h-10 border-border hover:bg-muted text-muted-foreground hover:text-foreground">
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <Button variant="outline" onClick={() => refetch()} className="h-9 border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs">
+              <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button 
               onClick={() => setShowCreateModal(true)}
-              className="bg-foreground text-background hover:bg-foreground/90 font-medium shadow-sm h-10 px-4"
+              className="bg-foreground text-background hover:bg-foreground/90 font-medium shadow-sm h-9 px-4 text-xs"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-3.5 h-3.5 mr-2" />
               Create Project
             </Button>
           </div>
         </div>
 
         {/* Projects Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
           {filteredProjects.length === 0 ? (
             <div className="col-span-full">
-              <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border rounded-2xl bg-muted/30">
+              <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border rounded-xl bg-muted/30">
                 <Box className="w-12 h-12 text-muted-foreground/30 mb-4" />
                 <h3 className="text-lg font-medium mb-1 text-foreground">No matching projects</h3>
                 <p className="text-sm text-muted-foreground">Try adjusting your search query</p>
