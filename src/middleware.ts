@@ -51,14 +51,37 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
-  const isAllowed = isAuthApi || !isApi || allowed.length === 0 || allowed.includes(origin)
+  // [CISO S5] Strict Origin Validation
+  // 1. Verify Origin header (if present) matches configured allowed origins OR current host
+  // 2. If Origin missing (standard GET/HEAD), verify Referer matches current host
+  // 3. Fallback: Block if neither match (unless ALLOWED_ORIGINS is explicitly empty/open)
+  const originHeader = req.headers.get('origin')
+  const refererHeader = req.headers.get('referer')
+  const host = req.headers.get('host')
+  const protocol = req.nextUrl.protocol
+  const selfOrigin = `${protocol}//${host}`
+
+  const isSameOrigin = originHeader
+    ? originHeader === selfOrigin
+    : refererHeader?.startsWith(selfOrigin)
+
+  const isAllowedOrigin = originHeader && allowed.includes(originHeader)
+
+  // If validations are required (API route + ALLOWED_ORIGINS set)
+  // We allow if:
+  // 1. It's an Auth API (existing exception)
+  // 2. ALLOWED_ORIGINS is empty (open mode)
+  // 3. Origin is explicitly allowed
+  // 4. Request is same-origin (verified by Origin or Referer)
+  const isAllowed = isAuthApi || !isApi || allowed.length === 0 || isAllowedOrigin || isSameOrigin
 
   // Handle CORS preflight for API routes
   if (isApi && req.method === 'OPTIONS') {
     if (!isAllowed) return new NextResponse('Forbidden', { status: 403 })
     const res = new NextResponse(null, { status: 204 })
-    res.headers.set('Access-Control-Allow-Origin', origin)
+    res.headers.set('Access-Control-Allow-Origin', originHeader || selfOrigin)
     res.headers.set('Vary', 'Origin')
+
     res.headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
     res.headers.set('Access-Control-Allow-Headers', req.headers.get('access-control-request-headers') || 'Content-Type,Authorization')
     res.headers.set('Access-Control-Allow-Credentials', 'true')
