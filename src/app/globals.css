@@ -46,14 +46,16 @@
     /* Glass Tokens - Dark Mode (Refined) */
     --glass-bg: 0 0% 100% / 0.02;
     --glass-border: 0 0% 100% / 0.05;
-    --glass-header: 0 0% 4% / 0.8; /* More opaque header for better contrast */
-    --glass-shadow: 0 0% 0% / 0; /* Remove shadow for flat minimal look */
+    --glass-header: 0 0% 4% / 0.8;
+    /* More opaque header for better contrast */
+    --glass-shadow: 0 0% 0% / 0;
+    /* Remove shadow for flat minimal look */
   }
 
   .light {
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
-    
+
     /* ... (keep other light mode vars minimal) ... */
 
     /* Glass Tokens - Light Mode (Refined) */
@@ -90,23 +92,31 @@
   /* Glass Panels */
   .glass-panel {
     @apply bg-card border border-border;
+    transform: translateZ(0);
+    /* Force GPU Layer */
   }
 
   .glass-card {
-    @apply bg-card border border-border rounded-lg transition-all duration-200;
+    @apply bg-card border border-border rounded-lg;
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, transform 0.2s ease;
+    will-change: transform, background-color;
     @apply hover:bg-muted/50;
   }
 
   .glass-header {
     background-color: hsla(var(--glass-header));
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
+    /* Reduced from 12px for better scroll performance */
     border-bottom: 1px solid hsla(var(--glass-border));
+    transform: translateZ(0);
   }
 
   /* Cards */
   .card-elevated {
     @apply bg-card border border-border rounded-xl p-4;
-    @apply transition-all duration-200 hover:border-accent;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    will-change: transform, border-color;
+    @apply hover:border-accent;
   }
 
   .card-interactive {
@@ -137,7 +147,7 @@
   .list-item {
     @apply flex items-center gap-4 p-4 rounded-lg;
     @apply border border-transparent hover:glass-card;
-    @apply transition-all duration-150;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   }
 }
 
@@ -188,33 +198,39 @@
   animation: scale-in 0.2s ease-out;
 }
 
-/* Staggered children animation */
+/* Hardware Acceleration Utilities */
+.gpu-accelerate {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
 .stagger-children>* {
-  animation: slide-up 0.4s ease-out both;
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .stagger-children>*:nth-child(1) {
-  animation-delay: 0ms;
+  animation-delay: 30ms;
 }
 
 .stagger-children>*:nth-child(2) {
-  animation-delay: 50ms;
+  animation-delay: 60ms;
 }
 
 .stagger-children>*:nth-child(3) {
-  animation-delay: 100ms;
+  animation-delay: 90ms;
 }
 
 .stagger-children>*:nth-child(4) {
-  animation-delay: 150ms;
+  animation-delay: 120ms;
 }
 
 .stagger-children>*:nth-child(5) {
-  animation-delay: 200ms;
+  animation-delay: 150ms;
 }
 
 .stagger-children>*:nth-child(6) {
-  animation-delay: 250ms;
+  animation-delay: 180ms;
 }
 
 /* Scroll reveal animations */

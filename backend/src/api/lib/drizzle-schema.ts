@@ -205,3 +205,29 @@ export const userCredentials = pgTable('user_credentials', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
+
+export const memberInvitations = pgTable('member_invitations', {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: text('role').notNull().default('viewer'),
+    token: text('token').notNull().unique(),
+    invitedBy: text('invited_by').notNull().references(() => users.id),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    status: text('status').notNull().default('pending'), // pending, accepted, expired, revoked
+}, (t) => ({
+    unq: unique().on(t.projectId, t.email),
+}));
+
+export const jobs = pgTable('jobs', {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    type: text('type').notNull(), // repo_scan, iac_generation, etc.
+    status: text('status').notNull().default('pending'), // pending, processing, completed, failed
+    payload: jsonb('payload').default({}),
+    result: jsonb('result').default({}),
+    error: text('error'),
+    userId: text('user_id').notNull().references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});

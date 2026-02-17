@@ -74,37 +74,20 @@ export type UserSettings = {
  * useUserSettings - Manage application-wide user preferences
  */
 export const useUserSettings = () => {
-    const [data, setData] = useState<UserSettings | null>(null)
-    const [loading, setLoading] = useState<boolean>(true)
-
-    useEffect(() => {
-        let cancelled = false
-        async function load() {
-            try {
-                setLoading(true)
-                const res = await fetch('/api/settings', { cache: 'no-store' })
-                const json = await res.json()
-                if (!cancelled) setData(json)
-            } catch {
-                // Fallback to defaults or handle error
-            } finally {
-                if (!cancelled) setLoading(false)
-            }
+    const query = t.settings.get.useQuery()
+    const mutation = t.settings.update.useMutation({
+        onSuccess: (updated: any) => {
+            query.refetch()
         }
-        load()
-        return () => { cancelled = true }
-    }, [])
+    })
 
-    async function updateSettings(patch: Partial<Omit<UserSettings, 'id' | 'user_id'>>) {
-        const res = await fetch('/api/settings', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch),
-        })
-        const json = await res.json()
-        setData(json)
-        return json as UserSettings
+    const updateSettings = async (patch: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => {
+        return mutation.mutateAsync(patch)
     }
 
-    return { data, loading, updateSettings }
+    return {
+        data: query.data as UserSettings | null,
+        loading: query.isLoading,
+        updateSettings
+    }
 }

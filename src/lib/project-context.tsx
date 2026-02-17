@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { trpc } from '@/lib/trpc';
 
 export interface Project {
   id: string;
@@ -58,56 +59,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load projects on mount
+  const { data, isLoading: isQueryLoading, refetch } = trpc.project.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Sync projects state with tRPC data
   useEffect(() => {
-    loadProjects();
-  }, []);
-
-  // Load current project from localStorage
-  useEffect(() => {
-    if (projects.length === 0) return;
-
-    const savedProjectId = localStorage.getItem(STORAGE_KEY);
-    
-    if (savedProjectId) {
-      const savedProject = projects.find(p => p.id === savedProjectId);
-      if (savedProject) {
-        setCurrentProjectState(savedProject);
-        return;
-      }
-    }
-
-    // Auto-select first project if only one exists
-    if (projects.length === 1) {
-      setCurrentProjectState(projects[0]);
-      localStorage.setItem(STORAGE_KEY, projects[0].id);
-    } else if (projects.length > 1) {
-      // Select first active project
-      const activeProject = projects.find(p => p.status === 'active');
-      if (activeProject) {
-        setCurrentProjectState(activeProject);
-        localStorage.setItem(STORAGE_KEY, activeProject.id);
-      }
-    }
-  }, [projects]);
-
-  const loadProjects = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/projects');
-      if (response.ok) {
-        const data = await response.json();
-        setProjects(data.projects || []);
-      } else {
-        setProjects([]);
-      }
-    } catch (error) {
-      console.error('Failed to load projects:', error);
-      setProjects([]);
-    } finally {
+    if (data?.projects) {
+      setProjects(data.projects);
       setIsLoading(false);
     }
-  };
+  }, [data]);
 
   const setCurrentProject = (project: Project | null) => {
     setCurrentProjectState(project);
@@ -133,7 +95,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshProjects = async () => {
-    await loadProjects();
+    await refetch();
   };
 
   return (

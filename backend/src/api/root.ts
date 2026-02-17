@@ -31,12 +31,15 @@ import { tokensRouter } from './routers/tokens';
 import { notificationRouter } from './routers/notification';
 import { supportRouter } from './routers/support';
 import { systemRouter } from './routers/system';
+import { settingsRouter } from './routers/settings';
+import { jobsRouter } from './routers/jobs';
 
 export const appRouter = router({
   metrics: metricsRouter,
   logs: logsRouter,
   deploy: deployRouter,
   services: servicesRouter,
+  settings: settingsRouter,
   traces: tracesRouter,
   auth: authRouter,
   sarge: sargeRouter,
@@ -65,6 +68,7 @@ export const appRouter = router({
   notification: notificationRouter,
   support: supportRouter,
   system: systemRouter,
+  jobs: jobsRouter,
 });
 
 export type AppRouter = typeof appRouter;

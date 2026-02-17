@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
 import { useToast } from '@/components/ui/toast';
@@ -344,12 +344,12 @@ function CreateProjectModal({ onClose, onSubmit, name, setName, isPending }: any
   )
 }
 
-function ProjectCard({ project, router, onToggleStatus, onDelete }: { project: any, router: any, onToggleStatus: () => void, onDelete: () => void }) {
+const ProjectCard = React.memo(({ project, router, onToggleStatus, onDelete }: { project: any, router: any, onToggleStatus: () => void, onDelete: () => void }) => {
   const isOnline = project.status === 'active';
   
   return (
     <div 
-      className="group relative flex flex-col justify-between h-[200px] p-6 rounded-xl border border-border bg-card hover:bg-muted/50 hover:border-foreground/20 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-sm"
+      className="group relative flex flex-col justify-between h-[200px] p-6 rounded-xl border border-border bg-card hover:bg-muted/50 hover:border-foreground/20 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-sm gpu-accelerate"
       onClick={() => router.push(`/projects/${project.slug}`)}
     >
       
@@ -460,7 +460,7 @@ function ProjectCard({ project, router, onToggleStatus, onDelete }: { project: a
       </div>
     </div>
   );
-}
+})
 
 function formatTimeAgo(date: Date) {
   const diff = (new Date().getTime() - date.getTime()) / 1000;

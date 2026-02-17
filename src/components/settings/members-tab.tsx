@@ -156,6 +156,11 @@ export function MembersTab() {
                     )}>
                       {member.role}
                     </span>
+                    {member.status === 'pending' && (
+                      <span className="text-[10px] uppercase px-1.5 py-0.5 rounded border border-amber-500/20 bg-amber-500/10 text-amber-500 font-bold tracking-wider animate-pulse">
+                        Pending
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground">{member.email}</div>
                 </div>
@@ -178,10 +183,16 @@ export function MembersTab() {
                       <option value="viewer" className="bg-[#1a1a1a]">Viewer</option>
                     </select>
                     <button
-                      onClick={() => removeMutation?.mutate({
-                        projectId: currentProject?.id,
-                        userId: member.id
-                      })}
+                      onClick={() => {
+                        if (member.status === 'pending') {
+                          t.members.revokeInvitation.mutate({ invitationId: member.id, projectId: currentProject?.id })
+                        } else {
+                          removeMutation?.mutate({
+                            projectId: currentProject?.id,
+                            userId: member.id
+                          })
+                        }
+                      }}
                       className="p-2 text-muted-foreground hover:text-red-400 rounded-lg hover:bg-white/5"
                     >
                       <Trash2 className="w-4 h-4" />

@@ -7,6 +7,7 @@ import { Search, ChevronsUpDown, Check, Plus } from "lucide-react"
 import { NotificationPopover } from "../ui/notification-popover"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import { useProject } from "@/lib/project-context"
+import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -106,15 +107,18 @@ export function AppShell({ children, title, actions }: AppShellProps) {
               {/* Search */}
               <form onSubmit={handleSearch} className="relative group">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-foreground transition-colors z-10" />
                   <input 
                     type="text"
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-64 h-9 pl-9 pr-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground focus:text-foreground focus:border-ring focus:bg-background transition-all outline-none placeholder:text-muted-foreground/50"
+                    className={cn(
+                      "h-9 pl-9 pr-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground transition-[width,background-color,border-color] outline-none placeholder:text-muted-foreground/50",
+                      "w-48 focus:w-80 focus:text-foreground focus:border-ring focus:bg-background"
+                    )}
                   />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
                     <kbd className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground font-semibold">↵</kbd>
                   </div>
                 </div>
