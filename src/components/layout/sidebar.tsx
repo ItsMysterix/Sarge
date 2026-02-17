@@ -16,7 +16,8 @@ import {
   FolderKanban,
   Shield,
   Coins,
-  GitCompare
+  GitCompare,
+  Layout
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProject } from "@/lib/project-context"
@@ -123,6 +124,28 @@ export function Sidebar() {
                   <div className="w-8 mx-auto border-t border-white/[0.06]" />
                 </li>
                 
+                {/* Dynamic Dashboard Link */}
+                <li key="dashboard">
+                  <Link
+                    href={`/projects/${currentProject?.slug}`}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "sidebar-icon group relative transition-all duration-200",
+                      pathname === `/projects/${currentProject?.slug}`
+                        ? "sidebar-icon-active" 
+                        : "sidebar-icon"
+                    )}
+                    title="Dashboard"
+                    aria-label="Dashboard"
+                    aria-current={pathname === `/projects/${currentProject?.slug}` ? 'page' : undefined}
+                  >
+                    <Layout className="w-5 h-5" aria-hidden="true" />
+                    <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl" aria-hidden="true">
+                      Dashboard
+                    </div>
+                  </Link>
+                </li>
+
                 {projectNavigation.map((item) => {
                   const isActive = pathname === item.href || 
                     (item.href !== "/" && pathname?.startsWith(item.href))
