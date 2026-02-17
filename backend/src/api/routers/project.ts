@@ -237,10 +237,12 @@ export const projectRouter = router({
             user_id, name, slug, description,
             repository_id, framework, detected_framework, detected_package_manager,
             detected_languages, build_command, dev_command, install_command,
-            auto_deploy, auto_deploy_branch, ai_detected_ports, ai_detected_tools,
+            root_directory, output_directory,
+            auto_deploy, auto_deploy_branch, preview_deployments,
+            ai_detected_ports, ai_detected_tools,
             ai_analysis_summary, ai_analyzed_at, status
           ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
           ) RETURNING *`,
           [
             userId,
@@ -255,8 +257,11 @@ export const projectRouter = router({
             input.buildCommand || null,
             input.devCommand || null,
             input.installCommand || null,
+            input.rootDirectory || './',
+            input.outputDirectory || '.next',
             input.autoDeploy,
             input.autoDeployBranch,
+            input.previewDeployments,
             JSON.stringify(detectedInfo.ai_detected_ports || []),
             JSON.stringify(detectedInfo.ai_detected_tools || []),
             detectedInfo.ai_analysis_summary || null,
