@@ -114,8 +114,8 @@ export function Sidebar() {
               </Link>
             </li>
             
-            {/* Project-specific nav - Only visible when projects exist */}
-            {hasProjects && (
+            {/* Project-specific nav - Only visible when projects exist and not on projects list */}
+            {hasProjects && pathname !== '/projects' && (
               <>
                 {/* Separator */}
                 <li className="py-2">

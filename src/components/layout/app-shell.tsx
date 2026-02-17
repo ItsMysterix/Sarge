@@ -52,45 +52,47 @@ export function AppShell({ children, title, actions }: AppShellProps) {
           <header className="h-16 px-6 flex items-center justify-between glass-header shrink-0 z-10 border-b border-border">
             {/* Breadcrumb / Page Title */}
             <div className="flex items-center gap-4">
-               {/* Project Switcher */}
-              <div className="flex items-center gap-2 text-sm">
-                 <span className="text-muted-foreground/60 hidden sm:inline-block">Projects</span>
-                 <span className="text-muted-foreground/30 hidden sm:inline-block">/</span>
-                 
-                 <DropdownMenu>
-                    <DropdownMenuTrigger className="flex items-center gap-2 font-medium hover:text-foreground transition-colors outline-none group">
-                       <span className="truncate max-w-[150px]">
-                         {isProjectLoading ? "Loading..." : (currentProject?.name || "Select Project")}
-                       </span>
-                       <ChevronsUpDown className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[200px]">
-                       <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Project</DropdownMenuLabel>
-                       <DropdownMenuSeparator />
-                       {projects.map((p) => (
-                          <DropdownMenuItem 
-                            key={p.id} 
-                            onClick={() => setCurrentProject(p)}
-                            className="justify-between"
-                          >
-                             <span className="truncate">{p.name}</span>
-                             {currentProject?.id === p.id && <Check className="w-3 h-3" />}
-                          </DropdownMenuItem>
-                       ))}
-                       <DropdownMenuSeparator />
-                       <DropdownMenuItem 
-                         className="text-muted-foreground cursor-pointer"
-                         onClick={() => router.push('/projects')}
-                       >
-                          <Plus className="w-3 h-3 mr-2" />
-                          Create Project
-                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                 </DropdownMenu>
-              </div>
+               {/* Project Switcher - Only show when NOT on projects list */}
+               {pathname !== '/projects' && (
+                  <div className="flex items-center gap-2 text-sm">
+                     <span className="text-muted-foreground/60 hidden sm:inline-block">Projects</span>
+                     <span className="text-muted-foreground/30 hidden sm:inline-block">/</span>
+                     
+                     <DropdownMenu>
+                        <DropdownMenuTrigger className="flex items-center gap-2 font-medium hover:text-foreground transition-colors outline-none group">
+                           <span className="truncate max-w-[150px]">
+                             {isProjectLoading ? "Loading..." : (currentProject?.name || "Select Project")}
+                           </span>
+                           <ChevronsUpDown className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-[200px]">
+                           <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Project</DropdownMenuLabel>
+                           <DropdownMenuSeparator />
+                           {projects.map((p) => (
+                              <DropdownMenuItem 
+                                key={p.id} 
+                                onClick={() => setCurrentProject(p)}
+                                className="justify-between"
+                              >
+                                 <span className="truncate">{p.name}</span>
+                                 {currentProject?.id === p.id && <Check className="w-3 h-3" />}
+                              </DropdownMenuItem>
+                           ))}
+                           <DropdownMenuSeparator />
+                           <DropdownMenuItem 
+                             className="text-muted-foreground cursor-pointer"
+                             onClick={() => router.push('/projects')}
+                           >
+                              <Plus className="w-3 h-3 mr-2" />
+                              Create Project
+                           </DropdownMenuItem>
+                        </DropdownMenuContent>
+                     </DropdownMenu>
+                  </div>
+               )}
 
-               {/* Separator if title exists */}
-               {title && <div className="h-4 w-px bg-border hidden sm:block" />}
+               {/* Separator if title exists and we are showing the switcher */}
+               {pathname !== '/projects' && title && <div className="h-4 w-px bg-border hidden sm:block" />}
                
               <span className="text-sm font-medium text-foreground">{title}</span>
             </div>

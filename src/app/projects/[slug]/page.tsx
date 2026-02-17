@@ -35,13 +35,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   }
 
   return (
-    <AppShell title={
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground/50">Projects</span>
-        <span className="text-muted-foreground/30">/</span>
-        <span>{displayProject.name}</span>
-      </div>
-    }>
+    <AppShell>
       <div className="flex-1 p-8 overflow-y-auto animate-fade-in">
         <div className="max-w-6xl mx-auto">
           
