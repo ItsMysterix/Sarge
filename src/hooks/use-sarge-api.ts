@@ -75,20 +75,24 @@ export type UserSettings = {
  * useUserSettings - Manage application-wide user preferences
  */
 export const useUserSettings = () => {
-    const query = t.settings.get.useQuery()
+    const query = t.settings.get.useQuery(undefined, {
+        retry: false,
+        onError: (err: any) => console.error('[useUserSettings] Fetch failed:', err)
+    })
     const mutation = t.settings.update.useMutation({
         onSuccess: (updated: any) => {
             query.refetch()
         }
     })
 
-    const updateSettings = async (patch: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => {
+    const updateSettings = async (patch: Partial<Omit<UserSettings, 'userId'>>) => {
         return mutation.mutateAsync(patch)
     }
 
     return {
         data: query.data as UserSettings | null,
         loading: query.isLoading,
+        error: query.error,
         updateSettings
     }
 }
