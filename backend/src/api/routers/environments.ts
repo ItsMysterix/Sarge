@@ -69,6 +69,7 @@ export const environmentsRouter = router({
         replicas: z.number().optional(),
         storage: z.number().optional(),
       }).optional(),
+      services: z.array(z.string()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const provider = getProvider(input.providerId)
@@ -101,11 +102,25 @@ export const environmentsRouter = router({
         })
 
         if (result?.rows?.[0]) {
+          const env = result.rows[0]
+
+          // Create services if provided
+          if (input.services && input.services.length > 0) {
+            console.log(`[Environments] Initializing ${input.services.length} services for ${input.name}...`)
+            for (const svcId of input.services) {
+              await ctx.db.query(
+                `INSERT INTO services (environment_id, name, type, repo_url, branch, status, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+                [env.id, svcId, 'web', 'pending', 'main', 'starting']
+              ).catch(err => console.error(`[Environments] Failed to init service ${svcId}:`, err))
+            }
+          }
+
           return {
-            ...result.rows[0],
-            resource_config: typeof result.rows[0].resource_config === 'string'
-              ? JSON.parse(result.rows[0].resource_config)
-              : result.rows[0].resource_config,
+            ...env,
+            resource_config: typeof env.resource_config === 'string'
+              ? JSON.parse(env.resource_config)
+              : env.resource_config,
           }
         }
 
