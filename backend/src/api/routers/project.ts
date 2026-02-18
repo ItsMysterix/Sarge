@@ -614,35 +614,47 @@ export const projectRouter = router({
 
         const projectId = project.id;
 
-        // 2. Fetch everything else in parallel
+        // 2. Fetch everything else in parallel with resilience for missing tables
+        const statsPromise = ctx.db.query(
+          `SELECT
+             COUNT(*) as total,
+             COUNT(*) FILTER (WHERE status = 'success') as successful,
+             COUNT(*) FILTER (WHERE status = 'failed') as failed,
+             COUNT(*) FILTER (WHERE status = 'running') as active_services,
+             MAX(created_at) as last_deployed_at,
+             AVG(EXTRACT(EPOCH FROM (completed_at - created_at))) as avg_deploy_time
+           FROM deployments
+           WHERE project_id = $1`,
+          [projectId]
+        ).catch(err => {
+          console.warn('[project.getDashboardSummary] Error fetching deployments (table might be missing):', err.message);
+          return { rows: [{ total: 0, successful: 0, failed: 0, active_services: 0, last_deployed_at: null, avg_deploy_time: 0 }] };
+        });
+
+        const activityPromise = ctx.db.query(
+          `SELECT id, action, details, created_at
+           FROM project_activity
+           WHERE project_id = $1
+           ORDER BY created_at DESC
+           LIMIT 10`,
+          [projectId]
+        ).catch(err => {
+          console.warn('[project.getDashboardSummary] Error fetching activity (table might be missing):', err.message);
+          return { rows: [] };
+        });
+
+        const envsPromise = ctx.db.query(
+          `SELECT * FROM environments WHERE project_id = $1 ORDER BY created_at DESC`,
+          [input.slug]
+        ).catch(err => {
+          console.warn('[project.getDashboardSummary] Error fetching environments:', err.message);
+          return { rows: [] };
+        });
+
         const [envsRes, statsRes, activityRes] = await Promise.all([
-          // Environments
-          ctx.db.query(
-            `SELECT * FROM environments WHERE project_id = $1 ORDER BY created_at DESC`,
-            [input.slug] // Using slug as per existing convention in environments table
-          ),
-          // Stats
-          ctx.db.query(
-            `SELECT
-               COUNT(*) as total,
-               COUNT(*) FILTER (WHERE status = 'success') as successful,
-               COUNT(*) FILTER (WHERE status = 'failed') as failed,
-               COUNT(*) FILTER (WHERE status = 'running') as active_services,
-               MAX(created_at) as last_deployed_at,
-               AVG(EXTRACT(EPOCH FROM (completed_at - created_at))) as avg_deploy_time
-             FROM deployments
-             WHERE project_id = $1`,
-            [projectId]
-          ),
-          // Activity
-          ctx.db.query(
-            `SELECT id, action, details, created_at
-             FROM project_activity
-             WHERE project_id = $1
-             ORDER BY created_at DESC
-             LIMIT 10`,
-            [projectId]
-          )
+          envsPromise,
+          statsPromise,
+          activityPromise
         ]);
 
         const ds = statsRes.rows[0] || {};
@@ -668,8 +680,11 @@ export const projectRouter = router({
           activity: activityRes.rows || []
         };
       } catch (err) {
-        console.error('[project.getDashboardSummary] Error:', err);
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch dashboard summary' });
+        console.error('[project.getDashboardSummary] Root Error:', err);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch dashboard summary: ${err instanceof Error ? err.message : 'Unknown error'}`
+        });
       }
     }),
 });
