@@ -12,6 +12,7 @@ import { getProviderCredentials } from '../lib/credentials';
 // Sub-module imports
 import { deployToProvider, estimateCost, getProviderStatus } from './deploy/provider';
 import { rollback, getRollbackHistory, trackCost, getCostHistory } from './deploy/rollback';
+import { logProjectActivity } from '../lib/activity';
 
 export const deployRouter = router({
   create: secureProcedure('deploy.create')
@@ -28,9 +29,9 @@ export const deployRouter = router({
         url: z.string(),
         status: z.enum(['starting', 'running', 'stopped', 'failed']).default('starting'),
       })).optional(),
-      // Multi-provider fields
       provider: z.string().optional(), // 'vercel' | 'railway' | 'render' | 'aws' | 'cloudflare' | 'fly' | 'gcp' | 'azure'
       environment: z.string().optional(), // 'preview' | 'staging' | 'production'
+      projectId: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const end = startQueryTimer('deploy.create');
@@ -45,14 +46,15 @@ export const deployRouter = router({
       const result = await ctx.db.query(
         `INSERT INTO deployments (
           branch, commit, status, summary, 
-          services, created_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
+          services, created_at, project_id
+        ) VALUES ($1, $2, $3, $4, $5, NOW(), $6) RETURNING *`,
         [
           input.branch,
           commit,
           "pending",
           summary,
-          JSON.stringify(input.services || [])
+          JSON.stringify(input.services || []),
+          input.projectId || (ctx as any).projectId || null
         ]
       )
       end();
@@ -61,6 +63,15 @@ export const deployRouter = router({
         throw new Error('Failed to create deployment record');
       }
       const deployment = result.rows[0]
+
+      // Log activity
+      if (deployment.project_id) {
+        await logProjectActivity(ctx.db, deployment.project_id, (ctx as any).userId || 'system', 'DEPLOYMENT_CREATED', {
+          branch: input.branch,
+          commit: input.commit,
+          environment: input.environment
+        });
+      }
 
       // Queue deployment for async execution
       if (deployment?.id != null) {
@@ -236,6 +247,14 @@ export const deployRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Deployment not found' });
       }
       const deployment = result.rows[0]
+
+      // Log activity for significant status changes
+      if (deployment.project_id && (input.status === 'success' || input.status === 'failed')) {
+        await logProjectActivity(ctx.db, deployment.project_id, (ctx as any).userId || 'system', `DEPLOYMENT_${input.status.toUpperCase()}`, {
+          deploymentId: deployment.id,
+          branch: deployment.branch
+        });
+      }
 
       // Emit update event
       if (deployment) {

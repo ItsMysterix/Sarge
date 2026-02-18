@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { getProvider } from '../lib/providers'
 import { getProviderCredentials } from '../lib/credentials'
+import { logProjectActivity } from '../lib/activity'
 
 export const environmentsRouter = router({
   list: secureProcedure('environments.list')
@@ -13,16 +14,23 @@ export const environmentsRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       try {
-        // Try to fetch from DB (when schema is migrated)
+        // Resolve projectId from slug first
+        const projectRes = await ctx.db.query('SELECT id FROM projects WHERE slug = $1', [input.projectSlug])
+        const projectId = projectRes.rows[0]?.id
+
+        if (!projectId) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' })
+        }
+
         const result = await ctx.db.query(
           `SELECT 
-            id, name, provider_id, type, region, 
-            resource_config, status, created_at 
-           FROM environments 
-           WHERE project_id = $1
-           ${input.providerId ? 'AND provider_id = $2' : ''}
-           ORDER BY created_at DESC`,
-          input.providerId ? [input.projectSlug, input.providerId] : [input.projectSlug]
+              id, name, provider_id, type, region, 
+              resource_config, status, created_at 
+             FROM environments 
+             WHERE project_id = $1
+             ${input.providerId ? 'AND provider_id = $2' : ''}
+             ORDER BY created_at DESC`,
+          input.providerId ? [projectId, input.providerId] : [projectId]
         ).catch(() => null)
 
         if (result?.rows) {
@@ -103,6 +111,19 @@ export const environmentsRouter = router({
 
         if (result?.rows?.[0]) {
           const env = result.rows[0]
+
+          // Resolve projectId from slug for activity logging
+          const projectRes = await ctx.db.query('SELECT id FROM projects WHERE slug = $1', [input.projectSlug])
+          const projectId = projectRes.rows[0]?.id
+
+          // Log activity
+          if (projectId) {
+            await logProjectActivity(ctx.db, projectId, (ctx as any).userId || 'system', 'ENVIRONMENT_CREATED', {
+              name: input.name,
+              type: input.type,
+              provider: input.providerId
+            });
+          }
 
           // Create services if provided
           if (input.services && input.services.length > 0) {

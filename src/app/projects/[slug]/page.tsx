@@ -10,6 +10,7 @@ import {
   Plus,
   Box,
   ShieldCheck,
+  ShieldAlert,
   Zap,
   Clock,
   Activity,
@@ -17,7 +18,20 @@ import {
   Terminal,
   AlertTriangle,
   Globe,
-  Cpu
+  Cpu,
+  ExternalLink,
+  RotateCcw,
+  FileText,
+  History,
+  MoreVertical,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Command,
+  Github,
+  GitCommit
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,13 +42,13 @@ import { LoadingScreen } from "@/components/ui/loading-screen"
 import { useProject } from "@/lib/project-context"
 import { EnvironmentCreationModal } from "@/components/projects/EnvironmentCreationModal"
 import { formatDistanceToNow } from "date-fns"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function ProjectDetailsPage({ params }: { params: { slug: string } }) {
   const router = useRouter()
   const { currentProject } = useProject()
   const { addToast, ToastContainer } = useToast()
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [activeEnvTab, setActiveEnvTab] = useState<string>("overview")
   
   const projectSlug = params.slug
 
@@ -48,18 +62,41 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   const environments = dashboardQuery.data?.environments || []
   const stats = dashboardQuery.data?.stats
   const activity = dashboardQuery.data?.activity || []
+  const latestDeployment = (dashboardQuery.data as any)?.latestDeployment
 
-  const activeBranch = useMemo(() => {
-    if (activeEnvTab === "overview") return project?.autoDeployBranch || 'main'
-    const currentEnv = environments.find(e => e.id === activeEnvTab)
-    return currentEnv?.branch || project?.autoDeployBranch || 'main'
-  }, [activeEnvTab, environments, project])
+  // Logic to find the latest environment worked with
+  const latestEnvironment = environments[0] || null
 
   // Loading State
   if (dashboardQuery.isLoading) {
     return (
       <AppShell>
         <LoadingScreen title="Loading Project" subtitle="Synchronizing environment data..." />
+      </AppShell>
+    )
+  }
+
+  // Error State Handling
+  if (dashboardQuery.error) {
+    return (
+      <AppShell>
+        <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
+          <ShieldAlert className="w-12 h-12 text-red-500 mb-4" />
+          <h1 className="text-xl font-semibold text-red-500">Infrastructure Connection Error</h1>
+          <p className="text-muted-foreground mt-2 max-w-md">
+            {dashboardQuery.error.message.includes('Project not found') 
+              ? "We couldn't locate this project. It may have been deleted or you may lack sufficient permissions."
+              : `A telemetry error occurred: ${dashboardQuery.error.message}`}
+          </p>
+          <div className="flex gap-4 mt-6">
+            <Button variant="outline" onClick={() => dashboardQuery.refetch()}>
+              Retry Connection
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/projects')}>
+              Back to Projects
+            </Button>
+          </div>
+        </div>
       </AppShell>
     )
   }
@@ -79,21 +116,27 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
     )
   }
 
-  const handleCreateDeployment = () => {
-    // If we have an environment selected, we can pass it to the deployment flow
-    const targetEnv = environments.find(e => e.id === activeEnvTab)
-    addToast({
-      title: "Triggering Deployment",
-      description: `Starting a new build for ${targetEnv?.name || 'default'} environment...`,
-      type: "info"
-    })
-    // For now, redirect to orchestration or deployment builder
-    router.push(`/orchestration/deploy?project=${projectSlug}${targetEnv ? `&env=${targetEnv.type}` : ''}`)
+  const handleRollback = () => {
+    addToast({ title: "Rollback Initiated", description: "Reverting to previous stable build...", type: "info" })
+  }
+
+  const handleVisit = () => {
+    if (latestDeployment?.services?.[0]?.url) {
+      window.open(latestDeployment.services[0].url, '_blank')
+    } else {
+      addToast({ title: "No URL", description: "Deployment URL not available yet.", type: "warning" })
+    }
   }
 
   return (
-    <AppShell>
-      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
+    <AppShell title={project.name} actions={
+      <div className="flex gap-2">
+         <Button onClick={() => router.push(`/projects/${projectSlug}/provision`)} variant="outline" className="h-9 px-4 text-xs font-bold uppercase tracking-widest border-white/5 bg-white/5 rounded-xl hover:bg-white/10">
+            <Plus className="w-3.5 h-3.5 mr-2" /> Add Environment
+         </Button>
+      </div>
+    }>
+      <div className="flex-1 p-4 md:p-8 lg:p-12 max-w-7xl mx-auto w-full space-y-12 animate-fade-in bg-background no-scrollbar">
         <ToastContainer />
         
         {showCreateModal && (
@@ -104,283 +147,244 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
           />
         )}
 
-        {/* Actions Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-               <h1 className="text-3xl font-bold tracking-tight text-foreground">{project.name}</h1>
-               <div className="flex items-center gap-2 mt-2">
-                 <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground bg-muted/20">
-                    {project.slug}
-                 </Badge>
-                 <span className="text-muted-foreground text-[10px]">•</span>
-                 <span className="text-muted-foreground text-[10px] flex items-center gap-1">
-                   <GitBranch className="w-3 h-3" /> {activeBranch}
-                 </span>
-               </div>
-            </div>
-             <div className="flex gap-2">
-             </div>
-        </div>
-
-        {/* Dashboard Content */}
-        <Tabs defaultValue="overview" onValueChange={setActiveEnvTab} className="w-full">
-          <TabsList className="bg-muted/10 w-full justify-start border border-border/50 rounded-xl p-1 mb-8">
-            <TabTrigger value="overview" icon={<Layout className="w-3.5 h-3.5" />} label="Project Overview" />
-            {environments.map(env => (
-              <TabTrigger 
-                key={env.id} 
-                value={env.id} 
-                icon={<Box className="w-3.5 h-3.5" />} 
-                label={env.name} 
-              />
-            ))}
-          </TabsList>
-
-          {/* Overview Tab (Stats & Activity) */}
-          <TabsContent value="overview" className="space-y-6 focus-visible:outline-none">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Real Stats Area */}
-              <div className="lg:col-span-2 space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                   <StatCard label="Deployments" value={stats?.totalDeployments ?? 0} />
-                   <StatCard label="Uptime" value={stats?.successfulDeployments ? `${((stats.successfulDeployments / (stats.totalDeployments || 1)) * 100).toFixed(1)}%` : "0%"} />
-                   <StatCard label="Avg. Build" value={stats?.avgDeployTime ? `${stats.avgDeployTime}s` : "—"} />
-                   <StatCard label="Active Services" value={stats?.activeServices ?? 0} />
-                </div>
-
-                {/* Environments List (Real Data) */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-widest">
-                       <Box className="w-4 h-4" /> Environments
-                    </h3>
-                    {environments.length > 0 && (
-                      <Button 
-                        onClick={() => router.push(`/projects/${projectSlug}/provision`)} 
-                        variant="ghost" 
-                        className="h-8 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground"
-                      >
-                         <Plus className="w-3 h-3 mr-2" /> Add Environment
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {environments.length === 0 ? (
-                    <div className="min-h-[200px] flex flex-col items-center justify-center text-center border border-dashed border-border/50 rounded-3xl bg-muted/5 p-8 transition-all">
-                        <div className="p-4 rounded-full bg-muted/20 mb-4 text-muted-foreground">
-                          <Layout className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-lg font-medium mb-1 text-foreground">No Active Environments</h3>
-                        <p className="text-muted-foreground text-sm max-w-sm mb-6">
-                          Provision infrastructure to start deploying services to this project.
-                        </p>
-                        <Button onClick={() => router.push(`/projects/${projectSlug}/provision`)} variant="outline" className="h-9 px-6 rounded-full border-foreground/10 hover:bg-muted text-xs">
-                          <Plus className="w-4 h-4 mr-2" />
-                          Provision First Environment
-                        </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {environments.map(env => (
-                        <div key={env.id} className="group p-5 bg-card border border-border rounded-2xl hover:border-foreground/20 transition-all cursor-pointer shadow-sm hover:shadow-md" onClick={() => setActiveEnvTab(env.id)}>
-                          <div className="flex items-center justify-between mb-3">
-                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-muted/50 text-muted-foreground group-hover:bg-foreground group-hover:text-background transition-colors">
-                                  <Box className="w-4 h-4" />
-                                </div>
-                                <span className="font-semibold text-foreground text-sm">{env.name}</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                               {env.last_deployed_at && (
-                                 <Badge className="text-[8px] uppercase font-bold px-1.5 py-0 bg-blue-500/10 text-blue-500 border-none">
-                                   Deployed
-                                 </Badge>
-                               )}
-                               <Badge className={cn(
-                                 "text-[8px] uppercase font-bold px-1.5 py-0",
-                                 env.status === 'active' ? "bg-emerald-500/10 text-emerald-500 border-none" : "bg-muted text-muted-foreground"
-                               )}>
-                                 {env.status}
-                               </Badge>
-                             </div>
-                          </div>
-                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/10">
-                            <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
-                              <span className="flex items-center gap-1.5"><Zap className="w-3 h-3" /> {env.type}</span>
-                              <span className="flex items-center gap-1.5"><Globe className="w-3 h-3" /> {env.region}</span>
-                            </div>
-                            {!env.last_deployed_at && (
-                              <Button 
-                                size="sm" 
-                                className="h-7 px-3 bg-foreground text-background text-[9px] font-bold uppercase tracking-wider rounded-lg"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCreateDeployment();
-                                }}
-                              >
-                                Deploy
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+        {/* Latest Deployment (Production) Card - Vercel Style */}
+        <section className="space-y-4">
+           <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground italic select-none">Production Deployment</h2>
+              <div className="flex gap-2">
+                 <Button variant="ghost" size="sm" className="h-8 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground" onClick={() => dashboardQuery.refetch()}>
+                    <RefreshCw className={cn("w-3.5 h-3.5 mr-2", dashboardQuery.isRefetching && "animate-spin")} /> Refresh
+                 </Button>
               </div>
+           </div>
+           
+           <div className="bg-black/40 border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent pointer-events-none" />
+              
+              <div className="p-8 md:p-12">
+                 <div className="flex flex-col lg:flex-row gap-12">
+                    {/* Left: Deployment Preview / Screenshot Placeholder */}
+                    <div className="lg:w-1/3">
+                       <div className="aspect-video bg-foreground/[0.03] border border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 relative overflow-hidden group/preview pointer-events-none">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.05),transparent)]" />
+                          <Globe className="w-12 h-12 text-muted-foreground/30 mb-4 group-hover/preview:scale-110 transition-transform" />
+                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic">Preview Synchronizing...</p>
+                       </div>
+                    </div>
 
-              {/* Activity Feed (Real Data) */}
-              <div className="space-y-4">
-                 <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-widest">
-                   <Activity className="w-4 h-4" /> Activity Feed
-                 </h3>
-                 <div className="bg-card border border-border/50 rounded-3xl p-6 min-h-[400px]">
-                    {activity.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center italic text-muted-foreground text-xs">
-                        No recent activity recorded.
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {activity.map((item: any) => (
-                          <div key={item.id} className="relative pl-6 border-l border-border pb-6 last:pb-0">
-                            <div className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-foreground border border-background" />
-                            <div className="text-xs font-bold text-foreground mb-1 uppercase tracking-tight">{item.action}</div>
-                            <div className="text-[11px] text-muted-foreground line-clamp-2 mb-1">
-                              {JSON.stringify(item.details)}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground font-mono opacity-60">
-                              {formatDistanceToNow(new Date(item.created_at))} ago
-                            </div>
+                    {/* Right: Deployment Details */}
+                    <div className="lg:w-2/3 flex flex-col justify-between">
+                       <div className="space-y-8">
+                          <div className="flex items-center justify-between">
+                             <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Deployment</p>
+                                <p className="text-lg font-bold text-foreground tracking-tight select-all">
+                                   {latestDeployment?.services?.[0]?.url?.replace('https://', '') || `${project.slug}-deployment.sarge.dev`}
+                                </p>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <Button variant="ghost" className="h-9 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 border border-white/5" onClick={() => router.push(`/projects/${projectSlug}/logs`)}>
+                                   Build Logs
+                                </Button>
+                                <Button variant="ghost" className="h-9 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 border border-white/5" onClick={() => router.push(`/observability?project=${projectSlug}`)}>
+                                   Runtime Logs
+                                </Button>
+                                <Button variant="ghost" className="h-9 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 border border-white/5 text-amber-500" onClick={handleRollback}>
+                                   <RotateCcw className="w-3.5 h-3.5 mr-2" /> Instant Rollback
+                                </Button>
+                                <Button className="h-9 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-foreground text-background hover:scale-105 transition-transform" onClick={handleVisit}>
+                                   Visit <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                                </Button>
+                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 pt-4 border-t border-white/[0.03]">
+                             <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Domains</p>
+                                <div className="flex items-center gap-2 group/domain cursor-pointer">
+                                   <span className="text-xs font-bold text-foreground">{latestDeployment?.services?.[0]?.url?.replace('https://', '') || 'No domain linked'}</span>
+                                   <Plus className="w-3 h-3 text-muted-foreground opacity-0 group-hover/domain:opacity-100 transition-opacity" />
+                                </div>
+                             </div>
+                             <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Status</p>
+                                <div className="flex items-center gap-2">
+                                   <div className={cn(
+                                      "w-1.5 h-1.5 rounded-full animate-pulse", 
+                                      latestDeployment?.status === 'success' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500"
+                                   )} />
+                                   <span className="text-xs font-bold text-foreground capitalize">{latestDeployment?.status || 'Active'}</span>
+                                </div>
+                             </div>
+                             <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Created</p>
+                                <p className="text-xs font-bold text-foreground">
+                                   {latestDeployment?.created_at ? formatDistanceToNow(new Date(latestDeployment.created_at)) : '---'} ago
+                                </p>
+                             </div>
+                          </div>
+
+                          <div className="pt-8 space-y-4">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic">Source Code Context</p>
+                             <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2 text-xs font-bold text-indigo-400">
+                                   <GitBranch className="w-4 h-4" /> {latestDeployment?.branch || 'main'}
+                                </div>
+                                <div className="flex items-center gap-3 text-xs font-medium text-foreground/60 border-l border-white/5 pl-6">
+                                   <GitCommit className="w-4 h-4 text-muted-foreground" />
+                                   <span className="font-mono text-muted-foreground/40 pr-2">{latestDeployment?.commit?.slice(0, 7) || '---'}</span>
+                                   <span className="italic truncate max-w-md">{latestDeployment?.summary?.split('] ').pop() || 'Initial project commit'}</span>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
                  </div>
               </div>
-            </div>
-          </TabsContent>
+              
+              <div className="px-8 py-4 bg-white/[0.02] border-t border-white/[0.03] flex items-center justify-between">
+                 <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">
+                    <ChevronRight className="w-3.5 h-3.5" /> Deployment Settings
+                    <Badge variant="outline" className="h-5 px-2 bg-indigo-500/5 text-indigo-400 border-indigo-500/20 text-[9px] font-black tracking-widest">4 Recommendations</Badge>
+                 </div>
+                 <p className="text-[10px] font-bold text-muted-foreground/20 italic">To build latest artifacts, push to the <span className="text-foreground/40">main</span> branch.</p>
+              </div>
+           </div>
+        </section>
 
-          {/* Environment-Specific Content (Dynamic) */}
-          {environments.map(env => (
-            <TabsContent key={env.id} value={env.id} className="space-y-6 focus-visible:outline-none animate-fade-in">
-               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="md:col-span-3 space-y-6">
-                    <div className="flex items-center justify-between p-6 bg-card border border-border rounded-3xl">
-                       <div className="flex items-center gap-4">
-                          <div className="p-3 bg-foreground text-background rounded-2xl">
-                             <Box className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-bold">{env.name}</h3>
-                            <p className="text-sm text-muted-foreground font-mono">Target Cluster: {env.type} • Region: {env.region}</p>
-                          </div>
-                       </div>
-                       <Button size="sm" variant="outline" className="rounded-full h-10 px-6 font-bold text-xs">
-                          Live Metrics
-                       </Button>
+        {/* Lower Grid: Environments & Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+           {/* Left Segment: Environments (Latest Focus) */}
+           <div className="lg:col-span-8 space-y-6">
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground italic select-none">Environment Matrix</h2>
+                 <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest text-indigo-400" onClick={() => router.push(`/projects/${projectSlug}/provision`)}>
+                    Manage Cluster
+                 </Button>
+              </div>
+
+              {environments.length === 0 ? (
+                 <div className="p-12 border border-dashed border-white/5 rounded-3xl bg-foreground/[0.01] text-center space-y-6">
+                    <div className="w-16 h-16 rounded-3xl bg-white/5 mx-auto flex items-center justify-center border border-white/5">
+                       <Box className="w-8 h-8 text-muted-foreground/20" />
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                       <div className="p-6 bg-muted/5 border border-border rounded-3xl">
-                          <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                             <Cpu className="w-4 h-4" /> Resource Config
-                          </div>
-                          <div className="space-y-4">
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">CPU Cores</span>
-                                <span className="font-mono font-bold">{env.resource_config?.cpu || '0.5'}</span>
-                             </div>
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Memory</span>
-                                <span className="font-mono font-bold">{env.resource_config?.memory || '512MB'}</span>
-                             </div>
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Replicas</span>
-                                <span className="font-mono font-bold">{env.resource_config?.replicas || '1'}</span>
-                             </div>
-                          </div>
-                       </div>
-                       <div className="p-6 bg-muted/5 border border-border rounded-3xl">
-                          <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                             <Terminal className="w-4 h-4" /> Endpoint Status
-                          </div>
-                          <div className="space-y-4">
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Status</span>
-                                <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[10px] font-bold uppercase tracking-tighter">Healthy</Badge>
-                             </div>
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">SSL</span>
-                                <Badge className="bg-blue-500/10 text-blue-500 border-none text-[10px] font-bold uppercase tracking-tighter">Provisioned</Badge>
-                             </div>
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Last Ping</span>
-                                <span className="font-mono text-[11px]">23ms ago</span>
-                             </div>
-                          </div>
-                       </div>
+                    <div>
+                       <h3 className="text-sm font-bold text-foreground">Zero Active Environments</h3>
+                       <p className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">Initialize a production, staging, or development cluster to begin deployments.</p>
                     </div>
-                  </div>
+                    <Button onClick={() => router.push(`/projects/${projectSlug}/provision`)} className="h-9 bg-foreground text-background">Establish First Environment</Button>
+                 </div>
+              ) : (
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Primary/Latest Environment Detail */}
+                    {latestEnvironment && (
+                       <div className="md:col-span-3">
+                          <div className="p-8 bg-foreground/[0.02] border border-white/5 rounded-[2.5rem] flex items-center justify-between hover:bg-white/[0.03] transition-colors cursor-pointer" onClick={() => router.push(`/orchestration/deploy?project=${projectSlug}&env=${latestEnvironment.type}`)}>
+                             <div className="flex items-center gap-8">
+                                <div className="w-16 h-16 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-center shadow-inner">
+                                   <Zap className="w-8 h-8 text-indigo-400" />
+                                </div>
+                                <div>
+                                   <div className="flex items-center gap-3 mb-1">
+                                      <h3 className="text-xl font-bold text-foreground tracking-tight">{latestEnvironment.name}</h3>
+                                      <Badge variant="outline" className="h-5 bg-indigo-500/10 text-indigo-400 border-indigo-400/20 text-[9px] font-black uppercase tracking-widest">{latestEnvironment.type}</Badge>
+                                   </div>
+                                   <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground/40 tabular-nums uppercase tracking-widest">
+                                      <span className="flex items-center gap-2"><Globe className="w-3.5 h-3.5" /> {latestEnvironment.region}</span>
+                                      <span className="flex items-center gap-2 italic"><Cpu className="w-3.5 h-3.5" /> {latestEnvironment.status}</span>
+                                   </div>
+                                </div>
+                             </div>
+                             <div className="flex items-center gap-8 pr-4">
+                                <div className="text-right">
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/20 mb-1 italic">Cluster Health</p>
+                                   <p className="text-lg font-black text-emerald-500 italic tabular-nums">100<span className="text-[10px] font-bold ml-0.5">%</span></p>
+                                </div>
+                                <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-muted-foreground">
+                                   <ChevronRight className="w-5 h-5" />
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    )}
+                 </div>
+              )}
+              
+              <div className="grid grid-cols-3 gap-6">
+                 {[
+                   { label: 'Uptime', val: stats?.successfulDeployments ? `${((stats.successfulDeployments / (stats.totalDeployments || 1)) * 100).toFixed(1)}%` : "0%", icon: Activity },
+                   { label: 'Avg Build', val: stats?.avgDeployTime ? `${stats.avgDeployTime}s` : "---", icon: Command },
+                   { label: 'Services', val: stats?.activeServices ?? 0, icon: Box }
+                 ].map(m => (
+                   <div key={m.label} className="p-6 bg-white/[0.01] border border-white/5 rounded-3xl">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/20 mb-2 italic flex items-center gap-2">
+                         <m.icon className="w-3.5 h-3.5" /> {m.label}
+                      </p>
+                      <p className="text-xl font-bold text-foreground italic tabular-nums">{m.val}</p>
+                   </div>
+                 ))}
+              </div>
+           </div>
 
-                  <div className="space-y-6">
-                     <div className="p-6 bg-card border border-border rounded-3xl">
-                        <h4 className="font-bold text-sm mb-4 uppercase tracking-tighter">Deployment Controls</h4>
-                        <div className="space-y-3">
-                           <Button 
-                             className="w-full text-xs font-bold uppercase tracking-widest bg-foreground text-background hover:bg-foreground/90 h-10 rounded-2xl" 
-                             onClick={handleCreateDeployment}
-                           >
-                              {env.last_deployed_at ? (
-                                <>
-                                  <Zap className="w-4 h-4 mr-2" /> Redeploy
-                                </>
-                              ) : (
-                                <>
-                                  <Plus className="w-4 h-4 mr-2" /> Deploy
-                                </>
-                              )}
-                           </Button>
-                           <Button variant="outline" className="w-full text-xs font-bold uppercase tracking-widest h-10 rounded-2xl border-border/50">
-                              Rollback
-                           </Button>
-                           <Button variant="ghost" className="w-full text-xs font-bold uppercase tracking-widest text-destructive h-10 rounded-2xl hover:bg-destructive/10">
-                              Decommission
-                           </Button>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+           {/* Right Segment: Activity Feed */}
+           <div className="lg:col-span-4 space-y-6">
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground italic select-none">Neural Activity</h2>
+                 <History className="w-4 h-4 text-muted-foreground/20" />
+              </div>
+
+              <div className="bg-foreground/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden min-h-[500px] flex flex-col relative">
+                 <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+                 
+                 <div className="flex-1 p-8 space-y-8 overflow-y-auto no-scrollbar">
+                    {activity.length === 0 ? (
+                       <div className="h-full flex flex-col items-center justify-center text-center p-12 opacity-20 italic">
+                          <Activity className="w-8 h-8 mb-4 mx-auto" />
+                          <p className="text-[10px] font-black uppercase tracking-widest">Awaiting system events...</p>
+                       </div>
+                    ) : (
+                       activity.map((item: any, i: number) => {
+                          const actionDisplay = item.action.split('_').join(' ')
+                          const isSuccess = item.action.includes('SUCCESS')
+                          const isFailed = item.action.includes('FAILED')
+                          
+                          return (
+                             <div key={item.id} className="relative pl-8 group/item">
+                                {i !== activity.length - 1 && (
+                                   <div className="absolute left-1 top-4 bottom-[-32px] w-px bg-white/[0.03] group-hover/item:bg-white/[0.08] transition-colors" />
+                                )}
+                                <div className={cn(
+                                   "absolute left-0 top-1 w-2.5 h-2.5 rounded-full border border-black z-10 transition-all",
+                                   isSuccess ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]" : 
+                                   isFailed ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]" : 
+                                   "bg-indigo-500"
+                                )} />
+                                
+                                <div className="space-y-1.5">
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">{formatDistanceToNow(new Date(item.created_at))} ago</p>
+                                   <h4 className="text-xs font-bold text-foreground capitalize tracking-tight group-hover/item:text-white transition-colors">
+                                      {actionDisplay.toLowerCase()}
+                                   </h4>
+                                   <div className="text-[10px] text-muted-foreground font-mono font-medium truncate opacity-60 italic">
+                                      {item.details?.branch ? `→ ${item.details.branch}` : (item.details?.name || JSON.stringify(item.details))}
+                                   </div>
+                                </div>
+                             </div>
+                          )
+                       })
+                    )}
+                 </div>
+                 
+                 <div className="p-8 pt-0">
+                    <Button variant="ghost" className="w-full h-10 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/10">
+                       View Audit Artifacts
+                    </Button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
       </div>
     </AppShell>
-  )
-}
-
-function TabTrigger({ value, icon, label, className }: { value: string, icon: any, label: string, className?: string }) {
-  return (
-    <TabsTrigger 
-      value={value}
-      className={cn(
-        "flex items-center gap-2 px-6 py-2.5 text-xs font-bold uppercase tracking-tighter rounded-xl transition-all",
-        "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-[0_4px_12px_rgba(0,0,0,0.1)]",
-        "text-muted-foreground hover:text-foreground",
-        className
-      )}
-    >
-      {icon}
-      <span>{label}</span>
-      </TabsTrigger>
-  )
-}
-
-function StatCard({ label, value }: { label: string, value: string | number }) {
-  return (
-    <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all">
-      <div className="text-[10px] text-muted-foreground uppercase font-black mb-2 tracking-widest">{label}</div>
-      <div className="text-2xl font-bold text-foreground tabular-nums">{value}</div>
-    </div>
   )
 }

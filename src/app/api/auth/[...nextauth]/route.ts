@@ -27,12 +27,14 @@ if (!process.env.NEXTAUTH_SECRET) {
   }
 }
 
-// Ensure NEXTAUTH_URL is set
-const nextAuthUrl = process.env.NEXTAUTH_URL
+// Ensure NEXTAUTH_URL is set - Use VERCEL_URL as fallback in production
+const nextAuthUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
 if (!nextAuthUrl) {
-  console.error('❌ [AUTH CONFIG] NEXTAUTH_URL not set - OAuth WILL FAIL')
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ [AUTH CONFIG] NEXTAUTH_URL/VERCEL_URL not set - OAuth WILL FAIL')
+  }
 } else {
-  console.log('✅ [AUTH CONFIG] NEXTAUTH_URL configured:', nextAuthUrl)
+  console.log('✅ [AUTH CONFIG] Auth URL configured:', nextAuthUrl)
 }
 
 export const authOptions: NextAuthOptions = {

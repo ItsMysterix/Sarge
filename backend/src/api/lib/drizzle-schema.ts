@@ -126,15 +126,25 @@ export const connectedProviders = pgTable('connected_providers', {
     unq: unique().on(t.projectSlug, t.providerId),
 }));
 
-// --- Monitoring & Comms ---
+// --- Telemetry & Logs ---
 
-export const notificationChannels = pgTable('notification_channels', {
-    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
-    projectId: text('project_id').notNull(),
-    name: text('name').notNull(),
-    type: text('type').notNull(),
-    config: jsonb('config').notNull(),
-    enabled: boolean('enabled').default(true),
+export const logs = pgTable('logs', {
+    id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+    projectId: text('project_id'),
+    environmentId: text('environment_id'),
+    serviceId: text('service_id'),
+    service: text('service'), // For backward compatibility
+    type: text('type'), // legacy type field
+    level: text('level'), // error, warning, watch, info, fatal
+    message: text('message').notNull(),
+    host: text('host'),
+    method: text('method'),
+    path: text('path'),
+    status: integer('status'),
+    requestId: text('request_id'),
+    userAgent: text('user_agent'),
+    duration: integer('duration'),
+    timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 

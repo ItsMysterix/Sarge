@@ -9,209 +9,171 @@ import { LogAggregator } from "../../services/log-aggregator";
 const logAggregator = new LogAggregator();
 
 export const logsRouter = router({
-  recent: secureProcedure('logs.recent')
+  // Advanced query for Vercel-style logs
+  listing: secureProcedure('logs.listing')
     .input(z.object({
-      type: z.string().optional(),
-      service: z.string().optional(),
+      projectId: z.string().optional(),
+      environmentId: z.string().optional(),
+      serviceId: z.string().optional(),
+      levels: z.array(z.string()).optional(),
+      methods: z.array(z.string()).optional(),
+      statuses: z.array(z.number()).optional(),
+      path: z.string().optional(),
+      host: z.string().optional(),
       search: z.string().optional(),
+      startTime: z.string().optional(),
+      endTime: z.string().optional(),
       cursor: z.string().optional(),
-      limit: z.number().int().positive().max(1000).optional(),
+      limit: z.number().int().positive().max(1000).default(50),
     }))
     .query(async ({ ctx, input }) => {
-      const end = startQueryTimer('logs.recent');
+      const end = startQueryTimer('logs.listing');
       try {
-        const type = input.type;
-        const service = input.service;
-        const search = input.search;
-        const limit = input.limit ?? 100;
-
-        // Parse cursor if provided
-        let cursorCreatedAt: string | null = null;
-        let cursorId: string | number | null = null;
-        if (input.cursor) {
-          try {
-            const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf8'));
-            cursorCreatedAt = decoded.created_at ?? null;
-            cursorId = decoded.id ?? null;
-          } catch { }
-        }
-
-        // [v90f410f-NOCACHE] First, detect which columns exist
-        let hasServiceId = false;
-        let hasService = false;
-        try {
-          const schemaCheck = await ctx.db.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'logs' 
-            AND column_name IN ('service_id', 'service')
-          `);
-          const columns = schemaCheck?.rows?.map((r: any) => r.column_name) || [];
-          hasServiceId = columns.includes('service_id');
-          hasService = columns.includes('service');
-        } catch (e) {
-          console.warn('[logs.recent] Could not detect schema, assuming service column exists');
-          hasService = true;
-        }
-
-        // Build SQL based on available columns
-        const serviceCol = hasServiceId ? 'service_id' : (hasService ? 'service' : "'unknown'");
-        const selects = `SELECT id, ${serviceCol} as service, type, message, "timestamp", created_at`;
+        const selects = `SELECT id, project_id, environment_id, service_id, service, level, type, message, host, method, path, status, request_id, user_agent, duration, "timestamp", created_at`;
         let sql = `${selects} FROM logs`;
         const params: any[] = [];
         const where: string[] = [];
 
-        if (type && type !== 'all') {
-          params.push(type);
-          where.push(`type = $${params.length}`);
+        if (input.projectId) {
+          params.push(input.projectId);
+          where.push(`project_id = $${params.length}`);
+        }
+        if (input.environmentId) {
+          params.push(input.environmentId);
+          where.push(`environment_id = $${params.length}`);
+        }
+        if (input.serviceId) {
+          params.push(input.serviceId);
+          where.push(`(service_id = $${params.length} OR service = $${params.length})`);
+        }
+        if (input.levels && input.levels.length > 0) {
+          params.push(input.levels);
+          where.push(`(level = ANY($${params.length}) OR type = ANY($${params.length}))`);
+        }
+        if (input.methods && input.methods.length > 0) {
+          params.push(input.methods);
+          where.push(`method = ANY($${params.length})`);
+        }
+        if (input.statuses && input.statuses.length > 0) {
+          params.push(input.statuses);
+          where.push(`status = ANY($${params.length})`);
+        }
+        if (input.path) {
+          params.push(`%${input.path}%`);
+          where.push(`path ILIKE $${params.length}`);
+        }
+        if (input.host) {
+          params.push(input.host);
+          where.push(`host = $${params.length}`);
+        }
+        if (input.search) {
+          params.push(`%${input.search}%`);
+          where.push(`(message ILIKE $${params.length} OR request_id ILIKE $${params.length})`);
+        }
+        if (input.startTime) {
+          params.push(new Date(input.startTime));
+          where.push(`COALESCE("timestamp", created_at) >= $${params.length}`);
+        }
+        if (input.endTime) {
+          params.push(new Date(input.endTime));
+          where.push(`COALESCE("timestamp", created_at) <= $${params.length}`);
         }
 
-        if (service && service !== 'all') {
-          params.push(service);
-          if (hasServiceId && hasService) {
-            where.push(`(service_id = $${params.length} OR service = $${params.length})`);
-          } else if (hasServiceId) {
-            where.push(`service_id = $${params.length}`);
-          } else if (hasService) {
-            where.push(`service = $${params.length}`);
-          }
-        }
-
-        if (search && search.length > 0) {
-          params.push(`%${search}%`);
-          if (hasServiceId && hasService) {
-            where.push(`(message ILIKE $${params.length} OR service_id ILIKE $${params.length} OR service ILIKE $${params.length})`);
-          } else if (hasServiceId) {
-            where.push(`(message ILIKE $${params.length} OR service_id ILIKE $${params.length})`);
-          } else if (hasService) {
-            where.push(`(message ILIKE $${params.length} OR service ILIKE $${params.length})`);
-          } else {
-            where.push(`message ILIKE $${params.length}`);
-          }
-        }
-
-        if (cursorCreatedAt && cursorId != null) {
-          params.push(cursorCreatedAt);
-          params.push(cursorId);
-          where.push(`(created_at, id) < ($${params.length - 1}, $${params.length})`);
+        if (input.cursor) {
+          try {
+            const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf8'));
+            params.push(decoded.ts);
+            params.push(decoded.id);
+            where.push(`(COALESCE("timestamp", created_at), id) < ($${params.length - 1}, $${params.length})`);
+          } catch { }
         }
 
         if (where.length) {
           sql += ` WHERE ${where.join(' AND ')}`;
         }
 
-        sql += ` ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST, id DESC`;
-        params.push(limit);
+        sql += ` ORDER BY COALESCE("timestamp", created_at) DESC, id DESC`;
+        params.push(input.limit);
         sql += ` LIMIT $${params.length}`;
 
         const result = await ctx.db.query(sql, params);
-
         const items = result?.rows || [];
-        // nextCursor from last item
+
         let nextCursor: string | null = null;
-        if (items.length > 0) {
+        if (items.length > 0 && items.length === input.limit) {
           const last = items[items.length - 1];
-          if (last) {
-            nextCursor = Buffer.from(
-              JSON.stringify({ created_at: last.created_at ?? last.timestamp ?? null, id: last.id })
-            ).toString('base64');
-          }
+          nextCursor = Buffer.from(JSON.stringify({ ts: last.timestamp || last.created_at, id: last.id })).toString('base64');
         }
+
         return { items, nextCursor };
       } catch (e) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch recent logs', cause: e as Error });
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to query logs', cause: e as Error });
       } finally {
         end();
       }
     }),
 
-  services: secureProcedure('logs.services').query(async ({ ctx }) => {
-    try {
-      const result = await ctx.db.query(`
-        SELECT DISTINCT COALESCE(service_id, service, 'unknown') as service 
-        FROM logs 
-        WHERE COALESCE(service_id, service) IS NOT NULL 
-        ORDER BY COALESCE(service_id, service) ASC
-      `);
-      if (!result || !result.rows) {
-        return [];
-      }
-      return result.rows.map((row: any) => row.service).filter(Boolean);
-    } catch (e) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch log services', cause: e as Error });
-    }
-  }),
-
-  // Fetch latest logs for a service (simple tail)
-  tail: secureProcedure('logs.tail')
+  // Get metadata for filters (counts, unique values)
+  metadata: secureProcedure('logs.metadata')
     .input(z.object({
-      service: z.string().optional(),
-      limit: z.number().int().positive().max(1000).default(100),
+      projectId: z.string().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const end = startQueryTimer('logs.tail');
       try {
-        const params: any[] = [];
-        let where = '';
+        const projectId = input.projectId;
+        const where = projectId ? `WHERE project_id = $1` : '';
+        const params = projectId ? [projectId] : [];
 
-        if (input.service && input.service !== 'all') {
-          params.push(input.service);
-          where = 'WHERE service = $1';
-        }
+        const [levels, methods, statuses, services] = await Promise.all([
+          ctx.db.query(`SELECT level as value, COUNT(*) as count FROM logs ${where} GROUP BY level`, params),
+          ctx.db.query(`SELECT method as value, COUNT(*) as count FROM logs ${where} GROUP BY method`, params),
+          ctx.db.query(`SELECT status as value, COUNT(*) as count FROM logs ${where} GROUP BY status`, params),
+          ctx.db.query(`SELECT COALESCE(service_id, service) as value, COUNT(*) as count FROM logs ${where} GROUP BY COALESCE(service_id, service)`, params),
+        ]);
 
-        params.push(input.limit);
-
-        const result = await ctx.db.query(
-          `SELECT id, service, type, message, "timestamp", created_at
-           FROM logs
-           ${where}
-           ORDER BY COALESCE("timestamp", created_at) DESC
-           LIMIT $${params.length}`,
-          params
-        );
-
-        return result?.rows || [];
+        return {
+          levels: levels.rows,
+          methods: methods.rows,
+          statuses: statuses.rows,
+          services: services.rows,
+        };
       } catch (e) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch log tail', cause: e as Error });
-      } finally {
-        end();
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch log metadata' });
       }
     }),
 
-  // Search logs by message/service/time window
-  search: secureProcedure('logs.search')
-    .input(z.object({
-      search: z.string().min(1),
+  // Ingest logs manually (for simulation/testing)
+  ingest: secureProcedure('logs.ingest')
+    .input(z.array(z.object({
+      projectId: z.string().optional(),
+      environmentId: z.string().optional(),
+      serviceId: z.string().optional(),
       service: z.string().optional(),
-      limit: z.number().int().positive().max(500).default(100),
-    }))
-    .query(async ({ ctx, input }) => {
-      const end = startQueryTimer('logs.search');
+      level: z.string().default('info'),
+      message: z.string(),
+      host: z.string().optional(),
+      method: z.string().optional(),
+      path: z.string().optional(),
+      status: z.number().optional(),
+      duration: z.number().optional(),
+    })))
+    .mutation(async ({ ctx, input }) => {
       try {
-        const params: any[] = [`%${input.search}%`];
-        let where = 'WHERE message ILIKE $1';
+        for (const log of input) {
+          const result = await ctx.db.query(
+            `INSERT INTO logs 
+             (project_id, environment_id, service_id, service, level, message, host, method, path, status, duration, created_at, "timestamp")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+             RETURNING id`,
+            [log.projectId, log.environmentId, log.serviceId, log.service, log.level, log.message, log.host, log.method, log.path, log.status, log.duration]
+          );
 
-        if (input.service && input.service !== 'all') {
-          params.push(input.service);
-          where += ` AND service = $${params.length}`;
+          // Emit for realtime
+          ctx.ee.emit('logs:new', { ...log, id: result.rows[0].id, timestamp: new Date() });
         }
-
-        params.push(input.limit);
-
-        const result = await ctx.db.query(
-          `SELECT id, service, type, message, "timestamp", created_at
-           FROM logs
-           ${where}
-           ORDER BY COALESCE("timestamp", created_at) DESC
-           LIMIT $${params.length}`,
-          params
-        );
-
-        return result?.rows || [];
+        return { success: true, count: input.length };
       } catch (e) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to search logs', cause: e as Error });
-      } finally {
-        end();
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to ingest logs' });
       }
     }),
 
@@ -219,10 +181,6 @@ export const logsRouter = router({
     createBufferedSubscription("logs:new", { bufferSize: 500, perTickCap: 100 })
   ),
 
-  /**
-   * Fetch aggregated logs from multiple cloud providers.
-   * Centralizes multi-cloud monitoring into a single stream.
-   */
   unified: secureProcedure('logs.unified')
     .input(z.object({
       deployments: z.array(z.object({ deploymentId: z.string(), providerId: z.string() })),

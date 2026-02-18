@@ -636,28 +636,38 @@ export const projectRouter = router({
            FROM project_activity
            WHERE project_id = $1
            ORDER BY created_at DESC
-           LIMIT 10`,
+           LIMIT 15`,
           [projectId]
         ).catch(err => {
-          console.warn('[project.getDashboardSummary] Error fetching activity (table might be missing):', err.message);
+          console.warn('[project.getDashboardSummary] Error fetching activity:', err.message);
           return { rows: [] };
         });
 
         const envsPromise = ctx.db.query(
-          `SELECT * FROM environments WHERE project_id = $1 ORDER BY created_at DESC`,
-          [input.slug]
+          `SELECT * FROM environments WHERE project_id = $1 ORDER BY updated_at DESC`,
+          [projectId]
         ).catch(err => {
           console.warn('[project.getDashboardSummary] Error fetching environments:', err.message);
           return { rows: [] };
         });
 
-        const [envsRes, statsRes, activityRes] = await Promise.all([
+        const latestDeploymentPromise = ctx.db.query(
+          `SELECT * FROM deployments WHERE project_id = $1 ORDER BY created_at DESC LIMIT 1`,
+          [projectId]
+        ).catch(err => {
+          console.warn('[project.getDashboardSummary] Error fetching latest deployment:', err.message);
+          return { rows: [] };
+        });
+
+        const [envsRes, statsRes, activityRes, latestDepRes] = await Promise.all([
           envsPromise,
           statsPromise,
-          activityPromise
+          activityPromise,
+          latestDeploymentPromise
         ]);
 
         const ds = statsRes.rows[0] || {};
+        const latestDep = latestDepRes.rows[0] || null;
 
         return {
           project: {
@@ -665,6 +675,10 @@ export const projectRouter = router({
             deploymentCount: Number(ds.total) || 0,
             lastDeployedAt: ds.last_deployed_at || null,
           },
+          latestDeployment: latestDep ? {
+            ...latestDep,
+            services: typeof latestDep.services === 'string' ? JSON.parse(latestDep.services) : (latestDep.services || [])
+          } : null,
           environments: envsRes.rows.map(row => ({
             ...row,
             resource_config: typeof row.resource_config === 'string' ? JSON.parse(row.resource_config) : row.resource_config,
