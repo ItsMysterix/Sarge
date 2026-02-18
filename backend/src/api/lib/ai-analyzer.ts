@@ -4,6 +4,7 @@ import simpleGit from 'simple-git';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { Octokit } from '@octokit/rest';
 
 export interface ServiceConfig {
   name: string;                      // "frontend", "api", "worker", etc.
@@ -83,24 +84,41 @@ export class AIRepositoryAnalyzer {
   /**
    * Analyze a GitHub repository
    */
-  async analyzeRepository(owner: string, repo: string, branch: string = 'main'): Promise<RepositoryAnalysis> {
+  /**
+   * Analyze a GitHub repository
+   */
+  async analyzeRepository(owner: string, repo: string, branch: string = 'main', token?: string): Promise<RepositoryAnalysis> {
     aiLogger.info(`[AI Analyzer] Starting analysis for ${owner}/${repo}`);
 
-    // Clone repository to temp directory
-    const repoPath = await this.cloneRepository(owner, repo, branch);
+    let files: FileInfo[] = [];
 
-    try {
-      // Scan repository structure
-      const files = await this.scanRepository(repoPath);
-
-      // Analyze with Claude
-      const analysis = await this.analyzeWithClaude(files, owner, repo);
-
-      return analysis;
-    } finally {
-      // Cleanup temp directory
-      await this.cleanup(repoPath);
+    if (token) {
+      // Use GitHub API (faster, no git dependency)
+      try {
+        files = await this.scanRepositoryViaAPI(owner, repo, branch, token);
+      } catch (error) {
+        aiLogger.warn(`[AI Analyzer] API scan failed, falling back to clone: ${error}`);
+        // Fallback to clone if API fails
+      }
     }
+
+    // If no files yet (no token or API failed), use Git Clone
+    if (files.length === 0) {
+      // Clone repository to temp directory
+      const repoPath = await this.cloneRepository(owner, repo, branch);
+      try {
+        // Scan repository structure
+        files = await this.scanRepository(repoPath);
+      } finally {
+        // Cleanup temp directory
+        await this.cleanup(repoPath);
+      }
+    }
+
+    // Analyze with Claude
+    const analysis = await this.analyzeWithClaude(files, owner, repo);
+
+    return analysis;
   }
 
   /**
@@ -181,6 +199,98 @@ export class AIRepositoryAnalyzer {
 
       // Stop if we have enough files
       if (files.length >= this.maxFiles) break;
+    }
+
+    return files;
+  }
+
+  /**
+   * Scan repository using GitHub API (Octokit)
+   */
+  private async scanRepositoryViaAPI(owner: string, repo: string, branch: string, token: string): Promise<FileInfo[]> {
+    const octokit = new Octokit({ auth: token });
+    const files: FileInfo[] = [];
+
+    // Priority files mapping for quick lookup
+    const priorityFiles = new Set([
+      'package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+      'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
+      'next.config.js', 'next.config.ts', 'next.config.mjs',
+      'vite.config.js', 'vite.config.ts', 'nuxt.config.js', 'nuxt.config.ts',
+      'angular.json', 'tsconfig.json', 'README.md',
+      '.env.example', '.env.sample',
+      'src/main.ts', 'src/main.js', 'src/index.ts', 'src/index.js',
+      'app/page.tsx', 'pages/index.tsx',
+      'main.go', 'go.mod', 'requirements.txt', 'Pipfile',
+      'pyproject.toml', 'Cargo.toml', 'pom.xml', 'build.gradle',
+    ]);
+
+    aiLogger.info(`[AI Analyzer] Fetching file tree via API for ${owner}/${repo}`);
+
+    try {
+      // Get the tree recursively
+      // Note: extensive repos might need truncation handling, but for analysis 'recursive' is good
+      const { data: treeData } = await octokit.rest.git.getTree({
+        owner,
+        repo,
+        tree_sha: branch,
+        recursive: '1',
+      });
+
+      // Filter for priority files and small files
+      const candidates = treeData.tree.filter(item =>
+        item.type === 'blob' &&
+        priorityFiles.has(item.path || '') &&
+        (item.size || 0) < this.maxFileSize
+      );
+
+      // Also include some root files if not in priority list but look relevant?
+      // For now stick to priority list to save API calls
+
+      aiLogger.info(`[AI Analyzer] Found ${candidates.length} relevant files in tree`);
+
+      // Limit concurrent requests
+      const limit = 5;
+      const chunks: any[][] = [];
+      for (let i = 0; i < candidates.length; i += limit) {
+        chunks.push(candidates.slice(i, i + limit));
+      }
+
+      for (const chunk of chunks) {
+        await Promise.all(chunk.map(async (item) => {
+          if (!item.path || files.length >= this.maxFiles) return;
+
+          try {
+            const { data } = await octokit.rest.repos.getContent({
+              owner,
+              repo,
+              path: item.path,
+              ref: branch,
+              mediaType: {
+                format: 'raw',
+              },
+            });
+
+            // If data is array (directory), ignore. If object (file content), use it.
+            // With mediaType: raw, data should be string
+            const content = data as any;
+            if (typeof content === 'string') {
+              files.push({
+                path: item.path,
+                content: content,
+                size: item.size || content.length,
+              });
+              aiLogger.info(`[AI Analyzer] Fetched (API): ${item.path}`);
+            }
+          } catch (err) {
+            aiLogger.warn(`[AI Analyzer] Failed to fetch ${item.path}: ${err}`);
+          }
+        }));
+      }
+
+    } catch (e) {
+      aiLogger.error(`[AI Analyzer] API Tree fetch failed: ${e}`);
+      throw e;
     }
 
     return files;

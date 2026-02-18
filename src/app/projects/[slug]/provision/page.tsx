@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic"
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { useSession } from "next-auth/react"
 import { AppShell } from "@/components/layout/app-shell"
 import { 
   ArrowLeft, 
@@ -37,6 +38,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   const router = useRouter()
   const projectSlug = params.slug
   const { addToast, ToastContainer } = useToast()
+  const { data: session } = useSession()
   const t = trpc as any
   
   // Flow State
@@ -198,7 +200,8 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
          repositoryId: selectedRepo.id,
          owner: selectedRepo.full_name.split('/')[0],
          repo: selectedRepo.name,
-         branch: selectedRepo.default_branch
+         branch: selectedRepo.default_branch,
+         githubToken: (session as any)?.accessToken
        })
     } else {
        // Mock for non-GitHub sources (or error out)

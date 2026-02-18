@@ -530,6 +530,7 @@ export const projectRouter = router({
       owner: z.string(),
       repo: z.string(),
       branch: z.string().optional().default('main'),
+      githubToken: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       try {
@@ -539,7 +540,8 @@ export const projectRouter = router({
         const analysis = await analyzer.analyzeRepository(
           input.owner,
           input.repo,
-          input.branch
+          input.branch,
+          input.githubToken
         );
 
         console.log(`[tRPC] Analysis complete: ${analysis.framework} (confidence: ${analysis.confidence})`);
