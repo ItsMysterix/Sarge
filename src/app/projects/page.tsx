@@ -179,7 +179,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <AppShell title="Projects">
+    <AppShell>
       <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <ToastContainer />
         
@@ -439,6 +439,7 @@ const ProjectCard = React.memo(({ project, router, onToggleStatus, onDelete }: {
     </div>
   );
 })
+ProjectCard.displayName = "ProjectCard"
 
 function formatTimeAgo(date: Date) {
   const diff = (new Date().getTime() - date.getTime()) / 1000;

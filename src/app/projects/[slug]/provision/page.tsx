@@ -386,7 +386,12 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   )
 
   return (
-    <AppShell>
+    <AppShell title={
+      <div className="flex items-center gap-2">
+        <Code className="w-4 h-4 text-muted-foreground" /> 
+        <span className="font-bold tracking-tight">Provisioning</span>
+      </div>
+    }>
       <ToastContainer />
       <div className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
         
