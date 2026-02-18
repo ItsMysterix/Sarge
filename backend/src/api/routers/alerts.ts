@@ -148,16 +148,17 @@ export const alertsRouter = router({
            WHERE project_id = $1
            ORDER BY created_at DESC`,
           [input.projectId]
-        )
+        ).catch((err: any) => {
+          if (err?.message?.includes('notification_channels')) {
+            return { rows: [] }
+          }
+          throw err
+        })
 
-        if (!result || !result.rows) {
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'No notification channels found' })
-        }
-
-        return result.rows
+        return result?.rows || []
       } catch (err) {
         console.error('[alerts.listChannels] Error:', err)
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch notification channels', cause: err as Error })
+        return []
       }
     }),
 

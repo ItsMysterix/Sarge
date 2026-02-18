@@ -75,12 +75,19 @@ export const authRouter = router({
   // Get linked accounts (NextAuth providers)
   getLinkedAccounts: secureProcedure('auth.getLinkedAccounts')
     .query(async ({ ctx }) => {
-      const result = await ctx.db.query(
-        `SELECT provider FROM accounts WHERE user_id = $1`,
-        [ctx.session!.user!.id]
-      ).catch(() => ({ rows: [] }))
+      const userId = ctx.session?.user?.id
+      if (!userId) return []
 
-      return result.rows.map((row: any) => row.provider)
+      try {
+        const result = await ctx.db.query(
+          `SELECT provider FROM accounts WHERE user_id = $1`,
+          [userId]
+        )
+        return result.rows.map((row: any) => row.provider)
+      } catch (err) {
+        console.error('[auth.getLinkedAccounts] Error:', err)
+        return []
+      }
     }),
 })
 

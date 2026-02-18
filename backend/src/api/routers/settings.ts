@@ -17,34 +17,30 @@ export const settingsRouter = router({
                     .from(userSettings)
                     .where(eq(userSettings.userId, userId))
 
-                if (!settings) {
-                    // Return default structure if no record exists
-                    return {
-                        userId,
-                        slackAlerts: true,
-                        autoRebuild: false,
-                        enableAnimations: true,
-                        themeMode: "dark",
-                        defaultRegion: "us-east-1",
-                        defaultEnvironment: "development",
-                        resources: { cpu: 0.5, memory: 512, replicas: 1 },
-                        notifications: {
-                            deploySuccess: true,
-                            deployFailure: true,
-                            serviceDown: true,
-                            highCpu: true,
-                            highMemory: false,
-                            securityAlerts: true,
-                            emailNotifications: false,
-                            slackNotifications: true,
-                        }
-                    }
-                }
-
+                if (!settings) throw new Error('not_found')
                 return settings
             } catch (error) {
-                console.error('[settings.get] error:', error)
-                throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch settings' })
+                console.error('[settings.get] error (falling back to defaults):', error)
+                return {
+                    userId,
+                    slackAlerts: true,
+                    autoRebuild: false,
+                    enableAnimations: true,
+                    themeMode: "dark" as const,
+                    defaultRegion: "us-east-1",
+                    defaultEnvironment: "development",
+                    resources: { cpu: 0.5, memory: 512, replicas: 1 },
+                    notifications: {
+                        deploySuccess: true,
+                        deployFailure: true,
+                        serviceDown: true,
+                        highCpu: true,
+                        highMemory: false,
+                        securityAlerts: true,
+                        emailNotifications: false,
+                        slackNotifications: true,
+                    }
+                }
             }
         }),
 
