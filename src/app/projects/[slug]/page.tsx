@@ -57,6 +57,12 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   )
   const activity = activityQuery.data || []
 
+  const activeBranch = useMemo(() => {
+    if (activeEnvTab === "overview") return project?.autoDeployBranch || 'main'
+    const currentEnv = environments.find(e => e.id === activeEnvTab)
+    return currentEnv?.branch || project?.autoDeployBranch || 'main'
+  }, [activeEnvTab, environments, project])
+
   // Loading State
   if (projectQuery.isLoading || envsQuery.isLoading) {
     return (
@@ -116,14 +122,11 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                  </Badge>
                  <span className="text-muted-foreground text-[10px]">•</span>
                  <span className="text-muted-foreground text-[10px] flex items-center gap-1">
-                   <GitBranch className="w-3 h-3" /> {project.autoDeployBranch}
+                   <GitBranch className="w-3 h-3" /> {activeBranch}
                  </span>
                </div>
             </div>
              <div className="flex gap-2">
-               <Button variant="outline" size="sm" onClick={() => router.push(`/settings?project=${projectSlug}`)} className="h-9">
-                  <Server className="w-4 h-4 mr-2" /> Settings
-               </Button>
              </div>
         </div>
 
