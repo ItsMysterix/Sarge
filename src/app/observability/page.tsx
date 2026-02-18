@@ -37,6 +37,7 @@ import { formatDistanceToNow } from "date-fns"
 import { GridLoader } from "@/components/ui/grid-loader"
 import { useProject } from "@/lib/project-context"
 import { motion, AnimatePresence } from "framer-motion"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // --- Shared Components ---
 const SectionHeader = ({ icon: Icon, title, description, badge }: { icon: any, title: string, description?: string, badge?: string }) => (
@@ -62,7 +63,8 @@ const SectionHeader = ({ icon: Icon, title, description, badge }: { icon: any, t
 
 // --- Inventory Tab ---
 const InventoryTab = () => {
-  const inventoryQuery = trpc.commandCenter.getInventory.useQuery()
+  const { currentProject } = useProject()
+  const inventoryQuery = trpc.commandCenter.getInventory.useQuery({ projectSlug: currentProject?.slug })
   const resources = inventoryQuery.data || []
   const router = useRouter()
 
@@ -120,9 +122,9 @@ const InventoryTab = () => {
 
 // --- Security Tab ---
 const SecurityTab = () => {
-  const alertsQuery = trpc.commandCenter.getSecurityAlerts.useQuery()
+  const { currentProject } = useProject()
+  const alertsQuery = trpc.commandCenter.getSecurityAlerts.useQuery({ projectSlug: currentProject?.slug })
   const alerts = alertsQuery.data || []
-  const router = useRouter()
 
   if (alertsQuery.isLoading) return <div className="flex justify-center py-20"><GridLoader /></div>
 
@@ -178,7 +180,8 @@ const SecurityTab = () => {
 
 // --- Domains Tab ---
 const DomainsTab = () => {
-  const domainsQuery = trpc.commandCenter.getDomains.useQuery()
+  const { currentProject } = useProject()
+  const domainsQuery = trpc.commandCenter.getDomains.useQuery({ projectSlug: currentProject?.slug })
   const router = useRouter()
 
   if (domainsQuery.isLoading) return <div className="flex justify-center py-20"><GridLoader /></div>
@@ -223,7 +226,7 @@ const DomainsTab = () => {
 
 // --- Main Layout ---
 export default function CommandCenter() {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'metrics' | 'logs' | 'security' | 'domains' | 'storage' | 'usage'>('inventory')
+  const [activeTab, setActiveTab] = useState('inventory')
   const { currentProject } = useProject()
 
   const tabs = [
@@ -237,85 +240,88 @@ export default function CommandCenter() {
   ]
 
   return (
-    <AppShell title="Command Center">
-      <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-black/40">
-        {/* Vercel-style Vertical Sidebar */}
-        <div className="w-64 border-r border-white/5 flex flex-col p-4 space-y-2 bg-black/20 backdrop-blur-3xl">
-          <div className="mb-8 px-2">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              Command Hub 
-              <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-            </h2>
-            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-[0.2em] mt-1 opacity-50">
-              {currentProject?.name || 'Global Account'}
-            </p>
-          </div>
+    <AppShell title="Observability Hub">
+      <div className="flex-1 p-6 max-w-7xl mx-auto w-full animate-fade-in">
+        
+        {/* Actions Header */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+               <h1 className="text-3xl font-bold tracking-tight text-foreground">Observability Hub</h1>
+               <p className="text-muted-foreground text-xs mt-1 font-medium uppercase tracking-widest opacity-70">
+                 {currentProject?.name ? `Global insights for ${currentProject.name}` : 'Multi-cloud resource intelligence'}
+               </p>
+            </div>
+            <div className="flex gap-2">
+               <Button variant="outline" size="sm" className="h-9 border-white/10 bg-white/5 rounded-xl font-bold text-[10px] uppercase tracking-wider">
+                  <Plus className="w-4 h-4 mr-2" /> Custom Widget
+               </Button>
+               <Button className="h-9 bg-foreground text-background hover:bg-foreground/90 font-bold uppercase text-[10px] tracking-wide rounded-xl">
+                  <Zap className="w-4 h-4 mr-2" /> Global Audit
+               </Button>
+            </div>
+        </div>
 
-          <div className="space-y-1 flex-1">
+        <Tabs defaultValue="inventory" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="bg-muted/10 w-full justify-start border border-border/50 rounded-xl p-1 mb-8 overflow-x-auto">
             {tabs.map((tab) => (
-              <button
+              <TabsTrigger 
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                value={tab.id}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group",
-                  activeTab === tab.id 
-                    ? "bg-foreground/5 text-foreground ring-1 ring-white/10" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  "flex items-center gap-2 px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all whitespace-nowrap",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg",
+                  "text-muted-foreground hover:text-foreground hover:bg-white/5"
                 )}
               >
-                <tab.icon className={cn("w-4 h-4 transition-transform group-hover:scale-110", activeTab === tab.id ? "text-foreground" : "text-muted-foreground/60")} />
-                {tab.name}
-                {activeTab === tab.id && <div className="ml-auto w-1 h-1 rounded-full bg-indigo-400" />}
-              </button>
+                <tab.icon className="w-3.5 h-3.5" />
+                <span>{tab.name}</span>
+              </TabsTrigger>
             ))}
-          </div>
+          </TabsList>
 
-          <div className="pt-4 border-t border-white/5">
-             <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 space-y-2">
-                <div className="flex items-center justify-between">
-                   <span className="text-[9px] font-bold text-indigo-400/80 uppercase">AI CFO Insight</span>
-                   <Zap className="w-3 h-3 text-indigo-400" />
-                </div>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                   Your multi-cloud environment is <span className="text-foreground">94%</span> efficient. Consider scaling down "sarge-assets" S3 bucket.
-                </p>
-             </div>
-          </div>
-        </div>
-
-        {/* Dynamic Content Area */}
-        <div className="flex-1 overflow-auto bg-gradient-to-b from-transparent to-indigo-500/5">
-           <div className="p-8 max-w-5xl">
-              <AnimatePresence mode="wait">
-                 <motion.div
-                   key={activeTab}
-                   initial={{ opacity: 0, y: 10 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   exit={{ opacity: 0, y: -10 }}
-                   transition={{ duration: 0.15 }}
-                 >
-                    {activeTab === 'inventory' && <InventoryTab />}
-                    {activeTab === 'security' && <SecurityTab />}
-                    {activeTab === 'domains' && <DomainsTab />}
-                    
-                    {/* Fallback for other tabs still being ported */}
-                    {['metrics', 'logs', 'storage', 'usage'].includes(activeTab) && (
-                      <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-4">
-                         <div className="p-4 rounded-full bg-foreground/5 border border-white/5 animate-pulse">
-                            <Box className="w-8 h-8 text-muted-foreground" />
-                         </div>
-                         <div>
-                            <h3 className="text-sm font-semibold text-foreground">Cloud Stream Hydrating...</h3>
-                            <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-2">
-                               We are fetching real-time data for <span className="capitalize">{activeTab}</span> from all connected providers. This will appear in 3-5 seconds.
-                            </p>
-                         </div>
-                      </div>
-                    )}
-                 </motion.div>
-              </AnimatePresence>
-           </div>
-        </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
+              className="focus:outline-none"
+            >
+              <TabsContent value="inventory" className="mt-0 focus-visible:outline-none">
+                <InventoryTab />
+              </TabsContent>
+              
+              <TabsContent value="security" className="mt-0 focus-visible:outline-none">
+                <SecurityTab />
+              </TabsContent>
+              
+              <TabsContent value="domains" className="mt-0 focus-visible:outline-none">
+                <DomainsTab />
+              </TabsContent>
+              
+              {['metrics', 'logs', 'storage', 'usage'].map(tabId => (
+                <TabsContent key={tabId} value={tabId} className="mt-0 focus-visible:outline-none">
+                  <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-4 glass-card border border-white/5 rounded-3xl p-12">
+                     <div className="p-4 rounded-full bg-indigo-500/10 border border-indigo-500/20 animate-pulse text-indigo-400">
+                        <Layers className="w-8 h-8" />
+                     </div>
+                     <div>
+                        <h3 className="text-sm font-bold text-foreground uppercase tracking-widest">Hydrating Cloud Stream...</h3>
+                        <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-2 leading-relaxed">
+                           We are establishing safe telemetry channels to your providers. 
+                           Real-time <span className="text-foreground font-bold capitalize">{tabId}</span> data will be synchronized shortly.
+                        </p>
+                     </div>
+                     <Button variant="outline" className="mt-4 border-white/10 rounded-full h-9 text-[10px] font-bold uppercase tracking-widest">
+                        Refresh Connection
+                     </Button>
+                  </div>
+                </TabsContent>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        </Tabs>
       </div>
     </AppShell>
   )

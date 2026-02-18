@@ -19,25 +19,44 @@ export const commandCenterRouter = router({
                 .from(connectedProviders)
                 .where(eq(connectedProviders.projectSlug, slug))
 
-            const allResources: any[] = []
+            const connectedRows = connected.filter(row => row.status === 'connected' && row.credentials)
 
-            for (const row of connected) {
-                if (row.status !== 'connected' || !row.credentials) continue
+            if (connectedRows.length === 0) return []
 
-                const provider = getProvider(row.providerId)
-                if (provider && provider.discoverResources) {
-                    try {
-                        const resources = await provider.discoverResources({
-                            credentials: row.credentials as Record<string, string>
-                        })
-                        allResources.push(...resources.map(r => ({
-                            ...r,
-                            providerId: row.providerId,
-                            providerName: provider.name
-                        })))
-                    } catch (e) {
-                        console.error(`[CommandCenter] Discovery failed for ${row.providerId}:`, e)
+            const discoveryResults = await Promise.allSettled(
+                connectedRows.map(async (row) => {
+                    const provider = getProvider(row.providerId)
+                    if (provider && provider.discoverResources) {
+                        try {
+                            // Implement a 10s timeout per discovery call to prevent page hangs
+                            const timeoutPromise = new Promise((_, reject) =>
+                                setTimeout(() => reject(new Error('Discovery timeout')), 10000)
+                            )
+                            const resources = await Promise.race([
+                                provider.discoverResources({
+                                    credentials: row.credentials as Record<string, string>
+                                }),
+                                timeoutPromise
+                            ]) as any[]
+
+                            return resources.map(r => ({
+                                ...r,
+                                providerId: row.providerId,
+                                providerName: provider.name
+                            }))
+                        } catch (e) {
+                            console.error(`[CommandCenter] Discovery failed for ${row.providerId}:`, e)
+                            return []
+                        }
                     }
+                    return []
+                })
+            )
+
+            const allResources: any[] = []
+            for (const result of discoveryResults) {
+                if (result.status === 'fulfilled') {
+                    allResources.push(...result.value)
                 }
             }
 
