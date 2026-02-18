@@ -19,6 +19,27 @@ export async function ensureRateLimitTables(db: Pool) {
     `)
     await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_rate_hits_key_route_ts ON rate_limit_hits(key, route, ts);`)
 
+    // Advanced Composite Indices for performant listing & sorting
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_projects_user_id_created ON projects(user_id, created_at DESC);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_projects_slug_lookup ON projects(slug);`)
+
+    // Foreign Key & List Optimization
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_environments_project_id_created ON environments(project_id, created_at DESC);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_environments_cloned_from ON environments(cloned_from_id);`)
+
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_services_environment_id ON services(environment_id);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_secrets_environment_id ON secrets(environment_id);`)
+
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_deployments_project_id_created ON deployments(project_id, created_at DESC);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_deployment_logs_deployment_id ON deployment_logs(deployment_id);`)
+
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_project_activity_project_id_created ON project_activity(project_id, created_at DESC);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_project_members_project_id ON project_members(project_id);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_custom_domains_project_id ON custom_domains(project_id);`)
+
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_stack_services_stack_id ON stack_services(stack_id);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_stack_deployments_stack_id ON stack_deployments(stack_id);`)
+
     // Auto-purge rate limit hits older than 24h to prevent storage bloat on Neon free tier
     await (db as any).query(`DELETE FROM rate_limit_hits WHERE ts < NOW() - INTERVAL '24 hours';`)
 
@@ -253,6 +274,23 @@ export async function ensureRateLimitTables(db: Pool) {
         "timestamp" TIMESTAMPTZ DEFAULT NOW()
       );
     `)
+
+    await (db as any).query(`
+      CREATE TABLE IF NOT EXISTS logs (
+        id BIGSERIAL PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        environment_id UUID,
+        service_id UUID,
+        level TEXT DEFAULT 'info',
+        source TEXT,
+        message TEXT NOT NULL,
+        metadata JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_logs_project_id ON logs(project_id);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_logs_project_created ON logs(project_id, created_at DESC);`)
+    await (db as any).query(`CREATE INDEX IF NOT EXISTS idx_logs_created_at ON logs(created_at);`)
 
     await (db as any).query(`
       CREATE TABLE IF NOT EXISTS user_settings (

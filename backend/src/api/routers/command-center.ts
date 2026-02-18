@@ -75,25 +75,32 @@ export const commandCenterRouter = router({
                 .from(connectedProviders)
                 .where(eq(connectedProviders.projectSlug, slug))
 
-            const allAlerts: any[] = []
-
-            for (const row of connected) {
-                if (row.status !== 'connected' || !row.credentials) continue
-
-                const provider = getProvider(row.providerId)
-                if (provider && provider.getSecurityAlerts) {
-                    try {
-                        const alerts = await provider.getSecurityAlerts({
-                            credentials: row.credentials as Record<string, string>
-                        })
-                        allAlerts.push(...alerts.map(a => ({
-                            ...a,
-                            providerId: row.providerId,
-                            providerName: provider.name
-                        })))
-                    } catch (e) {
-                        console.error(`[CommandCenter] Security fetch failed for ${row.providerId}:`, e)
+            const alertsResults = await Promise.allSettled(
+                connected.map(async (row) => {
+                    if (row.status !== 'connected' || !row.credentials) return []
+                    const provider = getProvider(row.providerId)
+                    if (provider && provider.getSecurityAlerts) {
+                        try {
+                            const alerts = await (provider as any).getSecurityAlerts({
+                                credentials: row.credentials as Record<string, string>
+                            })
+                            return alerts.map((a: any) => ({
+                                ...a,
+                                providerId: row.providerId,
+                                providerName: provider.name
+                            }))
+                        } catch (e) {
+                            console.error(`[CommandCenter] Security fetch failed for ${row.providerId}:`, e)
+                        }
                     }
+                    return []
+                })
+            )
+
+            const allAlerts: any[] = []
+            for (const result of alertsResults) {
+                if (result.status === 'fulfilled') {
+                    allAlerts.push(...result.value)
                 }
             }
 
@@ -112,30 +119,37 @@ export const commandCenterRouter = router({
                 .from(connectedProviders)
                 .where(eq(connectedProviders.projectSlug, slug))
 
-            const allLogs: any[] = []
-
-            for (const row of connected) {
-                if (row.status !== 'connected' || !row.credentials) continue
-
-                const provider = getProvider(row.providerId)
-                if (provider && provider.getAuditLogs) {
-                    try {
-                        const logs = await provider.getAuditLogs({
-                            credentials: row.credentials as Record<string, string>,
-                            limit: input?.limit
-                        })
-                        allLogs.push(...logs.map(l => ({
-                            ...l,
-                            providerId: row.providerId,
-                            providerName: provider.name
-                        })))
-                    } catch (e) {
-                        console.error(`[CommandCenter] Audit fetch failed for ${row.providerId}:`, e)
+            const logsResults = await Promise.allSettled(
+                connected.map(async (row) => {
+                    if (row.status !== 'connected' || !row.credentials) return []
+                    const provider = getProvider(row.providerId)
+                    if (provider && provider.getAuditLogs) {
+                        try {
+                            const logs = await (provider as any).getAuditLogs({
+                                credentials: row.credentials as Record<string, string>,
+                                limit: input?.limit
+                            })
+                            return logs.map((l: any) => ({
+                                ...l,
+                                providerId: row.providerId,
+                                providerName: provider.name
+                            }))
+                        } catch (e) {
+                            console.error(`[CommandCenter] Audit fetch failed for ${row.providerId}:`, e)
+                        }
                     }
+                    return []
+                })
+            )
+
+            const allLogs: any[] = []
+            for (const result of logsResults) {
+                if (result.status === 'fulfilled') {
+                    allLogs.push(...result.value)
                 }
             }
 
-            return allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            return allLogs.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         }),
 
     /**

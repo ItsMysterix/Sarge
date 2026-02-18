@@ -41,23 +41,19 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   // Data Fetching
   const projectQuery = trpc.project.getBySlug.useQuery({ slug: projectSlug })
   const project = projectQuery.data
-  const projectId = project?.id
 
   const envsQuery = trpc.environments.list.useQuery(
-    { projectSlug },
-    { enabled: !!project }
+    { projectSlug }
   )
   const environments = envsQuery.data || []
 
   const statsQuery = trpc.project.getStats.useQuery(
-    { projectId: projectId! },
-    { enabled: !!projectId }
+    { projectSlug }
   )
   const stats = statsQuery.data
 
   const activityQuery = trpc.project.getActivity.useQuery(
-    { projectId: projectId!, limit: 5 },
-    { enabled: !!projectId }
+    { projectSlug, limit: 10 }
   )
   const activity = activityQuery.data || []
 

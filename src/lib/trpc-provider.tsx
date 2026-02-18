@@ -9,7 +9,7 @@ export function TrpcReactProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 5 * 1000,
+        staleTime: 60 * 1000,
         refetchOnWindowFocus: false,
       },
     },

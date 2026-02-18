@@ -64,12 +64,10 @@ export const projectRouter = router({
       const result = await ctx.db.query(
         `SELECT 
           p.*,
-          COUNT(DISTINCT d.id) as deployment_count,
-          MAX(d.created_at) as last_deployed_at
+          (SELECT COUNT(*) FROM deployments d WHERE d.project_id = p.id) as deployment_count,
+          (SELECT MAX(created_at) FROM deployments d WHERE d.project_id = p.id) as last_deployed_at
          FROM projects p
-         LEFT JOIN deployments d ON d.project_id = p.id
          WHERE p.user_id = $1
-         GROUP BY p.id
          ORDER BY p.created_at DESC`,
         [userId]
       );
@@ -94,12 +92,10 @@ export const projectRouter = router({
         const result = await ctx.db.query(
           `SELECT 
              p.*,
-             COUNT(DISTINCT d.id) as deployment_count,
-             MAX(d.created_at) as last_deployed_at
+             (SELECT COUNT(*) FROM deployments d WHERE d.project_id = p.id) as deployment_count,
+             (SELECT MAX(created_at) FROM deployments d WHERE d.project_id = p.id) as last_deployed_at
            FROM projects p
-           LEFT JOIN deployments d ON d.project_id = p.id
-           WHERE p.id = $1 AND p.user_id = $2
-           GROUP BY p.id`,
+           WHERE p.id = $1 AND p.user_id = $2`,
           [input.id, userId]
         );
 
@@ -146,12 +142,10 @@ export const projectRouter = router({
         const result = await ctx.db.query(
           `SELECT 
              p.*,
-             COUNT(DISTINCT d.id) as deployment_count,
-             MAX(d.created_at) as last_deployed_at
+             (SELECT COUNT(*) FROM deployments d WHERE d.project_id = p.id) as deployment_count,
+             (SELECT MAX(created_at) FROM deployments d WHERE d.project_id = p.id) as last_deployed_at
            FROM projects p
-           LEFT JOIN deployments d ON d.project_id = p.id
-           WHERE p.slug = $1 AND p.user_id = $2
-           GROUP BY p.id`,
+           WHERE p.slug = $1 AND p.user_id = $2`,
           [input.slug, userId]
         );
 
@@ -462,26 +456,42 @@ export const projectRouter = router({
 
   // Get project stats
   getStats: secureProcedure('project.getStats')
-    .input(z.object({ projectId: z.string().uuid() }))
+    .input(z.object({
+      projectId: z.string().uuid().optional(),
+      projectSlug: z.string().optional()
+    }))
     .query(async ({ input, ctx }) => {
       const userId = (ctx as any).userId;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
       }
 
+      if (!input.projectId && !input.projectSlug) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'ProjectId or ProjectSlug is required' });
+      }
+
       try {
-        // Query real aggregated stats from database
-        const [deployStats, logStats, serviceStats] = await Promise.all([
+        let projectId = input.projectId;
+        if (!projectId && input.projectSlug) {
+          const p = await ctx.db.query('SELECT id FROM projects WHERE slug = $1 AND user_id = $2', [input.projectSlug, userId]);
+          projectId = p.rows[0]?.id;
+        }
+
+        if (!projectId) return null;
+
+        // Query real aggregated stats from database using consolidated aggregates
+        const [deployStats, logStats] = await Promise.all([
           ctx.db.query(
             `SELECT
                COUNT(*) as total,
                COUNT(*) FILTER (WHERE status = 'success') as successful,
                COUNT(*) FILTER (WHERE status = 'failed') as failed,
+               COUNT(*) FILTER (WHERE status = 'running') as active_services,
                MAX(created_at) as last_deployed_at,
                AVG(EXTRACT(EPOCH FROM (completed_at - created_at))) as avg_deploy_time
              FROM deployments
              WHERE project_id = $1`,
-            [input.projectId]
+            [projectId]
           ),
           ctx.db.query(
             `SELECT
@@ -489,19 +499,12 @@ export const projectRouter = router({
                COUNT(*) FILTER (WHERE level = 'error') as error_count
              FROM logs
              WHERE project_id = $1`,
-            [input.projectId]
-          ),
-          ctx.db.query(
-            `SELECT COUNT(*) as active_services
-             FROM deployments
-             WHERE project_id = $1 AND status = 'running'`,
-            [input.projectId]
-          ),
+            [projectId]
+          )
         ]);
 
         const ds = deployStats.rows[0] || {};
         const ls = logStats.rows[0] || {};
-        const ss = serviceStats.rows[0] || {};
 
         return {
           projectId: input.projectId,
@@ -511,7 +514,7 @@ export const projectRouter = router({
           lastDeploymentAt: ds.last_deployed_at || null,
           totalLogs: Number(ls.total_logs) || 0,
           errorCount: Number(ls.error_count) || 0,
-          activeServices: Number(ss.active_services) || 0,
+          activeServices: Number(ds.active_services) || 0,
           avgDeployTime: Math.round(Number(ds.avg_deploy_time) || 0),
         };
       } catch (err) {
@@ -555,7 +558,8 @@ export const projectRouter = router({
   // Get project activity
   getActivity: secureProcedure('project.getActivity')
     .input(z.object({
-      projectId: z.string().uuid(),
+      projectId: z.string().uuid().optional(),
+      projectSlug: z.string().optional(),
       limit: z.number().min(1).max(50).default(10)
     }))
     .query(async ({ input, ctx }) => {
@@ -564,14 +568,26 @@ export const projectRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED' });
       }
 
+      if (!input.projectId && !input.projectSlug) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'ProjectId or ProjectSlug is required' });
+      }
+
       try {
+        let projectId = input.projectId;
+        if (!projectId && input.projectSlug) {
+          const p = await ctx.db.query('SELECT id FROM projects WHERE slug = $1 AND user_id = $2', [input.projectSlug, userId]);
+          projectId = p.rows[0]?.id;
+        }
+
+        if (!projectId) return [];
+
         const result = await ctx.db.query(
           `SELECT id, action, details, created_at
            FROM project_activity
            WHERE project_id = $1
            ORDER BY created_at DESC
            LIMIT $2`,
-          [input.projectId, input.limit]
+          [projectId, input.limit]
         );
 
         return result.rows || [];
