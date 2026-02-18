@@ -51,8 +51,8 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
              <Layers className="w-4 h-4" /> Active Environments
            </h3>
-           <p className="text-[10px] text-muted-foreground/60 uppercase font-black tracking-tighter">
-             {environments.length} Active {environments.length === 1 ? 'Cluster' : 'Clusters'} Detected
+           <p className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-tight">
+             {environments.length} Active {environments.length === 1 ? 'Cluster' : 'Clusters'}
            </p>
         </div>
         <button
@@ -69,7 +69,6 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
         ) : environments.length === 0 ? (
           <div className="col-span-full py-24 text-center border-2 border-dashed border-border/50 rounded-[2rem] bg-muted/5 group transition-all duration-700 hover:bg-muted/10">
             <div className="relative inline-block mb-6">
-               <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse opacity-0 group-hover:opacity-100 transition-opacity" />
                <Layers className="w-12 h-12 text-muted-foreground/20 mx-auto relative z-10" />
             </div>
             <p className="text-sm font-bold text-foreground/80 mb-2">No infrastructure clusters configured.</p>
@@ -95,7 +94,7 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground tracking-tight">{env.name}</h4>
-                  <Badge variant="outline" className={cn("mt-1 text-[8px] px-2 py-0.5 rounded-full border uppercase font-black tracking-widest", getTypeColor(env.type))}>
+                  <Badge variant="outline" className={cn("mt-1 text-[8px] px-2 py-0.5 rounded-full border uppercase font-bold tracking-widest", getTypeColor(env.type))}>
                     {env.type}
                   </Badge>
                 </div>
@@ -103,19 +102,19 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
 
               <div className="space-y-4 mb-8">
                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground font-bold uppercase tracking-tighter flex items-center gap-2">
+                    <span className="text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
                        <GitBranch className="w-3.5 h-3.5 opacity-30" /> Branch
                     </span>
                     <code className="text-foreground font-mono bg-muted px-2 py-0.5 rounded-md border border-border text-[9px]">{env.branch || 'main'}</code>
                  </div>
                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground font-bold uppercase tracking-tighter flex items-center gap-2">
+                    <span className="text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
                        <Globe className="w-3.5 h-3.5 opacity-30" /> Region
                     </span>
                     <span className="text-foreground font-bold uppercase">{env.region || 'US-EAST-1'}</span>
                  </div>
                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground font-bold uppercase tracking-tighter flex items-center gap-2">
+                    <span className="text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
                        <Box className="w-3.5 h-3.5 opacity-30" /> Provider
                     </span>
                     <span className="text-foreground font-bold uppercase tracking-widest">{env.provider_id || 'AWS'}</span>
@@ -126,9 +125,9 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
                 <div className="flex items-center gap-2">
                   <div className={cn(
                     "w-2 h-2 rounded-full",
-                    env.status === 'active' ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-muted-foreground/30"
+                    env.status === 'active' ? "bg-emerald-500" : "bg-muted-foreground/30"
                   )} />
-                  <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">{env.status}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{env.status}</span>
                 </div>
                 <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase px-3 gap-2 opacity-0 group-hover:opacity-100 transition-all">
                    Manage <ChevronRight className="w-3 h-3" />
@@ -157,7 +156,7 @@ const PipelinesTab = () => {
            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
              <Workflow className="w-4 h-4" /> Global Pipelines
            </h3>
-           <p className="text-[10px] text-muted-foreground/60 uppercase font-black tracking-tighter">
+           <p className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-tight">
              Cross-project deployment synchronization
            </p>
         </div>
@@ -173,7 +172,7 @@ const PipelinesTab = () => {
           ) : items.length === 0 ? (
             <div className="p-24 text-center space-y-4">
                <Activity className="w-10 h-10 text-muted-foreground/20 mx-auto" />
-               <p className="text-xs text-muted-foreground italic">No global pipeline execution recorded yet.</p>
+               <p className="text-xs text-muted-foreground font-medium">No global pipeline execution recorded yet.</p>
             </div>
           ) : (
             items.map((deploy: any) => (
@@ -188,7 +187,7 @@ const PipelinesTab = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1.5">
                     <span className="text-sm font-bold text-foreground tracking-tight truncate">{deploy.summary || 'Automated Pipeline Execution'}</span>
-                    <Badge variant="outline" className="text-[8px] font-mono leading-none border-border bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground italic">
+                    <Badge variant="outline" className="text-[8px] font-mono leading-none border-border bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground">
                        {deploy.status}
                     </Badge>
                   </div>

@@ -18,8 +18,8 @@ import {
   ChevronRight, 
   RefreshCw, 
   GitCommit,
-  Rocket,
-  Plus
+  Plus,
+  Layers
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -205,7 +205,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                   </div>
                 ) : (
                   <div className="bg-card/5 border border-dashed border-border/50 rounded-[2rem] p-12 lg:p-20 text-center space-y-6 flex flex-col items-center justify-center h-full min-h-[500px]">
-                     <Rocket className="w-12 h-12 text-muted-foreground/20" />
+                     <Layers className="w-10 h-10 text-muted-foreground/20" />
                      <div className="space-y-2">
                         <h3 className="text-xl font-bold tracking-tight text-foreground/80">No environments detected</h3>
                         <p className="text-xs text-muted-foreground font-medium">

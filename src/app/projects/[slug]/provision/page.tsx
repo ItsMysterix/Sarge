@@ -20,15 +20,15 @@ import {
   Monitor,
   Server,
   Cloud,
-  Brain,
   Github,
   Link,
   FolderOpen,
   Search,
-  Sparkles,
-  Rocket,
   SearchCode,
-  Terminal
+  Terminal,
+  Box,
+  FileCode,
+  RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -94,7 +94,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   if (projectQuery.isLoading) {
     return (
       <AppShell>
-        <LoadingScreen title="Syncing Project" subtitle="Analyzing orchestration targets..." />
+        <LoadingScreen title="Synchronizing Project" subtitle="Analyzing orchestration targets..." />
       </AppShell>
     )
   }
@@ -103,10 +103,10 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
     return (
       <AppShell>
         <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
-          <AlertTriangle className="w-16 h-16 text-amber-500 mb-6 animate-pulse" />
-          <h1 className="text-4xl font-black uppercase italic tracking-tighter">Project not found</h1>
-          <p className="text-muted-foreground mt-4 max-w-md">The project you're looking for doesn't exist or you don't have access to this orchestration context.</p>
-          <Button variant="outline" className="mt-10 h-14 px-10 rounded-[28px] font-black uppercase tracking-widest text-[10px]" onClick={() => router.push('/projects')}>
+          <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
+          <h1 className="text-xl font-bold tracking-tight">Project not found</h1>
+          <p className="text-sm text-muted-foreground mt-2 max-w-sm">The project context could not be verified. Please ensure you have sufficient permissions.</p>
+          <Button variant="outline" className="mt-8 rounded-xl" onClick={() => router.push('/projects')}>
             Back to Projects
           </Button>
         </div>
@@ -125,7 +125,6 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   }
 
   // --- Mutations ---
-
   const saveCredentialsMutation = t.providers.saveCredentials.useMutation({
     onSuccess: () => {
       providersQuery.refetch()
@@ -140,25 +139,23 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
 
   const createEnvMutation = t.environments.create.useMutation({
     onSuccess: () => {
-      addToast({ type: 'success', title: 'Cluster Ignited', description: 'Environment blueprint is being provisioned.' })
+      addToast({ type: 'success', title: 'Cluster Created', description: 'Environment provisioned successfully.' })
       router.push(`/projects/${projectSlug}`)
     }
   })
 
   // --- Actions ---
-
   const handleStartAnalysis = async () => {
     setIsAnalyzing(true)
     setCurrentStep('analysis')
     
-    // AI Scan simulation with the user's requested specific message
     setTimeout(() => {
       setAiAnalysis({
-        summary: "We've detected a specialized RAG based chatbot with transformer architecture. This system requires high-memory vector operations and a low-latency inference engine. We recommend a hybrid cloud strategy using GCP for compute and AWS for secure vector storage.",
+        summary: "Specialized RAG architecture detected. System requires high-memory vector operations and low-latency inference engines. Recommended hybrid strategy: GCP for compute nodes and AWS for secure vector persistence.",
         recommended: ['vercel-nextjs', 'gcp-cloud-run', 'aws-rds', 'aws-sagemaker', 'pinecone-vector', 'local-grafana']
       })
       setIsAnalyzing(false)
-    }, 2500)
+    }, 2000)
   }
 
   const handleApplyAnalysis = () => {
@@ -185,7 +182,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   const handleFinalDeploy = () => {
     createEnvMutation.mutate({
       projectSlug,
-      name: `live-${Math.random().toString(36).substring(7)}`,
+      name: `prod-${Math.random().toString(36).substring(7)}`,
       type: 'production',
       providerId: sourceType === 'github' ? 'vercel' : 'local',
       region: 'us-east-1',
@@ -194,24 +191,22 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   }
 
   // --- Render Helpers ---
-
   const renderSourceStep = () => (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Cards are already shrunk by the previous change */}
+    <div className="space-y-8 animate-in fade-in duration-300">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SourceCard 
           id="github" 
           icon={<Github className="w-5 h-5" />} 
-          title="GitHub Account" 
-          desc="Seamless access to your private and public repositories." 
+          title="GitHub Integration" 
+          desc="Authorized access to managed repositories." 
           active={sourceType === 'github'} 
           onClick={() => setSourceType('github')} 
         />
         <SourceCard 
           id="url" 
           icon={<Link className="w-5 h-5" />} 
-          title="Remote Git URL" 
-          desc="Import any public repository via HTTPS clone link." 
+          title="Remote Endpoint" 
+          desc="Clone via public repository URL." 
           active={sourceType === 'url'} 
           onClick={() => setSourceType('url')} 
         />
@@ -219,7 +214,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
           id="local" 
           icon={<FolderOpen className="w-5 h-5" />} 
           title="Local Filesystem" 
-          desc="Synchronize code directly from your dev machine." 
+          desc="Direct sync from development workspace." 
           active={sourceType === 'local'} 
           onClick={() => setSourceType('local')} 
         />
@@ -228,46 +223,46 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
       <AnimatePresence mode="wait">
         <motion.div
           key={sourceType}
-          initial={{ opacity: 0, y: 5 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
+          exit={{ opacity: 0, y: -10 }}
         >
           {sourceType === 'github' && (
-            <div className="bg-card/20 backdrop-blur-xl border border-white/5 rounded-3xl p-6 space-y-4">
-               <div className="relative group">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
+            <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
+               <div className="relative group max-w-md">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                  <input 
                    type="text" 
                    placeholder="Filter repositories..." 
-                   className="w-full bg-background/50 border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-[11px] outline-none"
+                   className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-2 text-xs outline-none focus:border-foreground/20 transition-colors"
                    value={repoSearch}
                    onChange={(e) => setRepoSearch(e.target.value)}
                  />
                </div>
                
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto no-scrollbar">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {isLoadingRepos ? (
-                    <div className="col-span-full py-10 flex flex-col items-center gap-2">
-                       <Rocket className="w-6 h-6 text-foreground animate-bounce" />
-                       <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Syncing GitHub...</p>
+                    <div className="col-span-full py-12 flex flex-col items-center gap-3">
+                       <RefreshCw className="w-5 h-5 text-muted-foreground animate-spin" />
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Indexing GitHub...</p>
                     </div>
                   ) : filteredRepos.length > 0 ? filteredRepos.map(repo => (
                     <button 
                       key={repo.id}
                       onClick={() => setSelectedRepo(repo)}
                       className={cn(
-                        "flex flex-col items-start p-3 border rounded-2xl transition-all text-left group",
+                        "flex flex-col items-start p-4 border rounded-xl transition-all text-left group",
                         selectedRepo?.id === repo.id 
-                          ? "bg-foreground border-foreground shadow-md" 
-                          : "bg-background/20 border-white/5 hover:border-white/10"
+                          ? "bg-foreground border-foreground text-background shadow-lg" 
+                          : "bg-background border-border hover:border-foreground/20"
                       )}
                     >
-                      <span className={cn("text-[10px] font-bold truncate w-full", selectedRepo?.id === repo.id ? "text-background" : "text-foreground")}>{repo.name}</span>
-                      <span className={cn("text-[8px] font-medium opacity-50", selectedRepo?.id === repo.id ? "text-background" : "text-muted-foreground")}>{repo.full_name.split('/')[0]}</span>
+                      <span className="text-[11px] font-bold truncate w-full mb-1">{repo.name}</span>
+                      <span className={cn("text-[9px] font-medium opacity-60", selectedRepo?.id === repo.id ? "text-background" : "text-muted-foreground")}>{repo.full_name.split('/')[0]}</span>
                     </button>
                   )) : (
-                    <div className="col-span-full py-10 text-center">
-                       <p className="text-[10px] font-bold text-muted-foreground">No repositories found.</p>
+                    <div className="col-span-full py-12 text-center">
+                       <p className="text-xs font-medium text-muted-foreground">No repositories found in this scope.</p>
                     </div>
                   )}
                </div>
@@ -275,12 +270,12 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
           )}
 
           {(sourceType === 'url' || sourceType === 'local') && (
-            <div className="bg-card/20 backdrop-blur-xl border border-white/5 rounded-3xl p-8 shadow-xl">
-               <div className="relative group">
+            <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+               <div className="relative max-w-2xl">
                  <input 
                    type="text" 
-                   placeholder={sourceType === 'url' ? "https://github.com/mysterix/super-rag.git" : "/Users/dev/projects/ai-chatbot"}
-                   className="w-full bg-background border border-white/10 rounded-2xl px-6 py-4 text-xs font-mono outline-none"
+                   placeholder={sourceType === 'url' ? "https://github.com/org/repo.git" : "/path/to/local/source"}
+                   className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-xs font-mono outline-none focus:border-foreground/20 transition-colors"
                    value={publicUrl}
                    onChange={(e) => setPublicUrl(e.target.value)}
                  />
@@ -290,56 +285,55 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex justify-center">
+      <div className="flex justify-start">
         <Button 
           disabled={sourceType === 'github' ? !selectedRepo : !publicUrl}
           onClick={handleStartAnalysis}
-          className="h-12 px-10 bg-foreground text-background font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all shadow-xl active:scale-95 flex items-center gap-3 group"
+          className="h-11 px-8 bg-foreground text-background font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-foreground/90 transition-all flex items-center gap-2"
         >
-          Initialize AI Engine <SearchCode className="w-4 h-4 group-hover:scale-110" />
+          Initialize Service Scan <SearchCode className="w-4 h-4" />
         </Button>
       </div>
     </div>
   )
 
   const renderAnalysisStep = () => (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="relative p-10 bg-foreground text-background rounded-[48px] shadow-2xl overflow-hidden group">
-         <div className="absolute top-[-30px] right-[-30px] p-6 opacity-5 group-hover:scale-110 transition-all duration-700">
-           <Brain className="w-48 h-48" />
-         </div>
-         
-         <div className="relative z-10 flex items-center gap-4 mb-6">
-            <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-xl">
-               <Sparkles className="w-6 h-6 text-white animate-pulse" />
+    <div className="max-w-4xl space-y-6 animate-in fade-in duration-500">
+      <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+         <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-muted rounded-lg border border-border">
+               <Cpu className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-xl font-black uppercase italic tracking-tighter">Neural Architecture Scan</h2>
-              <p className="text-white/40 text-[8px] font-black uppercase tracking-widest">Extracting Service Nodes</p>
+              <h2 className="text-sm font-bold uppercase tracking-widest">Architectural Discovery</h2>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">AI Assisted Node Mapping</p>
             </div>
          </div>
 
          {isAnalyzing ? (
-           <div className="space-y-4">
-              <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-                <motion.div initial={{ x: "-100%" }} animate={{ x: "0%" }} transition={{ duration: 2.5 }} className="h-full bg-white" />
+           <div className="space-y-6 py-8">
+              <div className="h-1 bg-muted rounded-full overflow-hidden w-64">
+                <motion.div initial={{ x: "-100%" }} animate={{ x: "0%" }} transition={{ duration: 2, repeat: Infinity }} className="h-full bg-foreground/40" />
               </div>
-              <p className="text-white/60 text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
-                 <Activity className="w-3 h-3 animate-spin" /> Parsing project DNA...
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
+                 <RefreshCw className="w-3 h-3 animate-spin" /> Analyzing project structure...
               </p>
            </div>
          ) : (
-           <div className="space-y-8 animate-in fade-in zoom-in-95">
-             <p className="text-xl leading-tight font-black tracking-tight max-w-xl italic">
-               "{aiAnalysis?.summary}"
-             </p>
-             <div className="pt-6 border-t border-white/10 flex justify-between items-center gap-4">
-                <div className="flex flex-col">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-white/40">Confidence</span>
-                  <span className="text-2xl font-black text-emerald-400">98.2%</span>
+           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+             <div className="p-6 bg-muted/30 border border-border rounded-xl">
+                <p className="text-sm font-medium leading-relaxed text-foreground/90 max-w-3xl">
+                  {aiAnalysis?.summary}
+                </p>
+             </div>
+             
+             <div className="flex items-center gap-8 px-2">
+                <div className="flex flex-col gap-1">
+                   <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Confidence Matrix</span>
+                   <span className="text-xl font-bold text-emerald-500">98.2%</span>
                 </div>
-                <Button onClick={handleApplyAnalysis} className="bg-white text-black font-black px-8 py-6 rounded-2xl uppercase tracking-widest text-[11px] flex items-center gap-3 shadow-xl group">
-                  Sync Blueprint <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <Button onClick={handleApplyAnalysis} className="bg-foreground text-background font-bold px-8 py-5 rounded-xl uppercase tracking-widest text-[10px] flex items-center gap-2 ml-auto shadow-lg">
+                  Configure Blueprint <ArrowRight className="w-4 h-4" />
                 </Button>
              </div>
            </div>
@@ -349,45 +343,45 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   )
 
   return (
-    <AppShell title="Provision Infrastructure">
+    <AppShell title="Provisioning">
       <ToastContainer />
-      <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-[1700px] mx-auto w-full flex flex-col gap-6 overflow-hidden">
+      <div className="flex-1 p-6 md:p-10 lg:p-12 max-w-7xl mx-auto w-full flex flex-col gap-10">
         
         {/* Compact Header & Progress */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
            <div className="space-y-1">
               <button 
                 onClick={() => router.back()}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all text-[9px] font-black uppercase tracking-widest group"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all text-[10px] font-bold uppercase tracking-widest group mb-2"
               >
                 <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" /> Project Details
               </button>
-              <h1 className="text-xl font-black uppercase italic tracking-tighter">Infrastructure Assembly</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Infrastructure Assembly</h1>
            </div>
            
-           <div className="flex bg-muted/20 p-1 rounded-2xl border border-white/5 shadow-inner">
+           <div className="flex bg-muted/40 p-1 rounded-xl border border-border">
              {(['source', 'analysis', 'blueprint', 'ready'] as step[]).map((s, idx) => (
-               <button 
-                 key={s}
-                 onClick={() => {
-                   if (idx <= stepIndex(currentStep)) setCurrentStep(s)
-                 }}
-                 className={cn(
-                   "px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                   currentStep === s 
-                    ? "bg-foreground text-background shadow-lg" 
-                    : idx < stepIndex(currentStep)
-                      ? "text-emerald-500 hover:bg-emerald-500/10"
-                      : "text-muted-foreground/30 cursor-not-allowed"
-                 )}
-               >
-                 {s}
-               </button>
+                <button 
+                  key={s}
+                  onClick={() => {
+                    if (idx <= stepIndex(currentStep)) setCurrentStep(s)
+                  }}
+                  className={cn(
+                    "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-[0.1em] transition-all",
+                    currentStep === s 
+                     ? "bg-foreground text-background shadow-md" 
+                     : idx < stepIndex(currentStep)
+                       ? "text-emerald-500 hover:bg-emerald-500/5"
+                       : "text-muted-foreground/40 cursor-not-allowed"
+                  )}
+                >
+                  {s}
+                </button>
              ))}
            </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
+        <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -399,12 +393,11 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
               {currentStep === 'source' && renderSourceStep()}
               {currentStep === 'analysis' && renderAnalysisStep()}
               {currentStep === 'blueprint' && (
-                 <div className="space-y-4">
+                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                       <h2 className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground flex items-center gap-2 italic">
-                         <Layers className="w-3 h-3" /> Architecture Blueprint
+                       <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                         <Layers className="w-4 h-4" /> Component Specification
                        </h2>
-                       <span className="text-[9px] text-muted-foreground font-black uppercase opacity-30 italic">{selectedServices.length} nodes isolated</span>
                     </div>
                     <InfrastructureBlueprint 
                       selectedServices={selectedServices}
@@ -440,85 +433,85 @@ function SourceCard({ icon, title, desc, active, onClick }: { id: string, icon: 
     <button 
       onClick={onClick}
       className={cn(
-        "p-6 rounded-[32px] border-2 transition-all flex flex-col items-start text-left gap-4 group relative overflow-hidden",
+        "p-6 rounded-2xl border transition-all flex flex-col items-start text-left gap-4 group relative",
         active 
-          ? "bg-foreground border-foreground shadow-lg scale-[0.98]" 
-          : "bg-card/20 border-white/5 hover:border-white/20 hover:bg-card/40"
+          ? "bg-foreground border-foreground text-background shadow-lg" 
+          : "bg-card border-border hover:border-foreground/20 hover:bg-muted/30"
       )}
     >
       <div className={cn(
-        "p-3 rounded-2xl transition-all duration-700",
-        active ? "bg-white/10 text-white" : "bg-muted text-muted-foreground"
+        "p-2.5 rounded-lg border transition-colors",
+        active ? "bg-background/10 border-background/20 text-background" : "bg-muted border-border text-muted-foreground"
       )}>
          {icon}
       </div>
-      <div>
-        <p className={cn("text-sm font-black uppercase tracking-tight", active ? "text-white" : "text-foreground")}>{title}</p>
-        <p className={cn("text-[9px] font-medium leading-relaxed opacity-60", active ? "text-white" : "text-muted-foreground")}>{desc}</p>
+      <div className="space-y-1">
+        <p className="text-xs font-bold uppercase tracking-widest">{title}</p>
+        <p className={cn("text-[10px] font-medium leading-relaxed opacity-60", active ? "text-background" : "text-muted-foreground")}>{desc}</p>
       </div>
     </button>
   )
 }
 
 function ReadyStep({ selectedServices, onDeploy, isDeploying }: { selectedServices: string[], onDeploy: () => void, isDeploying: boolean }) {
-  // Use the same service data to render icons in the final step
-  // Note: Importing ALL_SERVICES or passing it down would be better. For now, we simplify but keep it rich.
   return (
-    <div className="max-w-5xl mx-auto space-y-16 animate-in fade-in duration-700">
-      <div className="text-center space-y-6">
-        <h2 className="text-6xl font-black uppercase tracking-tighter leading-none italic">Cluster Assembly</h2>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Verify the orchestration matrix before initializing the deployment sequence across your linked cloud providers.</p>
+    <div className="max-w-6xl space-y-12 animate-in fade-in duration-700">
+      <div className="space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">Final Verification</h2>
+        <p className="text-muted-foreground text-sm max-w-2xl font-medium">Review the orchestration blueprint before initializing the deployment sequence across target cloud regions.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <div className="p-10 bg-card/20 backdrop-blur-2xl border border-white/5 rounded-[60px] space-y-10 shadow-3xl">
-           <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground px-2 flex items-center justify-between">
-              Target Infrastructure <span>{selectedServices.length} Nodes</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+        <div className="bg-card border border-border rounded-2xl p-8 space-y-8 shadow-sm">
+           <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+              Provisioning Matrix <span>{selectedServices.length} Nodes</span>
            </h3>
-           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+           <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
              {selectedServices.map(id => (
-                 <div key={id} className="flex items-center justify-between p-6 bg-white/5 rounded-[32px] border border-white/5 transition-all hover:bg-white/10 hover:border-white/10 group">
-                    <div className="flex items-center gap-6">
-                       <div className="p-4 bg-foreground text-background rounded-3xl group-hover:scale-110 transition-transform">
-                         <Zap className="w-6 h-6" />
+                  <div key={id} className="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-xl transition-all hover:bg-muted/50">
+                    <div className="flex items-center gap-4">
+                       <div className="p-2.5 bg-foreground text-background rounded-lg">
+                         <Zap className="w-4 h-4" />
                        </div>
                        <div>
-                         <p className="text-lg font-black tracking-tight italic">{id.replace(/-/g, ' ').toUpperCase()}</p>
-                         <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-1 opacity-40">Provisioning Unit</p>
+                         <p className="text-xs font-bold tracking-tight uppercase">{id.replace(/-/g, ' ')}</p>
+                         <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Active Component</p>
                        </div>
                     </div>
-                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                 </div>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  </div>
              ))}
            </div>
         </div>
 
-        <div className="flex flex-col justify-center space-y-10">
-           <div className="p-12 bg-indigo-500/5 border border-indigo-500/10 rounded-[60px] relative overflow-hidden backdrop-blur-md group">
-             <div className="absolute top-[-20px] right-[-20px] p-6 opacity-5 group-hover:rotate-12 transition-transform duration-700">
-               <Zap className="w-32 h-32" />
+        <div className="flex flex-col space-y-8">
+           <div className="p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl relative overflow-hidden">
+             <div className="flex items-start gap-4">
+                <Shield className="w-5 h-5 text-indigo-500 mt-1 shrink-0" />
+                <div className="space-y-2">
+                   <h3 className="text-sm font-bold text-indigo-500 uppercase tracking-widest">Deployment Guard</h3>
+                   <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                     Orchestration requires final confirmation. All security groups, ephemeral storage, and routing tables will be provisioned according to the verified blueprint.
+                   </p>
+                </div>
              </div>
-             <h3 className="text-2xl font-black text-indigo-400 mb-4 font-mono tracking-tighter italic">deploy_ignition.init()</h3>
-             <p className="text-muted-foreground leading-relaxed text-lg">
-               Final confirmation required. Sarge will now connect to the independent cloud controllers to provision security groups, compute instances, and networking routes.
-             </p>
            </div>
            
            <Button 
             disabled={isDeploying}
             onClick={onDeploy}
-            className="w-full py-20 bg-foreground text-background hover:bg-foreground/90 font-black uppercase text-3xl tracking-tighter rounded-[60px] shadow-[0_50px_100px_-20px_rgba(255,255,255,0.05)] transition-all active:scale-[0.98] group relative overflow-hidden"
+            className="w-full py-12 bg-foreground text-background hover:bg-foreground/90 font-bold uppercase text-lg tracking-widest rounded-2xl shadow-xl transition-all active:scale-[0.98] group"
            >
              {isDeploying ? (
-                <div className="flex items-center gap-4">
-                   <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="p-2 bg-emerald-400 rounded-full" />
-                   Initializing Cluster...
+                <div className="flex items-center gap-3">
+                   <RefreshCw className="w-5 h-5 animate-spin" />
+                   Provisioning...
                 </div>
              ) : (
-               <>
-                 <span className="relative z-10 italic">Awaken Cluster</span>
-                 <Rocket className="relative z-10 ml-4 w-10 h-10 group-hover:translate-x-3 group-hover:-translate-y-3 transition-transform duration-500" />
-               </>
+               <div className="flex items-center gap-3">
+                 Awaken Environment
+                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+               </div>
              )}
            </Button>
         </div>
