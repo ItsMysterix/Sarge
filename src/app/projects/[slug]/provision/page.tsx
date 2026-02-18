@@ -112,6 +112,13 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
          title: 'Analysis Failed', 
          description: userMsg 
        })
+
+       // Create persistent notification
+       createNotification.mutate({
+         title: 'Repository Analysis Failed',
+         message: userMsg,
+         type: 'error'
+       })
        
        // Fallback for demo purposes if backend fails
        setClaudeAnalysis({
@@ -190,9 +197,19 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
     }
   })
 
+  const createNotification = t.notification.create.useMutation()
+
   // --- Actions ---
   const handleStartAnalysis = async () => {
     if (sourceType === 'github' && selectedRepo) {
+       // Check for token first
+       const token = (session as any)?.accessToken
+       if (!token) {
+         const msg = "GitHub access token missing. Please sign out and sign in again."
+         addToast({ type: 'error', title: 'Authentication Error', description: msg })
+         return
+       }
+
        setIsAnalyzing(true)
        setCurrentStep('analysis')
        
@@ -201,7 +218,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
          owner: selectedRepo.full_name.split('/')[0],
          repo: selectedRepo.name,
          branch: selectedRepo.default_branch,
-         githubToken: (session as any)?.accessToken
+         githubToken: token
        })
     } else {
        // Mock for non-GitHub sources (or error out)

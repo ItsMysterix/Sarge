@@ -336,7 +336,9 @@ export function InfrastructureBlueprint({
     return ['all', ...list]
   }, [])
 
-  const { recommended, remaining } = useMemo(() => {
+  // Filter and Group Logic
+  const groupedServices = useMemo(() => {
+    // 1. Filter
     const filtered = ALL_SERVICES.filter(svc => {
       const matchProvider = activeProvider === 'all' || svc.provider === activeProvider
       const matchSearch = svc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -344,10 +346,39 @@ export function InfrastructureBlueprint({
       return matchProvider && matchSearch
     })
 
-    return {
-      recommended: filtered.filter(s => aiRecommended.includes(s.id)),
-      remaining: filtered.filter(s => !aiRecommended.includes(s.id))
-    }
+    // 2. Group
+    const groups: Record<string, ServiceOption[]> = {}
+    filtered.forEach(svc => {
+      if (!groups[svc.group]) groups[svc.group] = []
+      groups[svc.group].push(svc)
+    })
+
+    // 3. Sort within groups (Recommended first)
+    Object.keys(groups).forEach(key => {
+      groups[key].sort((a, b) => {
+        const aRec = aiRecommended.includes(a.id)
+        const bRec = aiRecommended.includes(b.id)
+        if (aRec && !bRec) return -1
+        if (!aRec && bRec) return 1
+        return 0
+      })
+    })
+
+    // 4. Return sorted group keys for consistent rendering order
+    // Define explicit order if desired, or just alphabetical
+    const standardOrder: InfrastructureGroup[] = [
+        'Compute & Apps', 'Databases', 'Storage', 'AI & Machine Learning',
+        'Monitoring & Security', 'Networking & CDN', 'Messaging & Integration',
+        'Search & Discovery', 'DevOps & Automation', 'CMS & Content', 'FinTech & Payments'
+    ]
+    
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+        const idxA = standardOrder.indexOf(a as InfrastructureGroup)
+        const idxB = standardOrder.indexOf(b as InfrastructureGroup)
+        return (idxA !== -1 ? idxA : 999) - (idxB !== -1 ? idxB : 999)
+    })
+
+    return { groups, sortedKeys }
   }, [activeProvider, searchTerm, aiRecommended])
 
   const handleToggle = (id: string) => {
@@ -357,7 +388,7 @@ export function InfrastructureBlueprint({
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-24">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-32">
       <FilterBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -367,58 +398,33 @@ export function InfrastructureBlueprint({
       />
 
       <div className="space-y-12">
-        {/* Recommended Intelligent Options */}
-        {recommended.length > 0 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-               <div className="h-[1px] bg-indigo-500/20 flex-1" />
-               <h2 className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 flex items-center gap-2">
-                 <Cpu className="w-3 h-3" /> Intelligent Blueprint Recommendations
-               </h2>
-               <div className="h-[1px] bg-indigo-500/20 flex-1" />
+        {groupedServices.sortedKeys.length > 0 ? (
+          groupedServices.sortedKeys.map(groupName => (
+            <div key={groupName} className="space-y-6">
+               <div className="flex items-center gap-4">
+                  <div className="h-[1px] bg-border flex-1" />
+                  <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    {groupName} <span className="text-muted-foreground/40">({groupedServices.groups[groupName].length})</span>
+                  </h2>
+                  <div className="h-[1px] bg-border flex-1" />
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                 {groupedServices.groups[groupName].map(svc => (
+                    <ServiceCard
+                       key={svc.id}
+                       service={svc}
+                       selected={selectedServices.includes(svc.id)}
+                       onToggle={() => handleToggle(svc.id)}
+                       connected={isConnected(svc.provider)}
+                       isRecommended={aiRecommended.includes(svc.id)}
+                       onConnect={() => onConnectProvider(svc.provider)}
+                    />
+                 ))}
+               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {recommended.map(svc => (
-                 <ServiceCard
-                    key={svc.id}
-                    service={svc}
-                    selected={selectedServices.includes(svc.id)}
-                    onToggle={() => handleToggle(svc.id)}
-                    connected={isConnected(svc.provider)}
-                    isRecommended={true}
-                    onConnect={() => onConnectProvider(svc.provider)}
-                 />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Remaining Marketplace */}
-        {remaining.length > 0 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-               <div className="h-[1px] bg-border flex-1" />
-               <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                 Full Marketplace / Optional Nodes
-               </h2>
-               <div className="h-[1px] bg-border flex-1" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {remaining.map(svc => (
-                 <ServiceCard
-                    key={svc.id}
-                    service={svc}
-                    selected={selectedServices.includes(svc.id)}
-                    onToggle={() => handleToggle(svc.id)}
-                    connected={isConnected(svc.provider)}
-                    onConnect={() => onConnectProvider(svc.provider)}
-                 />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {recommended.length === 0 && remaining.length === 0 && (
+          ))
+        ) : (
           <div className="py-20 text-center space-y-4">
              <Boxes className="w-8 h-8 text-muted-foreground/20 mx-auto" />
              <p className="text-muted-foreground font-bold uppercase tracking-widest text-[9px]">No matching modular nodes found.</p>
