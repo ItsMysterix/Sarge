@@ -17,7 +17,9 @@ import {
   RotateCcw, 
   ChevronRight, 
   RefreshCw, 
-  GitCommit
+  GitCommit,
+  Rocket,
+  Plus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -121,8 +123,9 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                  </Button>
               </div>
 
-              {/* Main Deployment Card (Refined Layout) */}
-              <div className="bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
+              {/* Main Deployment Card or Empty State */}
+              {latestDeployment ? (
+                <div className="bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
                  <div className="p-8 md:p-10">
                     <div className="flex flex-col xl:flex-row gap-8">
                        
@@ -202,7 +205,24 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
 
                     </div>
                  </div>
-              </div>
+                </div>
+              ) : (
+                <div className="bg-card/5 border border-dashed border-border/50 rounded-[2rem] p-12 lg:p-20 text-center space-y-6 flex flex-col items-center justify-center min-h-[400px]">
+                   <Rocket className="w-12 h-12 text-muted-foreground/20" />
+                   <div className="space-y-2">
+                      <h3 className="text-xl font-bold tracking-tight text-foreground/80">No environments detected</h3>
+                      <p className="text-xs text-muted-foreground font-medium">
+                        Initialize your project to begin orchestrating resources.
+                      </p>
+                   </div>
+                   <Button 
+                    onClick={() => router.push(`/projects/${projectSlug}/provision`)}
+                    className="h-11 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-bold uppercase tracking-widest text-[10px] shadow-lg transition-all"
+                   >
+                     Create your first environment
+                   </Button>
+                </div>
+              )}
 
            </div>
 
