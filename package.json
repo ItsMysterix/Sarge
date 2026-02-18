@@ -69,7 +69,7 @@
     "resend": "^6.9.2",
     "sarge-core": "file:packages/sarge-core",
     "superjson": "^2.2.2",
-    "tailwind-merge": "^2.5.5",
+    "tailwind-merge": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "yaml": "^2.8.0",
     "zustand": "^5.0.5"
