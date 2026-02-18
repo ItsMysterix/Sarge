@@ -39,7 +39,6 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   )
   
   const project = dashboardQuery.data?.project
-  const stats = dashboardQuery.data?.stats
   const activity = dashboardQuery.data?.activity || []
   const latestDeployment = (dashboardQuery.data as any)?.latestDeployment
 
@@ -111,135 +110,89 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
            
-           {/* Left Column: Activity Feed (Keep as is) */}
-           <div className="lg:col-span-4 space-y-4">
-              <div className="flex items-center justify-between px-1">
-                 <h2 className="text-sm font-semibold text-muted-foreground">Activity Feed</h2>
-                 <Activity className="w-4 h-4 text-muted-foreground/30" />
-              </div>
-              <div className="bg-card border border-border rounded-2xl overflow-hidden min-h-[600px] flex flex-col">
-                 <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[700px]">
-                    {activity.length === 0 ? (
-                       <p className="text-sm text-muted-foreground italic text-center py-10 opacity-40">No recent activity detected.</p>
-                    ) : (
-                       activity.map((item: any) => {
-                          const isSuccess = item.action.includes('SUCCESS')
-                          const isFailed = item.action.includes('FAILED')
-                          
-                          return (
-                             <div key={item.id} className="relative pl-6 space-y-1 group">
-                                <div className={cn(
-                                   "absolute left-0 top-1.5 w-2 h-2 rounded-full ring-4 ring-background",
-                                   isSuccess ? "bg-emerald-500" : isFailed ? "bg-red-500" : "bg-indigo-500"
-                                )} />
-                                <div className="flex items-center justify-between">
-                                   <p className="text-xs font-bold text-foreground">
-                                      {item.action.replace(/_/g, ' ')}
-                                   </p>
-                                   <span className="text-[10px] text-muted-foreground/50 font-medium">
-                                      {formatDistanceToNow(new Date(item.created_at))} ago
-                                   </span>
-                                </div>
-                                <p className="text-[11px] text-muted-foreground/70 truncate flex items-center gap-1">
-                                   {item.details?.branch && <span className="opacity-50">→</span>}
-                                   {item.details?.branch || item.details?.name || 'View details'}
-                                </p>
-                             </div>
-                          )
-                       })
-                    )}
-                 </div>
-                 <div className="p-4 border-t border-border bg-muted/20">
-                    <Button variant="ghost" className="w-full text-xs font-semibold h-8" onClick={() => router.push(`/projects/${projectSlug}/settings`)}>
-                       Project Management
-                    </Button>
-                 </div>
-              </div>
-           </div>
-
-           {/* Right Column: Deployment Details (The old environments area) */}
+           {/* Left Column: Deployment Details (Primary Focus) */}
            <div className="lg:col-span-8 space-y-6">
               
               <div className="flex items-center justify-between px-1">
-                 <h2 className="text-sm font-semibold text-muted-foreground">Production Deployment</h2>
+                 <h2 className="text-sm font-semibold text-muted-foreground italic">Production Deployment</h2>
                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground group" onClick={() => dashboardQuery.refetch()}>
                     <RefreshCw className={cn("w-3.5 h-3.5 mr-2", dashboardQuery.isRefetching && "animate-spin")} /> 
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity">Sync Telemetry</span>
                  </Button>
               </div>
 
-              {/* Main Deployment Card (Refined per Screenshot) */}
-              <div className="bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden shadow-xl">
+              {/* Main Deployment Card (Refined Layout) */}
+              <div className="bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
                  <div className="p-8 md:p-10">
-                    <div className="flex flex-col xl:flex-row gap-10">
+                    <div className="flex flex-col xl:flex-row gap-8">
                        
-                       {/* Left: Preview Window */}
-                       <div className="xl:w-1/3">
-                          <div className="aspect-[16/10] bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center p-6 relative overflow-hidden group/preview">
+                       {/* Left: Preview Window (Compact) */}
+                       <div className="xl:w-[28%]">
+                          <div className="aspect-[16/10] bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center p-4 relative overflow-hidden group/preview">
                              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
-                             <Globe className="w-10 h-10 text-white/10 mb-3 group-hover/preview:scale-110 transition-transform" />
-                             <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Deployment Preview</p>
+                             <Globe className="w-6 h-6 text-white/10 mb-2 group-hover/preview:scale-110 transition-transform duration-500" />
+                             <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Preview</p>
                           </div>
                        </div>
 
-                       {/* Right: Deployment Details */}
-                       <div className="xl:w-2/3 flex flex-col justify-between">
-                          <div className="space-y-8">
+                       {/* Right: Deployment Details (Spacious) */}
+                       <div className="xl:flex-1 flex flex-col justify-between min-w-0">
+                          <div className="space-y-6">
                              
-                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                                <div className="space-y-1.5">
-                                   <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Deployment URL</p>
-                                   <p className="text-lg font-bold text-white tracking-tight select-all">
+                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                <div className="space-y-1 min-w-0">
+                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Deployment URL</p>
+                                   <p className="text-lg font-bold text-white tracking-tight truncate select-all">
                                       {latestDeployment?.services?.[0]?.url?.replace('https://', '') || `${project.slug}-deployment.sarge.dev`}
                                    </p>
                                 </div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                   <Button variant="ghost" size="sm" className="h-9 px-4 text-xs font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/projects/${projectSlug}/logs`)}>
+                                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                                   <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/projects/${projectSlug}/logs`)}>
                                       Build Logs
                                    </Button>
-                                   <Button variant="ghost" size="sm" className="h-9 px-4 text-xs font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/observability?project=${projectSlug}`)}>
+                                   <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/observability?project=${projectSlug}`)}>
                                       Runtime Logs
                                    </Button>
-                                   <Button variant="ghost" size="sm" className="h-9 px-4 text-xs font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-amber-500/80" onClick={handleRollback}>
-                                      <RotateCcw className="w-3.5 h-3.5 mr-2" /> Rollback
+                                   <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-amber-500/80" onClick={handleRollback}>
+                                      <RotateCcw className="w-3 h-3 mr-1.5" /> Rollback
                                    </Button>
-                                   <Button size="sm" className="h-9 px-6 text-xs font-bold rounded-xl bg-white text-black hover:bg-white/90" onClick={handleVisit}>
-                                      Visit <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                                   <Button size="sm" className="h-8 px-5 text-[11px] font-bold rounded-xl bg-white text-black hover:bg-white/90" onClick={handleVisit}>
+                                      Visit <ExternalLink className="w-3 h-3 ml-1.5" />
                                    </Button>
                                 </div>
                              </div>
 
-                             <div className="grid grid-cols-2 md:grid-cols-3 gap-8 pt-6 border-t border-white/5">
-                                <div>
-                                   <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5">Domains</p>
-                                   <span className="text-sm font-bold text-white/90">{latestDeployment?.services?.[0]?.url?.replace('https://', '') || 'None'}</span>
+                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-6 border-t border-white/5">
+                                <div className="space-y-1">
+                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Domains</p>
+                                   <span className="text-sm font-bold text-white/90 truncate block">{latestDeployment?.services?.[0]?.url?.replace('https://', '') || 'None'}</span>
                                 </div>
-                                <div>
-                                   <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5">Status</p>
-                                   <div className="flex items-center gap-2">
+                                <div className="space-y-1">
+                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Status</p>
+                                   <div className="flex items-center gap-1.5">
                                       <div className={cn(
-                                         "w-2 h-2 rounded-full", 
-                                         latestDeployment?.status === 'success' ? "bg-emerald-500" : "bg-amber-500"
+                                         "w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]", 
+                                         latestDeployment?.status === 'success' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500"
                                       )} />
                                       <span className="text-sm font-bold text-white/90 capitalize">{latestDeployment?.status || 'Active'}</span>
                                    </div>
                                 </div>
-                                <div>
-                                   <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5">Created</p>
-                                   <p className="text-sm font-bold text-white/90">
+                                <div className="space-y-1">
+                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Created</p>
+                                   <p className="text-sm font-bold text-white/90 truncate">
                                       {latestDeployment?.created_at ? formatDistanceToNow(new Date(latestDeployment.created_at)) : '---'} ago
                                    </p>
                                 </div>
                              </div>
 
-                             <div className="pt-4">
-                                <div className="flex items-center gap-6 text-xs font-bold">
+                             <div className="pt-2">
+                                <div className="flex items-center gap-5 text-[11px] font-bold">
                                    <div className="flex items-center gap-2 text-indigo-400">
-                                      <GitBranch className="w-4 h-4" /> {latestDeployment?.branch || 'main'}
+                                      <GitBranch className="w-3.5 h-3.5" /> {latestDeployment?.branch || 'main'}
                                    </div>
-                                   <div className="flex items-center gap-3 text-white/40">
-                                      <span className="font-mono text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/5">{latestDeployment?.commit?.slice(0, 7) || '---'}</span>
-                                      <span className="truncate max-w-[200px] font-medium">{latestDeployment?.summary?.split('] ').pop() || 'Initial project commit'}</span>
+                                   <div className="flex items-center gap-3 text-white/40 min-w-0">
+                                      <span className="font-mono text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/5 shrink-0">{latestDeployment?.commit?.slice(0, 7) || '---'}</span>
+                                      <span className="truncate font-medium">{latestDeployment?.summary?.split('] ').pop() || 'Initial project commit'}</span>
                                    </div>
                                 </div>
                              </div>
@@ -251,23 +204,54 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                  </div>
               </div>
 
-              {/* Auxiliary Stats */}
-              <div className="grid grid-cols-3 gap-6">
-                 {[
-                   { label: 'Platform Uptime', val: stats?.successfulDeployments ? `${((stats.successfulDeployments / (stats.totalDeployments || 1)) * 100).toFixed(1)}%` : "0%", icon: Activity },
-                   { label: 'Build Velocity', val: stats?.avgDeployTime ? `${stats.avgDeployTime}s` : "---", icon: Clock },
-                   { label: 'Compute Nodes', val: stats?.activeServices ?? 0, icon: Box }
-                 ].map(m => (
-                   <div key={m.label} className="p-6 bg-card border border-border rounded-2xl shadow-sm hover:border-border/80 transition-all">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
-                         <m.icon className="w-3.5 h-3.5 opacity-50" /> {m.label}
-                      </p>
-                      <p className="text-xl font-bold text-foreground tabular-nums">{m.val}</p>
-                   </div>
-                 ))}
-              </div>
-
            </div>
+
+           {/* Right Column: Activity Feed (Audit Trail) */}
+           <div className="lg:col-span-4 space-y-4">
+              <div className="flex items-center justify-between px-1">
+                 <h2 className="text-sm font-semibold text-muted-foreground italic">Activity Feed</h2>
+                 <Activity className="w-3.5 h-3.5 text-muted-foreground/30" />
+              </div>
+              <div className="bg-card border border-border rounded-2xl overflow-hidden min-h-[500px] flex flex-col shadow-sm">
+                 <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[700px]">
+                    {activity.length === 0 ? (
+                       <p className="text-sm text-muted-foreground italic text-center py-10 opacity-40">No recent activity detected.</p>
+                    ) : (
+                       activity.map((item: any) => {
+                          const isSuccess = item.action.includes('SUCCESS')
+                          const isFailed = item.action.includes('FAILED')
+                          
+                          return (
+                             <div key={item.id} className="relative pl-6 space-y-1 group">
+                                <div className={cn(
+                                   "absolute left-0 top-1.5 w-1.5 h-1.5 rounded-full ring-4 ring-background",
+                                   isSuccess ? "bg-emerald-500" : isFailed ? "bg-red-500" : "bg-indigo-500"
+                                )} />
+                                <div className="flex items-center justify-between">
+                                   <p className="text-xs font-bold text-foreground leading-none">
+                                      {item.action.replace(/_/g, ' ')}
+                                   </p>
+                                   <span className="text-[9px] text-muted-foreground/50 font-medium">
+                                      {formatDistanceToNow(new Date(item.created_at))} ago
+                                   </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground/60 truncate flex items-center gap-1 font-medium italic">
+                                   {item.details?.branch && <span>→</span>}
+                                   {item.details?.branch || item.details?.name || 'View details'}
+                                </p>
+                             </div>
+                          )
+                       })
+                    )}
+                 </div>
+                 <div className="p-4 border-t border-border bg-muted/20">
+                    <Button variant="ghost" className="w-full text-xs font-bold h-8 uppercase tracking-widest opacity-60 hover:opacity-100" onClick={() => router.push(`/projects/${projectSlug}/settings`)}>
+                       Management
+                    </Button>
+                 </div>
+              </div>
+           </div>
+
         </div>
 
       </div>
