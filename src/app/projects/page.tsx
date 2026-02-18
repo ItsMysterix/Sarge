@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
 import { useToast } from '@/components/ui/toast';
 import { trpc } from '@/lib/trpc';
-import { GridLoader } from '@/components/ui/grid-loader';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -127,7 +127,7 @@ export default function ProjectsPage() {
   if (isLoading) {
     return (
       <AppShell>
-        <GridLoader fullPage />
+        <LoadingScreen title="Loading Projects" subtitle="Restoring your workspace..." />
       </AppShell>
     );
   }
@@ -177,7 +177,7 @@ export default function ProjectsPage() {
                      className="w-full h-12 bg-foreground text-background hover:bg-foreground/90 text-xs font-bold uppercase tracking-widest rounded-xl shadow-lg transition-transform active:scale-[0.98]"
                   >
                      {createMutation.isPending ? (
-                        <GridLoader className="w-4 h-4 mr-2" />
+                        <div className="w-4 h-4 mr-2 border-2 border-background/20 border-t-background rounded-full animate-spin" />
                      ) : (
                         <Plus className="w-4 h-4 mr-2" />
                      )}
@@ -279,7 +279,11 @@ export default function ProjectsPage() {
               disabled={deleteMutation.isPending}
               className="h-9 bg-foreground text-background hover:bg-foreground/90"
             >
-              {deleteMutation.isPending ? <GridLoader className="w-3 h-3 mr-2" /> : <Trash2 className="w-3.5 h-3.5 mr-2" />}
+              {deleteMutation.isPending ? (
+                 <div className="w-3.5 h-3.5 mr-2 border-2 border-background/20 border-t-background rounded-full animate-spin" />
+              ) : (
+                 <Trash2 className="w-3.5 h-3.5 mr-2" />
+              )}
               Delete Project
             </Button>
           </DialogFooter>
@@ -329,7 +333,7 @@ function CreateProjectModal({ onClose, onSubmit, name, setName, isPending }: any
               Cancel
             </Button>
             <Button type="submit" disabled={isPending || !name.trim()} className="bg-foreground text-background hover:bg-foreground/90">
-              {isPending && <GridLoader className="w-3 h-3 mr-2" />}
+              {isPending && <div className="w-3 h-3 mr-2 border-2 border-background/20 border-t-background rounded-full animate-spin" />}
               Create Project
             </Button>
           </div>

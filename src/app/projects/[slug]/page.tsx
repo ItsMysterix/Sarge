@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/toast"
-import { GridLoader } from "@/components/ui/grid-loader"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 import { useProject } from "@/lib/project-context"
 import { EnvironmentCreationModal } from "@/components/projects/EnvironmentCreationModal"
 import { formatDistanceToNow } from "date-fns"
@@ -61,9 +61,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   if (projectQuery.isLoading || envsQuery.isLoading) {
     return (
       <AppShell>
-        <div className="flex-1 flex items-center justify-center">
-          <GridLoader className="w-8 h-8 text-muted-foreground" />
-        </div>
+        <LoadingScreen title="Loading Project" subtitle="Synchronizing environment data..." />
       </AppShell>
     )
   }

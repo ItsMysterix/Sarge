@@ -24,7 +24,7 @@ import { ConnectProviderModal } from "@/components/settings/connect-provider-mod
 import { AppShell } from '@/components/layout/app-shell'
 import { Settings as SettingsIcon, CreditCard } from 'lucide-react'
 import posthog from 'posthog-js'
-import { GridLoader } from "@/components/ui/grid-loader"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 
 export default function Settings() {
   const { data: settings, loading, error, updateSettings } = useUserSettings()
@@ -190,10 +190,7 @@ export default function Settings() {
   if (loading || (activeTab === 'integrations' && providersQuery.isLoading)) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center justify-center flex-1 gap-4">
-          <GridLoader />
-          <p className="text-xs text-muted-foreground animate-pulse">Synchronizing preferences...</p>
-        </div>
+        <LoadingScreen title="Synchronizing Preferences" subtitle="Restoring your configuration..." />
       </AppShell>
     )
   }

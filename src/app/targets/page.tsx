@@ -8,7 +8,7 @@ import { Cloud, ShieldCheck, Zap, Rocket, Globe2, Link as LinkIcon, Plug } from 
 import { useToast } from "@/components/ui/toast"
 import { trpc } from "@/lib/trpc"
 import { useProject } from "@/lib/project-context"
-import { GridLoader } from "@/components/ui/grid-loader"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 
 type Provider = {
   id: string
@@ -50,9 +50,7 @@ export default function TargetsPage() {
   if (providersQuery.isLoading) {
     return (
       <AppShell>
-        <div className="flex-1 flex items-center justify-center">
-          <GridLoader />
-        </div>
+        <LoadingScreen title="Discovering Targets" subtitle="Fetching connected cloud accounts..." />
       </AppShell>
     )
   }

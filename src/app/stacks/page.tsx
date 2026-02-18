@@ -10,7 +10,7 @@ import {
 import { trpc } from "@/lib/trpc"
 import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
-import { GridLoader } from "@/components/ui/grid-loader"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 
 export default function StacksPage() {
   const [showModal, setShowModal] = useState(false)
@@ -76,14 +76,14 @@ export default function StacksPage() {
       case "running": return <CheckCircle2 className="w-4 h-4 text-foreground" />
       case "stopped": return <Pause className="w-4 h-4 text-muted-foreground" />
       case "error": return <AlertCircle className="w-4 h-4 text-muted-foreground" />
-      default: return <GridLoader className="w-4 h-4 text-muted-foreground" />
+      default: return <div className="w-4 h-4 border-2 border-muted-foreground/20 border-t-muted-foreground rounded-full animate-spin" />
     }
   }
 
   return (
     <AppShell title="Stacks">
       <ToastContainer />
-      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         
         <div className="flex items-center justify-between mb-6">
            <h2 className="text-lg font-semibold text-muted-foreground">Your Stacks</h2>
@@ -100,9 +100,7 @@ export default function StacksPage() {
 
         {/* Loading */}
         {stacksQuery?.isLoading && (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <GridLoader className="w-6 h-6 text-muted-foreground" />
-          </div>
+          <LoadingScreen title="Assembling Stacks" subtitle="Organizing your cloud resources..." />
         )}
 
         {/* Empty State */}
@@ -260,7 +258,7 @@ export default function StacksPage() {
                 disabled={creating}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium disabled:opacity-50 hover:bg-foreground/90"
               >
-                {creating && <GridLoader className="w-4 h-4" />}
+                {creating && <div className="w-4 h-4 mr-1 border-2 border-background/20 border-t-background rounded-full animate-spin" />}
                 Create
               </button>
             </div>

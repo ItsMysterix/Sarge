@@ -8,7 +8,7 @@ import {
 } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
-import { GridLoader } from "@/components/ui/grid-loader"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 
 export default function AWSPage() {
   const [activeTab, setActiveTab] = useState<"s3" | "dynamo" | "lambda" | "iam" | "cloudwatch">("s3")
@@ -38,7 +38,7 @@ export default function AWSPage() {
 
   return (
     <AppShell title="AWS Emulation">
-      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         
         {/* Header Removed - managed by AppShell */}
 
@@ -206,9 +206,7 @@ function ResourceList({ title, loading, items, empty, renderItem }: {
 }) {
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <GridLoader className="w-6 h-6 text-muted-foreground" />
-      </div>
+      <LoadingScreen title="Communicating with AWS" subtitle="Synchronizing cloud resources..." />
     )
   }
 

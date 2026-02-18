@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
-import { GridLoader } from "@/components/ui/grid-loader"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 import { useProject } from "@/lib/project-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -68,7 +68,7 @@ const InventoryTab = () => {
   const resources = inventoryQuery.data || []
   const router = useRouter()
 
-  if (inventoryQuery.isLoading) return <div className="flex items-center justify-center min-h-[400px]"><GridLoader /></div>
+  if (inventoryQuery.isLoading) return <LoadingScreen title="Discovering Assets" subtitle="Scanning cloud resources..." />
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -126,7 +126,7 @@ const SecurityTab = () => {
   const alertsQuery = trpc.commandCenter.getSecurityAlerts.useQuery({ projectSlug: currentProject?.slug })
   const alerts = alertsQuery.data || []
 
-  if (alertsQuery.isLoading) return <div className="flex items-center justify-center min-h-[400px]"><GridLoader /></div>
+  if (alertsQuery.isLoading) return <LoadingScreen title="Auditing Security" subtitle="Analyzing cloud posture..." />
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -184,7 +184,7 @@ const DomainsTab = () => {
   const domainsQuery = trpc.commandCenter.getDomains.useQuery({ projectSlug: currentProject?.slug })
   const router = useRouter()
 
-  if (domainsQuery.isLoading) return <div className="flex items-center justify-center min-h-[400px]"><GridLoader /></div>
+  if (domainsQuery.isLoading) return <LoadingScreen title="Resolving Domains" subtitle="Checking edge certificate status..." />
 
   return (
     <div className="space-y-6 animate-fade-in">

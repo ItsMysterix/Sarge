@@ -11,7 +11,7 @@ import {
 import { trpc } from "@/lib/trpc"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
-import { GridLoader } from "@/components/ui/grid-loader"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 
 export default function ServicesPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -54,16 +54,14 @@ export default function ServicesPage() {
   if (isLoading) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center flex-1">
-          <GridLoader className="w-6 h-6 text-muted-foreground" />
-        </div>
+        <LoadingScreen title="Synchronizing Services" subtitle="Fetching real-time infrastructure status..." />
       </AppShell>
     )
   }
 
   return (
     <AppShell title="Services">
-      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         
         <div className="flex justify-end mb-6">
           <button

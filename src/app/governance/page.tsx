@@ -34,6 +34,7 @@ import { format } from "date-fns"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 import { useProject } from "@/lib/project-context"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 
 // Sub-components for each tab to keep the file manageable
 const AuditTab = ({ projectId, t }: any) => {
@@ -318,7 +319,7 @@ export default function GovernancePage() {
   return (
     <AppShell title="Governance Center">
       <ToastContainer />
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex bg-muted/30 p-1 rounded-lg border border-border">
             {tabs.map((tab) => (
