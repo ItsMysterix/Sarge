@@ -57,7 +57,7 @@ export function AppShell({ children, title, actions }: AppShellProps) {
                <span className="text-sm font-medium text-foreground">{title}</span>
 
                {/* Separator */}
-               <div className="h-4 w-px bg-border hidden sm:block" />
+               {title && <div className="h-4 w-px bg-border hidden sm:block" />}
 
                {/* Project Switcher */}
                <div className="flex items-center gap-2 text-sm">

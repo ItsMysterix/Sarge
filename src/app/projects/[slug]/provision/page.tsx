@@ -179,8 +179,8 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
        
        analyzeMutation.mutate({
          repositoryId: selectedRepo.id,
-         owner: selectedRepo.owner,
-         repo: selectedRepo.repo,
+         owner: selectedRepo.full_name.split('/')[0],
+         repo: selectedRepo.name,
          branch: selectedRepo.default_branch
        })
     } else {
@@ -299,7 +299,6 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
                       )}
                     >
                       <span className="text-[10px] font-bold truncate w-full mb-0.5">{repo.name}</span>
-                      <span className={cn("text-[9px] font-medium opacity-60", selectedRepo?.id === repo.id ? "text-background" : "text-muted-foreground")}>{repo.full_name.split('/')[0]}</span>
                     </button>
                   )) : (
                     <div className="col-span-full py-12 text-center">
@@ -387,12 +386,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   )
 
   return (
-    <AppShell title={
-      <div className="flex items-center gap-2">
-        <Code className="w-4 h-4 text-muted-foreground" /> 
-        <span className="font-bold tracking-tight">Provisioning</span>
-      </div>
-    }>
+    <AppShell>
       <ToastContainer />
       <div className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
         
