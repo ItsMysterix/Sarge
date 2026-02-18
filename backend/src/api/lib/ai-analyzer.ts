@@ -1,9 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { aiLogger } from '../../lib/logger';
-import simpleGit from 'simple-git';
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
 import { Octokit } from '@octokit/rest';
 
 export interface ServiceConfig {
@@ -82,127 +78,34 @@ export class AIRepositoryAnalyzer {
   }
 
   /**
-   * Analyze a GitHub repository
-   */
-  /**
-   * Analyze a GitHub repository
+   * Analyze a GitHub repository using GitHub API
    */
   async analyzeRepository(owner: string, repo: string, branch: string = 'main', token?: string): Promise<RepositoryAnalysis> {
     aiLogger.info(`[AI Analyzer] Starting analysis for ${owner}/${repo}`);
 
-    let files: FileInfo[] = [];
+    if (!token) {
+      throw new Error('GitHub token is required for analysis. Please ensure you are connected to GitHub.');
+    }
 
-    if (token) {
+    try {
       // Use GitHub API (faster, no git dependency)
-      try {
-        files = await this.scanRepositoryViaAPI(owner, repo, branch, token);
-      } catch (error) {
-        aiLogger.warn(`[AI Analyzer] API scan failed, falling back to clone: ${error}`);
-        // Fallback to clone if API fails
-      }
-    }
+      const files = await this.scanRepositoryViaAPI(owner, repo, branch, token);
 
-    // If no files yet (no token or API failed), use Git Clone
-    if (files.length === 0) {
-      // Clone repository to temp directory
-      const repoPath = await this.cloneRepository(owner, repo, branch);
-      try {
-        // Scan repository structure
-        files = await this.scanRepository(repoPath);
-      } finally {
-        // Cleanup temp directory
-        await this.cleanup(repoPath);
-      }
-    }
-
-    // Analyze with Claude
-    const analysis = await this.analyzeWithClaude(files, owner, repo);
-
-    return analysis;
-  }
-
-  /**
-   * Clone repository to temporary directory
-   */
-  private async cloneRepository(owner: string, repo: string, branch: string): Promise<string> {
-    const tempDir = path.join(os.tmpdir(), `repo-${owner}-${repo}-${Date.now()}`);
-    const repoUrl = `https://github.com/${owner}/${repo}.git`;
-
-    aiLogger.info(`[AI Analyzer] Cloning ${repoUrl} to ${tempDir}`);
-
-    const git = simpleGit();
-    await git.clone(repoUrl, tempDir, ['--depth', '1', '--branch', branch]);
-
-    return tempDir;
-  }
-
-  /**
-   * Scan repository and extract important files
-   */
-  private async scanRepository(repoPath: string): Promise<FileInfo[]> {
-    const files: FileInfo[] = [];
-
-    // Priority files to analyze (ordered by importance)
-    const priorityFiles = [
-      'package.json',
-      'package-lock.json',
-      'yarn.lock',
-      'pnpm-lock.yaml',
-      'Dockerfile',
-      'docker-compose.yml',
-      'docker-compose.yaml',
-      'next.config.js',
-      'next.config.ts',
-      'next.config.mjs',
-      'vite.config.js',
-      'vite.config.ts',
-      'nuxt.config.js',
-      'nuxt.config.ts',
-      'angular.json',
-      'tsconfig.json',
-      'README.md',
-      '.env.example',
-      '.env.sample',
-      'src/main.ts',
-      'src/main.js',
-      'src/index.ts',
-      'src/index.js',
-      'app/page.tsx',
-      'pages/index.tsx',
-      'main.go',
-      'go.mod',
-      'requirements.txt',
-      'Pipfile',
-      'pyproject.toml',
-      'Cargo.toml',
-      'pom.xml',
-      'build.gradle',
-    ];
-
-    // Read priority files
-    for (const file of priorityFiles) {
-      const filePath = path.join(repoPath, file);
-      try {
-        const stats = await fs.stat(filePath);
-        if (stats.isFile() && stats.size <= this.maxFileSize) {
-          const content = await fs.readFile(filePath, 'utf-8');
-          files.push({
-            path: file,
-            content,
-            size: stats.size,
-          });
-          console.log(`[AI Analyzer] Read file: ${file} (${stats.size} bytes)`);
-        }
-      } catch (error) {
-        // File doesn't exist, skip
+      if (files.length === 0) {
+        throw new Error('No relevant files found in repository to analyze.');
       }
 
-      // Stop if we have enough files
-      if (files.length >= this.maxFiles) break;
-    }
+      // Analyze with Claude
+      const analysis = await this.analyzeWithClaude(files, owner, repo);
+      return analysis;
 
-    return files;
+    } catch (error) {
+      aiLogger.error(`[AI Analyzer] Analysis failed: ${error}`);
+      throw error;
+    }
   }
+
+
 
   /**
    * Scan repository using GitHub API (Octokit)
@@ -470,17 +373,7 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
     }
   }
 
-  /**
-   * Cleanup temporary directory
-   */
-  private async cleanup(repoPath: string): Promise<void> {
-    try {
-      console.log(`[AI Analyzer] Cleaning up ${repoPath}`);
-      await fs.rm(repoPath, { recursive: true, force: true });
-    } catch (error) {
-      console.warn(`[AI Analyzer] Cleanup warning:`, error);
-    }
-  }
+
 }
 
 /**
