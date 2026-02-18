@@ -127,17 +127,17 @@ export function Sidebar() {
                 {/* Dynamic Dashboard Link */}
                 <li key="dashboard">
                   <Link
-                    href={`/projects/${currentProject?.slug}`}
+                    href={currentProject?.slug ? `/projects/${currentProject.slug}` : "/projects"}
                     onClick={() => setIsOpen(false)}
                     className={cn(
                       "sidebar-icon group relative transition-all duration-200",
-                      pathname === `/projects/${currentProject?.slug}`
+                      currentProject?.slug && pathname === `/projects/${currentProject.slug}`
                         ? "sidebar-icon-active" 
                         : "sidebar-icon"
                     )}
                     title="Dashboard"
                     aria-label="Dashboard"
-                    aria-current={pathname === `/projects/${currentProject?.slug}` ? 'page' : undefined}
+                    aria-current={currentProject?.slug && pathname === `/projects/${currentProject.slug}` ? 'page' : undefined}
                   >
                     <Layout className="w-5 h-5" aria-hidden="true" />
                     <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl" aria-hidden="true">

@@ -63,15 +63,28 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Sync projects state with tRPC data
+  // Sync projects state with tRPC data and restore/set default project
   useEffect(() => {
     if (!isQueryLoading) {
-      if (data?.projects) {
-        setProjects(data.projects);
+      const projectsList = data?.projects || [];
+      setProjects(projectsList);
+      
+      if (projectsList.length > 0 && !currentProject) {
+        const savedId = localStorage.getItem(STORAGE_KEY);
+        const restored = savedId ? projectsList.find(p => p.id === savedId) : null;
+        
+        if (restored) {
+          setCurrentProjectState(restored);
+        } else {
+          // Default to first project if none restored
+          setCurrentProjectState(projectsList[0]);
+          localStorage.setItem(STORAGE_KEY, projectsList[0].id);
+        }
       }
+      
       setIsLoading(false);
     }
-  }, [data, isQueryLoading]);
+  }, [data, isQueryLoading, currentProject]);
 
   const setCurrentProject = (project: Project | null) => {
     setCurrentProjectState(project);

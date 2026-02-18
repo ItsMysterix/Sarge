@@ -10,6 +10,7 @@ export function scopeKey(opts: { scope: Scope; ip?: string; userId?: string }): 
     case 'ip': return ip || 'unknown'
     case 'user': return user ? `user:${user}` : 'user:anonymous'
     case 'ip_user': return `${ip || 'unknown'}|user:${user || 'anonymous'}`
+    default: return (ip || user || 'unknown')
   }
 }
 
@@ -49,7 +50,7 @@ export async function checkAndConsume(db: Pool, p: CheckParams): Promise<CheckRe
     const count: number = rows?.[0]?.n ?? 0
     const limit = p.max + p.burst
     const allowed = count < limit
-    if (allowed) {
+    if (allowed && p.key && p.route) {
       await (db as any).query(`INSERT INTO rate_limit_hits (key, route, ts) VALUES ($1, $2, to_timestamp($3/1000.0))`, [p.key, p.route, nowMs])
     }
     const remaining = Math.max(0, limit - (count + (allowed ? 1 : 0)))
@@ -57,7 +58,7 @@ export async function checkAndConsume(db: Pool, p: CheckParams): Promise<CheckRe
     return { allowed, remaining, resetAt }
   } catch (e) {
     // Graceful degradation when DB/table is unavailable: rely on in-memory bucket
-    try { console.warn('[rateLimit] falling back to in-memory only:', (e as Error).message) } catch {}
+    try { console.warn('[rateLimit] falling back to in-memory only:', (e as Error).message) } catch { }
     const limit = p.max + p.burst
     // Estimate remaining from memory bucket when available
     const mem = memBuckets.get(memKey)
