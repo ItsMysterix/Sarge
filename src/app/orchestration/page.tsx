@@ -8,24 +8,18 @@ import {
   GitBranch, 
   Terminal, 
   Plus, 
-  Rocket, 
-  Settings,
   MoreVertical,
   Globe,
   Clock,
   CheckCircle2,
   XCircle,
   ArrowUpRight,
-  Search,
-  X,
-  ShieldAlert,
   Server,
   Activity,
   Box,
   ChevronRight,
   RefreshCw,
-  Workflow,
-  Badge
+  Workflow
 } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
@@ -33,13 +27,15 @@ import { formatDistanceToNow } from "date-fns"
 import { SecretsDashboard } from "@/components/rust-core/SecretsDashboard"
 import { LoadingScreen } from "@/components/ui/loading-screen"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 // --- Environments Tab ---
 const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void }) => {
   const envsQuery = trpc.environments.all.useQuery()
   const environments = envsQuery?.data || []
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (type?: string) => {
+    if (!type) return "text-muted-foreground border-border bg-muted/20"
     switch (type.toLowerCase()) {
       case "production": return "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
       case "staging": return "text-amber-500 border-amber-500/20 bg-amber-500/5"
