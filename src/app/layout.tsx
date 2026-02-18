@@ -88,14 +88,14 @@ export default function RootLayout({
         >
           <SessionProviderWrapper>
             <PostHogProvider>
-              <ProjectProvider>
-                <TrpcReactProvider>
+              <TrpcReactProvider>
+                <ProjectProvider>
                   <ErrorBoundary>
                     {children}
                   </ErrorBoundary>
                   <JsonLd />
-                </TrpcReactProvider>
-              </ProjectProvider>
+                </ProjectProvider>
+              </TrpcReactProvider>
             </PostHogProvider>
           </SessionProviderWrapper>
         </ThemeProvider>
