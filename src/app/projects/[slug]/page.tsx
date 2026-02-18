@@ -19,7 +19,8 @@ import {
   RefreshCw, 
   GitCommit,
   Plus,
-  Layers
+  Layers,
+  Code
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -106,7 +107,12 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   }
 
   return (
-    <AppShell title={project.name}>
+    <AppShell title={
+      <div className="flex items-center gap-2">
+         <Code className="w-4 h-4 text-muted-foreground" />
+         <span className="font-bold tracking-tight">{project.name}</span>
+      </div>
+    }>
       <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in bg-background">
         <ToastContainer />
 
@@ -142,7 +148,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                                   <div className="space-y-1 min-w-0">
                                      <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Deployment URL</p>
-                                     <p className="text-lg font-bold text-white tracking-tight truncate select-all">
+                                     <p className="text-sm font-medium text-white tracking-tight truncate select-all">
                                         {latestDeployment?.services?.[0]?.url?.replace('https://', '') || `${project.slug}-deployment.sarge.dev`}
                                      </p>
                                   </div>

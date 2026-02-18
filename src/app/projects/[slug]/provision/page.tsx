@@ -1,42 +1,34 @@
 "use client"
+export const dynamic = "force-dynamic"
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { AppShell } from "@/components/layout/app-shell"
 import { 
-  Plus, 
   ArrowLeft, 
   ArrowRight,
-  Globe, 
-  Database, 
   Zap, 
   Shield, 
-  Activity, 
-  Cpu, 
   Layers, 
   CheckCircle2, 
   AlertTriangle,
-  Monitor,
-  Server,
-  Cloud,
   Github,
   Link,
   FolderOpen,
   Search,
   SearchCode,
-  Terminal,
-  Box,
-  FileCode,
-  RefreshCw
+  RefreshCw,
+  Cpu,
+  Code
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/toast"
 import { trpc } from "@/lib/trpc"
-import { Repository } from "@/lib/types"
+import { Repository, AIAnalysis } from "@/lib/types"
 import { ConnectProviderModal } from "@/components/settings/connect-provider-modal"
-import { InfrastructureBlueprint, type ServiceOption } from "@/components/projects/InfrastructureBlueprint"
+import { InfrastructureBlueprint } from "@/components/projects/InfrastructureBlueprint"
 import { LoadingScreen } from "@/components/ui/loading-screen"
 
 type step = 'source' | 'analysis' | 'blueprint' | 'ready'
@@ -65,7 +57,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
 
   // AI State
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null)
+  const [claudeAnalysis, setClaudeAnalysis] = useState<any>(null)
 
   // tRPC Queries
   const projectQuery = trpc.project.getDashboardSummary.useQuery(
@@ -75,6 +67,41 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   const project = projectQuery.data?.project
   const providersQuery = t.providers.list.useQuery({ projectSlug })
   const providers = providersQuery.data || []
+
+  // Mutations
+  const analyzeMutation = t.project.analyzeRepository.useMutation({
+    onSuccess: (data: AIAnalysis) => {
+       // Map backend response to UI expected format
+       const recommended = []
+       if (data.framework) recommended.push(`vercel-${data.framework}`)
+       if (data.detectedTools?.includes('postgresql')) recommended.push('aws-rds')
+       if (data.detectedTools?.includes('redis')) recommended.push('aws-elasticache')
+       
+       // Fallback defaults if nothing detected
+       if (recommended.length === 0) recommended.push('vercel-nextjs')
+
+       setClaudeAnalysis({
+         summary: data.summary,
+         recommended: recommended,
+         confidence: data.confidence
+       })
+       setIsAnalyzing(false)
+    },
+    onError: (error: any) => {
+       setIsAnalyzing(false)
+       addToast({ 
+         type: 'error', 
+         title: 'Analysis Failed', 
+         description: error.message || 'Could not analyze repository features.' 
+       })
+       // Fallback for demo purposes if backend fails
+       setClaudeAnalysis({
+        summary: "Automated analysis failed. Switching to manual configuration mode. Defaulting to standard Next.js stack.",
+        recommended: ['vercel-nextjs'],
+        confidence: 0
+      })
+    }
+  })
   
   // Fetch GitHub Repos
   useEffect(() => {
@@ -90,6 +117,11 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
     }
   }, [sourceType, currentStep])
 
+  // Derived
+  const filteredRepos = useMemo(() => {
+    return githubRepos.filter(r => r.name.toLowerCase().includes(repoSearch.toLowerCase()))
+  }, [githubRepos, repoSearch])
+  
   // --- Guards ---
   if (projectQuery.isLoading) {
     return (
@@ -113,11 +145,6 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
       </AppShell>
     )
   }
-
-  // Derived
-  const filteredRepos = useMemo(() => {
-    return githubRepos.filter(r => r.name.toLowerCase().includes(repoSearch.toLowerCase()))
-  }, [githubRepos, repoSearch])
 
   const isProviderConnected = (providerId: string) => {
     if (providerId === 'local') return true
@@ -146,21 +173,34 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
 
   // --- Actions ---
   const handleStartAnalysis = async () => {
-    setIsAnalyzing(true)
-    setCurrentStep('analysis')
-    
-    setTimeout(() => {
-      setAiAnalysis({
-        summary: "Specialized RAG architecture detected. System requires high-memory vector operations and low-latency inference engines. Recommended hybrid strategy: GCP for compute nodes and AWS for secure vector persistence.",
-        recommended: ['vercel-nextjs', 'gcp-cloud-run', 'aws-rds', 'aws-sagemaker', 'pinecone-vector', 'local-grafana']
-      })
-      setIsAnalyzing(false)
-    }, 2000)
+    if (sourceType === 'github' && selectedRepo) {
+       setIsAnalyzing(true)
+       setCurrentStep('analysis')
+       
+       analyzeMutation.mutate({
+         repositoryId: selectedRepo.id,
+         owner: selectedRepo.owner,
+         repo: selectedRepo.repo,
+         branch: selectedRepo.default_branch
+       })
+    } else {
+       // Mock for non-GitHub sources (or error out)
+       setIsAnalyzing(true)
+       setCurrentStep('analysis')
+       setTimeout(() => {
+          setClaudeAnalysis({
+            summary: "Local filesystem analysis completed. Structure indicates a standard React application. Optimization for static delivery recommended.",
+            recommended: ['vercel-react', 'aws-s3'],
+            confidence: 0.85
+          })
+          setIsAnalyzing(false)
+       }, 1500)
+    }
   }
 
   const handleApplyAnalysis = () => {
-    if (aiAnalysis?.recommended) {
-      setSelectedServices(aiAnalysis.recommended)
+    if (claudeAnalysis?.recommended) {
+      setSelectedServices(claudeAnalysis.recommended)
     }
     setCurrentStep('blueprint')
   }
@@ -192,11 +232,11 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
 
   // --- Render Helpers ---
   const renderSourceStep = () => (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SourceCard 
           id="github" 
-          icon={<Github className="w-5 h-5" />} 
+          icon={<Github className="w-4 h-4" />} 
           title="GitHub Integration" 
           desc="Authorized access to managed repositories." 
           active={sourceType === 'github'} 
@@ -204,7 +244,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
         />
         <SourceCard 
           id="url" 
-          icon={<Link className="w-5 h-5" />} 
+          icon={<Link className="w-4 h-4" />} 
           title="Remote Endpoint" 
           desc="Clone via public repository URL." 
           active={sourceType === 'url'} 
@@ -212,7 +252,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
         />
         <SourceCard 
           id="local" 
-          icon={<FolderOpen className="w-5 h-5" />} 
+          icon={<FolderOpen className="w-4 h-4" />} 
           title="Local Filesystem" 
           desc="Direct sync from development workspace." 
           active={sourceType === 'local'} 
@@ -228,7 +268,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
           exit={{ opacity: 0, y: -10 }}
         >
           {sourceType === 'github' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
                <div className="relative group max-w-md">
                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                  <input 
@@ -237,6 +277,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
                    className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-2 text-xs outline-none focus:border-foreground/20 transition-colors"
                    value={repoSearch}
                    onChange={(e) => setRepoSearch(e.target.value)}
+                   autoFocus
                  />
                </div>
                
@@ -251,18 +292,21 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
                       key={repo.id}
                       onClick={() => setSelectedRepo(repo)}
                       className={cn(
-                        "flex flex-col items-start p-4 border rounded-xl transition-all text-left group",
+                        "flex flex-col items-start p-3 border rounded-lg transition-all text-left group",
                         selectedRepo?.id === repo.id 
                           ? "bg-foreground border-foreground text-background shadow-lg" 
                           : "bg-background border-border hover:border-foreground/20"
                       )}
                     >
-                      <span className="text-[11px] font-bold truncate w-full mb-1">{repo.name}</span>
+                      <span className="text-[10px] font-bold truncate w-full mb-0.5">{repo.name}</span>
                       <span className={cn("text-[9px] font-medium opacity-60", selectedRepo?.id === repo.id ? "text-background" : "text-muted-foreground")}>{repo.full_name.split('/')[0]}</span>
                     </button>
                   )) : (
                     <div className="col-span-full py-12 text-center">
                        <p className="text-xs font-medium text-muted-foreground">No repositories found in this scope.</p>
+                       <Button variant="link" className="text-[10px] uppercase font-bold tracking-widest text-foreground mt-2">
+                         Configure GitHub App
+                       </Button>
                     </div>
                   )}
                </div>
@@ -270,7 +314,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
           )}
 
           {(sourceType === 'url' || sourceType === 'local') && (
-            <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                <div className="relative max-w-2xl">
                  <input 
                    type="text" 
@@ -285,13 +329,13 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex justify-start">
+      <div className="flex justify-start pt-2">
         <Button 
           disabled={sourceType === 'github' ? !selectedRepo : !publicUrl}
           onClick={handleStartAnalysis}
-          className="h-11 px-8 bg-foreground text-background font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-foreground/90 transition-all flex items-center gap-2"
+          className="h-9 px-6 bg-foreground text-background font-bold uppercase text-[10px] tracking-widest rounded-lg hover:bg-foreground/90 transition-all flex items-center gap-2 shadow-lg"
         >
-          Initialize Service Scan <SearchCode className="w-4 h-4" />
+          Initialize Service Scan <SearchCode className="w-3.5 h-3.5" />
         </Button>
       </div>
     </div>
@@ -305,7 +349,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
                <Cpu className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-widest">Architectural Discovery</h2>
+              <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Architectural Discovery</h2>
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">AI Assisted Node Mapping</p>
             </div>
          </div>
@@ -323,7 +367,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
              <div className="p-6 bg-muted/30 border border-border rounded-xl">
                 <p className="text-sm font-medium leading-relaxed text-foreground/90 max-w-3xl">
-                  {aiAnalysis?.summary}
+                  {claudeAnalysis?.summary}
                 </p>
              </div>
              
@@ -343,23 +387,30 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   )
 
   return (
-    <AppShell title="Provisioning">
+    <AppShell title={
+      <div className="flex items-center gap-2">
+        <Code className="w-4 h-4 text-muted-foreground" /> 
+        <span className="font-bold tracking-tight">Provisioning</span>
+      </div>
+    }>
       <ToastContainer />
-      <div className="flex-1 p-6 md:p-10 lg:p-12 max-w-7xl mx-auto w-full flex flex-col gap-10">
+      <div className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
         
-        {/* Compact Header & Progress */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-           <div className="space-y-1">
+        {/* Progress Nav */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-border pb-6">
+           <div className="flex items-center gap-2">
               <button 
                 onClick={() => router.back()}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all text-[10px] font-bold uppercase tracking-widest group mb-2"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all group"
               >
-                <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" /> Project Details
+                <div className="p-1.5 rounded-md bg-muted border border-border group-hover:bg-foreground group-hover:text-background transition-colors">
+                  <ArrowLeft className="w-3 h-3" />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest">Back</span>
               </button>
-              <h1 className="text-2xl font-bold tracking-tight">Infrastructure Assembly</h1>
            </div>
            
-           <div className="flex bg-muted/40 p-1 rounded-xl border border-border">
+           <div className="flex">
              {(['source', 'analysis', 'blueprint', 'ready'] as step[]).map((s, idx) => (
                 <button 
                   key={s}
@@ -367,11 +418,11 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
                     if (idx <= stepIndex(currentStep)) setCurrentStep(s)
                   }}
                   className={cn(
-                    "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-[0.1em] transition-all",
+                    "px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[0.1em] transition-all border border-transparent mx-1",
                     currentStep === s 
-                     ? "bg-foreground text-background shadow-md" 
+                     ? "bg-foreground text-background shadow-sm" 
                      : idx < stepIndex(currentStep)
-                       ? "text-emerald-500 hover:bg-emerald-500/5"
+                       ? "text-foreground bg-muted hover:bg-muted/80 border-border"
                        : "text-muted-foreground/40 cursor-not-allowed"
                   )}
                 >
@@ -385,24 +436,19 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.15 }}
             >
               {currentStep === 'source' && renderSourceStep()}
               {currentStep === 'analysis' && renderAnalysisStep()}
               {currentStep === 'blueprint' && (
                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                       <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                         <Layers className="w-4 h-4" /> Component Specification
-                       </h2>
-                    </div>
                     <InfrastructureBlueprint 
                       selectedServices={selectedServices}
                       setSelectedServices={setSelectedServices}
-                      aiRecommended={aiAnalysis?.recommended || []}
+                      aiRecommended={claudeAnalysis?.recommended || []}
                       onConnectProvider={openConnectModal}
                       isConnected={isProviderConnected}
                       onNext={() => setCurrentStep('ready')}
@@ -433,21 +479,21 @@ function SourceCard({ icon, title, desc, active, onClick }: { id: string, icon: 
     <button 
       onClick={onClick}
       className={cn(
-        "p-6 rounded-2xl border transition-all flex flex-col items-start text-left gap-4 group relative",
+        "p-4 rounded-xl border transition-all flex items-center gap-4 text-left group relative",
         active 
           ? "bg-foreground border-foreground text-background shadow-lg" 
           : "bg-card border-border hover:border-foreground/20 hover:bg-muted/30"
       )}
     >
       <div className={cn(
-        "p-2.5 rounded-lg border transition-colors",
+        "p-2 rounded-lg border transition-colors shrink-0",
         active ? "bg-background/10 border-background/20 text-background" : "bg-muted border-border text-muted-foreground"
       )}>
          {icon}
       </div>
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-widest">{title}</p>
-        <p className={cn("text-[10px] font-medium leading-relaxed opacity-60", active ? "text-background" : "text-muted-foreground")}>{desc}</p>
+      <div className="space-y-0.5 min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest truncate">{title}</p>
+        <p className={cn("text-[8px] font-medium opacity-70 truncate", active ? "text-background" : "text-muted-foreground")}>{desc}</p>
       </div>
     </button>
   )
@@ -457,40 +503,40 @@ function ReadyStep({ selectedServices, onDeploy, isDeploying }: { selectedServic
   return (
     <div className="max-w-6xl space-y-12 animate-in fade-in duration-700">
       <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Final Verification</h2>
-        <p className="text-muted-foreground text-sm max-w-2xl font-medium">Review the orchestration blueprint before initializing the deployment sequence across target cloud regions.</p>
+        <h2 className="text-xl font-bold tracking-tight">Final Verification</h2>
+        <p className="text-muted-foreground text-xs max-w-2xl font-medium">Review the orchestration blueprint before initializing the deployment sequence across target cloud regions.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-        <div className="bg-card border border-border rounded-2xl p-8 space-y-8 shadow-sm">
-           <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+        <div className="bg-card border border-border rounded-2xl p-6 spaces-y-8 shadow-sm">
+           <h3 className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between mb-4">
               Provisioning Matrix <span>{selectedServices.length} Nodes</span>
            </h3>
-           <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+           <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
              {selectedServices.map(id => (
-                  <div key={id} className="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-xl transition-all hover:bg-muted/50">
-                    <div className="flex items-center gap-4">
-                       <div className="p-2.5 bg-foreground text-background rounded-lg">
-                         <Zap className="w-4 h-4" />
+                  <div key={id} className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg transition-all hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                       <div className="p-1.5 bg-foreground text-background rounded">
+                         <Zap className="w-3.5 h-3.5" />
                        </div>
                        <div>
-                         <p className="text-xs font-bold tracking-tight uppercase">{id.replace(/-/g, ' ')}</p>
-                         <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Active Component</p>
+                         <p className="text-[10px] font-bold tracking-tight uppercase">{id.replace(/-/g, ' ')}</p>
+                         <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest">Active Component</p>
                        </div>
                     </div>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                   </div>
              ))}
            </div>
         </div>
 
-        <div className="flex flex-col space-y-8">
-           <div className="p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl relative overflow-hidden">
+        <div className="flex flex-col space-y-6">
+           <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-xl relative overflow-hidden">
              <div className="flex items-start gap-4">
                 <Shield className="w-5 h-5 text-indigo-500 mt-1 shrink-0" />
                 <div className="space-y-2">
-                   <h3 className="text-sm font-bold text-indigo-500 uppercase tracking-widest">Deployment Guard</h3>
-                   <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                   <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Deployment Guard</h3>
+                   <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
                      Orchestration requires final confirmation. All security groups, ephemeral storage, and routing tables will be provisioned according to the verified blueprint.
                    </p>
                 </div>
@@ -500,17 +546,17 @@ function ReadyStep({ selectedServices, onDeploy, isDeploying }: { selectedServic
            <Button 
             disabled={isDeploying}
             onClick={onDeploy}
-            className="w-full py-12 bg-foreground text-background hover:bg-foreground/90 font-bold uppercase text-lg tracking-widest rounded-2xl shadow-xl transition-all active:scale-[0.98] group"
+            className="w-full h-14 bg-foreground text-background hover:bg-foreground/90 font-bold uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all active:scale-[0.98] group"
            >
              {isDeploying ? (
                 <div className="flex items-center gap-3">
-                   <RefreshCw className="w-5 h-5 animate-spin" />
+                   <RefreshCw className="w-4 h-4 animate-spin" />
                    Provisioning...
                 </div>
              ) : (
                <div className="flex items-center gap-3">
                  Awaken Environment
-                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                </div>
              )}
            </Button>

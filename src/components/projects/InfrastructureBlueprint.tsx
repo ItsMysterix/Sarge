@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Globe, Database, Zap, Shield, Activity, Cpu, Layers,
   CheckCircle2, AlertTriangle, Server, Cloud, Brain,
-  Search, Sparkles, Rocket, SearchCode, Container,
+  Search, Container,
   Flame, HardDrive, Eye, Key, Boxes, Workflow, BarChart3,
   Network, MessageSquare, Lock, Route, Share2, Table,
-  ArrowRight, ShieldCheck, LogIn, Loader2, Smile, Mail,
-  Radio, ShieldAlert, RefreshCw
+  ArrowRight, ShieldCheck, Mail,
+  Radio, ShieldAlert, RefreshCw, Box, SearchCode
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -34,7 +34,7 @@ const ALL_SERVICES: ServiceOption[] = [
   // --- Compute & Apps ---
   { id: 'aws-lambda', name: 'AWS Lambda', group: 'Compute & Apps', type: 'Serverless', icon: Zap, description: 'Run code without thinking about servers.', provider: 'aws' },
   { id: 'aws-fargate', name: 'AWS Fargate', group: 'Compute & Apps', type: 'Container', icon: Container, description: 'Serverless compute for containers.', provider: 'aws' },
-  { id: 'aws-app-runner', name: 'AWS App Runner', group: 'Compute & Apps', type: 'PaaS', icon: Rocket, description: 'Direct from source to serverless node.', provider: 'aws' },
+  { id: 'aws-app-runner', name: 'AWS App Runner', group: 'Compute & Apps', type: 'PaaS', icon: Activity, description: 'Direct from source to serverless node.', provider: 'aws' },
   { id: 'gcp-cloud-run', name: 'GCP Cloud Run', group: 'Compute & Apps', type: 'Container', icon: Ship, description: 'Deploy containerized apps in seconds.', provider: 'gcp' },
   { id: 'gcp-app-engine', name: 'GCP App Engine', group: 'Compute & Apps', type: 'PaaS', icon: Globe, description: 'Managed platform for web applications.', provider: 'gcp' },
   { id: 'azure-functions', name: 'Azure Functions', group: 'Compute & Apps', type: 'Serverless', icon: Workflow, description: 'Event-driven serverless compute.', provider: 'azure' },
@@ -73,10 +73,10 @@ const ALL_SERVICES: ServiceOption[] = [
   // --- AI & Machine Learning ---
   { id: 'openai-api', name: 'OpenAI Enterprise', group: 'AI & Machine Learning', type: 'LLM API', icon: Brain, description: 'Access GPT-4o and advanced models.', provider: 'openai' },
   { id: 'aws-sagemaker', name: 'AWS SageMaker', group: 'AI & Machine Learning', type: 'ML Platform', icon: Brain, description: 'Build, train, and deploy ML models.', provider: 'aws' },
-  { id: 'gcp-vertex', name: 'GCP Vertex AI', group: 'AI & Machine Learning', type: 'ML Platform', icon: Sparkles, description: 'Unified AI platform for Google Cloud.', provider: 'gcp' },
+  { id: 'gcp-vertex', name: 'GCP Vertex AI', group: 'AI & Machine Learning', type: 'ML Platform', icon: Cpu, description: 'Unified AI platform for Google Cloud.', provider: 'gcp' },
   { id: 'azure-ml', name: 'Azure AI Service', group: 'AI & Machine Learning', type: 'Cognitive', icon: Brain, description: 'Pre-built AI for applications.', provider: 'azure' },
   { id: 'replicate-ai', name: 'Replicate Serverless', group: 'AI & Machine Learning', type: 'Serverless AI', icon: Zap, description: 'Run open-source models at scale.', provider: 'replicate' },
-  { id: 'huggingface-endpoints', name: 'Hugging Face Inf', group: 'AI & Machine Learning', type: 'Inference', icon: Smile, description: 'Deploy NLP models to production.', provider: 'huggingface' },
+  { id: 'huggingface-endpoints', name: 'Hugging Face Inf', group: 'AI & Machine Learning', type: 'Inference', icon: MessageSquare, description: 'Deploy NLP models to production.', provider: 'huggingface' },
   { id: 'pinecone-db', name: 'Pinecone Vector DB', group: 'AI & Machine Learning', type: 'Vector Search', icon: SearchCode, description: 'Vector database for RAG apps.', provider: 'pinecone' },
   { id: 'weaviate-cloud', name: 'Weaviate Cloud', group: 'AI & Machine Learning', type: 'Vector DB', icon: Boxes, description: 'Open-source vector database.', provider: 'weaviate' },
   { id: 'upstash-vector', name: 'Upstash Vector', group: 'AI & Machine Learning', type: 'Serverless Vector', icon: Zap, description: 'Serverless vector DB for edge apps.', provider: 'upstash' },
@@ -119,14 +119,14 @@ const ALL_SERVICES: ServiceOption[] = [
 
   // --- DevOps & Automation ---
   { id: 'github-actions', name: 'GitHub Actions', group: 'DevOps & Automation', type: 'CI/CD', icon: Workflow, description: 'Automate your software workflow.', provider: 'github' },
-  { id: 'gitlab-ci', name: 'GitLab CI/CD', group: 'DevOps & Automation', type: 'CI/CD', icon: Rocket, description: 'Integrated CI/CD pipelines.', provider: 'gitlab' },
+  { id: 'gitlab-ci', name: 'GitLab CI/CD', group: 'DevOps & Automation', type: 'CI/CD', icon: Activity, description: 'Integrated CI/CD pipelines.', provider: 'gitlab' },
   { id: 'docker-hub', name: 'Docker Hub', group: 'DevOps & Automation', type: 'Registry', icon: Container, description: 'Managed container registry.', provider: 'docker' },
   { id: 'circle-ci', name: 'CircleCI', group: 'DevOps & Automation', type: 'CI/CD', icon: RefreshCw, description: 'Speed up your build and test cycles.', provider: 'circleci' },
 
   // --- CMS & Content ---
   { id: 'contentful-cms', name: 'Contentful', group: 'CMS & Content', type: 'Headless CMS', icon: Layers, description: 'Content infrastructure for digital teams.', provider: 'contentful' },
   { id: 'strapi-cloud', name: 'Strapi Cloud', group: 'CMS & Content', type: 'Headless CMS', icon: Boxes, description: 'Open-source Node.js headless CMS.', provider: 'strapi' },
-  { id: 'sanity-io', name: 'Sanity', group: 'CMS & Content', type: 'Headless CMS', icon: Sparkles, description: 'Platform for structured content.', provider: 'sanity' },
+  { id: 'sanity-io', name: 'Sanity', group: 'CMS & Content', type: 'Headless CMS', icon: Box, description: 'Platform for structured content.', provider: 'sanity' },
 
   // --- FinTech & Payments ---
   { id: 'stripe-payments', name: 'Stripe', group: 'FinTech & Payments', type: 'Payments', icon: Activity, description: 'Financial infrastructure for the internet.', provider: 'stripe' },
@@ -162,27 +162,27 @@ const FilterBar = ({
   setActiveProvider: (s: string) => void,
   allProviders: string[]
 }) => (
-  <div className="w-full flex flex-col md:flex-row gap-4 p-1.5 bg-card/20 backdrop-blur-xl border border-white/5 rounded-3xl shadow-xl">
+  <div className="w-full flex flex-col md:flex-row gap-4 p-1.5 bg-muted/30 border border-border rounded-2xl shadow-sm">
     <label className="relative flex-1 group">
       <span className="sr-only">Search infrastructure components</span>
       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-all" aria-hidden="true" />
       <input
         type="text"
         placeholder="Search components (e.g. S3, Lambda, Vertex)..."
-        className="w-full bg-transparent pl-11 pr-4 py-3 text-[11px] focus:ring-0 outline-none placeholder:text-muted-foreground/30 font-medium"
+        className="w-full bg-transparent pl-11 pr-4 py-3 text-xs focus:ring-0 outline-none placeholder:text-muted-foreground/50 font-medium"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
     </label>
-    <div className="flex bg-background/30 p-1 rounded-2xl border border-white/5 overflow-x-auto no-scrollbar gap-1" role="group" aria-label="Filter by provider">
+    <div className="flex bg-background/50 p-1 rounded-xl border border-border overflow-x-auto no-scrollbar gap-1" role="group" aria-label="Filter by provider">
       {allProviders.map(p => (
         <button
           key={p}
           onClick={() => setActiveProvider(p)}
           aria-pressed={activeProvider === p}
           className={cn(
-            "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-            activeProvider === p ? "bg-foreground text-background shadow-lg" : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-white/5"
+            "px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap",
+            activeProvider === p ? "bg-foreground text-background shadow-md" : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
           )}
         >
           {p}
@@ -203,27 +203,27 @@ const ServiceCard = ({
       layout
       onClick={onToggle}
       className={cn(
-        "relative p-4 rounded-[28px] border transition-all cursor-pointer group flex items-center gap-4",
+        "relative p-4 rounded-xl border transition-all cursor-pointer group flex items-center gap-4",
         selected
           ? "bg-foreground/5 border-foreground/30 shadow-md"
-          : "bg-card/20 border-white/5 hover:border-white/10 hover:bg-card/40"
+          : "bg-card border-border hover:border-foreground/20 hover:bg-muted/30"
       )}
     >
       <div className={cn(
-        "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 shrink-0",
-        selected ? "bg-foreground text-background" : "bg-muted/30 text-muted-foreground group-hover:scale-105"
+        "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 shrink-0",
+        selected ? "bg-foreground text-background" : "bg-muted text-muted-foreground group-hover:scale-105"
       )}>
          <Icon className="w-5 h-5" />
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-           <h3 className="font-black text-[11px] uppercase tracking-tight text-foreground truncate">
+           <h3 className="font-bold text-[11px] uppercase tracking-tight text-foreground truncate">
              {service.name}
            </h3>
-           {isRecommended && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" title="AI Recommended" />}
+           {isRecommended && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" title="AI Recommended" />}
         </div>
-        <p className="text-[9px] text-muted-foreground leading-tight truncate opacity-50">
+        <p className="text-[10px] text-muted-foreground leading-tight truncate opacity-70">
           {service.description}
         </p>
       </div>
@@ -231,15 +231,15 @@ const ServiceCard = ({
       <div className="flex flex-col items-end gap-1 shrink-0">
          {selected && (
             <div className={cn(
-              "px-1.5 py-0.5 rounded-full flex items-center gap-1",
-              connected ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500 text-white"
+              "px-1.5 py-0.5 rounded-md flex items-center gap-1",
+              connected ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
             )}>
                {connected ? <CheckCircle2 className="w-2 h-2" /> : <AlertTriangle className="w-2 h-2" />}
-               <span className="text-[7px] font-black uppercase tracking-widest">{connected ? "OK" : "Link"}</span>
+               <span className="text-[8px] font-bold uppercase tracking-widest">{connected ? "OK" : "Link"}</span>
             </div>
          )}
          {!selected && isRecommended && (
-            <div className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-full text-[7px] font-black uppercase">PREF</div>
+            <div className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-md text-[8px] font-bold uppercase">PREF</div>
          )}
       </div>
     </motion.div>
@@ -259,25 +259,25 @@ const SelectionBar = ({
         exit={{ y: 50, opacity: 0 }}
         className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4"
       >
-        <div className="bg-foreground text-background p-4 px-6 rounded-[32px] shadow-2xl flex items-center justify-between gap-6 border border-white/10 backdrop-blur-md">
+        <div className="bg-foreground text-background p-4 px-6 rounded-2xl shadow-2xl flex items-center justify-between gap-6 border border-border backdrop-blur-md">
           <div className="flex items-center gap-4">
             <div className="flex -space-x-3">
               {selectedServices.slice(0, 5).map(id => {
                 const s = serviceMap[id]
                 return s && (
-                  <div key={id} className="w-10 h-10 rounded-xl bg-background border-2 border-foreground flex items-center justify-center text-foreground shadow-lg">
+                  <div key={id} className="w-10 h-10 rounded-lg bg-background border-2 border-foreground flex items-center justify-center text-foreground shadow-sm">
                      <s.icon className="w-5 h-5" />
                   </div>
                 )
               })}
               {selectedServices.length > 5 && (
-                 <div className="w-10 h-10 rounded-xl bg-muted border-2 border-foreground flex items-center justify-center text-foreground font-black text-[10px]">
+                 <div className="w-10 h-10 rounded-lg bg-muted border-2 border-foreground flex items-center justify-center text-foreground font-bold text-[10px]">
                    +{selectedServices.length - 5}
                  </div>
               )}
             </div>
             <div className="hidden sm:block">
-               <p className="text-sm font-black italic tracking-tighter">{selectedServices.length} Selected Nodes</p>
+               <p className="text-sm font-bold tracking-tight">{selectedServices.length} Selected Nodes</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -289,12 +289,12 @@ const SelectionBar = ({
                   if (provider) onConnectProvider(provider)
                 }}
                 variant="ghost"
-                className="h-10 px-4 text-background/60 hover:text-background font-black uppercase text-[8px] tracking-widest rounded-xl transition-all flex items-center gap-2"
+                className="h-10 px-4 text-background/60 hover:text-background font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all flex items-center gap-2"
               >
                 <Key className="w-3 h-3" /> Bridge All
               </Button>
             )}
-            <Button onClick={onNext} className="h-10 px-6 bg-background text-foreground hover:bg-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all flex items-center gap-2 group">
+            <Button onClick={onNext} className="h-10 px-6 bg-background text-foreground hover:bg-white font-bold uppercase text-[10px] tracking-widest rounded-lg transition-all flex items-center gap-2 group">
               Assembly <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
@@ -372,8 +372,8 @@ export function InfrastructureBlueprint({
           <div className="space-y-6">
             <div className="flex items-center gap-4">
                <div className="h-[1px] bg-indigo-500/20 flex-1" />
-               <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 italic flex items-center gap-2">
-                 <Sparkles className="w-3 h-3" /> Intelligent Blueprint Recommendations
+               <h2 className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 flex items-center gap-2">
+                 <Cpu className="w-3 h-3" /> Intelligent Blueprint Recommendations
                </h2>
                <div className="h-[1px] bg-indigo-500/20 flex-1" />
             </div>
@@ -397,11 +397,11 @@ export function InfrastructureBlueprint({
         {remaining.length > 0 && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-               <div className="h-[1px] bg-white/5 flex-1" />
-               <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground italic">
+               <div className="h-[1px] bg-border flex-1" />
+               <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                  Full Marketplace / Optional Nodes
                </h2>
-               <div className="h-[1px] bg-white/5 flex-1" />
+               <div className="h-[1px] bg-border flex-1" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {remaining.map(svc => (
@@ -421,7 +421,7 @@ export function InfrastructureBlueprint({
         {recommended.length === 0 && remaining.length === 0 && (
           <div className="py-20 text-center space-y-4">
              <Boxes className="w-8 h-8 text-muted-foreground/20 mx-auto" />
-             <p className="text-muted-foreground font-black uppercase tracking-widest text-[9px]">No matching modular nodes found.</p>
+             <p className="text-muted-foreground font-bold uppercase tracking-widest text-[9px]">No matching modular nodes found.</p>
           </div>
         )}
       </div>
