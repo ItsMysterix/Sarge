@@ -65,11 +65,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   // Sync projects state with tRPC data
   useEffect(() => {
-    if (data?.projects) {
-      setProjects(data.projects);
+    if (!isQueryLoading) {
+      if (data?.projects) {
+        setProjects(data.projects);
+      }
       setIsLoading(false);
     }
-  }, [data]);
+  }, [data, isQueryLoading]);
 
   const setCurrentProject = (project: Project | null) => {
     setCurrentProjectState(project);
