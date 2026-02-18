@@ -410,7 +410,9 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
              <div className="flex items-center gap-8 px-2">
                 <div className="flex flex-col gap-1">
                    <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Confidence Matrix</span>
-                   <span className="text-xl font-bold text-emerald-500">98.2%</span>
+                   <span className="text-xl font-bold text-emerald-500">
+                     {((claudeAnalysis?.confidence || 0) * 100).toFixed(1)}%
+                   </span>
                 </div>
                 <Button onClick={handleApplyAnalysis} className="bg-foreground text-background font-bold px-8 py-5 rounded-xl uppercase tracking-widest text-[10px] flex items-center gap-2 ml-auto shadow-lg">
                   Configure Blueprint <ArrowRight className="w-4 h-4" />
