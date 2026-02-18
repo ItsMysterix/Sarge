@@ -9,21 +9,8 @@ import { LoadingScreen } from '@/components/ui/loading-screen';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Plus, 
-  Search, 
-  GitBranch, 
-  Github,
-  RefreshCw,
-  Box,
-  Rocket,
-  MoreVertical,
-  Settings,
-  Play,
-  Pause,
-  Trash2,
-  ExternalLink
-} from 'lucide-react';
+import { Plus, Search, GitBranch, Github, RefreshCw, Box, Rocket, MoreVertical, Settings, Play, Pause, Trash2, ExternalLink } from 'lucide-react';
+import { GridLoader } from '@/components/ui/grid-loader';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -177,7 +164,7 @@ export default function ProjectsPage() {
                      className="w-full h-12 bg-foreground text-background hover:bg-foreground/90 text-xs font-bold uppercase tracking-widest rounded-xl shadow-lg transition-transform active:scale-[0.98]"
                   >
                      {createMutation.isPending ? (
-                        <div className="w-4 h-4 mr-2 border-2 border-background/20 border-t-background rounded-full animate-spin" />
+                        <GridLoader size="sm" className="mr-2" />
                      ) : (
                         <Plus className="w-4 h-4 mr-2" />
                      )}
@@ -280,7 +267,7 @@ export default function ProjectsPage() {
               className="h-9 bg-foreground text-background hover:bg-foreground/90"
             >
               {deleteMutation.isPending ? (
-                 <div className="w-3.5 h-3.5 mr-2 border-2 border-background/20 border-t-background rounded-full animate-spin" />
+                 <GridLoader size="sm" className="mr-2" />
               ) : (
                  <Trash2 className="w-3.5 h-3.5 mr-2" />
               )}
@@ -333,7 +320,7 @@ function CreateProjectModal({ onClose, onSubmit, name, setName, isPending }: any
               Cancel
             </Button>
             <Button type="submit" disabled={isPending || !name.trim()} className="bg-foreground text-background hover:bg-foreground/90">
-              {isPending && <div className="w-3 h-3 mr-2 border-2 border-background/20 border-t-background rounded-full animate-spin" />}
+              {isPending && <GridLoader size="sm" className="mr-2" />}
               Create Project
             </Button>
           </div>

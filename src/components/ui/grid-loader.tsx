@@ -2,13 +2,24 @@
 
 import { cn } from "@/lib/utils"
 
-export function GridLoader({ className, fullPage = false }: { className?: string; fullPage?: boolean }) {
+interface GridLoaderProps {
+  className?: string
+  fullPage?: boolean
+  size?: 'sm' | 'md' | 'lg'
+}
+
+export function GridLoader({ className, fullPage = false, size = 'md' }: GridLoaderProps) {
+  const squareClass = cn(
+    "bg-foreground rounded-[2px] animate-[pulse_2s_infinite]",
+    size === 'sm' ? "w-1.5 h-1.5" : size === 'lg' ? "w-4 h-4" : "w-2.5 h-2.5"
+  )
+
   const content = (
-    <div className={cn("inline-grid grid-cols-2 gap-1.5", className)}>
-      <div className="w-2.5 h-2.5 bg-foreground/80 rounded-[2px] animate-[pulse_2s_infinite] [animation-delay:0ms]" />
-      <div className="w-2.5 h-2.5 bg-foreground/30 rounded-[2px] animate-[pulse_2s_infinite] [animation-delay:500ms]" />
-      <div className="w-2.5 h-2.5 bg-foreground/30 rounded-[2px] animate-[pulse_2s_infinite] [animation-delay:1500ms]" />
-      <div className="w-2.5 h-2.5 bg-foreground/80 rounded-[2px] animate-[pulse_2s_infinite] [animation-delay:1000ms]" />
+    <div className={cn("inline-grid grid-cols-2 gap-1", className)}>
+      <div className={cn(squareClass, "bg-foreground/80 [animation-delay:0ms]")} />
+      <div className={cn(squareClass, "bg-foreground/30 [animation-delay:500ms]")} />
+      <div className={cn(squareClass, "bg-foreground/30 [animation-delay:1500ms]")} />
+      <div className={cn(squareClass, "bg-foreground/80 [animation-delay:1000ms]")} />
     </div>
   )
 

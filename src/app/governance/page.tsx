@@ -56,6 +56,8 @@ const AuditTab = ({ projectId, t }: any) => {
   const nextCursor = auditQuery.data?.nextCursor
   const filterOptions = filtersQuery.data || { resourceTypes: [], actions: [] }
 
+  if (auditQuery.isLoading) return <LoadingScreen title="Accessing Archive" subtitle="Retrieving system-wide audit logs..." />
+
   const getActionIcon = (action: string) => {
     if (action.includes('secret')) return <Lock className="w-4 h-4 text-amber-400" />
     if (action.includes('delete') || action.includes('remove')) return <Shield className="w-4 h-4 text-red-500" />
@@ -169,6 +171,10 @@ const CostTab = ({ projectId, t, addToast }: any) => {
   const environments = environmentsQuery.data || []
   const nonProdEnvs = environments.filter((e: any) => e.type !== 'production')
 
+  if (costOverview.isLoading || recommendations.isLoading || budgetStatus.isLoading) {
+    return <LoadingScreen title="Analyzing Expenditures" subtitle="Calculating cloud resource intensity..." />
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -244,6 +250,10 @@ const DriftTab = ({ projectId, t, addToast }: any) => {
         deploymentsQuery.refetch()
       }
     })
+  }
+
+  if (deploymentsQuery.isLoading) {
+    return <LoadingScreen title="Scanning for Drift" subtitle="Comparing desired vs actual state..." />
   }
 
   return (

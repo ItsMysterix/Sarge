@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc"
 import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 import { LoadingScreen } from "@/components/ui/loading-screen"
+import { GridLoader } from "@/components/ui/grid-loader"
 
 export default function StacksPage() {
   const [showModal, setShowModal] = useState(false)
@@ -76,7 +77,7 @@ export default function StacksPage() {
       case "running": return <CheckCircle2 className="w-4 h-4 text-foreground" />
       case "stopped": return <Pause className="w-4 h-4 text-muted-foreground" />
       case "error": return <AlertCircle className="w-4 h-4 text-muted-foreground" />
-      default: return <div className="w-4 h-4 border-2 border-muted-foreground/20 border-t-muted-foreground rounded-full animate-spin" />
+      default: return <GridLoader size="sm" />
     }
   }
 
@@ -258,7 +259,7 @@ export default function StacksPage() {
                 disabled={creating}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium disabled:opacity-50 hover:bg-foreground/90"
               >
-                {creating && <div className="w-4 h-4 mr-1 border-2 border-background/20 border-t-background rounded-full animate-spin" />}
+                {creating && <GridLoader size="sm" className="mr-1" />}
                 Create
               </button>
             </div>

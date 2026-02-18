@@ -241,25 +241,8 @@ export default function CommandCenter() {
 
   return (
     <AppShell title="Observability Hub">
-      <div className="flex-1 p-6 max-w-7xl mx-auto w-full animate-fade-in">
+      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
         
-        {/* Actions Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-               <h1 className="text-3xl font-bold tracking-tight text-foreground">Observability Hub</h1>
-               <p className="text-muted-foreground text-xs mt-1 font-medium uppercase tracking-widest opacity-70">
-                 {currentProject?.name ? `Global insights for ${currentProject.name}` : 'Multi-cloud resource intelligence'}
-               </p>
-            </div>
-            <div className="flex gap-2">
-               <Button variant="outline" size="sm" className="h-9 border-white/10 bg-white/5 rounded-xl font-bold text-[10px] uppercase tracking-wider">
-                  <Plus className="w-4 h-4 mr-2" /> Custom Widget
-               </Button>
-               <Button className="h-9 bg-foreground text-background hover:bg-foreground/90 font-bold uppercase text-[10px] tracking-wide rounded-xl">
-                  <Zap className="w-4 h-4 mr-2" /> Global Audit
-               </Button>
-            </div>
-        </div>
 
         <Tabs defaultValue="inventory" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="bg-muted/10 w-full justify-start border border-border/50 rounded-xl p-1 mb-8 overflow-x-auto">
@@ -302,21 +285,10 @@ export default function CommandCenter() {
               
               {['metrics', 'logs', 'storage', 'usage'].map(tabId => (
                 <TabsContent key={tabId} value={tabId} className="mt-0 focus-visible:outline-none">
-                  <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-4 glass-card border border-white/5 rounded-3xl p-12">
-                     <div className="p-4 rounded-full bg-indigo-500/10 border border-indigo-500/20 animate-pulse text-indigo-400">
-                        <Layers className="w-8 h-8" />
-                     </div>
-                     <div>
-                        <h3 className="text-sm font-bold text-foreground uppercase tracking-widest">Hydrating Cloud Stream...</h3>
-                        <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-2 leading-relaxed">
-                           We are establishing safe telemetry channels to your providers. 
-                           Real-time <span className="text-foreground font-bold capitalize">{tabId}</span> data will be synchronized shortly.
-                        </p>
-                     </div>
-                     <Button variant="outline" className="mt-4 border-white/10 rounded-full h-9 text-[10px] font-bold uppercase tracking-widest">
-                        Refresh Connection
-                     </Button>
-                  </div>
+                  <LoadingScreen 
+                    title={`Hydrating ${tabId} Stream`} 
+                    subtitle="Establishing secure telemetry channels..." 
+                  />
                 </TabsContent>
               ))}
             </motion.div>
