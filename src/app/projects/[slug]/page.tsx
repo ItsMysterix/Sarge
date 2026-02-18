@@ -110,132 +110,130 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
       <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in bg-background">
         <ToastContainer />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
            
            {/* Left Column: Deployment Details (Primary Focus) */}
-           <div className="lg:col-span-8 space-y-6">
+           <div className="lg:col-span-8 flex flex-col space-y-4">
               
-              <div className="flex items-center justify-between px-1">
-                 <h2 className="text-sm font-semibold text-muted-foreground italic">Production Deployment</h2>
-                 <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground group" onClick={() => dashboardQuery.refetch()}>
-                    <RefreshCw className={cn("w-3.5 h-3.5 mr-2", dashboardQuery.isRefetching && "animate-spin")} /> 
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">Sync Telemetry</span>
-                 </Button>
+              <div className="flex items-center justify-between px-1 h-8">
+                 <h2 className="text-sm font-semibold text-muted-foreground">Production Deployment</h2>
               </div>
 
               {/* Main Deployment Card or Empty State */}
-              {latestDeployment ? (
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                 <div className="p-8 md:p-10">
-                    <div className="flex flex-col xl:flex-row gap-8">
-                       
-                       {/* Left: Preview Window (Compact) */}
-                       <div className="xl:w-[28%]">
-                          <div className="aspect-[16/10] bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center p-4 relative overflow-hidden group/preview">
-                             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
-                             <Globe className="w-6 h-6 text-white/10 mb-2 group-hover/preview:scale-110 transition-transform duration-500" />
-                             <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Preview</p>
-                          </div>
-                       </div>
+              <div className="flex-1">
+                {latestDeployment ? (
+                  <div className="bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl h-full flex flex-col">
+                   <div className="p-8 md:p-10 flex-1 flex flex-col justify-center">
+                      <div className="flex flex-col xl:flex-row gap-8 items-center">
+                         
+                         {/* Left: Preview Window (Compact) */}
+                         <div className="xl:w-[28%] shrink-0">
+                            <div className="aspect-[16/10] bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col items-center justify-center text-center p-4 relative overflow-hidden group/preview">
+                               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
+                               <Globe className="w-6 h-6 text-white/10 mb-2 group-hover/preview:scale-110 transition-transform duration-500" />
+                               <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Preview</p>
+                            </div>
+                         </div>
 
-                       {/* Right: Deployment Details (Spacious) */}
-                       <div className="xl:flex-1 flex flex-col justify-between min-w-0">
-                          <div className="space-y-6">
-                             
-                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                                <div className="space-y-1 min-w-0">
-                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Deployment URL</p>
-                                   <p className="text-lg font-bold text-white tracking-tight truncate select-all">
-                                      {latestDeployment?.services?.[0]?.url?.replace('https://', '') || `${project.slug}-deployment.sarge.dev`}
-                                   </p>
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap shrink-0">
-                                   <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/projects/${projectSlug}/logs`)}>
-                                      Build Logs
-                                   </Button>
-                                   <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/observability?project=${projectSlug}`)}>
-                                      Runtime Logs
-                                   </Button>
-                                   <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-amber-500/80" onClick={handleRollback}>
-                                      <RotateCcw className="w-3 h-3 mr-1.5" /> Rollback
-                                   </Button>
-                                   <Button size="sm" className="h-8 px-5 text-[11px] font-bold rounded-xl bg-white text-black hover:bg-white/90" onClick={handleVisit}>
-                                      Visit <ExternalLink className="w-3 h-3 ml-1.5" />
-                                   </Button>
-                                </div>
-                             </div>
+                         {/* Right: Deployment Details (Spacious) */}
+                         <div className="xl:flex-1 flex flex-col justify-between min-w-0 w-full">
+                            <div className="space-y-6">
+                               
+                               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                  <div className="space-y-1 min-w-0">
+                                     <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Deployment URL</p>
+                                     <p className="text-lg font-bold text-white tracking-tight truncate select-all">
+                                        {latestDeployment?.services?.[0]?.url?.replace('https://', '') || `${project.slug}-deployment.sarge.dev`}
+                                     </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                                     <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/projects/${projectSlug}/logs`)}>
+                                        Build Logs
+                                     </Button>
+                                     <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/80" onClick={() => router.push(`/observability?project=${projectSlug}`)}>
+                                        Runtime Logs
+                                     </Button>
+                                     <Button variant="ghost" size="sm" className="h-8 px-3 text-[11px] font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-amber-500/80" onClick={handleRollback}>
+                                        <RotateCcw className="w-3 h-3 mr-1.5" /> Rollback
+                                     </Button>
+                                     <Button size="sm" className="h-8 px-5 text-[11px] font-bold rounded-xl bg-white text-black hover:bg-white/90" onClick={handleVisit}>
+                                        Visit <ExternalLink className="w-3 h-3 ml-1.5" />
+                                     </Button>
+                                  </div>
+                               </div>
 
-                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-6 border-t border-white/5">
-                                <div className="space-y-1">
-                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Domains</p>
-                                   <span className="text-sm font-bold text-white/90 truncate block">{latestDeployment?.services?.[0]?.url?.replace('https://', '') || 'None'}</span>
-                                </div>
-                                <div className="space-y-1">
-                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Status</p>
-                                   <div className="flex items-center gap-1.5">
-                                      <div className={cn(
-                                         "w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]", 
-                                         latestDeployment?.status === 'success' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500"
-                                      )} />
-                                      <span className="text-sm font-bold text-white/90 capitalize">{latestDeployment?.status || 'Active'}</span>
-                                   </div>
-                                </div>
-                                <div className="space-y-1">
-                                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Created</p>
-                                   <p className="text-sm font-bold text-white/90 truncate">
-                                      {latestDeployment?.created_at ? formatDistanceToNow(new Date(latestDeployment.created_at)) : '---'} ago
-                                   </p>
-                                </div>
-                             </div>
+                               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-6 border-t border-white/5">
+                                  <div className="space-y-1">
+                                     <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Domains</p>
+                                     <span className="text-sm font-bold text-white/90 truncate block">{latestDeployment?.services?.[0]?.url?.replace('https://', '') || 'None'}</span>
+                                  </div>
+                                  <div className="space-y-1">
+                                     <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Status</p>
+                                     <div className="flex items-center gap-1.5">
+                                        <div className={cn(
+                                           "w-1.5 h-1.5 rounded-full", 
+                                           latestDeployment?.status === 'success' ? "bg-emerald-500" : "bg-amber-500"
+                                        )} />
+                                        <span className="text-sm font-bold text-white/90 capitalize">{latestDeployment?.status || 'Active'}</span>
+                                     </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                     <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Created</p>
+                                     <p className="text-sm font-bold text-white/90 truncate">
+                                        {latestDeployment?.created_at ? formatDistanceToNow(new Date(latestDeployment.created_at)) : '---'} ago
+                                     </p>
+                                  </div>
+                               </div>
 
-                             <div className="pt-2">
-                                <div className="flex items-center gap-5 text-[11px] font-bold">
-                                   <div className="flex items-center gap-2 text-indigo-400">
-                                      <GitBranch className="w-3.5 h-3.5" /> {latestDeployment?.branch || 'main'}
-                                   </div>
-                                   <div className="flex items-center gap-3 text-white/40 min-w-0">
-                                      <span className="font-mono text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/5 shrink-0">{latestDeployment?.commit?.slice(0, 7) || '---'}</span>
-                                      <span className="truncate font-medium">{latestDeployment?.summary?.split('] ').pop() || 'Initial project commit'}</span>
-                                   </div>
-                                </div>
-                             </div>
+                               <div className="pt-2">
+                                  <div className="flex items-center gap-5 text-[11px] font-bold">
+                                     <div className="flex items-center gap-2 text-indigo-400">
+                                        <GitBranch className="w-3.5 h-3.5" /> {latestDeployment?.branch || 'main'}
+                                     </div>
+                                     <div className="flex items-center gap-3 text-white/40 min-w-0">
+                                        <span className="font-mono text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/5 shrink-0">{latestDeployment?.commit?.slice(0, 7) || '---'}</span>
+                                        <span className="truncate font-medium">{latestDeployment?.summary?.split('] ').pop() || 'Initial project commit'}</span>
+                                     </div>
+                                  </div>
+                               </div>
 
-                          </div>
-                       </div>
+                            </div>
+                         </div>
 
-                    </div>
-                 </div>
-                </div>
-              ) : (
-                <div className="bg-card/5 border border-dashed border-border/50 rounded-[2rem] p-12 lg:p-20 text-center space-y-6 flex flex-col items-center justify-center min-h-[400px]">
-                   <Rocket className="w-12 h-12 text-muted-foreground/20" />
-                   <div className="space-y-2">
-                      <h3 className="text-xl font-bold tracking-tight text-foreground/80">No environments detected</h3>
-                      <p className="text-xs text-muted-foreground font-medium">
-                        Initialize your project to begin orchestrating resources.
-                      </p>
+                      </div>
                    </div>
-                   <Button 
-                    onClick={() => router.push(`/projects/${projectSlug}/provision`)}
-                    className="h-11 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-bold uppercase tracking-widest text-[10px] shadow-lg transition-all"
-                   >
-                     Create your first environment
-                   </Button>
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <div className="bg-card/5 border border-dashed border-border/50 rounded-[2rem] p-12 lg:p-20 text-center space-y-6 flex flex-col items-center justify-center h-full min-h-[500px]">
+                     <Rocket className="w-12 h-12 text-muted-foreground/20" />
+                     <div className="space-y-2">
+                        <h3 className="text-xl font-bold tracking-tight text-foreground/80">No environments detected</h3>
+                        <p className="text-xs text-muted-foreground font-medium">
+                          Initialize your project to begin orchestrating resources.
+                        </p>
+                     </div>
+                     <Button 
+                      onClick={() => router.push(`/projects/${projectSlug}/provision`)}
+                      className="h-11 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-bold uppercase tracking-widest text-[10px] shadow-lg transition-all"
+                     >
+                       Create your first environment
+                     </Button>
+                  </div>
+                )}
+              </div>
 
            </div>
 
            {/* Right Column: Activity Feed (Audit Trail) */}
-           <div className="lg:col-span-4 space-y-4">
-              <div className="flex items-center justify-between px-1">
-                 <h2 className="text-sm font-semibold text-muted-foreground italic">Activity Feed</h2>
+           <div className="lg:col-span-4 flex flex-col space-y-4">
+              <div className="flex items-center justify-between px-1 h-8">
+                 <h2 className="text-sm font-semibold text-muted-foreground">Activity Feed</h2>
                  <Activity className="w-3.5 h-3.5 text-muted-foreground/30" />
               </div>
-              <div className="bg-card border border-border rounded-2xl overflow-hidden min-h-[500px] flex flex-col shadow-sm">
+              <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col shadow-sm flex-1">
                  <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[700px]">
                     {activity.length === 0 ? (
-                       <p className="text-sm text-muted-foreground italic text-center py-10 opacity-40">No recent activity detected.</p>
+                       <p className="text-sm text-muted-foreground text-center py-10 opacity-40">No recent activity detected.</p>
                     ) : (
                        activity.map((item: any) => {
                           const isSuccess = item.action.includes('SUCCESS')
@@ -255,7 +253,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                                       {formatDistanceToNow(new Date(item.created_at))} ago
                                    </span>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground/60 truncate flex items-center gap-1 font-medium italic">
+                                <p className="text-[10px] text-muted-foreground/60 truncate flex items-center gap-1 font-medium">
                                    {item.details?.branch && <span>→</span>}
                                    {item.details?.branch || item.details?.name || 'View details'}
                                 </p>
@@ -264,7 +262,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                        })
                     )}
                  </div>
-                 <div className="p-4 border-t border-border bg-muted/20">
+                 <div className="p-4 border-t border-border bg-muted/20 mt-auto">
                     <Button variant="ghost" className="w-full text-xs font-bold h-8 uppercase tracking-widest opacity-60 hover:opacity-100" onClick={() => router.push(`/projects/${projectSlug}/settings`)}>
                        Management
                     </Button>
