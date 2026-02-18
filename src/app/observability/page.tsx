@@ -68,7 +68,7 @@ const InventoryTab = () => {
   const resources = inventoryQuery.data || []
   const router = useRouter()
 
-  if (inventoryQuery.isLoading) return <div className="flex justify-center py-20"><GridLoader /></div>
+  if (inventoryQuery.isLoading) return <div className="flex items-center justify-center min-h-[400px]"><GridLoader /></div>
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -126,7 +126,7 @@ const SecurityTab = () => {
   const alertsQuery = trpc.commandCenter.getSecurityAlerts.useQuery({ projectSlug: currentProject?.slug })
   const alerts = alertsQuery.data || []
 
-  if (alertsQuery.isLoading) return <div className="flex justify-center py-20"><GridLoader /></div>
+  if (alertsQuery.isLoading) return <div className="flex items-center justify-center min-h-[400px]"><GridLoader /></div>
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -184,7 +184,7 @@ const DomainsTab = () => {
   const domainsQuery = trpc.commandCenter.getDomains.useQuery({ projectSlug: currentProject?.slug })
   const router = useRouter()
 
-  if (domainsQuery.isLoading) return <div className="flex justify-center py-20"><GridLoader /></div>
+  if (domainsQuery.isLoading) return <div className="flex items-center justify-center min-h-[400px]"><GridLoader /></div>
 
   return (
     <div className="space-y-6 animate-fade-in">

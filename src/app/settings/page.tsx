@@ -190,7 +190,7 @@ export default function Settings() {
   if (loading || (activeTab === 'integrations' && providersQuery.isLoading)) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="flex flex-col items-center justify-center flex-1 gap-4">
           <GridLoader />
           <p className="text-xs text-muted-foreground animate-pulse">Synchronizing preferences...</p>
         </div>

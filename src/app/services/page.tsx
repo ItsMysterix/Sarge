@@ -54,7 +54,7 @@ export default function ServicesPage() {
   if (isLoading) {
     return (
       <AppShell>
-        <div className="p-6 flex items-center justify-center flex-1">
+        <div className="flex items-center justify-center flex-1">
           <GridLoader className="w-6 h-6 text-muted-foreground" />
         </div>
       </AppShell>

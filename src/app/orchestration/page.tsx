@@ -57,7 +57,7 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {envsQuery.isLoading ? (
-          <div className="col-span-full py-20 flex justify-center"><GridLoader /></div>
+          <div className="col-span-full min-h-[400px] flex items-center justify-center"><GridLoader /></div>
         ) : environments.length === 0 ? (
           <div className="col-span-full py-12 text-center border border-dashed border-border rounded-xl">
             <Layers className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -142,7 +142,7 @@ const PipelinesTab = () => {
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="divide-y divide-border">
           {isLoading ? (
-            <div className="p-12 text-center flex justify-center"><GridLoader className="w-6 h-6 text-muted-foreground" /></div>
+            <div className="w-full min-h-[300px] flex items-center justify-center"><GridLoader className="w-6 h-6 text-muted-foreground" /></div>
           ) : items.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground italic">No recent deployments.</div>
           ) : (

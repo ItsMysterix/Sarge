@@ -24,7 +24,7 @@ export function GridLoader({ className, fullPage }: { className?: string, fullPa
 
   if (fullPage) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] w-full animate-fade-in">
+      <div className="flex-1 flex flex-col items-center justify-center w-full animate-fade-in">
         {content}
       </div>
     );

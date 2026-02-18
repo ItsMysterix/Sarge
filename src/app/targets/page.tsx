@@ -8,6 +8,7 @@ import { Cloud, ShieldCheck, Zap, Rocket, Globe2, Link as LinkIcon, Plug } from 
 import { useToast } from "@/components/ui/toast"
 import { trpc } from "@/lib/trpc"
 import { useProject } from "@/lib/project-context"
+import { GridLoader } from "@/components/ui/grid-loader"
 
 type Provider = {
   id: string
@@ -46,10 +47,20 @@ export default function TargetsPage() {
     }
   }
 
+  if (providersQuery.isLoading) {
+    return (
+      <AppShell>
+        <div className="flex-1 flex items-center justify-center">
+          <GridLoader />
+        </div>
+      </AppShell>
+    )
+  }
+
   return (
-    <AppShell>
+    <AppShell title="Deployment Targets">
       <ToastContainer />
-      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 w-full max-w-[100vw]">
+      <main className="flex-1 p-6 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
           {(!providers || providers.length === 0) ? (
             <div className="col-span-full py-20 text-center border border-dashed border-white/10 rounded-2xl bg-white/5">

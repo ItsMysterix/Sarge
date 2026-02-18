@@ -100,7 +100,7 @@ export default function StacksPage() {
 
         {/* Loading */}
         {stacksQuery?.isLoading && (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center min-h-[400px]">
             <GridLoader className="w-6 h-6 text-muted-foreground" />
           </div>
         )}

@@ -206,7 +206,7 @@ function ResourceList({ title, loading, items, empty, renderItem }: {
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
+      <div className="flex-1 flex items-center justify-center">
         <GridLoader className="w-6 h-6 text-muted-foreground" />
       </div>
     )
