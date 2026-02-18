@@ -89,11 +89,28 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
     },
     onError: (error: any) => {
        setIsAnalyzing(false)
+       
+       let userMsg = 'Could not analyze repository features.'
+       let devMsg = error.message
+
+       try {
+         const parsed = JSON.parse(error.message)
+         if (parsed.userMessage) {
+            userMsg = parsed.userMessage
+            devMsg = parsed.devDetail
+         }
+       } catch (e) {
+         // Not JSON, use original message
+       }
+
+       console.error('[Provision] Analysis error:', devMsg)
+
        addToast({ 
          type: 'error', 
          title: 'Analysis Failed', 
-         description: error.message || 'Could not analyze repository features.' 
+         description: userMsg 
        })
+       
        // Fallback for demo purposes if backend fails
        setClaudeAnalysis({
         summary: "Automated analysis failed. Switching to manual configuration mode. Defaulting to standard Next.js stack.",

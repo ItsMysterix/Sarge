@@ -547,9 +547,16 @@ export const projectRouter = router({
         return analysis;
       } catch (error) {
         console.error('[tRPC] Analysis failed:', error);
+
+        // Structured error for frontend to parse
+        const structuredError = {
+          userMessage: 'Analysis could not complete. This usually happens with private repositories or empty projects.',
+          devDetail: error instanceof Error ? error.message : 'Unknown internal error'
+        };
+
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Repository analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please configure project settings manually.`,
+          message: JSON.stringify(structuredError),
           cause: error as Error,
         });
       }
