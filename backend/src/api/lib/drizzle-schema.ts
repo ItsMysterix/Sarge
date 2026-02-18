@@ -98,6 +98,8 @@ export const userSettings = pgTable('user_settings', {
     autoRebuild: boolean('auto_rebuild').default(false),
     defaultRegion: text('default_region').default('us-east-1'),
     defaultEnvironment: text('default_environment').default('development'),
+    zeroDowntime: boolean('zero_downtime').default(true),
+    healthChecks: boolean('health_checks').default(true),
     resources: jsonb('resources').default({ cpu: 0.5, memory: 512, replicas: 1 }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });

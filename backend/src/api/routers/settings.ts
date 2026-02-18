@@ -29,6 +29,8 @@ export const settingsRouter = router({
                     themeMode: "dark" as const,
                     defaultRegion: "us-east-1",
                     defaultEnvironment: "development",
+                    zeroDowntime: true,
+                    healthChecks: true,
                     resources: { cpu: 0.5, memory: 512, replicas: 1 },
                     notifications: {
                         deploySuccess: true,
@@ -52,6 +54,8 @@ export const settingsRouter = router({
             themeMode: z.enum(['dark', 'light', 'system', 'auto']).optional(),
             defaultRegion: z.string().optional(),
             defaultEnvironment: z.string().optional(),
+            zeroDowntime: z.boolean().optional(),
+            healthChecks: z.boolean().optional(),
             resources: z.any().optional(),
             notifications: z.any().optional(),
         }))

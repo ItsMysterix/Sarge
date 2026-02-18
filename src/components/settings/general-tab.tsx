@@ -167,14 +167,14 @@ export function GeneralTab({
               <div className="text-sm text-gray-400">Use Rolling Updates or Blue/Green strategies.</div>
             </div>
             <button
-              onClick={() => updateSettings?.({ zero_downtime: !settings?.zero_downtime })}
+              onClick={() => updateSettings?.({ zeroDowntime: !settings?.zeroDowntime })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings?.zero_downtime ? 'bg-accent' : 'bg-gray-600'
+                settings?.zeroDowntime ? 'bg-accent' : 'bg-gray-600'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                   settings?.zero_downtime ? 'translate-x-6' : 'translate-x-1'
+                   settings?.zeroDowntime ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
@@ -186,14 +186,14 @@ export function GeneralTab({
               <div className="text-sm text-gray-400">Kill and restart unhealthy containers automatically.</div>
             </div>
             <button
-              onClick={() => updateSettings?.({ health_checks: !settings?.health_checks })}
+              onClick={() => updateSettings?.({ healthChecks: !settings?.healthChecks })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings?.health_checks ? 'bg-accent' : 'bg-gray-600'
+                settings?.healthChecks ? 'bg-accent' : 'bg-gray-600'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings?.health_checks ? 'translate-x-6' : 'translate-x-1'
+                  settings?.healthChecks ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
