@@ -110,7 +110,7 @@ export function Sidebar() {
                 aria-current={pathname === '/projects' ? 'page' : undefined}
               >
                 <FolderKanban className="w-5 h-5" aria-hidden="true" />
-                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl" aria-hidden="true">
+                <div className="absolute left-full ml-3 px-3 py-2 bg-popover border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none shadow-2xl z-50 transform translate-x-[-4px] group-hover:translate-x-0" aria-hidden="true">
                   Projects
                 </div>
               </Link>
@@ -140,7 +140,7 @@ export function Sidebar() {
                     aria-current={currentProject?.slug && pathname === `/projects/${currentProject.slug}` ? 'page' : undefined}
                   >
                     <Layout className="w-5 h-5" aria-hidden="true" />
-                    <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl" aria-hidden="true">
+                    <div className="absolute left-full ml-3 px-3 py-2 bg-popover border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none shadow-2xl z-50 transform translate-x-[-4px] group-hover:translate-x-0" aria-hidden="true">
                       Dashboard
                     </div>
                   </Link>
@@ -167,7 +167,7 @@ export function Sidebar() {
                         <item.icon className="w-5 h-5" aria-hidden="true" />
                         
                         {/* Tooltip */}
-                        <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 border border-white/10 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl" aria-hidden="true">
+                        <div className="absolute left-full ml-3 px-3 py-2 bg-popover border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none shadow-2xl z-50 transform translate-x-[-4px] group-hover:translate-x-0" aria-hidden="true">
                           {item.name}
                         </div>
                       </Link>
@@ -202,7 +202,7 @@ export function Sidebar() {
             )}
             
             {/* Tooltip */}
-            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-popover border border-border rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+            <div className="absolute left-full ml-3 px-3 py-2 bg-popover border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none shadow-2xl z-50 transform translate-x-[-4px] group-hover:translate-x-0">
               Profile
             </div>
           </Link>
@@ -216,7 +216,7 @@ export function Sidebar() {
             <LogOut className="w-4 h-4" />
             
             {/* Tooltip */}
-            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-popover border border-border rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none shadow-xl">
+            <div className="absolute left-full ml-3 px-3 py-2 bg-popover border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none shadow-2xl z-50 transform translate-x-[-4px] group-hover:translate-x-0">
               Sign out
             </div>
           </button>

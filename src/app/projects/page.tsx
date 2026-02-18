@@ -135,41 +135,38 @@ export default function ProjectsPage() {
   if (!hasProjects) {
     return (
       <AppShell>
-        <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in min-h-[calc(100vh-4rem)]">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in min-h-[calc(100vh-4rem)]">
           <ToastContainer />
           
           <div className="w-full max-w-lg relative z-10">
             {/* Header */}
-            <div className="text-center mb-8">
-               <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-muted border border-border mb-6">
-                  <Box className="w-6 h-6 text-foreground" />
+            <div className="text-center mb-10">
+               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-muted/50 border border-border/50 mb-6 shadow-sm">
+                  <Box className="w-7 h-7 text-foreground/80" />
                </div>
-               <h1 className="text-2xl font-medium tracking-tight text-foreground mb-2">
+               <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-3">
                  Create your first project
                </h1>
-               <p className="text-muted-foreground text-sm">
-                 Projects organize your services and deployments.
+               <p className="text-muted-foreground text-sm max-w-[280px] mx-auto leading-relaxed">
+                 Projects organize your services, deployments, and cloud infrastructure.
                </p>
             </div>
 
             {/* Compact Form Card */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm relative overflow-hidden group">
-               <div className="space-y-4 relative">
-                  <div>
-                     <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+            <div className="bg-card border border-border rounded-2xl p-8 shadow-xl relative overflow-hidden group">
+               <div className="space-y-6 relative">
+                  <div className="space-y-2">
+                     <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.1em] ml-1">
                         Project Name
                      </Label>
                      <div className="relative group/input">
                         <Input 
                            value={name} 
                            onChange={(e) => setName(e.target.value)}
-                           placeholder="acme-core" 
+                           placeholder="e.g. helios-api" 
                            autoFocus
-                           className="h-11 bg-background border-border focus:border-foreground/50 focus:ring-foreground/20 rounded-lg transition-all font-mono text-sm shadow-sm"
+                           className="h-12 bg-background/50 border-border focus:border-foreground/30 focus:ring-0 rounded-xl transition-all font-mono text-sm px-4"
                         />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden group-focus-within/input:block">
-                           <span className="text-[10px] text-muted-foreground border border-border px-1.5 py-0.5 rounded">Enter</span>
-                        </div>
                      </div>
                   </div>
 
@@ -177,14 +174,14 @@ export default function ProjectsPage() {
                      size="lg"
                      onClick={handleCreate} 
                      disabled={createMutation.isPending || !name.trim()}
-                     className="w-full h-10 bg-foreground text-background hover:bg-foreground/90 text-sm font-medium rounded-lg shadow-sm transition-all"
+                     className="w-full h-12 bg-foreground text-background hover:bg-foreground/90 text-xs font-bold uppercase tracking-widest rounded-xl shadow-lg transition-transform active:scale-[0.98]"
                   >
                      {createMutation.isPending ? (
                         <GridLoader className="w-4 h-4 mr-2" />
                      ) : (
-                        <Plus className="w-3.5 h-3.5 mr-2" />
+                        <Plus className="w-4 h-4 mr-2" />
                      )}
-                     Create Project
+                     Initialize Project
                   </Button>
                </div>
             </div>
@@ -196,33 +193,33 @@ export default function ProjectsPage() {
 
   return (
     <AppShell title="Projects">
-      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <ToastContainer />
         
         {/* Actions & Search */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="relative flex-1 max-w-md group">
-            <div className="relative bg-muted/30 rounded-lg border border-transparent focus-within:border-border transition-all">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
+          <div className="relative flex-1 w-full max-w-md group">
+            <div className="relative bg-muted/20 rounded-xl border border-border focus-within:border-foreground/20 transition-all">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
               <Input
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 bg-transparent border-none focus:ring-0 focus:outline-none placeholder:text-muted-foreground/50 text-sm"
+                className="pl-12 h-11 bg-transparent border-none focus:ring-0 focus:outline-none placeholder:text-muted-foreground/30 text-sm"
               />
             </div>
           </div>
-          <div className="flex items-center gap-3 ml-auto">
-            <Button variant="outline" onClick={() => refetch()} className="h-9 border-border hover:bg-muted text-muted-foreground hover:text-foreground text-xs">
+          <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto">
+            <Button variant="outline" onClick={() => refetch()} className="h-11 px-4 border-border bg-card/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium rounded-xl">
               <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button 
               onClick={() => setShowCreateModal(true)}
-              className="bg-foreground text-background hover:bg-foreground/90 font-medium shadow-sm h-9 px-4 text-xs"
+              className="flex-1 sm:flex-none h-11 px-6 bg-foreground text-background hover:bg-foreground/90 font-bold text-[10px] uppercase tracking-widest rounded-xl shadow-lg transition-transform active:scale-[0.98]"
             >
-              <Plus className="w-3.5 h-3.5 mr-2" />
-              Create Project
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
             </Button>
           </div>
         </div>

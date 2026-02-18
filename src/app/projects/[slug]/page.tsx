@@ -97,7 +97,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
 
   return (
     <AppShell>
-      <div className="flex-1 p-6 max-w-7xl mx-auto animate-fade-in w-full">
+      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <ToastContainer />
         
         {showCreateModal && (

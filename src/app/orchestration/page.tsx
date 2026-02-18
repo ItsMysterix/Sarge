@@ -184,18 +184,18 @@ export default function OrchestrationHub() {
 
   return (
     <AppShell title="Orchestration Hub">
-      <div className="p-6 max-w-6xl mx-auto animate-fade-in">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
-          <div className="flex bg-muted/30 p-1 rounded-lg border border-border">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+          <div className="flex bg-muted/20 p-1 rounded-xl border border-border/50 backdrop-blur-sm">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex items-center gap-2.5 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all",
                   activeTab === tab.id 
-                    ? "bg-background text-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    ? "bg-background text-foreground shadow-lg scale-[1.02]" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
                 )}
               >
                 <tab.icon className="w-3.5 h-3.5" />

@@ -220,10 +220,10 @@ export default function Settings() {
   return (
     <AppShell title="Settings">
       <ToastContainer />
-      <main className="flex-1 p-6 max-w-6xl mx-auto animate-fade-in">
+      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <div className="mt-8">
+        <div className="mt-10">
           {activeTab === "general" && (
             <GeneralTab
               settings={settings}
@@ -290,7 +290,7 @@ export default function Settings() {
           {activeTab === "members" && <MembersTab />}
           {activeTab === "webhooks" && <WebhooksTab />}
         </div>
-      </main>
+      </div>
       <ConnectProviderModal
         provider={selectedProvider}
         isOpen={isConnectModalOpen}

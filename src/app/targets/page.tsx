@@ -60,21 +60,27 @@ export default function TargetsPage() {
   return (
     <AppShell title="Deployment Targets">
       <ToastContainer />
-      <main className="flex-1 p-6 w-full max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {(!providers || providers.length === 0) ? (
-            <div className="col-span-full py-20 text-center border border-dashed border-white/10 rounded-2xl bg-white/5">
-               <Plug className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-               <h3 className="text-lg font-semibold mb-1">No Deployment Targets</h3>
-               <p className="text-xs text-muted-foreground max-w-xs mx-auto mb-6">Connect a cloud provider to start deploying your applications to real infrastructure.</p>
-               <button
-                  onClick={() => router.push('/settings')}
-                  className="px-6 py-2 rounded-full border border-accent/50 text-accent hover:bg-accent/10 transition-all text-[10px] font-bold uppercase tracking-widest"
-               >
-                  Connect Cloud Account
-               </button>
-            </div>
-          ) : (
+      <main className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Global infrastructure</h2>
+            <p className="text-sm text-muted-foreground">Select and configure the cloud providers you want to deploy to.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(!providers || providers.length === 0) ? (
+              <div className="col-span-full py-24 text-center border border-dashed border-border rounded-3xl bg-muted/20">
+                 <Plug className="w-16 h-16 text-muted-foreground/20 mx-auto mb-6" />
+                 <h3 className="text-xl font-bold mb-2">No active targets</h3>
+                 <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-8 leading-relaxed">Connect your cloud infrastructure to start orchestrating deployments and managing resources.</p>
+                 <button
+                    onClick={() => router.push('/settings')}
+                    className="px-8 py-3 rounded-xl bg-foreground text-background hover:bg-foreground/90 transition-all text-xs font-bold uppercase tracking-widest shadow-xl"
+                 >
+                    Provision Cloud Account
+                 </button>
+              </div>
+            ) : (
             providers.map((provider) => (
               <div
                 key={provider.id}
@@ -167,6 +173,7 @@ export default function TargetsPage() {
             </a>
           </div>
         )}
+        </div>
       </main>
     </AppShell>
   )

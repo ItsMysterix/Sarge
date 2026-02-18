@@ -54,14 +54,34 @@
 
   .light {
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --foreground: 0 0% 5%;
 
-    /* ... (keep other light mode vars minimal) ... */
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+
+    --primary: 0 0% 5%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 5%;
+
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 5%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 20%;
 
     /* Glass Tokens - Light Mode (Refined) */
-    --glass-bg: 0 0% 0% / 0.02;
-    --glass-border: 0 0% 0% / 0.05;
-    --glass-header: 0 0% 100% / 0.8;
+    --glass-bg: 0 0% 0% / 0.01;
+    --glass-border: 0 0% 0% / 0.04;
+    --glass-header: 0 0% 100% / 0.85;
     --glass-shadow: 0 0% 0% / 0;
   }
 }
