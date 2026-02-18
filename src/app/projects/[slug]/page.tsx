@@ -38,24 +38,16 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   
   const projectSlug = params.slug
 
-  // Data Fetching
-  const projectQuery = trpc.project.getBySlug.useQuery({ slug: projectSlug })
-  const project = projectQuery.data
-
-  const envsQuery = trpc.environments.list.useQuery(
-    { projectSlug }
+  // Consolidated Data Fetching (High Performance)
+  const dashboardQuery = trpc.project.getDashboardSummary.useQuery(
+    { slug: projectSlug },
+    { staleTime: 30000, refetchOnWindowFocus: false }
   )
-  const environments = envsQuery.data || []
-
-  const statsQuery = trpc.project.getStats.useQuery(
-    { projectSlug }
-  )
-  const stats = statsQuery.data
-
-  const activityQuery = trpc.project.getActivity.useQuery(
-    { projectSlug, limit: 10 }
-  )
-  const activity = activityQuery.data || []
+  
+  const project = dashboardQuery.data?.project
+  const environments = dashboardQuery.data?.environments || []
+  const stats = dashboardQuery.data?.stats
+  const activity = dashboardQuery.data?.activity || []
 
   const activeBranch = useMemo(() => {
     if (activeEnvTab === "overview") return project?.autoDeployBranch || 'main'
@@ -64,7 +56,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   }, [activeEnvTab, environments, project])
 
   // Loading State
-  if (projectQuery.isLoading || envsQuery.isLoading) {
+  if (dashboardQuery.isLoading) {
     return (
       <AppShell>
         <LoadingScreen title="Loading Project" subtitle="Synchronizing environment data..." />
@@ -108,7 +100,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
           <EnvironmentCreationModal 
             projectSlug={projectSlug} 
             onClose={() => setShowCreateModal(false)}
-            onCreated={() => envsQuery.refetch()}
+            onCreated={() => dashboardQuery.refetch()}
           />
         )}
 

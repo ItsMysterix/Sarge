@@ -596,4 +596,80 @@ export const projectRouter = router({
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch activity', cause: error as Error });
       }
     }),
+  // Get full dashboard data in one trip
+  getDashboardSummary: secureProcedure('project.getDashboardSummary')
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+      try {
+        // 1. Get Project first to get the UUID
+        const projectResult = await ctx.db.query(
+          `SELECT p.* FROM projects p WHERE p.slug = $1 AND p.user_id = $2`,
+          [input.slug, userId]
+        );
+        const project = projectResult.rows?.[0];
+        if (!project) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+
+        const projectId = project.id;
+
+        // 2. Fetch everything else in parallel
+        const [envsRes, statsRes, activityRes] = await Promise.all([
+          // Environments
+          ctx.db.query(
+            `SELECT * FROM environments WHERE project_id = $1 ORDER BY created_at DESC`,
+            [input.slug] // Using slug as per existing convention in environments table
+          ),
+          // Stats
+          ctx.db.query(
+            `SELECT
+               COUNT(*) as total,
+               COUNT(*) FILTER (WHERE status = 'success') as successful,
+               COUNT(*) FILTER (WHERE status = 'failed') as failed,
+               COUNT(*) FILTER (WHERE status = 'running') as active_services,
+               MAX(created_at) as last_deployed_at,
+               AVG(EXTRACT(EPOCH FROM (completed_at - created_at))) as avg_deploy_time
+             FROM deployments
+             WHERE project_id = $1`,
+            [projectId]
+          ),
+          // Activity
+          ctx.db.query(
+            `SELECT id, action, details, created_at
+             FROM project_activity
+             WHERE project_id = $1
+             ORDER BY created_at DESC
+             LIMIT 10`,
+            [projectId]
+          )
+        ]);
+
+        const ds = statsRes.rows[0] || {};
+
+        return {
+          project: {
+            ...project,
+            deploymentCount: Number(ds.total) || 0,
+            lastDeployedAt: ds.last_deployed_at || null,
+          },
+          environments: envsRes.rows.map(row => ({
+            ...row,
+            resource_config: typeof row.resource_config === 'string' ? JSON.parse(row.resource_config) : row.resource_config,
+          })),
+          stats: {
+            totalDeployments: Number(ds.total) || 0,
+            successfulDeployments: Number(ds.successful) || 0,
+            failedDeployments: Number(ds.failed) || 0,
+            lastDeploymentAt: ds.last_deployed_at || null,
+            activeServices: Number(ds.active_services) || 0,
+            avgDeployTime: Math.round(Number(ds.avg_deploy_time) || 0),
+          },
+          activity: activityRes.rows || []
+        };
+      } catch (err) {
+        console.error('[project.getDashboardSummary] Error:', err);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch dashboard summary' });
+      }
+    }),
 });
