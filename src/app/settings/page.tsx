@@ -217,7 +217,7 @@ export default function Settings() {
   return (
     <AppShell title="Settings">
       <ToastContainer />
-      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
+      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="mt-10">

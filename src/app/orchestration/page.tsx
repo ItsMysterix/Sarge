@@ -184,7 +184,7 @@ export default function OrchestrationHub() {
 
   return (
     <AppShell title="Orchestration Hub">
-      <div className="p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
           <div className="flex bg-muted/20 p-1 rounded-xl border border-border/50 backdrop-blur-sm">
             {tabs.map((tab) => (

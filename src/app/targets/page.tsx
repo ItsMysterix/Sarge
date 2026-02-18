@@ -58,7 +58,7 @@ export default function TargetsPage() {
   return (
     <AppShell title="Deployment Targets">
       <ToastContainer />
-      <main className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
+      <main className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Global infrastructure</h2>

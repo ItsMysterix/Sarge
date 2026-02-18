@@ -95,7 +95,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
 
   return (
     <AppShell>
-      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
+      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         <ToastContainer />
         
         {showCreateModal && (
@@ -143,7 +143,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
               />
             ))}
             <button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => router.push(`/projects/${projectSlug}/provision`)}
               className="flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 transition-all ml-auto"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -181,7 +181,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                         <p className="text-muted-foreground text-sm max-w-sm mb-6">
                           Provision infrastructure to start deploying services to this project.
                         </p>
-                        <Button onClick={() => setShowCreateModal(true)} variant="outline" className="h-9 px-6 rounded-full border-foreground/10 hover:bg-muted text-xs">
+                        <Button onClick={() => router.push(`/projects/${projectSlug}/provision`)} variant="outline" className="h-9 px-6 rounded-full border-foreground/10 hover:bg-muted text-xs">
                           <Plus className="w-4 h-4 mr-2" />
                           Provision First Environment
                         </Button>

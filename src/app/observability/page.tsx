@@ -241,7 +241,7 @@ export default function CommandCenter() {
 
   return (
     <AppShell title="Observability Hub">
-      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
+      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
         
 
         <Tabs defaultValue="inventory" className="w-full" onValueChange={setActiveTab}>
