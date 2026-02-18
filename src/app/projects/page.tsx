@@ -333,7 +333,7 @@ const ProjectCard = React.memo(({ project, router, onToggleStatus, onDelete }: {
   
   return (
     <div 
-      className="group relative flex flex-col justify-between h-[200px] p-6 rounded-2xl border border-border bg-card hover:bg-muted/30 hover:border-foreground/20 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-sm gpu-accelerate"
+      className="group relative flex flex-col justify-between h-auto p-6 rounded-2xl border border-border bg-card hover:bg-muted/30 hover:border-foreground/20 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-sm gpu-accelerate"
       onClick={() => router.push(`/projects/${project.slug}`)}
     >
       
@@ -429,12 +429,6 @@ const ProjectCard = React.memo(({ project, router, onToggleStatus, onDelete }: {
              </div>
           </div>
         </div>
-      </div>
-
-      <div className="absolute top-0 right-0 p-6 flex items-center text-[10px] font-bold uppercase tracking-widest text-foreground opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 pointer-events-none">
-         <div className="flex items-center gap-1 bg-background/80 backdrop-blur border border-border px-3 py-1.5 rounded-full shadow-sm">
-            View <ArrowUpRight className="w-3 h-3" />
-         </div>
       </div>
     </div>
   );

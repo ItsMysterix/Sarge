@@ -86,8 +86,11 @@ export function NotificationPopover() {
                     !notification.is_read && "bg-white/[0.02]"
                   )}
                 >
-                  <div className="mt-0.5 shrink-0">
+                  <div className="mt-0.5 shrink-0 relative">
                     {getIcon(notification.type)}
+                    {!notification.is_read && (
+                       <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-[#0A0A0A]" />
+                    )}
                   </div>
                   <div className="flex-1 space-y-1">
                     <p className={cn("text-sm leading-none", !notification.is_read ? "font-medium text-white" : "text-muted-foreground")}>
