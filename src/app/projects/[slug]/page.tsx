@@ -124,9 +124,6 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                <Button variant="outline" size="sm" onClick={() => router.push(`/settings?project=${projectSlug}`)} className="h-9">
                   <Server className="w-4 h-4 mr-2" /> Settings
                </Button>
-               <Button onClick={handleCreateDeployment} className="h-9 bg-foreground text-background hover:bg-foreground/90 font-bold uppercase text-[10px] tracking-wide">
-                  <Zap className="w-4 h-4 mr-2" /> New Deployment
-               </Button>
              </div>
         </div>
 
@@ -142,13 +139,6 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                 label={env.name} 
               />
             ))}
-            <button 
-              onClick={() => router.push(`/projects/${projectSlug}/provision`)}
-              className="flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 transition-all ml-auto"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Environment</span>
-            </button>
           </TabsList>
 
           {/* Overview Tab (Stats & Activity) */}
@@ -170,6 +160,15 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                     <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-widest">
                        <Box className="w-4 h-4" /> Environments
                     </h3>
+                    {environments.length > 0 && (
+                      <Button 
+                        onClick={() => router.push(`/projects/${projectSlug}/provision`)} 
+                        variant="ghost" 
+                        className="h-8 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+                      >
+                         <Plus className="w-3 h-3 mr-2" /> Add Environment
+                      </Button>
+                    )}
                   </div>
                   
                   {environments.length === 0 ? (
@@ -197,16 +196,37 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                                 </div>
                                 <span className="font-semibold text-foreground text-sm">{env.name}</span>
                              </div>
-                             <Badge className={cn(
-                               "text-[8px] uppercase font-bold px-1.5 py-0",
-                               env.status === 'active' ? "bg-emerald-500/10 text-emerald-500 border-none" : "bg-muted text-muted-foreground"
-                             )}>
-                               {env.status}
-                             </Badge>
+                             <div className="flex items-center gap-2">
+                               {env.last_deployed_at && (
+                                 <Badge className="text-[8px] uppercase font-bold px-1.5 py-0 bg-blue-500/10 text-blue-500 border-none">
+                                   Deployed
+                                 </Badge>
+                               )}
+                               <Badge className={cn(
+                                 "text-[8px] uppercase font-bold px-1.5 py-0",
+                                 env.status === 'active' ? "bg-emerald-500/10 text-emerald-500 border-none" : "bg-muted text-muted-foreground"
+                               )}>
+                                 {env.status}
+                               </Badge>
+                             </div>
                           </div>
-                          <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
-                            <span className="flex items-center gap-1.5"><Zap className="w-3 h-3" /> {env.type}</span>
-                            <span className="flex items-center gap-1.5"><Globe className="w-3 h-3" /> {env.region}</span>
+                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/10">
+                            <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
+                              <span className="flex items-center gap-1.5"><Zap className="w-3 h-3" /> {env.type}</span>
+                              <span className="flex items-center gap-1.5"><Globe className="w-3 h-3" /> {env.region}</span>
+                            </div>
+                            {!env.last_deployed_at && (
+                              <Button 
+                                size="sm" 
+                                className="h-7 px-3 bg-foreground text-background text-[9px] font-bold uppercase tracking-wider rounded-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCreateDeployment();
+                                }}
+                              >
+                                Deploy
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -312,8 +332,19 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                      <div className="p-6 bg-card border border-border rounded-3xl">
                         <h4 className="font-bold text-sm mb-4 uppercase tracking-tighter">Deployment Controls</h4>
                         <div className="space-y-3">
-                           <Button className="w-full text-xs font-bold uppercase tracking-widest bg-foreground text-background hover:bg-foreground/90 h-10 rounded-2xl" onClick={handleCreateDeployment}>
-                              Redeploy
+                           <Button 
+                             className="w-full text-xs font-bold uppercase tracking-widest bg-foreground text-background hover:bg-foreground/90 h-10 rounded-2xl" 
+                             onClick={handleCreateDeployment}
+                           >
+                              {env.last_deployed_at ? (
+                                <>
+                                  <Zap className="w-4 h-4 mr-2" /> Redeploy
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4 mr-2" /> Deploy
+                                </>
+                              )}
                            </Button>
                            <Button variant="outline" className="w-full text-xs font-bold uppercase tracking-widest h-10 rounded-2xl border-border/50">
                               Rollback
