@@ -193,7 +193,7 @@ export default function ProjectsPage() {
 
   return (
     <AppShell title="Projects">
-      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
         <ToastContainer />
         
         {/* Actions & Search */}

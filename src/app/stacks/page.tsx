@@ -83,7 +83,7 @@ export default function StacksPage() {
   return (
     <AppShell title="Stacks">
       <ToastContainer />
-      <div className="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
+      <div className="p-6 md:p-8 lg:p-10 max-w-7xl w-full animate-fade-in">
         
         <div className="flex items-center justify-between mb-6">
            <h2 className="text-lg font-semibold text-muted-foreground">Your Stacks</h2>

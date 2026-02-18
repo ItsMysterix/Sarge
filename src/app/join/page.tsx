@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { trpc } from "@/lib/trpc"
-import { Loader2, CheckCircle2, XCircle, ShieldCheck } from "lucide-react"
+import { CheckCircle2, XCircle, ShieldCheck } from "lucide-react"
+import { GridLoader } from "@/components/ui/grid-loader"
 import { AppShell } from "@/components/layout/app-shell"
 
 export default function JoinPage() {
@@ -54,7 +55,7 @@ export default function JoinPage() {
 
         {status === 'accepting' && (
           <div className="flex justify-center py-4">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <GridLoader className="w-8 h-8" />
           </div>
         )}
 
