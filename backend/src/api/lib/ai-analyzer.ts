@@ -108,7 +108,7 @@ export class AIRepositoryAnalyzer {
 
 
   /**
-   * Scan repository using GitHub API (Octokit)
+   * Scan repository using GitHub API (Octokit) with robust fallback
    */
   private async scanRepositoryViaAPI(owner: string, repo: string, branch: string, token: string): Promise<FileInfo[]> {
     const octokit = new Octokit({ auth: token });
@@ -131,28 +131,64 @@ export class AIRepositoryAnalyzer {
     aiLogger.info(`[AI Analyzer] Fetching file tree via API for ${owner}/${repo}`);
 
     try {
-      // Get the tree recursively
-      // Note: extensive repos might need truncation handling, but for analysis 'recursive' is good
-      const { data: treeData } = await octokit.rest.git.getTree({
-        owner,
-        repo,
-        tree_sha: branch,
-        recursive: '1',
-      });
+      // 1. Resolve Branch & Check Access
+      // If branch is provided but might be stale, or we want to ensure access
+      let targetBranch = branch;
+      try {
+        const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+        targetBranch = repoData.default_branch; // Use actual default branch
+        aiLogger.info(`[AI Analyzer] Resolved default branch: ${targetBranch}`);
+      } catch (e) {
+        aiLogger.warn(`[AI Analyzer] specific repo get failed, assume access/branch issue: ${e}`);
+        // If specific branch was requested, stick to it, otherwise this might fail entirely
+      }
 
-      // Filter for priority files and small files
-      const candidates = treeData.tree.filter(item =>
+      let treeData;
+
+      // 2. Try Recursive Fetch
+      try {
+        const response = await octokit.rest.git.getTree({
+          owner,
+          repo,
+          tree_sha: targetBranch,
+          recursive: '1',
+        });
+        treeData = response.data.tree;
+        aiLogger.info(`[AI Analyzer] Recursive tree fetch successful (${treeData.length} items)`);
+      } catch (e) {
+        aiLogger.warn(`[AI Analyzer] Recursive fetch failed, falling back to root listing: ${e}`);
+        // 3. Fallback: Non-recursive (root only)
+        const response = await octokit.rest.repos.getContent({
+          owner,
+          repo,
+          ref: targetBranch,
+          path: ''
+        });
+
+        if (Array.isArray(response.data)) {
+          // Map flat listing to tree-like structure
+          treeData = response.data.map((item: any) => ({
+            path: item.path,
+            type: item.type === 'dir' ? 'tree' : 'blob',
+            size: item.size,
+            sha: item.sha
+          }));
+          aiLogger.info(`[AI Analyzer] Fallback root fetch successful (${treeData.length} items)`);
+        } else {
+          throw new Error('Could not retrieve repository content (not a directory)');
+        }
+      }
+
+      // 4. Filter Candidates
+      const candidates = treeData.filter((item: any) =>
         item.type === 'blob' &&
         priorityFiles.has(item.path || '') &&
         (item.size || 0) < this.maxFileSize
       );
 
-      // Also include some root files if not in priority list but look relevant?
-      // For now stick to priority list to save API calls
+      aiLogger.info(`[AI Analyzer] Found ${candidates.length} relevant files to fetch`);
 
-      aiLogger.info(`[AI Analyzer] Found ${candidates.length} relevant files in tree`);
-
-      // Limit concurrent requests
+      // 5. Fetch Content in Chunks
       const limit = 5;
       const chunks: any[][] = [];
       for (let i = 0; i < candidates.length; i += limit) {
@@ -168,7 +204,7 @@ export class AIRepositoryAnalyzer {
               owner,
               repo,
               path: item.path,
-              ref: branch,
+              ref: targetBranch,
               mediaType: {
                 format: 'raw',
               },
@@ -186,14 +222,15 @@ export class AIRepositoryAnalyzer {
               aiLogger.info(`[AI Analyzer] Fetched (API): ${item.path}`);
             }
           } catch (err) {
-            aiLogger.warn(`[AI Analyzer] Failed to fetch ${item.path}: ${err}`);
+            aiLogger.warn(`[AI Analyzer] Failed to fetch content for ${item.path}: ${err}`);
           }
         }));
       }
 
     } catch (e) {
-      aiLogger.error(`[AI Analyzer] API Tree fetch failed: ${e}`);
-      throw e;
+      aiLogger.error(`[AI Analyzer] API Scan failed completely: ${e}`);
+      // Don't throw immediately if we have ANY files, proceed with partial analysis
+      if (files.length === 0) throw e;
     }
 
     return files;
