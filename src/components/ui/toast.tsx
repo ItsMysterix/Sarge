@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from "lucide-react"
+import { trpc } from "@/lib/trpc"
+import { useSession } from "next-auth/react"
 
 interface Toast {
   id: string
@@ -57,12 +59,37 @@ function ToastComponent({ id, type, title, description, onClose }: ToastProps) {
 
 let toastCount = 0
 
+
+
 export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const { data: session } = useSession()
+  
+  // Use mutation with retry: false to avoid spamming if offline/unauth
+  const createNotification = trpc.notification.create.useMutation({
+    retry: false,
+    onError: (err) => {
+        // Silently fail if notification persistence fails (e.g. unauth)
+        if (process.env.NODE_ENV === 'development') {
+           console.warn('[useToast] Failed to persist notification:', err)
+        }
+    }
+  })
 
   const addToast = (toast: Omit<Toast, "id">) => {
+    // 1. Local UI Toast
     const id = `toast-${++toastCount}`
     setToasts((prev) => [...prev, { ...toast, id }])
+    
+    // 2. Persist to Database (if logged in)
+    // We check for session to avoid unnecessary failing calls on auth pages
+    if (session?.user) {
+        createNotification.mutate({
+            title: toast.title,
+            message: toast.description,
+            type: toast.type || 'info'
+        })
+    }
   }
 
   const removeToast = (id: string) => {

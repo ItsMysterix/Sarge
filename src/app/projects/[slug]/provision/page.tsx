@@ -112,13 +112,6 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
          title: 'Analysis Failed', 
          description: userMsg 
        })
-
-       // Create persistent notification
-       createNotification.mutate({
-         title: 'Repository Analysis Failed',
-         message: userMsg,
-         type: 'error'
-       })
        
        // Fallback for demo purposes if backend fails
        setClaudeAnalysis({
@@ -197,7 +190,7 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
     }
   })
 
-  const createNotification = t.notification.create.useMutation()
+
 
   // --- Actions ---
   const handleStartAnalysis = async () => {
