@@ -85,7 +85,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
         <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
           <AlertTriangle className="w-12 h-12 text-muted-foreground mb-4" />
           <h1 className="text-xl font-semibold">Project not found</h1>
-          <p className="text-muted-foreground mt-2">The project you're looking for doesn't exist or you don't have access.</p>
+          <p className="text-muted-foreground mt-2">The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.</p>
           <Button variant="outline" className="mt-6" onClick={() => router.push('/projects')}>
             Back to Projects
           </Button>
@@ -107,12 +107,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   }
 
   return (
-    <AppShell title={
-      <div className="flex items-center gap-2">
-         <Code className="w-4 h-4 text-muted-foreground" />
-         <span className="font-bold tracking-tight">{project.name}</span>
-      </div>
-    }>
+    <AppShell>
       <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in bg-background">
         <ToastContainer />
 

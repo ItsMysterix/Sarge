@@ -257,7 +257,7 @@ const SelectionBar = ({
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 50, opacity: 0 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4"
+        className="fixed bottom-6 left-0 right-0 z-50 w-full max-w-4xl mx-auto px-4"
       >
         <div className="bg-foreground text-background p-4 px-6 rounded-2xl shadow-2xl flex items-center justify-between gap-6 border border-border backdrop-blur-md">
           <div className="flex items-center gap-4">
