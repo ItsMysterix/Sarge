@@ -14,11 +14,11 @@ export default function AWSPage() {
   const [activeTab, setActiveTab] = useState<"s3" | "dynamo" | "lambda" | "iam" | "cloudwatch">("s3")
   
   const t = trpc as any
-  const s3Query = t.aws?.s3?.listBuckets?.useQuery?.()
-  const dynamoQuery = t.aws?.dynamodb?.listTables?.useQuery?.()
-  const lambdaQuery = t.aws?.lambda?.listFunctions?.useQuery?.()
-  const iamQuery = t.aws?.iam?.listRoles?.useQuery?.()
-  const cwQuery = t.aws?.cloudwatch?.listLogGroups?.useQuery?.()
+  const s3Query = t.aws.s3.listBuckets.useQuery()
+  const dynamoQuery = t.aws.dynamodb.listTables.useQuery()
+  const lambdaQuery = t.aws.lambda.listFunctions.useQuery()
+  const iamQuery = t.aws.iam.listRoles.useQuery()
+  const cwQuery = t.aws.cloudwatch.listLogGroups.useQuery()
 
   const tabs = [
     { id: "s3" as const, label: "S3", icon: Database, count: s3Query?.data?.length || 0 },

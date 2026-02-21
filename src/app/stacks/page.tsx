@@ -22,9 +22,9 @@ export default function StacksPage() {
   
   const { addToast, ToastContainer } = useToast()
   const t = trpc as any
-  const stacksQuery = t.stacks?.list?.useQuery?.()
-  const updateMutation = t.stacks?.updateStatus?.useMutation?.()
-  const createMutation = t.stacks?.create?.useMutation?.()
+  const stacksQuery = t.stacks.list.useQuery()
+  const updateMutation = t.stacks.updateStatus.useMutation()
+  const createMutation = t.stacks.create.useMutation()
 
   const stacks = stacksQuery?.data || []
 
