@@ -38,6 +38,12 @@ export interface AIAnalysis {
   requiresEnvironmentVariables: string[];
   services?: DetectedService[];
   externalServices?: DetectedService[];
+  projectType?: string;
+  infrastructure?: { type: string, service: string, purpose: string }[];
+  needsDocker?: boolean;
+  dockerfiles?: Record<string, string>;
+  recommendedPlatform?: string;
+  deploymentStrategy?: string;
 }
 
 export interface DeploymentPlan {

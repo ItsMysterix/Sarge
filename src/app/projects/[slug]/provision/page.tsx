@@ -73,14 +73,34 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   // Mutations
   const analyzeMutation = t.project.analyzeRepository.useMutation({
     onSuccess: (data: AIAnalysis) => {
-       // Map backend response to UI expected format
-       const recommended = []
-       if (data.framework) recommended.push(`vercel-${data.framework}`)
-       if (data.detectedTools?.includes('postgresql')) recommended.push('aws-rds')
-       if (data.detectedTools?.includes('redis')) recommended.push('aws-elasticache')
+       // Map backend response to UI expected format (case-insensitive checks)
+       const recommended: string[] = []
+       const frameworkId = String(data.framework || '').toLowerCase()
+       const infraStr = JSON.stringify(data.infrastructure || []).toLowerCase()
+       const depsStr = JSON.stringify(data.detectedTools || []).toLowerCase()
+       const fullCtx = frameworkId + ' ' + infraStr + ' ' + depsStr
+
+       // Compute & Frontend
+       if (fullCtx.includes('next.js') || fullCtx.includes('nextjs')) recommended.push('vercel-nextjs')
+       else if (fullCtx.includes('react')) recommended.push('netlify-frontend')
+       else if (fullCtx.includes('node') || fullCtx.includes('express')) recommended.push('railway-service')
+       else if (fullCtx.includes('python') || fullCtx.includes('django') || fullCtx.includes('fastapi')) recommended.push('render-service')
+       else if (data.projectType === 'frontend') recommended.push('vercel-nextjs')
+
+       // Databases
+       if (fullCtx.includes('postgres') || fullCtx.includes('pg')) recommended.push('neon-db')
+       if (fullCtx.includes('mysql')) recommended.push('planetscale-db')
+       if (fullCtx.includes('redis')) recommended.push('upstash-redis')
+       if (fullCtx.includes('mongo')) recommended.push('mongodb-atlas')
+       
+       // DevOps & Docker
+       if (data.needsDocker || fullCtx.includes('docker')) recommended.push('docker-hub')
        
        // Fallback defaults if nothing detected
        if (recommended.length === 0) recommended.push('vercel-nextjs')
+
+       // Deduplicate
+       const uniqueRecommended = Array.from(new Set(recommended))
 
        setClaudeAnalysis({
          summary: data.summary,
