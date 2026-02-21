@@ -332,7 +332,10 @@ export function InfrastructureBlueprint({
   )
 
   const allProviders = useMemo(() => {
-    const list = Array.from(new Set(ALL_SERVICES.map(s => s.provider))).sort()
+    const set = new Set(ALL_SERVICES.map(s => s.provider))
+    const list: string[] = []
+    set.forEach(v => list.push(v))
+    list.sort()
     return ['all'].concat(list)
   }, [])
 

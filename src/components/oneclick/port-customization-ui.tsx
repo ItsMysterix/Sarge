@@ -54,9 +54,10 @@ export function PortCustomizationUI({ services, onConfirm, onBack }: PortCustomi
     mappings.forEach(m => {
       portCounts.set(m.port, (portCounts.get(m.port) || 0) + 1)
     })
-    const conflicts = Array.from(portCounts.entries())
-      .filter(([_, count]) => count > 1)
-      .map(([port, _]) => port)
+    const conflicts: number[] = []
+    portCounts.forEach((count, port) => {
+      if (count > 1) conflicts.push(port)
+    })
     setPortConflicts(conflicts)
   }
 
@@ -68,7 +69,7 @@ export function PortCustomizationUI({ services, onConfirm, onBack }: PortCustomi
       label: `Version ${serviceCount + 1}`,
       branch: ''
     }
-    const updated = [...portMappings, newMapping]
+    const updated = portMappings.concat(newMapping)
     setPortMappings(updated)
     checkConflicts(updated)
   }

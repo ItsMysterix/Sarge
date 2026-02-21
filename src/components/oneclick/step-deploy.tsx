@@ -35,7 +35,7 @@ export function StepDeploy({ plan, onBack, onDeploymentComplete }: StepDeployPro
     { owner: plan.repository.owner, repo: plan.repository.repo },
     {
       onData: (log: any) => {
-        setDeploymentLogs(prev => [...prev.slice(-100), log.line])
+        setDeploymentLogs(prev => prev.slice(-100).concat(log.line))
         if (log.level === 'error') setError(log.line)
       },
     }
@@ -48,13 +48,13 @@ export function StepDeploy({ plan, onBack, onDeploymentComplete }: StepDeployPro
 
     try {
       // 1. Get access token
-      setDeploymentLogs(prev => [...prev, '🔑 Fetching GitHub credentials...'])
+      setDeploymentLogs(prev => prev.concat('🔑 Fetching GitHub credentials...'))
       const tokenRes = await fetch('/api/github/access-token')
       if (!tokenRes.ok) throw new Error('Failed to fetch GitHub token')
       const { token } = await tokenRes.json()
 
       // 2. Start deployment
-      setDeploymentLogs(prev => [...prev, `🚀 Initiating ${plan.provider} deployment for ${plan.repository.full_name}...`])
+      setDeploymentLogs(prev => prev.concat(`🚀 Initiating ${plan.provider} deployment for ${plan.repository.full_name}...`))
       
       const result = await deployMutation.mutateAsync({
         owner: plan.repository.owner,
@@ -70,7 +70,7 @@ export function StepDeploy({ plan, onBack, onDeploymentComplete }: StepDeployPro
         throw new Error(result.error)
       }
 
-      setDeploymentLogs(prev => [...prev, '✅ Deployment handshake successful'])
+      setDeploymentLogs(prev => prev.concat('✅ Deployment handshake successful'))
       
       // The subscription will handle the rest of the logs
       // We'll wait a bit or wait for a specific log to signal completion
@@ -82,7 +82,7 @@ export function StepDeploy({ plan, onBack, onDeploymentComplete }: StepDeployPro
     } catch (err: any) {
       console.error('Deployment failed:', err)
       setError(err.message || 'Deployment failed. Please try again.')
-      setDeploymentLogs(prev => [...prev, `✗ Error: ${err.message}`])
+      setDeploymentLogs(prev => prev.concat(`✗ Error: ${err.message}`))
     } finally {
       setIsDeploying(false)
     }

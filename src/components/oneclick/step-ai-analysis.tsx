@@ -98,7 +98,7 @@ export function StepAIAnalysis({ repository, onAnalysisComplete, onBack, onNext 
   const handleAddPort = () => {
     const port = parseInt(newPort)
     if (port && port > 0 && port < 65536 && !selectedPorts.includes(port)) {
-      setSelectedPorts([...selectedPorts, port])
+      setSelectedPorts(selectedPorts.concat(port))
       setNewPort('')
     }
   }

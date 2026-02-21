@@ -364,7 +364,7 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
     try {
       const message = await this.anthropic.messages.create({
         model: 'claude-3-haiku-20240307',
-        max_tokens: 2048,
+        max_tokens: 4096,
         temperature: 0.2, // Low temperature for more consistent analysis
         messages: [
           {
@@ -381,6 +381,12 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
 
       // Sanitize: Remove markdown code blocks if present
       responseText = responseText.replace(/```json\s*|\s*```/g, '').replace(/```/g, '').trim();
+
+      // Extract JSON if there's conversational text before/after
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        responseText = jsonMatch[0];
+      }
 
       console.log(`[AI Analyzer] Claude response (sanitized): ${responseText.substring(0, 200)}...`);
 
