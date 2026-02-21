@@ -107,7 +107,7 @@ const PipelinesTab = () => {
     { getNextPageParam: (lastPage: any) => lastPage.nextCursor }
   )
   const items = data?.pages.flatMap((page: any) => page.items) || []
-  const rollbackMutation = t.deploy.rollback?.useMutation?.({ onSuccess: () => refetch() })
+  const rollbackMutation = t.deploy.rollback.useMutation({ onSuccess: () => refetch() })
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -183,9 +183,9 @@ const PipelinesTab = () => {
 const PRPreviewsTab = () => {
   const t = trpc as any
   const { currentProject } = useProject()
-  const previewsQ = t.prPreviews?.list?.useQuery?.({ projectId: currentProject?.id || '', status: undefined }, { enabled: !!currentProject?.id })
-  const previews = previewsQ?.data || []
-  const loading = previewsQ?.isLoading
+  const previewsQ = t.prPreviews.list.useQuery({ projectId: currentProject?.id || '', status: undefined }, { enabled: !!currentProject?.id })
+  const previews = previewsQ.data || []
+  const loading = previewsQ.isLoading
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

@@ -15,14 +15,14 @@ export const SecuritySection = ({ projectSlug }: { projectSlug: string }) => {
   const alerts = secQuery.data || []
 
   // Get repository info for vuln scanning
-  const repoQuery = t.repository?.list?.useQuery?.()
+  const repoQuery = t.repository.list.useQuery()
   const primaryRepo = (repoQuery?.data || []).find((r: any) => r.is_primary)
 
-  const vulnQuery = t.github?.getVulnerabilities?.useQuery?.(
+  const vulnQuery = t.github.getVulnerabilities.useQuery(
     { owner: primaryRepo?.owner, repo: primaryRepo?.repo },
     { enabled: !!primaryRepo?.owner && !!primaryRepo?.repo }
   )
-  const depsQuery = t.github?.getDependencies?.useQuery?.(
+  const depsQuery = t.github.getDependencies.useQuery(
     { owner: primaryRepo?.owner, repo: primaryRepo?.repo },
     { enabled: !!primaryRepo?.owner && !!primaryRepo?.repo }
   )

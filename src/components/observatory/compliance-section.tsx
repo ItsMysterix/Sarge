@@ -11,7 +11,7 @@ export const ComplianceSection = ({ projectId }: { projectId: string }) => {
   const t = trpc as any
   const costQ = t.costOptimization.getCostOverview.useQuery({ projectId }, { enabled: !!projectId })
   const recsQ = t.costOptimization.getRecommendations.useQuery({ projectId }, { enabled: !!projectId })
-  const budgetQ = t.costOptimization.getBudgetStatus?.useQuery?.({ projectId }, { enabled: !!projectId })
+  const budgetQ = t.costOptimization.getBudgetStatus.useQuery({ projectId }, { enabled: !!projectId })
 
   const overview = costQ.data || { totalCost: 0, breakdown: [] }
   const recommendations = recsQ.data?.recommendations || []

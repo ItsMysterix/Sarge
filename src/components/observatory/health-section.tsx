@@ -21,7 +21,7 @@ export const HealthSection = ({ projectId }: { projectId: string }) => {
 
   // For each active deployment, try to get health checks
   const firstDeployId = deployments[0]?.id || ''
-  const healthQ = t.healthChecks?.list?.useQuery?.({ deploymentId: firstDeployId }, { enabled: !!firstDeployId })
+  const healthQ = t.healthChecks.list.useQuery({ deploymentId: firstDeployId }, { enabled: !!firstDeployId })
   const checks = healthQ?.data || []
 
   const loading = deploysQ.isLoading

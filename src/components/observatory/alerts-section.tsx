@@ -19,7 +19,7 @@ export const AlertsSection = ({ projectId }: { projectId: string }) => {
   const activeQ = t.alerts.listActive.useQuery({ projectId }, { enabled: !!projectId })
   const channelsQ = t.alerts.listChannels.useQuery({ projectId }, { enabled: !!projectId })
   const createRule = t.alerts.createRule.useMutation({ onSuccess: () => { rulesQ.refetch(); setShowCreate(false) } })
-  const resolveAlert = t.alerts.resolve?.useMutation?.({ onSuccess: () => activeQ.refetch() })
+  const resolveAlert = t.alerts.resolve.useMutation({ onSuccess: () => activeQ.refetch() })
 
   const rules = rulesQ.data || []
   const active = activeQ.data || []

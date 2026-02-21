@@ -10,7 +10,7 @@ import { Card, EmptyState, SectionHeader } from "./shared"
 
 export const TracesSection = () => {
   const t = trpc as any
-  const tracesQ = t.traces?.list?.useQuery?.()
+  const tracesQ = t.traces.list.useQuery()
   const traces = tracesQ?.data?.items || []
   const loading = tracesQ?.isLoading
 
