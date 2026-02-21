@@ -63,7 +63,7 @@ export function MultiStateManager({
       url: `http://localhost:${newPort}`,
     }
 
-    setStates([...states, newState])
+    setStates(states.concat(newState))
     setIsAddingNew(false)
     setNewLabel('')
     setNewBranch('')

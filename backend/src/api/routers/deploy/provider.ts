@@ -102,10 +102,10 @@ export const estimateCost = secureProcedure('deploy.estimateCost')
         }
 
         try {
-            const cost = await provider.estimateCost({
+            const cost = (provider as any).estimateCost ? await (provider as any).estimateCost({
                 environmentName: input.environmentName,
                 resourceConfig: input.resourceConfig,
-            })
+            }) : { estimatedMonthly: 0, currency: 'USD' }
             return cost
         } catch (err) {
             console.error(`[deploy.estimateCost] Error:`, err)

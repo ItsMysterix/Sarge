@@ -293,13 +293,13 @@ export const oneclickRouter = router({
 
                 // --- COST/QOVERY FEATURE: Save cost estimate ---
                 try {
-                  const cost = await provider.estimateCost({
-                    environmentName: (input.environment as string) || 'preview',
-                    resourceConfig: { cpu: 0.5, memory: 512 }
-                  });
-
+                  const cost = (provider as any).estimateCost ? await (provider as any).estimateCost({
+                    environmentName: 'production',
+                    resourceConfig: {},
+                  }) : { estimatedMonthly: 0, currency: 'USD' }
+                  // totalCost += cost.estimatedMonthly // totalCost is not defined in this scope
                   await ctx.db.query(
-                    `INSERT INTO cost_estimates 
+                    `INSERT INTO cost_estimates
                      (project_id, environment_id, provider_id, deployment_id, monthly_estimate, hourly_rate, breakdown, created_at)
                      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
                     [

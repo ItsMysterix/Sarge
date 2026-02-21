@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { aiLogger } from '../../lib/logger';
-import { Octokit } from '@octokit/rest';
 
 export interface ServiceConfig {
   name: string;                      // "frontend", "api", "worker", etc.
@@ -107,11 +106,20 @@ export class AIRepositoryAnalyzer {
 
 
 
+
+  /**
+   * Factory method for Octokit to allow mocking in tests
+   */
+  protected async createOctokit(token: string): Promise<any> {
+    const { Octokit } = await import('@octokit/rest');
+    return new Octokit({ auth: token });
+  }
+
   /**
    * Scan repository using GitHub API (Octokit) with robust fallback
    */
   private async scanRepositoryViaAPI(owner: string, repo: string, branch: string, token: string): Promise<FileInfo[]> {
-    const octokit = new Octokit({ auth: token });
+    const octokit = await this.createOctokit(token);
     const files: FileInfo[] = [];
 
     // Priority files mapping for quick lookup
@@ -355,7 +363,7 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
 
     try {
       const message = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 2048,
         temperature: 0.2, // Low temperature for more consistent analysis
         messages: [
@@ -367,11 +375,14 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
       });
 
       // Extract JSON from response
-      const responseText = message.content[0].type === 'text'
+      let responseText = message.content[0].type === 'text'
         ? message.content[0].text
         : '';
 
-      console.log(`[AI Analyzer] Claude response: ${responseText.substring(0, 200)}...`);
+      // Sanitize: Remove markdown code blocks if present
+      responseText = responseText.replace(/```json\s*|\s*```/g, '').replace(/```/g, '').trim();
+
+      console.log(`[AI Analyzer] Claude response (sanitized): ${responseText.substring(0, 200)}...`);
 
       // Parse JSON response
       const analysis = JSON.parse(responseText) as RepositoryAnalysis;
@@ -404,7 +415,7 @@ Respond ONLY with valid JSON, no markdown, no additional text.`;
           ? analysis.requiresEnvironmentVariables
           : [],
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AI Analyzer] Claude API error:', error);
       throw new Error(`AI analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

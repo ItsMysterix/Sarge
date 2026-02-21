@@ -333,7 +333,7 @@ export function InfrastructureBlueprint({
 
   const allProviders = useMemo(() => {
     const list = Array.from(new Set(ALL_SERVICES.map(s => s.provider))).sort()
-    return ['all', ...list]
+    return ['all'].concat(list)
   }, [])
 
   // Filter and Group Logic
@@ -383,7 +383,7 @@ export function InfrastructureBlueprint({
 
   const handleToggle = (id: string) => {
     setSelectedServices(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(s => s !== id) : prev.concat(id)
     )
   }
 

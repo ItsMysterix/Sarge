@@ -79,7 +79,7 @@ export function useToast() {
   const addToast = (toast: Omit<Toast, "id">) => {
     // 1. Local UI Toast
     const id = `toast-${++toastCount}`
-    setToasts((prev) => [...prev, { ...toast, id }])
+    setToasts((prev) => prev.concat({ ...toast, id }))
     
     // 2. Persist to Database (if logged in)
     // We check for session to avoid unnecessary failing calls on auth pages
