@@ -233,4 +233,170 @@ export const githubRouter = router({
         throw new Error('Failed to fetch activity')
       }
     }),
+
+  // Get Dependabot vulnerability alerts
+  getVulnerabilities: secureProcedure('github.getVulnerabilities')
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+    }))
+    .query(async ({ input }) => {
+      const { owner, repo } = input
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github.v3+json',
+      }
+      if (process.env.GITHUB_TOKEN) headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`
+
+      try {
+        // Dependabot alerts endpoint
+        const response = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/dependabot/alerts?state=open&per_page=50`,
+          { headers }
+        )
+
+        if (response.status === 404 || response.status === 403) {
+          // Dependabot may not be enabled or user lacks permission
+          return { alerts: [], enabled: false, message: 'Dependabot alerts not enabled or insufficient permissions.' }
+        }
+
+        if (!response.ok) throw new Error(`GitHub API error: ${response.status}`)
+        const data = await response.json() as any[]
+
+        const alerts = (data || []).map((alert: any) => ({
+          id: alert.number,
+          state: alert.state,
+          severity: alert.security_advisory?.severity || 'unknown',
+          summary: alert.security_advisory?.summary || alert.security_vulnerability?.package?.name,
+          description: alert.security_advisory?.description?.slice(0, 200),
+          package: alert.security_vulnerability?.package?.name,
+          ecosystem: alert.security_vulnerability?.package?.ecosystem,
+          vulnerableRange: alert.security_vulnerability?.vulnerable_version_range,
+          patchedVersion: alert.security_vulnerability?.first_patched_version?.identifier,
+          cveId: alert.security_advisory?.cve_id,
+          ghsaId: alert.security_advisory?.ghsa_id,
+          url: alert.html_url,
+          createdAt: alert.created_at,
+          fixedAt: alert.fixed_at,
+        }))
+
+        // Group by severity
+        const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 }
+        for (const a of alerts) {
+          const sev = a.severity?.toLowerCase() as keyof typeof bySeverity
+          if (sev in bySeverity) bySeverity[sev]++
+        }
+
+        return { alerts, enabled: true, summary: bySeverity }
+      } catch (error) {
+        console.error('Error fetching vulnerabilities:', error)
+        return { alerts: [], enabled: false, message: 'Failed to fetch vulnerability data.' }
+      }
+    }),
+
+  // Get repository dependencies (parse package.json, requirements.txt, etc.)
+  getDependencies: secureProcedure('github.getDependencies')
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+    }))
+    .query(async ({ input }) => {
+      const { owner, repo } = input
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github.v3+json',
+      }
+      if (process.env.GITHUB_TOKEN) headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`
+
+      const dependencies: any[] = []
+
+      try {
+        // Try package.json first (Node.js)
+        const pkgRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents/package.json`,
+          { headers }
+        )
+        if (pkgRes.ok) {
+          const pkgData = await pkgRes.json() as any
+          const content = Buffer.from(pkgData.content, 'base64').toString('utf-8')
+          const pkg = JSON.parse(content)
+
+          const addDeps = (deps: Record<string, string>, type: string) => {
+            for (const [name, version] of Object.entries(deps || {})) {
+              dependencies.push({
+                name,
+                version: String(version),
+                type,
+                ecosystem: 'npm',
+                outdated: false, // Would need npm registry call to check
+              })
+            }
+          }
+
+          addDeps(pkg.dependencies || {}, 'production')
+          addDeps(pkg.devDependencies || {}, 'development')
+        }
+
+        // Try requirements.txt (Python)
+        const reqRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents/requirements.txt`,
+          { headers }
+        )
+        if (reqRes.ok) {
+          const reqData = await reqRes.json() as any
+          const content = Buffer.from(reqData.content, 'base64').toString('utf-8')
+          for (const line of content.split('\n')) {
+            const trimmed = line.trim()
+            if (!trimmed || trimmed.startsWith('#')) continue
+            const match = trimmed.match(/^([a-zA-Z0-9_-]+)([><=!~]+.+)?$/)
+            if (match) {
+              dependencies.push({
+                name: match[1],
+                version: match[2] || '*',
+                type: 'production',
+                ecosystem: 'pip',
+                outdated: false,
+              })
+            }
+          }
+        }
+
+        // Try go.mod (Go)
+        const goRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents/go.mod`,
+          { headers }
+        )
+        if (goRes.ok) {
+          const goData = await goRes.json() as any
+          const content = Buffer.from(goData.content, 'base64').toString('utf-8')
+          const requireBlock = content.match(/require \(([\s\S]*?)\)/)?.[1] || ''
+          for (const line of requireBlock.split('\n')) {
+            const match = line.trim().match(/^(\S+)\s+(\S+)/)
+            if (match) {
+              dependencies.push({
+                name: match[1],
+                version: match[2],
+                type: 'production',
+                ecosystem: 'go',
+                outdated: false,
+              })
+            }
+          }
+        }
+
+        return {
+          dependencies,
+          totalCount: dependencies.length,
+          byEcosystem: dependencies.reduce((acc: Record<string, number>, d) => {
+            acc[d.ecosystem] = (acc[d.ecosystem] || 0) + 1
+            return acc
+          }, {}),
+          byType: dependencies.reduce((acc: Record<string, number>, d) => {
+            acc[d.type] = (acc[d.type] || 0) + 1
+            return acc
+          }, {}),
+        }
+      } catch (error) {
+        console.error('Error fetching dependencies:', error)
+        return { dependencies: [], totalCount: 0, byEcosystem: {}, byType: {} }
+      }
+    }),
 })

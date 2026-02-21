@@ -25,7 +25,7 @@ export const environmentsRouter = router({
         const result = await ctx.db.query(
           `SELECT 
               id, name, provider_id, type, region, 
-              resource_config, status, created_at 
+              resource_config, status, provider_metadata, created_at 
              FROM environments 
              WHERE project_id = $1
              ${input.providerId ? 'AND provider_id = $2' : ''}
@@ -86,23 +86,55 @@ export const environmentsRouter = router({
       }
 
       try {
-        // In production: call provider API to create environment
-        // For now: simulate and store in DB (when available)
+        // Resolve projectId from slug
+        const projectRes = await ctx.db.query('SELECT id, repository_id FROM projects WHERE slug = $1', [input.projectSlug])
+        const projectId = projectRes.rows[0]?.id
+        const repositoryId = projectRes.rows[0]?.repository_id
+
+        if (!projectId) throw new Error('Project not found')
+
+        let repoUrl = ''
+        let branch = 'main'
+        if (repositoryId) {
+          const repoRes = await ctx.db.query('SELECT owner, repo, branch FROM repositories WHERE id = $1', [repositoryId])
+          if (repoRes.rows[0]) {
+            const r = repoRes.rows[0]
+            repoUrl = `https://github.com/${r.owner}/${r.repo}`
+            branch = r.branch || 'main'
+          }
+        }
+
+        // 1. Actually call the provider API to create/deploy the environment
+        const credentials = await getProviderCredentials(input.providerId, ctx.db, (ctx as any).userId).catch(() => ({}))
+        const deploymentResult = await provider.deploy({
+          projectId: input.projectSlug,
+          repoUrl,
+          branch,
+          commit: 'HEAD',
+          credentials,
+          environmentName: input.type === 'development' ? 'preview' : input.type as any,
+          env: { 'SARGE_MANAGED': 'true' }
+        })
+
+        if (!deploymentResult.success) {
+          throw new Error(`Deployment failed: ${deploymentResult.error}`)
+        }
 
         const result = await ctx.db.query(
           `INSERT INTO environments (
             project_id, provider_id, name, type, region, 
-            resource_config, status, created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            resource_config, status, provider_metadata, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
           RETURNING id, name, provider_id, type, region, resource_config, status`,
           [
-            input.projectSlug,
+            projectId,
             input.providerId,
             input.name,
             input.type,
             input.region || 'us-east-1',
             JSON.stringify(input.resourceConfig || {}),
-            'active'
+            'active',
+            JSON.stringify({ ...(deploymentResult.metadata || {}), deploymentId: deploymentResult.deploymentId })
           ]
         ).catch(err => {
           console.warn('[environments.create] DB error:', err)
@@ -112,18 +144,14 @@ export const environmentsRouter = router({
         if (result?.rows?.[0]) {
           const env = result.rows[0]
 
-          // Resolve projectId from slug for activity logging
-          const projectRes = await ctx.db.query('SELECT id FROM projects WHERE slug = $1', [input.projectSlug])
-          const projectId = projectRes.rows[0]?.id
-
           // Log activity
-          if (projectId) {
-            await logProjectActivity(ctx.db, projectId, (ctx as any).userId || 'system', 'ENVIRONMENT_CREATED', {
-              name: input.name,
-              type: input.type,
-              provider: input.providerId
-            });
-          }
+          await logProjectActivity(ctx.db, projectId, (ctx as any).userId || 'system', 'ENVIRONMENT_CREATED', {
+            name: input.name,
+            type: input.type,
+            provider: input.providerId,
+            deploymentId: deploymentResult.deploymentId,
+            url: deploymentResult.productionUrl || deploymentResult.previewUrl
+          });
 
           // Create services if provided
           if (input.services && input.services.length > 0) {
@@ -132,7 +160,7 @@ export const environmentsRouter = router({
               await ctx.db.query(
                 `INSERT INTO services (environment_id, name, type, repo_url, branch, status, created_at)
                  VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-                [env.id, svcId, 'web', 'pending', 'main', 'starting']
+                [env.id, svcId, 'web', repoUrl || 'pending', branch, 'starting']
               ).catch(err => console.error(`[Environments] Failed to init service ${svcId}:`, err))
             }
           }
@@ -142,32 +170,24 @@ export const environmentsRouter = router({
             resource_config: typeof env.resource_config === 'string'
               ? JSON.parse(env.resource_config)
               : env.resource_config,
+            deploymentId: deploymentResult.deploymentId,
+            url: deploymentResult.productionUrl || deploymentResult.previewUrl
           }
         }
 
-        // Mock Fallback for environments creation
         return {
           id: `env-${Math.random().toString(36).substr(2, 9)}`,
           name: input.name,
           provider_id: input.providerId,
-          type: input.type,
-          region: input.region || 'us-east-1',
-          resource_config: input.resourceConfig || {},
           status: 'active',
-          created_at: new Date().toISOString()
+          url: deploymentResult.previewUrl || ''
         }
       } catch (err) {
-        // Even on catch, return a mock success for UI stability
-        return {
-          id: `env-fallback-${Math.random().toString(36).substr(2, 9)}`,
-          name: input.name,
-          provider_id: input.providerId,
-          type: input.type,
-          region: input.region || 'us-east-1',
-          resource_config: {},
-          status: 'active',
-          created_at: new Date().toISOString()
-        }
+        console.error('[environments.create] Error:', err);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: err instanceof Error ? err.message : 'Environment creation failed'
+        })
       }
     }),
 

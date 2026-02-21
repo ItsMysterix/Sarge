@@ -8,26 +8,127 @@ export class VercelProvider implements IProvider {
     valid = true
     errors: string[] = []
 
-    async deploy(opts: DeployOptions): Promise<DeployResult> {
-        // Vercel deployment logic
-        const teamId = opts.credentials.vercel_team_id
-        const authToken = opts.credentials.vercel_token
+    private getToken(creds: Record<string, string>): string {
+        return creds.vercel_token || creds.token || ''
+    }
 
-        return {
-            success: true,
-            deploymentId: `vc-${Date.now()}`,
-            previewUrl: `https://${opts.projectId}-${opts.branch}.vercel.app`,
-            productionUrl: opts.environmentName === 'production' ? `https://${opts.projectId}.vercel.app` : undefined,
-            metadata: { teamId, projectId: opts.projectId },
-            estimatedDuration: 120,
+    async deploy(opts: DeployOptions): Promise<DeployResult> {
+        const token = this.getToken(opts.credentials)
+        if (!token) throw new Error('Vercel token is missing')
+
+        try {
+            providerLogger.info(`[VercelProvider] Initiating deployment for ${opts.projectId}`)
+
+            // 1. Ensure project exists (or create it)
+            // GitHub repo URL comes in like 'https://github.com/owner/repo'
+            let githubInfo = null
+            if (opts.repoUrl?.includes('github.com')) {
+                const parts = opts.repoUrl.replace('https://github.com/', '').split('/')
+                if (parts.length >= 2) {
+                    githubInfo = {
+                        type: 'github',
+                        repo: `${parts[0]}/${parts[1].replace('.git', '')}`
+                    }
+                }
+            }
+
+            // Create/Update project
+            const createProjRes = await fetch(`https://api.vercel.com/v9/projects`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    name: opts.projectId.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase().substring(0, 100),
+                    framework: 'nextjs',
+                    ...(githubInfo ? { gitRepository: githubInfo } : {})
+                })
+            })
+
+            // If already exists, we will ignore 400 error and continue, 
+            // but normally we would want to fetch the existing project ID
+            const projData = await createProjRes.json()
+            const realProjectId = createProjRes.ok ? projData.id : opts.projectId.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase()
+
+            // 2. Set Environment Variables
+            if (opts.env && Object.keys(opts.env).length > 0) {
+                const envPayload = Object.entries(opts.env).map(([key, value]) => ({
+                    key, value: String(value), target: ['production', 'preview', 'development'], type: 'plain'
+                }))
+                await fetch(`https://api.vercel.com/v9/projects/${realProjectId}/env`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(envPayload)
+                })
+            }
+
+            // 3. Trigger Deployment
+            const deployRes = await fetch(`https://api.vercel.com/v13/deployments`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    name: realProjectId,
+                    target: opts.environmentName === 'production' ? 'production' : undefined,
+                    gitSource: githubInfo ? {
+                        type: 'github',
+                        repoId: githubInfo.repo,
+                        ref: opts.branch || 'main'
+                    } : undefined
+                })
+            })
+
+            const deployData = await deployRes.json()
+
+            if (!deployRes.ok) {
+                throw new Error(deployData.error?.message || 'Failed to trigger Vercel deployment')
+            }
+
+            return {
+                success: true,
+                deploymentId: deployData.id,
+                previewUrl: deployData.url ? `https://${deployData.url}` : undefined,
+                productionUrl: opts.environmentName === 'production' && deployData.url ? `https://${deployData.url}` : undefined,
+                metadata: { projectId: realProjectId },
+                estimatedDuration: 120,
+            }
+        } catch (err) {
+            providerLogger.error({ err }, '[VercelProvider] Deploy failed')
+            return {
+                success: false,
+                deploymentId: '',
+                error: err instanceof Error ? err.message : 'Unknown error',
+                metadata: {},
+                estimatedDuration: 0
+            }
         }
     }
 
     async getStatus(opts: StatusOptions): Promise<DeploymentStatus> {
-        return {
-            status: 'success',
-            progress: 100,
-            message: 'Vercel deployment active',
+        const token = this.getToken(opts.credentials)
+        try {
+            const res = await fetch(`https://api.vercel.com/v13/deployments/${opts.deploymentId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            const data = await res.json()
+
+            if (!res.ok) throw new Error(data.error?.message)
+
+            let status = 'deploying' as any
+            let progress = 50
+            if (data.readyCheck === true || data.readyState === 'READY') {
+                status = 'success'
+                progress = 100
+            } else if (data.readyState === 'ERROR' || data.readyState === 'CANCELED') {
+                status = 'failed'
+                progress = 100
+            }
+
+            return {
+                status,
+                progress,
+                message: `Status: ${data.readyState}`,
+                logs: []
+            }
+        } catch (err) {
+            return { status: 'failed', progress: 0, message: 'Failed to fetch status' }
         }
     }
 
@@ -36,109 +137,114 @@ export class VercelProvider implements IProvider {
     }
 
     async forecastPreDeploy(opts: CostOptions): Promise<CostEstimate> {
-        // Vercel pro: $20/month
         return {
-            hourlyRate: 0.27, // ~$20/mo
+            hourlyRate: 0.27,
             monthlyEstimate: 20,
             breakdown: { compute: 20 },
         }
     }
 
     async getActualSpend(opts: CostOptions & { credentials: Record<string, string> }): Promise<{ total: number; currency: string; breakdown: Record<string, number> }> {
-        providerLogger.info(`[VercelProvider] Fetching actual spend for team: ${opts.credentials.vercel_team_id}`)
-
-        const total = 28.50
         return {
-            total,
+            total: 28.50,
             currency: 'USD',
-            breakdown: {
-                'Functions': 12.00,
-                'Edge Middleware': 4.50,
-                'Bandwidth': 12.00
-            }
+            breakdown: { 'Functions': 12.00, 'Edge Middleware': 4.50, 'Bandwidth': 12.00 }
         }
     }
 
     async discoverResources(opts: DiscoverOptions): Promise<DiscoveredResource[]> {
-        providerLogger.info(`[VercelProvider] Discovering account-wide projects for team ${opts.credentials.vercel_team_id}`)
+        const token = this.getToken(opts.credentials)
+        if (!token) return []
 
-        return [
-            { id: 'prj_123', name: 'Sarge Frontend', type: 'project', status: 'active', region: 'all', metadata: {} },
-            { id: 'prj_456', name: 'Internal Dashboard', type: 'project', status: 'active', region: 'all', metadata: {} },
-            { id: 'vercel-runtime-logs', name: 'Vercel Runtime Logs (Edge)', type: 'log_stream', status: 'active', region: 'all', metadata: {} }
-        ]
+        try {
+            const res = await fetch(`https://api.vercel.com/v9/projects`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            const data = await res.json()
+            if (!data.projects) return []
+
+            return data.projects.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                type: 'project',
+                status: 'active',
+                region: 'all',
+                metadata: { framework: p.framework }
+            }))
+        } catch { return [] }
     }
 
     async getAccountLogs(opts: { credentials: Record<string, string>; resourceId?: string; limit?: number }): Promise<LogEntry[]> {
-        return [
-            { timestamp: new Date().toISOString(), message: `Synced Vercel edge logs for ${opts.resourceId}`, level: 'info' }
-        ]
+        return []
     }
 
     async getAccountMetrics(opts: { credentials: Record<string, string>; resourceId?: string; timeRange: string }): Promise<ProviderMetric[]> {
-        return [
-            { name: 'edge_request_count', value: 1250000, unit: 'count', timestamp: new Date().toISOString() },
-            { name: 'bandwidth_usage', value: 45.2, unit: 'GB', timestamp: new Date().toISOString() }
-        ]
+        return []
     }
 
     async getSecurityAlerts(opts: { credentials: Record<string, string> }): Promise<SecurityFinding[]> {
-        return [
-            { id: 'vc-sec-1', severity: 'medium', title: 'Sensitive Env Variable Exposed', description: 'API_KEY might be visible in client-side bundle.', timestamp: new Date().toISOString() },
-            { id: 'vc-sec-2', severity: 'low', title: 'Domain Expiry Warning', description: 'sarge.dev expires in 15 days.', timestamp: new Date().toISOString() }
-        ]
+        return []
     }
 
     async getAuditLogs(opts: { credentials: Record<string, string>; limit?: number }): Promise<LogEntry[]> {
-        return [
-            { timestamp: new Date().toISOString(), message: 'Project "sarge-prod" deleted by user_x', level: 'warn' },
-            { timestamp: new Date().toISOString(), message: 'Production deployment promoted by CI', level: 'info' }
-        ]
+        return []
     }
 
     async getDomains(opts: { credentials: Record<string, string> }): Promise<DomainInfo[]> {
-        return [
-            { domain: 'sarge.dev', status: 'active', sslStatus: 'valid', expiresAt: '2026-12-31', provider: 'vercel' },
-            { domain: 'app.sarge.dev', status: 'active', sslStatus: 'valid', provider: 'vercel' }
-        ]
+        const token = this.getToken(opts.credentials)
+        try {
+            const res = await fetch(`https://api.vercel.com/v5/domains`, { headers: { 'Authorization': `Bearer ${token}` } })
+            const data = await res.json()
+            return (data.domains || []).map((d: any) => ({
+                domain: d.name, status: 'active', sslStatus: 'valid', provider: 'vercel'
+            }))
+        } catch { return [] }
     }
 
     async getStorage(opts: { credentials: Record<string, string> }): Promise<StorageInfo[]> {
-        return [
-            { id: 'kv_123', name: 'User Sessions', type: 'kv', usage: 1.2, unit: 'MB', status: 'active', metadata: { region: 'iad1' } },
-            { id: 'blob_456', name: 'Asset Cache', type: 'blob', usage: 450, unit: 'MB', status: 'active', metadata: { region: 'all' } }
-        ]
+        return []
     }
 
     async getFirewall(opts: { credentials: Record<string, string> }): Promise<FirewallInfo[]> {
-        return [
-            { id: 'waf_789', name: 'Default Edge Firewall', type: 'waf', status: 'enabled', rulesCount: 5, description: 'Geo-blocking and rate limiting active' }
-        ]
+        return []
     }
 
     async getDetailedUsage(opts: { credentials: Record<string, string> }): Promise<UsageRecord[]> {
-        return [
-            { metric: 'Invocations', current: 125000, limit: 1000000, unit: 'count', resetDate: '2026-03-01' },
-            { metric: 'Bandwidth', current: 450, limit: 1000, unit: 'GB', resetDate: '2026-03-01' },
-            { metric: 'Edge Config Reads', current: 85, limit: 100, unit: 'M', resetDate: '2026-03-01' }
-        ]
+        return [] // Would use /v1/usage
     }
 
     async getAnalytics(opts: { credentials: Record<string, string> }): Promise<AnalyticsData[]> {
-        return [
-            { name: 'Core Web Vitals', value: 98, unit: '/100', timeRange: '24h', change: 2 },
-            { name: 'TTFB', value: 45, unit: 'ms', timeRange: '24h', change: -5 }
-        ]
+        return []
     }
 
     async listEnvironments(opts: ListEnvOptions): Promise<Environment[]> {
-        return [
-            { name: 'production', status: 'active' },
-            { name: 'preview', status: 'active' }
-        ]
+        const token = this.getToken(opts.credentials)
+        if (!token) return [{ name: 'production', status: 'active' }]
+        try {
+            const res = await fetch(`https://api.vercel.com/v9/projects`, { headers: { 'Authorization': `Bearer ${token}` } })
+            const data = await res.json()
+            // Just returning a dummy env list if connection works
+            if (data.projects) return [{ name: 'production', status: 'active' }, { name: 'preview', status: 'active' }]
+        } catch { }
+        return [{ name: 'production', status: 'active' }]
     }
 
     async getLogs(opts: GetLogsOptions): Promise<LogEntry[]> {
-        return []
+        const token = this.getToken(opts.credentials)
+        if (!token) return []
+        try {
+            const res = await fetch(`https://api.vercel.com/v2/deployments/${opts.deploymentId}/events`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            const data = await res.json()
+            // Events are line by line array usually
+            return (data || []).map((e: any) => ({
+                timestamp: new Date().toISOString(),
+                message: e.text || e.message || JSON.stringify(e),
+                level: e.type === 'error' ? 'error' : 'info'
+            }))
+        } catch (err) {
+            return []
+        }
     }
 }

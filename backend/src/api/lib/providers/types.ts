@@ -96,9 +96,20 @@ export interface LogEntry {
     timestamp: string
     message: string
     stream?: string
-    level?: 'info' | 'warn' | 'error'
+    level?: 'info' | 'warn' | 'error' | 'debug' | 'critical' | 'fatal'
+    severity?: 'critical' | 'high' | 'medium' | 'low' | 'info'
     service?: string
     provider?: string
+    category?: string          // e.g. 'deploy', 'http', 'db', 'auth', 'billing', 'security', 'build'
+    source?: string            // e.g. 'edge-function', 'api-gateway', 'worker', 'lambda'
+    traceId?: string           // for cross-service correlation
+    requestId?: string
+    statusCode?: number
+    method?: string            // HTTP method
+    path?: string              // HTTP path
+    duration?: number          // ms
+    metadata?: Record<string, any>  // provider-specific extra data
+    url?: string               // link back to provider dashboard for this event
 }
 
 export interface GetLogsOptions {
