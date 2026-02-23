@@ -67,7 +67,7 @@
     "react-countup": "^6.5.3",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
-    "recharts": "^3.3.0",
+    "recharts": "^3.7.0",
     "remark-gfm": "^4.0.1",
     "resend": "^6.9.2",
     "sarge-core": "file:packages/sarge-core",
