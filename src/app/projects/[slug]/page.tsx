@@ -107,7 +107,7 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   }
 
   return (
-    <AppShell>
+    <AppShell title={project.name}>
       <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in bg-background">
         <ToastContainer />
 

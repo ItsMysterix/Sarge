@@ -1,8 +1,0 @@
-{
-  "name": "app",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "next-auth": "^4.24.13"
-  }
-}
