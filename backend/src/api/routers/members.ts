@@ -5,6 +5,7 @@ import { TRPCError } from '@trpc/server'
 import { eq, and, sql } from 'drizzle-orm'
 import { users, projectMembers, projects, memberInvitations } from '../lib/drizzle-schema'
 import crypto from 'crypto'
+import { apiLogger } from '../../lib/logger'
 
 /**
  * Members Router
@@ -84,7 +85,7 @@ export const membersRouter = router({
 
                 return allMembers
             } catch (err) {
-                console.error('[members.list] Error:', err)
+                apiLogger.error({ err, input }, '[members.list] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch members' })
             }
         }),
@@ -152,7 +153,7 @@ export const membersRouter = router({
                 return { success: true, token }
             } catch (err) {
                 if (err instanceof TRPCError) throw err
-                console.error('[members.invite] Error:', err)
+                apiLogger.error({ err, input }, '[members.invite] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create invitation' })
             }
         }),
@@ -176,7 +177,7 @@ export const membersRouter = router({
                     )
                 return { success: true }
             } catch (err) {
-                console.error('[members.updateRole] Error:', err)
+                apiLogger.error({ err, input }, '[members.updateRole] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update member role' })
             }
         }),
@@ -198,7 +199,7 @@ export const membersRouter = router({
                     )
                 return { success: true }
             } catch (err) {
-                console.error('[members.remove] Error:', err)
+                apiLogger.error({ err, input }, '[members.remove] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to remove member' })
             }
         }),
@@ -220,7 +221,7 @@ export const membersRouter = router({
                     )
                 return { success: true }
             } catch (err) {
-                console.error('[members.revokeInvitation] Error:', err)
+                apiLogger.error({ err, input }, '[members.revokeInvitation] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to revoke invitation' })
             }
         }),
@@ -266,7 +267,7 @@ export const membersRouter = router({
                 return { success: true, projectId: invitation.projectId }
             } catch (err) {
                 if (err instanceof TRPCError) throw err
-                console.error('[members.acceptInvitation] Error:', err)
+                apiLogger.error({ err }, '[members.acceptInvitation] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to accept invitation' })
             }
         }),

@@ -71,9 +71,9 @@ export class GitHubScanner {
     if (this.useAI) {
       try {
         this.aiAnalyzer = new AIRepositoryAnalyzer()
-        console.log('[GitHubScanner] AI analysis enabled (Claude 3.5 Sonnet)')
+        scannerLogger.info('[GitHubScanner] AI analysis enabled (Claude 3.5 Sonnet)')
       } catch (err) {
-        console.warn('[GitHubScanner] AI analysis disabled:', err)
+        scannerLogger.warn({ err }, '[GitHubScanner] AI analysis disabled')
         this.useAI = false
       }
     }
@@ -172,19 +172,19 @@ export class GitHubScanner {
     try {
       switch (projectType) {
         case 'nodejs':
-          console.log(`[GitHubScanner] Scanning as Node.js project`)
+          scannerLogger.info('[GitHubScanner] Scanning as Node.js project')
           blueprint = await this.scanNodeJS(owner, repo, branch, configFiles)
           break
         case 'python':
-          console.log(`[GitHubScanner] Scanning as Python project`)
+          scannerLogger.info('[GitHubScanner] Scanning as Python project')
           blueprint = await this.scanPython(owner, repo, branch, configFiles)
           break
         default:
-          console.log(`[GitHubScanner] Unknown project type, using generic scanner`)
+          scannerLogger.info('[GitHubScanner] Unknown project type, using generic scanner')
           blueprint = await this.scanGeneric(owner, repo, branch, configFiles)
       }
     } catch (scanError) {
-      console.error(`[GitHubScanner] Error scanning ${projectType} project:`, scanError)
+      scannerLogger.error({ projectType, err: scanError }, `[GitHubScanner] Error scanning project`)
       // Fallback to generic scanner
       blueprint = await this.scanGeneric(owner, repo, branch, configFiles)
     }
@@ -219,11 +219,11 @@ export class GitHubScanner {
 
       // Detect framework
       const framework = this.detectNodeFramework(packageJson)
-      console.log(`[GitHubScanner] Detected framework: ${framework || 'none'}`)
+      scannerLogger.info({ framework: framework || 'none' }, `[GitHubScanner] Detected framework`)
 
       // Extract dependencies
       const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
-      console.log(`[GitHubScanner] Total dependencies: ${Object.keys(deps).length}`)
+      scannerLogger.info({ depCount: Object.keys(deps).length }, `[GitHubScanner] Total dependencies`)
 
       // Detect services from scripts and dependencies
       const services: DetectedService[] = []
@@ -245,7 +245,7 @@ export class GitHubScanner {
         startCommand,
         requiredFor: ['main-app'],
       })
-      console.log(`[GitHubScanner] Added main service: ${packageJson.name || 'app'}`)
+      scannerLogger.info({ service: packageJson.name || 'app' }, `[GitHubScanner] Added main service`)
 
       // Check for databases
       if (deps['pg'] || deps['postgres'] || deps['@neondatabase/serverless']) {
@@ -258,7 +258,7 @@ export class GitHubScanner {
           dockerImage: 'postgres:16-alpine',
           requiredFor: [packageJson.name || 'app'],
         })
-        console.log(`[GitHubScanner] Detected PostgreSQL dependency`)
+        scannerLogger.info('[GitHubScanner] Detected PostgreSQL dependency')
       }
       if (deps['mongodb'] || deps['mongoose']) {
         resources.databases.push('mongodb')
@@ -327,7 +327,7 @@ export class GitHubScanner {
         startCommand,
       }
     } catch (error) {
-      console.error(`[GitHubScanner] Error in scanNodeJS:`, error)
+      scannerLogger.error({ err: error }, '[GitHubScanner] Error in scanNodeJS')
       throw error
     }
   }
@@ -509,7 +509,7 @@ export class GitHubScanner {
         })
       }
     } catch (err) {
-      console.warn('[GitHubScanner] Could not parse docker-compose', err)
+      scannerLogger.warn({ err }, '[GitHubScanner] Could not parse docker-compose')
     }
 
     return services

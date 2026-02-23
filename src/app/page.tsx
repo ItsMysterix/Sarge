@@ -20,11 +20,13 @@ export default function Dashboard() {
   const router = useRouter()
   const { currentProject } = useProject()
 
-  const t = trpc as any
-  const deploymentsQuery = t.deploy.stats.useQuery({ projectId: currentProject?.id }, { 
+  const deploymentsStatsQuery = trpc.deploy.stats.useQuery({ projectId: currentProject?.id as string }, { 
     enabled: !!currentProject?.id 
   })
-  const servicesSummaryQuery = t.metrics.servicesSummary.useQuery()
+  const recentDeploymentsQuery = trpc.deploy.getDeployments.useQuery({ limit: 5 }, {
+    enabled: !!currentProject?.id
+  })
+  const servicesSummaryQuery = trpc.metrics.getServicesSummary.useQuery()
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -69,20 +71,20 @@ export default function Dashboard() {
             icon={<Rocket className="w-4 h-4" />}
             label="Deploy"
             description="Push to production"
-            onClick={() => router.push('/oneclick')}
+            onClick={() => router.push('/orchestration')}
             primary
           />
           <QuickAction 
             icon={<Terminal className="w-4 h-4" />}
             label="Logs"
             description="View live logs"
-            onClick={() => router.push('/logs')}
+            onClick={() => router.push('/observability?tab=telemetry')}
           />
           <QuickAction 
             icon={<Key className="w-4 h-4" />}
             label="Variables"
             description="Manage env vars"
-            onClick={() => router.push('/variables')}
+            onClick={() => router.push('/settings?tab=variables')}
           />
           <QuickAction 
             icon={<Activity className="w-4 h-4" />}
@@ -96,7 +98,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
           <StatCard 
             label="Total Deployments"
-            value={deploymentsQuery.data?.total ?? 0}
+            value={deploymentsStatsQuery.data?.total ?? 0}
             icon={<Zap className="w-4 h-4" />}
           />
           <StatCard 
@@ -106,12 +108,12 @@ export default function Dashboard() {
           />
           <StatCard 
             label="Success Rate"
-            value={`${deploymentsQuery.data?.successRate ?? '0.0'}%`}
+            value={`${deploymentsStatsQuery.data?.successRate ?? '0.0'}%`}
             icon={<TrendingUp className="w-4 h-4" />}
           />
           <StatCard 
             label="Avg Build Time"
-            value={deploymentsQuery.data?.avgDeployTime ? `${deploymentsQuery.data.avgDeployTime}s` : "—"}
+            value="—"
             icon={<Clock className="w-4 h-4" />}
           />
         </div>
@@ -131,8 +133,8 @@ export default function Dashboard() {
             </div>
             
             <div className="space-y-2">
-              {deploymentsQuery.data?.items?.length ? (
-                deploymentsQuery.data.items.slice(0, 5).map((deploy: any) => (
+              {recentDeploymentsQuery.data?.items?.length ? (
+                recentDeploymentsQuery.data.items.slice(0, 5).map((deploy: any) => (
                   <div key={deploy.id} className="list-item group">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
@@ -167,14 +169,14 @@ export default function Dashboard() {
               <ResourceLink 
                 icon={<Layers className="w-4 h-4" />}
                 label="Environments"
-                count={deploymentsQuery.data?.active?.toString() || "0"}
+                count={deploymentsStatsQuery.data?.active?.toString() || "0"}
                 onClick={() => router.push('/orchestration')}
               />
               <ResourceLink 
                 icon={<Database className="w-4 h-4" />}
                 label="Provisioned Services"
                 count={servicesSummaryQuery.data?.length?.toString() || "0"}
-                onClick={() => router.push('/services')}
+                onClick={() => router.push('/observability?tab=services')}
               />
               <ResourceLink 
                 icon={<Globe className="w-4 h-4" />}

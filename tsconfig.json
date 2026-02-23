@@ -35,7 +35,7 @@
         "src/styles/*"
       ],
       "@backend/*": [
-        "../backend/src/*"
+        "backend/src/*"
       ]
     },
     "plugins": [
@@ -51,7 +51,6 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "backend/src"
+    "node_modules"
   ]
 }

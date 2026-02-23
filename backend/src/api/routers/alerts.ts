@@ -3,6 +3,9 @@ import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { createHmac } from 'crypto'
+import logger from '../../lib/logger'
+
+const alertsLogger = logger.child({ module: 'alerts' })
 
 /**
  * Alerting & Notifications Router
@@ -62,7 +65,7 @@ export const alertsRouter = router({
           message: 'Alert rule created',
         }
       } catch (err) {
-        console.error('[alerts.createRule] Error:', err)
+        alertsLogger.error({ err, input }, '[alerts.createRule] Failed to create alert rule')
         throw err
       }
     }),
@@ -88,7 +91,7 @@ export const alertsRouter = router({
 
         return result?.rows || []
       } catch (err) {
-        console.error('[alerts.listRules] Error:', err)
+        alertsLogger.error({ err, input }, '[alerts.listRules] Failed to fetch alert rules')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch alert rules', cause: err as Error })
       }
     }),
@@ -131,7 +134,7 @@ export const alertsRouter = router({
           message: 'Notification channel created',
         }
       } catch (err) {
-        console.error('[alerts.createChannel] Error:', err)
+        alertsLogger.error({ err, input }, '[alerts.createChannel] Failed to create notification channel')
         throw err
       }
     }),
@@ -157,7 +160,7 @@ export const alertsRouter = router({
 
         return result?.rows || []
       } catch (err) {
-        console.error('[alerts.listChannels] Error:', err)
+        alertsLogger.error({ err, input }, '[alerts.listChannels] Failed to fetch notification channels')
         return []
       }
     }),
@@ -172,10 +175,13 @@ export const alertsRouter = router({
         const result = await ctx.db.query(
           `SELECT * FROM notification_channels WHERE id = $1`,
           [input.channelId]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          alertsLogger.error({ err, channelId: input.channelId }, 'Failed to fetch notification channel for testing')
+          return { rows: [] }
+        })
 
         if (!result?.rows?.[0]) {
-          throw new Error('Channel not found')
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Notification channel not found' })
         }
 
         const channel = result.rows[0]
@@ -199,7 +205,8 @@ export const alertsRouter = router({
           message: 'Test notification sent',
         }
       } catch (err) {
-        console.error('[alerts.testChannel] Error:', err)
+        if (err instanceof TRPCError) throw err
+        alertsLogger.error({ err, input }, '[alerts.testChannel] Failed to test notification channel')
         throw err
       }
     }),
@@ -217,7 +224,10 @@ export const alertsRouter = router({
         const rule = await ctx.db.query(
           `SELECT * FROM alert_rules WHERE id = $1 AND enabled = true`,
           [input.ruleId]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          alertsLogger.error({ err, ruleId: input.ruleId }, 'Failed to fetch alert rule for trigger')
+          return { rows: [] }
+        })
 
         if (!rule?.rows?.[0]) {
           return { success: false, message: 'Rule not found or disabled' }
@@ -257,7 +267,10 @@ export const alertsRouter = router({
           const channelResult = await ctx.db.query(
             `SELECT * FROM notification_channels WHERE id = $1 AND enabled = true`,
             [channelId]
-          ).catch(() => ({ rows: [] }))
+          ).catch((err) => {
+            alertsLogger.error({ err, channelId }, 'Failed to fetch channel for notification')
+            return { rows: [] }
+          })
 
           if (channelResult?.rows?.[0]) {
             const channel = channelResult.rows[0]
@@ -276,7 +289,7 @@ export const alertsRouter = router({
                 alertId,
                 projectId: ruleConfig.project_id,
               },
-            }).catch(console.error)
+            }).catch((e) => alertsLogger.error({ err: e, channelId }, 'Failed to send notification to channel'))
           }
         }
 
@@ -286,7 +299,7 @@ export const alertsRouter = router({
           message: 'Alert triggered and notifications sent',
         }
       } catch (err) {
-        console.error('[alerts.trigger] Error:', err)
+        alertsLogger.error({ err, input }, '[alerts.trigger] Failed to trigger alert')
         throw err
       }
     }),
@@ -314,7 +327,7 @@ export const alertsRouter = router({
 
         return result?.rows || []
       } catch (err) {
-        console.error('[alerts.listActive] Error:', err)
+        alertsLogger.error({ err, input }, '[alerts.listActive] Failed to fetch active alerts')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch active alerts', cause: err as Error })
       }
     }),
@@ -332,14 +345,16 @@ export const alertsRouter = router({
            SET status = 'resolved', resolved_at = NOW()
            WHERE id = $1`,
           [input.alertId]
-        ).catch(() => { })
+        ).catch((err) => {
+          throw new Error(`DB error: ${err.message}`)
+        })
 
         return {
           success: true,
           message: 'Alert resolved',
         }
       } catch (err) {
-        console.error('[alerts.resolve] Error:', err)
+        alertsLogger.error({ err, input }, '[alerts.resolve] Failed to resolve alert')
         throw err
       }
     }),
@@ -382,7 +397,7 @@ async function sendNotification(params: {
       await sendPagerDutyAlert(config.integrationKey, message)
     }
   } catch (err) {
-    console.error('[sendNotification] Error sending to', type, ':', err)
+    alertsLogger.error({ err, type }, '[sendNotification] Error sending notification')
     throw err
   }
 }
@@ -452,7 +467,7 @@ async function sendWebhookNotification(webhookUrl: string, message: any, secret?
 
 async function sendEmailNotification(email: string, message: any): Promise<void> {
   // Placeholder - integrate with SendGrid, SES, etc.
-  console.log('[sendEmailNotification] Would send to', email, ':', message)
+  alertsLogger.info({ email, message }, '[sendEmailNotification] Virtual email notification sent');
 }
 
 async function sendPagerDutyAlert(integrationKey: string, message: any): Promise<void> {

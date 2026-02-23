@@ -27,24 +27,40 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [showGithubModal, setShowGithubModal] = useState(false)
-  const [githubConnection, setGithubConnection] = useState<{ connected: boolean; source?: string } | null>(null)
-  const [newToken, setNewToken] = useState<string | null>(null)
+    const [newToken, setNewToken] = useState<string | null>(null)
   const [deploymentEmails, setDeploymentEmails] = useState(true)
   const [productEmails, setProductEmails] = useState(false)
 
-  const t = trpc as any
-  const stacksQuery = t.stacks?.list?.useQuery()
-  const awsSummaryQuery = t.aws?.getSummary?.useQuery()
-  const tokensQuery = t.tokens?.list?.useQuery()
+  const profileQuery = trpc.auth.getProfile.useQuery()
+  const settingsQuery = trpc.settings.get.useQuery()
+  const stacksQuery = trpc.stacks.list.useQuery()
+  const awsSummaryQuery = trpc.aws.getSummary.useQuery()
+  const tokensQuery = trpc.tokens.list.useQuery()
+  const githubConnQuery = trpc.auth.getGithubConnection.useQuery(undefined, {
+    enabled: isSignedIn
+  })
   
-  const createTokenMutation = t.tokens?.create?.useMutation({
-    onSuccess: (data: any) => {
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation({
+    onSuccess: () => {
+      addToast({ type: 'success', title: 'Profile Updated' })
+      profileQuery.refetch()
+    }
+  })
+
+  const updateSettingsMutation = trpc.settings.update.useMutation({
+    onSuccess: () => {
+      settingsQuery.refetch()
+    }
+  })
+
+  const createTokenMutation = trpc.tokens.create.useMutation({
+    onSuccess: (data) => {
       setNewToken(data.token)
       tokensQuery.refetch()
     }
   })
-
-  const revokeTokenMutation = t.tokens?.revoke?.useMutation({
+ 
+  const revokeTokenMutation = trpc.tokens.revoke.useMutation({
     onSuccess: () => {
       tokensQuery.refetch()
       addToast({ type: "success", title: "Token revoked" })
@@ -52,48 +68,34 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    if (user?.fullName) setName(user.fullName)
-    if (!isSignedIn) return
-    
-    const loadGithubConnection = async () => {
-      try {
-        const response = await fetch("/api/github/connection")
-        if (response.ok) setGithubConnection(await response.json())
-      } catch (err) { console.error('Failed to load GitHub connection:', err) }
+    if (profileQuery.data?.name) setName(profileQuery.data.name)
+    if (settingsQuery.data?.notifications) {
+      const notes = settingsQuery.data.notifications as any
+      if (notes.deploymentEmails !== undefined) setDeploymentEmails(notes.deploymentEmails)
+      if (notes.productEmails !== undefined) setProductEmails(notes.productEmails)
     }
-    loadGithubConnection()
-
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch("/api/user/settings")
-        if (res.ok) {
-          const data = await res.json()
-          setDeploymentEmails(data.deployment_emails)
-          setProductEmails(data.product_emails)
-        }
-      } catch (error) { console.error("Failed to fetch settings", error) }
-    }
-    fetchSettings()
-  }, [user, isSignedIn])
+  }, [profileQuery.data, settingsQuery.data])
 
   if (!isLoaded || !isSignedIn) return <AuthLoading />
 
-  const isGitHubUser = session?.user && (session as any).accessToken
-  const isGitHubConnected = Boolean(isGitHubUser || githubConnection?.connected)
+  const isGitHubConnected = Boolean(githubConnQuery.data?.connected)
+  const isGitHubUser = (githubConnQuery.data as any)?.source === 'oauth'
 
   const handleSaveProfile = async () => {
     setIsSaving(true)
     try {
-      const res = await fetch('/api/user/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      })
-      if (res.ok) {
-        addToast({ type: 'success', title: 'Profile Updated' })
-      }
+      await updateProfileMutation.mutateAsync({ name })
     } finally { setIsSaving(false) }
   }
+
+  const changePasswordMutation = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      addToast({ type: 'success', title: 'Password Changed' })
+    },
+    onError: (err) => {
+      addToast({ type: 'error', title: err.message })
+    }
+  })
 
   const handleChangePassword = async (currentPassword: string, newPassword: string, confirmPassword: string) => {
     if (newPassword !== confirmPassword) {
@@ -102,13 +104,20 @@ export default function ProfilePage() {
     }
     setIsChangingPassword(true)
     try {
-      const res = await fetch('/api/user/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      })
-      if (res.ok) addToast({ type: 'success', title: 'Password Changed' })
+      await changePasswordMutation.mutateAsync({ currentPassword, newPassword })
     } finally { setIsChangingPassword(false) }
+  }
+
+  const handleNotificationChange = (type: 'deployment' | 'product', checked: boolean) => {
+    if (type === 'deployment') setDeploymentEmails(checked)
+    else setProductEmails(checked)
+
+    updateSettingsMutation.mutate({
+      notifications: {
+        ...(settingsQuery.data?.notifications as any || {}),
+        [type === 'deployment' ? 'deploymentEmails' : 'productEmails']: checked
+      }
+    })
   }
 
   return (
@@ -155,16 +164,16 @@ export default function ProfilePage() {
           </TabsContent>
 
           <TabsContent value="billing">
-            <BillingTab stacks={stacksQuery.data} awsSummary={awsSummaryQuery.data} />
+            <BillingTab stacks={stacksQuery.data || []} awsSummary={awsSummaryQuery.data || {}} />
           </TabsContent>
 
           <TabsContent value="developer">
             <DeveloperTab 
               isGitHubConnected={isGitHubConnected} 
               setShowGithubModal={setShowGithubModal}
-              tokens={tokensQuery.data}
-              createToken={(name) => createTokenMutation.mutate({ name })}
-              revokeToken={(tokenId) => revokeTokenMutation.mutate({ tokenId })}
+              tokens={tokensQuery.data || []}
+              createToken={async (name) => { await createTokenMutation.mutateAsync({ name }) }}
+              revokeToken={async (tokenId) => { await revokeTokenMutation.mutateAsync({ tokenId }) }}
               isCreatingToken={createTokenMutation.isLoading}
               setIsCreatingToken={() => {}} 
               newToken={newToken}
@@ -175,8 +184,8 @@ export default function ProfilePage() {
             <NotificationsTab 
               deploymentEmails={deploymentEmails} 
               productEmails={productEmails}
-              handleDeploymentEmailChange={(checked) => setDeploymentEmails(checked)}
-              handleProductEmailChange={(checked) => setProductEmails(checked)}
+              handleDeploymentEmailChange={(checked) => handleNotificationChange('deployment', checked)}
+              handleProductEmailChange={(checked) => handleNotificationChange('product', checked)}
             />
           </TabsContent>
         </Tabs>

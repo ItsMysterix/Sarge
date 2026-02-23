@@ -6,35 +6,19 @@ import { getDbPool } from "@/lib/db"
 import { storeProviderCredentials } from "@/lib/provider-credentials"
 import bcrypt from "bcryptjs"
 
-// Detailed environment validation logging
-// console.log('🔍 [AUTH CONFIG] Initializing NextAuth...')
-console.log('🔍 [AUTH CONFIG] NODE_ENV:', process.env.NODE_ENV)
-console.log('🔍 [AUTH CONFIG] NEXTAUTH_URL:', process.env.NEXTAUTH_URL || '❌ NOT SET')
-console.log('🔍 [AUTH CONFIG] NEXTAUTH_SECRET:', process.env.NEXTAUTH_SECRET ? '✅ SET (length: ' + process.env.NEXTAUTH_SECRET.length + ')' : '❌ NOT SET')
-console.log('🔍 [AUTH CONFIG] GITHUB_ID:', process.env.GITHUB_ID || '❌ NOT SET')
-console.log('🔍 [AUTH CONFIG] GITHUB_SECRET:', process.env.GITHUB_SECRET ? '✅ SET' : '❌ NOT SET')
-
 // Ensure NEXTAUTH_SECRET is set
 if (!process.env.NEXTAUTH_SECRET) {
   if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
     throw new Error(
       'NEXTAUTH_SECRET environment variable is not set. Generate one with: openssl rand -base64 32'
     )
-  } else {
-    // During build or in non-vercel prod environments without the secret, warn instead of throwing
-    // to allow static page generation to proceed if the route isn't actually called.
-    console.warn('⚠️ [AUTH CONFIG] NEXTAUTH_SECRET is missing. Pre-rendering may fail if this route is accessed.')
   }
 }
 
 // Ensure NEXTAUTH_URL is set - Use VERCEL_URL as fallback in production
 const nextAuthUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-if (!nextAuthUrl) {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('❌ [AUTH CONFIG] NEXTAUTH_URL/VERCEL_URL not set - OAuth WILL FAIL')
-  }
-} else {
-  console.log('✅ [AUTH CONFIG] Auth URL configured:', nextAuthUrl)
+if (!nextAuthUrl && process.env.NODE_ENV === 'production') {
+  throw new Error('NEXTAUTH_URL or VERCEL_URL must be set in production — OAuth will fail without it.')
 }
 
 export const authOptions: NextAuthOptions = {
@@ -144,26 +128,14 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async signIn({ user, account, profile }) {
-      const logPrefix = `🔵 [SIGNIN ${account?.provider?.toUpperCase() || 'UNKNOWN'}]`
-      console.log(`${logPrefix} ========== SIGNIN CALLBACK START ==========`)
-      console.log(`${logPrefix} Provider:`, account?.provider)
-      console.log(`${logPrefix} User ID:`, user?.id)
-      console.log(`${logPrefix} User Email:`, user?.email)
-      console.log(`${logPrefix} User Name:`, user?.name)
-      console.log(`${logPrefix} Account Type:`, account?.type)
-      console.log(`${logPrefix} Account Provider Account ID:`, account?.providerAccountId)
-
       try {
         // For OAuth providers (GitHub), create/update user in database
         if (account?.provider === "github" && user?.email) {
-          console.log(`${logPrefix} Processing GitHub OAuth for:`, user.email)
-
           try {
             const pool = getDbPool()
-            console.log(`${logPrefix} Database pool acquired`)
 
             // Atomic UPSERT: Insert new user or update existing one
-            const result = await pool.query(
+            await pool.query(
               `INSERT INTO users (id, email, name, image, email_verified, created_at, updated_at)
                VALUES (gen_random_uuid(), $1, $2, $3, NOW(), NOW(), NOW())
                ON CONFLICT (email) 
@@ -175,52 +147,25 @@ export const authOptions: NextAuthOptions = {
                RETURNING id, email`,
               [user.email, user.name || user.email.split('@')[0], user.image]
             )
-
-            console.log(`${logPrefix} ✅ User upserted successfully:`, {
-              id: result.rows[0]?.id,
-              email: result.rows[0]?.email
-            })
           } catch (dbError) {
-            console.error(`${logPrefix} ❌ Database error:`, dbError)
-            console.error(`${logPrefix} Error message:`, dbError instanceof Error ? dbError.message : String(dbError))
-            console.error(`${logPrefix} Error stack:`, dbError instanceof Error ? dbError.stack : 'No stack trace')
-            // Don't block sign-in if database operations fail
-            console.log(`${logPrefix} ⚠️  Continuing with sign-in despite DB error`)
+            // Keep silent in production
           }
         }
       } catch (error) {
-        console.error(`${logPrefix} ❌ Unexpected error in signIn callback:`, error)
-        console.error(`${logPrefix} Error details:`, error instanceof Error ? error.message : String(error))
-        console.error(`${logPrefix} Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
-        // Don't block sign-in if database operations fail
+        // Keep silent in production
       }
 
-      console.log(`${logPrefix} ✅ Returning true - sign-in successful`)
-      console.log(`${logPrefix} ========== SIGNIN CALLBACK END ==========`)
       return true
     },
     async session({ session, token }) {
-      console.log('🟢 [SESSION] ========== SESSION CALLBACK START ==========')
-      console.log('🟢 [SESSION] Token sub (user ID):', token.sub)
-      console.log('🟢 [SESSION] Token email:', token.email)
-      console.log('🟢 [SESSION] Session user before:', session.user)
-
       if (session.user && token.sub) {
         session.user.id = token.sub
       }
       // Pass GitHub access token to session
       if (token.accessToken) {
         session.accessToken = token.accessToken as string
-        console.log('🟢 [SESSION] GitHub access token attached to session')
       }
 
-      console.log('🟢 [SESSION] Session user after:', {
-        id: session.user?.id,
-        email: session.user?.email,
-        name: session.user?.name,
-        hasAccessToken: !!session.accessToken
-      })
-      console.log('🟢 [SESSION] ========== SESSION CALLBACK END ==========')
       return session
     },
     async jwt({ token, user, account, profile, trigger }) {
@@ -234,12 +179,9 @@ export const authOptions: NextAuthOptions = {
           const result = await pool.query("SELECT id FROM users WHERE email = $1", [user.email])
           if (result.rows[0]) {
             token.sub = result.rows[0].id
-            console.log('🟡 [JWT] Database ID found and assigned to token.sub:', token.sub)
-          } else {
-            console.warn('🟡 [JWT] User not found in database for email:', user.email)
           }
         } catch (error) {
-          console.error('🟡 [JWT] Failed to fetch database ID for user:', error)
+          // Silently fail
         }
       }
 
@@ -260,7 +202,7 @@ export const authOptions: NextAuthOptions = {
               userEmail
             )
           } catch (error) {
-            console.error('🟡 [JWT] ❌ Failed to store GitHub credentials:', error)
+            // Credential storage failure should not block sign-in
           }
         }
       }

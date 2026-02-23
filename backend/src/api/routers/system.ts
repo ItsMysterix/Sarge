@@ -3,6 +3,7 @@ import { secureProcedure } from '../trpc/middlewares/security'
 import { publicProcedure } from '../../trpc'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import { apiLogger } from '../../lib/logger'
 
 export const systemRouter = router({
     logError: publicProcedure
@@ -23,7 +24,7 @@ export const systemRouter = router({
                 return { success: true }
             } catch (error) {
                 // Silently fail to avoid infinite error loops
-                console.error('[system.logError] failed to log:', error)
+                apiLogger.error({ error, input }, '[system.logError] failed to log')
                 return { success: false }
             }
         }),

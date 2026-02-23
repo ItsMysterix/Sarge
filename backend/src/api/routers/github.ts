@@ -1,6 +1,7 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
+import { apiLogger } from '../../lib/logger'
 
 /**
  * GitHub Router - Fetch real repository data
@@ -48,7 +49,7 @@ export const githubRouter = router({
           topics: data.topics || [],
         }
       } catch (error) {
-        console.error('Error fetching GitHub repo:', error)
+        apiLogger.error({ error, input }, 'Error fetching GitHub repo')
         throw new Error('Failed to fetch repository data')
       }
     }),
@@ -90,7 +91,7 @@ export const githubRouter = router({
           url: commit.html_url,
         }))
       } catch (error) {
-        console.error('Error fetching commits:', error)
+        apiLogger.error({ error, input }, 'Error fetching commits')
         throw new Error('Failed to fetch commits')
       }
     }),
@@ -133,7 +134,7 @@ export const githubRouter = router({
 
         return languages.sort((a, b) => b.bytes - a.bytes)
       } catch (error) {
-        console.error('Error fetching languages:', error)
+        apiLogger.error({ error, input }, 'Error fetching languages')
         throw new Error('Failed to fetch languages')
       }
     }),
@@ -174,7 +175,7 @@ export const githubRouter = router({
           url: contributor.html_url,
         }))
       } catch (error) {
-        console.error('Error fetching contributors:', error)
+        apiLogger.error({ error, input }, 'Error fetching contributors')
         throw new Error('Failed to fetch contributors')
       }
     }),
@@ -229,7 +230,7 @@ export const githubRouter = router({
           })),
         }
       } catch (error) {
-        console.error('Error fetching activity:', error)
+        apiLogger.error({ error, input }, 'Error fetching activity')
         throw new Error('Failed to fetch activity')
       }
     }),
@@ -288,7 +289,7 @@ export const githubRouter = router({
 
         return { alerts, enabled: true, summary: bySeverity }
       } catch (error) {
-        console.error('Error fetching vulnerabilities:', error)
+        apiLogger.error({ error, input }, 'Error fetching vulnerabilities')
         return { alerts: [], enabled: false, message: 'Failed to fetch vulnerability data.' }
       }
     }),
@@ -395,7 +396,7 @@ export const githubRouter = router({
           }, {}),
         }
       } catch (error) {
-        console.error('Error fetching dependencies:', error)
+        apiLogger.error({ error, input }, 'Error fetching dependencies')
         return { dependencies: [], totalCount: 0, byEcosystem: {}, byType: {} }
       }
     }),

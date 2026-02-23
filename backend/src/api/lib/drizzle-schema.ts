@@ -244,3 +244,13 @@ export const jobs = pgTable('jobs', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
+
+export const auditLogs = pgTable('audit_logs', {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    action: text('action').notNull(),
+    resourceType: text('resource_type').notNull(),
+    resourceId: text('resource_id'),
+    userId: text('user_id').notNull(),
+    metadata: jsonb('metadata').default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});

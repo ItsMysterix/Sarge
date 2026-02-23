@@ -16,14 +16,20 @@ interface ProviderCredentials {
   [key: string]: string
 }
 
-const ENCRYPTION_KEY = process.env.CREDENTIAL_ENCRYPTION_KEY || 'default-dev-key-change-in-prod-32b'
+const ENCRYPTION_KEY = process.env.CREDENTIAL_ENCRYPTION_KEY
+
+if (!ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
+  throw new Error('CRITICAL: CREDENTIAL_ENCRYPTION_KEY is missing in production environment.')
+}
+
+const FINAL_KEY = ENCRYPTION_KEY || 'default-dev-key-change-in-prod-32b'
 
 /**
  * Encrypt credentials before storing in database
  */
 export function encryptCredentials(plaintext: string): string {
   try {
-    const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32).padEnd(32, '0'))
+    const key = Buffer.from(FINAL_KEY.slice(0, 32).padEnd(32, '0'))
     const iv = crypto.randomBytes(16)
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
 
@@ -33,7 +39,7 @@ export function encryptCredentials(plaintext: string): string {
     // Return iv + encrypted data
     return iv.toString('hex') + ':' + encrypted
   } catch (err) {
-    console.error('[credentials] Encryption error:', err)
+    credLogger.error({ msg: '[credentials] Encryption error', err })
     throw new Error('Failed to encrypt credentials')
   }
 }
@@ -43,7 +49,7 @@ export function encryptCredentials(plaintext: string): string {
  */
 export function decryptCredentials(encrypted: string): string {
   try {
-    const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32).padEnd(32, '0'))
+    const key = Buffer.from(FINAL_KEY.slice(0, 32).padEnd(32, '0'))
     const [ivHex, encryptedData] = encrypted.split(':')
     const iv = Buffer.from(ivHex, 'hex')
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
@@ -53,7 +59,7 @@ export function decryptCredentials(encrypted: string): string {
 
     return decrypted
   } catch (err) {
-    console.error('[credentials] Decryption error:', err)
+    credLogger.error({ msg: '[credentials] Decryption error', err })
     throw new Error('Failed to decrypt credentials')
   }
 }
@@ -100,7 +106,7 @@ export async function getProviderCredentials(
   // 1. Try environment variables first (instant setup)
   const envVar = envMap[providerId]
   if (envVar && process.env[envVar]) {
-    console.log(`[credentials] Using ${envVar} from environment`)
+    credLogger.info({ providerId, envVar }, `[credentials] Using ${envVar} from environment`)
     credentials[`${providerId}_token`] = process.env[envVar] as string
 
     // AWS special case: needs both access key and secret
@@ -141,7 +147,6 @@ export async function getProviderCredentials(
     ).catch((err: any) => {
       // Table doesn't exist yet - return empty
       if (err?.message?.includes('provider_credentials')) {
-        console.log('[credentials] provider_credentials table not found, using env vars only')
         credLogger.info('[credentials] provider_credentials table not found, using env vars only');
         return null
       }
@@ -188,15 +193,15 @@ export async function storeProviderCredentials(
       [providerId, userId || null, encrypted]
     ).catch((err: any) => {
       if (err?.message?.includes('provider_credentials')) {
-        console.warn('[credentials] Table not migrated yet, skipping DB storage')
+        credLogger.warn('[credentials] Table not migrated yet, skipping DB storage')
         return
       }
       throw err
     })
 
-    console.log(`[credentials] Stored encrypted credentials for ${providerId}`)
+    credLogger.info({ providerId }, `[credentials] Stored encrypted credentials for ${providerId}`)
   } catch (err) {
-    console.error(`[credentials] Failed to store credentials for ${providerId}:`, err)
+    credLogger.error({ msg: `[credentials] Failed to store credentials for ${providerId}`, providerId, err })
     throw err
   }
 }
@@ -216,15 +221,15 @@ export async function deleteProviderCredentials(
       [providerId, userId || null]
     ).catch((err: any) => {
       if (err?.message?.includes('provider_credentials')) {
-        console.warn('[credentials] Table not migrated yet')
+        credLogger.warn('[credentials] Table not migrated yet')
         return
       }
       throw err
     })
 
-    console.log(`[credentials] Deleted credentials for ${providerId}`)
+    credLogger.info({ providerId }, `[credentials] Deleted credentials for ${providerId}`)
   } catch (err) {
-    console.error(`[credentials] Failed to delete credentials for ${providerId}:`, err)
+    credLogger.error({ msg: `[credentials] Failed to delete credentials for ${providerId}`, providerId, err })
     throw err
   }
 }

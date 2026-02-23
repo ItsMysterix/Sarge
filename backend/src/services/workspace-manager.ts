@@ -7,6 +7,9 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 import { spawn } from 'child_process'
+import logger from '../lib/logger'
+
+const wsLogger = logger.child({ module: 'workspaces' })
 
 const WORKSPACES_DIR = path.join(os.homedir(), '.sarge', 'workspaces')
 
@@ -33,7 +36,7 @@ export class WorkspaceManager {
         fs.mkdirSync(WORKSPACES_DIR, { recursive: true })
       } catch (e) {
         // Filesystem is read-only (Vercel/serverless)
-        console.warn('[WorkspaceManager] Cannot create workspaces directory (read-only filesystem):', (e as Error).message)
+        wsLogger.warn({ err: (e as Error).message }, '[WorkspaceManager] Cannot create workspaces directory (read-only filesystem)')
       }
     }
     this.loadWorkspaces()
@@ -47,7 +50,7 @@ export class WorkspaceManager {
     const workspaceId = `${repoName}-${Date.now()}`
     const workspacePath = path.join(WORKSPACES_DIR, workspaceId)
 
-    console.log(`[WorkspaceManager] Cloning ${repoUrl} to ${workspacePath}`)
+    wsLogger.info({ repoUrl, branch, workspacePath }, `[WorkspaceManager] Cloning ${repoUrl} to ${workspacePath}`)
 
     try {
       // Clone the repo
@@ -149,7 +152,7 @@ export class WorkspaceManager {
   listWorkspaces(): LocalWorkspace[] {
     // Skip on serverless (read-only filesystem)
     if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-      console.log('[WorkspaceManager] Serverless environment, returning empty workspaces')
+      wsLogger.info('[WorkspaceManager] Serverless environment, returning empty workspaces')
       return []
     }
     return Array.from(this.workspaces.values()).sort((a, b) => b.lastUsed.getTime() - a.lastUsed.getTime())
@@ -209,7 +212,7 @@ export class WorkspaceManager {
       }
     } catch (err) {
       // Filesystem errors (read-only, not found, etc.) - start with empty workspace list
-      console.warn('[WorkspaceManager] Cannot load manifest (likely serverless):', (err as Error).message)
+      wsLogger.warn({ err: (err as Error).message }, '[WorkspaceManager] Cannot load manifest (likely serverless)')
     }
   }
 
@@ -220,13 +223,13 @@ export class WorkspaceManager {
       fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2))
     } catch (err) {
       // Filesystem is read-only (Vercel/serverless) - workspaces won't persist
-      console.warn('[WorkspaceManager] Cannot save manifest (read-only filesystem):', (err as Error).message)
+      wsLogger.warn({ err: (err as Error).message }, '[WorkspaceManager] Cannot save manifest (read-only filesystem)')
     }
   }
 
   private execCommand(command: string, args: string[], cwd?: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const proc = spawn(command, args, { cwd, shell: true })
+      const proc = spawn(command, args, { cwd, shell: false })
 
       let stderr = ''
 

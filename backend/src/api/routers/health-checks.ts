@@ -2,6 +2,9 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import logger from '../../lib/logger'
+
+const healthLogger = logger.child({ module: 'health' })
 
 /**
  * Health Checks Router
@@ -55,7 +58,7 @@ export const healthChecksRouter = router({
           message: 'Health check created',
         }
       } catch (err) {
-        console.error('[health.create] Error:', err)
+        healthLogger.error({ err, input }, '[health.create] Error')
         throw err
       }
     }),
@@ -74,7 +77,7 @@ export const healthChecksRouter = router({
         ).catch(() => ({ rows: [] }))
 
         if (!check?.rows?.[0]) {
-          throw new Error('Health check not found or inactive')
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Health check not found or inactive' })
         }
 
         const config = check.rows[0]
@@ -152,7 +155,9 @@ export const healthChecksRouter = router({
             error_message
           ) VALUES ($1, NOW(), $2, $3, $4)`,
           [input.healthCheckId, success, responseTime, error || null]
-        ).catch(() => { })
+        ).catch((err) => {
+          healthLogger.error({ msg: 'Failed to insert health check result', healthCheckId: input.healthCheckId, err });
+        })
 
         // Update health check status
         await ctx.db.query(
@@ -160,7 +165,9 @@ export const healthChecksRouter = router({
            SET last_check_time = NOW(), last_check_success = $1
            WHERE id = $2`,
           [success, input.healthCheckId]
-        ).catch(() => { })
+        ).catch((err) => {
+          healthLogger.error({ msg: 'Failed to update health check status', healthCheckId: input.healthCheckId, err });
+        })
 
         return {
           success,
@@ -169,7 +176,8 @@ export const healthChecksRouter = router({
           healthCheckId: input.healthCheckId,
         }
       } catch (err) {
-        console.error('[health.execute] Error:', err)
+        if (err instanceof TRPCError) throw err
+        healthLogger.error({ err, input }, '[health.execute] Error')
         throw err
       }
     }),
@@ -198,7 +206,7 @@ export const healthChecksRouter = router({
 
         return result?.rows?.[0] || null
       } catch (err) {
-        console.error('[health.get] Error:', err)
+        healthLogger.error({ err, input }, '[health.get] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch health check', cause: err as Error })
       }
     }),
@@ -227,7 +235,7 @@ export const healthChecksRouter = router({
 
         return result.rows
       } catch (err) {
-        console.error('[health.list] Error:', err)
+        healthLogger.error({ err, input }, '[health.list] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch health checks', cause: err as Error })
       }
     }),
@@ -254,7 +262,7 @@ export const healthChecksRouter = router({
 
         return result.rows
       } catch (err) {
-        console.error('[health.history] Error:', err)
+        healthLogger.error({ err, input }, '[health.history] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch health history', cause: err as Error })
       }
     }),
@@ -269,11 +277,13 @@ export const healthChecksRouter = router({
         await ctx.db.query(
           `UPDATE health_checks SET is_active = false WHERE id = $1`,
           [input.healthCheckId]
-        ).catch(() => { })
+        ).catch((err) => {
+          healthLogger.error({ msg: 'Failed to deactivate health check', healthCheckId: input.healthCheckId, err });
+        })
 
         return { success: true }
       } catch (err) {
-        console.error('[health.delete] Error:', err)
+        healthLogger.error({ err, input }, '[health.delete] Error')
         throw err
       }
     }),

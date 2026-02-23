@@ -8,6 +8,7 @@ import { observable } from '@trpc/server/observable';
 import { topicAll, topicOne } from '../lib/deployEmit';
 import { getProvider } from '../lib/providers';
 import { getProviderCredentials } from '../lib/credentials';
+import { deployLogger } from '../../lib/logger';
 
 // Sub-module imports
 import { deployToProvider, estimateCost, getProviderStatus } from './deploy/provider';
@@ -109,7 +110,7 @@ export const deployRouter = router({
             }
           }
         } catch (err) {
-          console.error(`[deploy] Provider ${input.provider} integration error:`, err)
+          deployLogger.error({ err, provider: input.provider, deploymentId: deployment.id }, `[deploy] Provider integration error`)
           // Fall back to local deployment simulation
         }
       }

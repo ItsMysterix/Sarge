@@ -1,6 +1,8 @@
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
+import { auditLogger } from '../../lib/logger'
+import { TRPCError } from '@trpc/server'
 
 /**
  * Audit Logs Router
@@ -29,12 +31,8 @@ export const auditLogsRouter = router({
         `
 
                 if (input.projectId) {
-                    // Metadata often contains project_id, but it's unstructured JSON.
-                    // Ideally we'd have a project_id column, but migration only has metadata.
-                    // We can use JSON containment operator @> if using Postgres, 
-                    // or simple text filtering for now as a fallback.
                     query += ` AND (metadata->>'projectId' = $${params.length + 1} OR metadata->>'project_id' = $${params.length + 1} OR metadata::text ILIKE $${params.length + 1})`
-                    params.push(input.projectId)
+                    params.push(`%${input.projectId}%`)
                 }
 
                 if (input.resourceType) {
@@ -61,7 +59,8 @@ export const auditLogsRouter = router({
                 params.push(input.limit + 1) // Fetch one extra to check for next page
 
                 const result = await ctx.db.query(query, params).catch((err: any) => {
-                    if (err?.message?.includes('audit_logs')) {
+                    if (err?.message?.includes('relation "audit_logs" does not exist')) {
+                        auditLogger.warn('audit_logs table missing, returning empty result');
                         return { rows: [] }
                     }
                     throw err
@@ -88,8 +87,11 @@ export const auditLogsRouter = router({
                     nextCursor,
                 }
             } catch (err) {
-                console.error('[audit.list] Error:', err)
-                return { items: [], nextCursor: undefined }
+                auditLogger.error({ err, input }, '[audit.list] Failed to fetch audit logs');
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to fetch audit logs',
+                })
             }
         }),
 
@@ -97,14 +99,25 @@ export const auditLogsRouter = router({
     getFilters: secureProcedure('audit.filters')
         .query(async ({ ctx }) => {
             try {
-                const types = await ctx.db.query(`SELECT DISTINCT resource_type FROM audit_logs ORDER BY resource_type`).catch(() => ({ rows: [] }))
-                const actions = await ctx.db.query(`SELECT DISTINCT action FROM audit_logs ORDER BY action`).catch(() => ({ rows: [] }))
+                const typesPromise = ctx.db.query(`SELECT DISTINCT resource_type FROM audit_logs ORDER BY resource_type`)
+                    .catch((err) => {
+                        auditLogger.error({ err }, 'Failed to fetch resource types for audit filters')
+                        return { rows: [] }
+                    })
+                const actionsPromise = ctx.db.query(`SELECT DISTINCT action FROM audit_logs ORDER BY action`)
+                    .catch((err) => {
+                        auditLogger.error({ err }, 'Failed to fetch actions for audit filters')
+                        return { rows: [] }
+                    })
+
+                const [types, actions] = await Promise.all([typesPromise, actionsPromise]);
 
                 return {
                     resourceTypes: types?.rows?.map((r: any) => r.resource_type) || [],
                     actions: actions?.rows?.map((r: any) => r.action) || [],
                 }
             } catch (err) {
+                auditLogger.error({ err }, '[audit.filters] Failed to fetch filters');
                 return { resourceTypes: [], actions: [] }
             }
         }),

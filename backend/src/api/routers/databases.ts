@@ -85,7 +85,9 @@ export const databasesRouter = router({
           id: dbId,
           username,
           password,
-        }, creds).catch(console.error)
+        }, creds).catch((err) => {
+          dbOpsLogger.error({ err, dbId }, 'Failed to trigger background database provisioning')
+        })
 
         return {
           success: true,
@@ -95,7 +97,7 @@ export const databasesRouter = router({
           message: 'Database provisioning started',
         }
       } catch (err) {
-        console.error('[database.create] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.create] Error')
         throw err
       }
     }),
@@ -119,7 +121,7 @@ export const databasesRouter = router({
         return result.rows[0]
       } catch (err) {
         if (err instanceof TRPCError) throw err
-        console.error('[database.get] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.get] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch database', cause: err as Error })
       }
     }),
@@ -144,7 +146,7 @@ export const databasesRouter = router({
 
         return result.rows
       } catch (err) {
-        console.error('[database.list] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.list] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch databases', cause: err as Error })
       }
     }),
@@ -168,7 +170,9 @@ export const databasesRouter = router({
         const backupId = result.rows[0].id
 
         // Trigger backup (async)
-        performBackup(input.databaseId, backupId).catch(console.error)
+        performBackup(input.databaseId, backupId).catch(err => {
+          dbOpsLogger.error({ err, databaseId: input.databaseId, backupId }, '[database.backup] Background backup failed')
+        })
 
         return {
           success: true,
@@ -176,7 +180,7 @@ export const databasesRouter = router({
           message: 'Backup started',
         }
       } catch (err) {
-        console.error('[database.createBackup] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.createBackup] Error')
         throw err
       }
     }),
@@ -207,7 +211,7 @@ export const databasesRouter = router({
         }
         return result.rows
       } catch (err) {
-        console.error('[database.listBackups] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.listBackups] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch backups', cause: err as Error })
       }
     }),
@@ -224,17 +228,21 @@ export const databasesRouter = router({
         await ctx.db.query(
           `UPDATE database_backups SET status = 'restoring' WHERE id = $1`,
           [input.backupId]
-        ).catch(() => { })
+        ).catch((err) => {
+          dbOpsLogger.error({ msg: 'Failed to update backup status during restore', backupId: input.backupId, err });
+        })
 
         // Trigger restore (async)
-        performRestore(input.backupId, input.targetDatabaseId).catch(console.error)
+        performRestore(input.backupId, input.targetDatabaseId).catch(err => {
+          dbOpsLogger.error({ err, backupId: input.backupId }, '[database.restore] Background restore failed')
+        })
 
         return {
           success: true,
           message: 'Database restore started',
         }
       } catch (err) {
-        console.error('[database.restore] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.restore] Error')
         throw err
       }
     }),
@@ -252,7 +260,10 @@ export const databasesRouter = router({
         const source = await ctx.db.query(
           `SELECT * FROM database_instances WHERE id = $1`,
           [input.sourceDatabaseId]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          dbOpsLogger.error({ msg: 'Failed to fetch source database for clone', sourceId: input.sourceDatabaseId, err });
+          return { rows: [] };
+        })
 
         if (!source?.rows?.[0]) {
           throw new Error('Source database not found')
@@ -294,7 +305,9 @@ export const databasesRouter = router({
         const cloneId = result.rows[0].id
 
         // Trigger cloning (async)
-        performClone(input.sourceDatabaseId, cloneId, input.snapshotTime).catch(console.error)
+        performClone(input.sourceDatabaseId, cloneId, input.snapshotTime).catch(err => {
+          dbOpsLogger.error({ err, sourceDatabaseId: input.sourceDatabaseId, cloneId }, '[database.clone] Background clone failed')
+        })
 
         return {
           success: true,
@@ -302,7 +315,7 @@ export const databasesRouter = router({
           message: 'Database cloning started',
         }
       } catch (err) {
-        console.error('[database.clone] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.clone] Error')
         throw err
       }
     }),
@@ -322,24 +335,30 @@ export const databasesRouter = router({
               database_instance_id, backup_type, status, description, created_at
             ) VALUES ($1, 'final', 'in_progress', 'Final backup before deletion', NOW())`,
             [input.databaseId]
-          ).catch(() => { })
+          ).catch((err) => {
+            dbOpsLogger.error({ msg: 'Failed to create final backup record', databaseId: input.databaseId, err });
+          })
         }
 
         // Mark for deletion
         await ctx.db.query(
           `UPDATE database_instances SET status = 'deleting' WHERE id = $1`,
           [input.databaseId]
-        ).catch(() => { })
+        ).catch((err) => {
+          dbOpsLogger.error({ msg: 'Failed to mark database as deleting', databaseId: input.databaseId, err });
+        })
 
         // Trigger deletion (async)
-        performDeletion(input.databaseId).catch(console.error)
+        performDeletion(input.databaseId).catch(err => {
+          dbOpsLogger.error({ err, databaseId: input.databaseId }, '[database.delete] Background deletion failed')
+        })
 
         return {
           success: true,
           message: 'Database deletion started',
         }
       } catch (err) {
-        console.error('[database.delete] Error:', err)
+        dbOpsLogger.error({ err, input }, '[database.delete] Error')
         throw err
       }
     }),
@@ -349,15 +368,16 @@ export const databasesRouter = router({
 
 function generateSecurePassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*'
+  const randomBytes = require('crypto').randomBytes(24)
   let password = ''
   for (let i = 0; i < 24; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
+    password += chars.charAt(randomBytes[i] % chars.length)
   }
   return password
 }
 
 async function provisionDatabase(config: any, creds?: Record<string, string>): Promise<void> {
-  console.log('[provisionDatabase] Starting provisioning for', config.id)
+  dbOpsLogger.info({ dbId: config.id }, '[provisionDatabase] Starting provisioning')
 
   if (config.provider === 'aws' && creds) {
     try {
@@ -383,39 +403,39 @@ async function provisionDatabase(config: any, creds?: Record<string, string>): P
       })
 
       const result = await rds.send(command)
-      console.log('[provisionDatabase] AWS RDS Instance created:', result.DBInstance?.DBInstanceArn)
+      dbOpsLogger.info({ arn: result.DBInstance?.DBInstanceArn }, '[provisionDatabase] AWS RDS Instance created')
     } catch (err) {
-      console.error('[provisionDatabase] AWS Error:', err)
+      dbOpsLogger.error({ err, dbId: config.id }, '[provisionDatabase] AWS Error')
     }
     return
   }
 
   // Fallback for other providers or missing creds
-  console.log('[provisionDatabase] Simulation mode for', config.id)
+  dbOpsLogger.info({ dbId: config.id }, '[provisionDatabase] Simulation mode')
   await new Promise(resolve => setTimeout(resolve, 5000))
-  console.log('[provisionDatabase] Completed for', config.id)
+  dbOpsLogger.info({ dbId: config.id }, '[provisionDatabase] Completed')
 }
 
 async function performBackup(databaseId: string, backupId: string): Promise<void> {
-  console.log('[performBackup] Starting backup', backupId, 'for database', databaseId)
+  dbOpsLogger.info({ databaseId, backupId }, '[performBackup] Starting backup')
   await new Promise(resolve => setTimeout(resolve, 3000))
-  console.log('[performBackup] Completed', backupId)
+  dbOpsLogger.info({ backupId }, '[performBackup] Completed')
 }
 
 async function performRestore(backupId: string, targetId?: string): Promise<void> {
-  console.log('[performRestore] Restoring backup', backupId, 'to', targetId || 'original')
+  dbOpsLogger.info({ backupId, targetId }, '[performRestore] Restoring backup')
   await new Promise(resolve => setTimeout(resolve, 5000))
-  console.log('[performRestore] Completed', backupId)
+  dbOpsLogger.info({ backupId }, '[performRestore] Completed')
 }
 
 async function performClone(sourceId: string, cloneId: string, snapshotTime?: string): Promise<void> {
-  console.log('[performClone] Cloning', sourceId, 'to', cloneId, 'at', snapshotTime || 'latest')
+  dbOpsLogger.info({ sourceId, cloneId, snapshotTime }, '[performClone] Cloning')
   await new Promise(resolve => setTimeout(resolve, 8000))
-  console.log('[performClone] Completed', cloneId)
+  dbOpsLogger.info({ cloneId }, '[performClone] Completed')
 }
 
 async function performDeletion(databaseId: string): Promise<void> {
-  console.log('[performDeletion] Deleting database', databaseId)
+  dbOpsLogger.info({ databaseId }, '[performDeletion] Deleting database')
   await new Promise(resolve => setTimeout(resolve, 2000))
-  console.log('[performDeletion] Completed', databaseId)
+  dbOpsLogger.info({ databaseId }, '[performDeletion] Completed')
 }

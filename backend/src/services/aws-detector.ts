@@ -1,5 +1,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import logger from '../lib/logger'
+
+const detectorLogger = logger.child({ module: 'aws-detector' })
 
 export interface AWSService {
   type: 'S3' | 'Lambda' | 'DynamoDB' | 'SQS' | 'SNS' | 'EventBridge' | 'CloudWatch' | 'IAM' | 'API Gateway' | 'EC2' | 'RDS' | 'ElastiCache'
@@ -53,22 +56,22 @@ export class AWSDetector {
 
   private findFiles(dir: string, pattern: RegExp, maxDepth: number = 5): string[] {
     const results: string[] = []
-    
+
     const walk = (currentPath: string, depth: number) => {
       if (depth > maxDepth) return
-      
+
       try {
         const entries = fs.readdirSync(currentPath, { withFileTypes: true })
-        
+
         for (const entry of entries) {
           const fullPath = path.join(currentPath, entry.name)
           const relativePath = path.relative(this.repoPath, fullPath)
-          
+
           // Skip common directories
           if (entry.isDirectory()) {
-            if (entry.name === 'node_modules' || entry.name === '.git' || 
-                entry.name === 'dist' || entry.name === 'build' || 
-                entry.name === '.next') {
+            if (entry.name === 'node_modules' || entry.name === '.git' ||
+              entry.name === 'dist' || entry.name === 'build' ||
+              entry.name === '.next') {
               continue
             }
             walk(fullPath, depth + 1)
@@ -80,7 +83,7 @@ export class AWSDetector {
         // Skip directories we can't read
       }
     }
-    
+
     walk(dir, 0)
     return results
   }
@@ -134,7 +137,7 @@ export class AWSDetector {
       const awsPackages = Object.keys(allDeps)
         .map(p => (typeof p === 'string' ? p : String(p ?? '')))
         .filter(pkg => pkg && pkg.startsWith('@aws-sdk/'))
-      
+
       for (const pkg of awsPackages) {
         if (pkg.includes('s3')) {
           this.addService(result, 'S3', 'detected-bucket', {}, ['package.json'])
@@ -158,7 +161,7 @@ export class AWSDetector {
 
       result.packageManagers.push('npm')
     } catch (err) {
-      console.error('Failed to parse package.json:', err)
+      detectorLogger.error({ msg: 'Failed to parse package.json', err })
     }
   }
 
@@ -169,7 +172,7 @@ export class AWSDetector {
       const fullPath = path.join(this.repoPath, file)
       try {
         const content = fs.readFileSync(fullPath, 'utf-8')
-        
+
         // S3
         if (content.match(/new\s+S3(?:Client)?\s*\(|@aws-sdk\/client-s3|boto3\.client\(['"]s3['"]\)|s3\.Bucket/)) {
           const bucketMatches = content.match(/Bucket(?:Name)?['"]?\s*[:=]\s*['"]([^'"]+)['"]/g)
@@ -266,7 +269,7 @@ export class AWSDetector {
         if (content.includes('sqs')) this.addService(result, 'SQS', 'serverless-queue', {}, ['serverless.yml'])
         if (content.includes('sns')) this.addService(result, 'SNS', 'serverless-topic', {}, ['serverless.yml'])
       } catch (err) {
-        console.error('Failed to parse serverless.yml:', err)
+        detectorLogger.error({ msg: 'Failed to parse serverless.yml', err })
       }
     }
 
@@ -280,7 +283,7 @@ export class AWSDetector {
         if (content.includes('AWS::Lambda::')) this.addService(result, 'Lambda', 'sam-function', {}, ['template.yaml'])
         if (content.includes('AWS::DynamoDB::')) this.addService(result, 'DynamoDB', 'sam-table', {}, ['template.yaml'])
       } catch (err) {
-        console.error('Failed to parse template.yaml:', err)
+        detectorLogger.error({ msg: 'Failed to parse template.yaml', err })
       }
     }
   }
@@ -312,7 +315,7 @@ export class AWSDetector {
           }
         }
       } catch (err) {
-        console.error(`Failed to parse ${file}:`, err)
+        detectorLogger.error({ file, err }, `Failed to parse ${file}`)
       }
     }
   }
@@ -322,7 +325,7 @@ export class AWSDetector {
       const fullPath = path.join(this.repoPath, file)
       try {
         const content = fs.readFileSync(fullPath, 'utf-8')
-        
+
         // Basic Terraform parsing (HCL)
         if (content.includes('resource "aws_s3_bucket"')) {
           const matches = content.matchAll(/resource\s+"aws_s3_bucket"\s+"([^"]+)"/g)
@@ -330,28 +333,28 @@ export class AWSDetector {
             this.addService(result, 'S3', match[1], {}, [file])
           }
         }
-        
+
         if (content.includes('resource "aws_lambda_function"')) {
           const matches = content.matchAll(/resource\s+"aws_lambda_function"\s+"([^"]+)"/g)
           for (const match of matches) {
             this.addService(result, 'Lambda', match[1], {}, [file])
           }
         }
-        
+
         if (content.includes('resource "aws_dynamodb_table"')) {
           const matches = content.matchAll(/resource\s+"aws_dynamodb_table"\s+"([^"]+)"/g)
           for (const match of matches) {
             this.addService(result, 'DynamoDB', match[1], {}, [file])
           }
         }
-        
+
         if (content.includes('resource "aws_sqs_queue"')) {
           const matches = content.matchAll(/resource\s+"aws_sqs_queue"\s+"([^"]+)"/g)
           for (const match of matches) {
             this.addService(result, 'SQS', match[1], {}, [file])
           }
         }
-        
+
         if (content.includes('resource "aws_sns_topic"')) {
           const matches = content.matchAll(/resource\s+"aws_sns_topic"\s+"([^"]+)"/g)
           for (const match of matches) {
@@ -359,7 +362,7 @@ export class AWSDetector {
           }
         }
       } catch (err) {
-        console.error(`Failed to parse ${file}:`, err)
+        detectorLogger.error({ file, err }, `Failed to parse ${file}`)
       }
     }
   }

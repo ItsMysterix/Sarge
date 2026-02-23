@@ -2,6 +2,7 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import { apiLogger } from '../../lib/logger'
 
 export const notificationRouter = router({
     list: secureProcedure('notification.list')
@@ -22,7 +23,7 @@ export const notificationRouter = router({
                 )
                 return { notifications: result.rows }
             } catch (error) {
-                console.error('[notification.list] error:', error)
+                apiLogger.error({ error, userId }, '[notification.list] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' })
             }
         }),
@@ -51,7 +52,7 @@ export const notificationRouter = router({
                 }
                 return { success: true }
             } catch (error) {
-                console.error('[notification.markAsRead] error:', error)
+                apiLogger.error({ error, userId }, '[notification.markAsRead] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' })
             }
         }),

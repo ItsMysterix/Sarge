@@ -2,6 +2,7 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { apiLogger } from '../../lib/logger'
 
 /**
  * Domains Router
@@ -34,7 +35,7 @@ export const domainsRouter = router({
 
                 return result?.rows || []
             } catch (err) {
-                console.error('[domains.list] Error:', err)
+                apiLogger.error({ err, input }, '[domains.list] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch domains' })
             }
         }),
@@ -50,7 +51,10 @@ export const domainsRouter = router({
                 const existing = await ctx.db.query(
                     `SELECT id FROM custom_domains WHERE hostname = $1 AND deleted_at IS NULL`,
                     [input.hostname]
-                ).catch(() => ({ rows: [] }))
+                ).catch((err) => {
+                    apiLogger.error({ err, hostname: input.hostname }, 'Failed to check duplicate domain')
+                    return { rows: [] }
+                })
 
                 if (existing?.rows?.[0]) {
                     throw new TRPCError({ code: 'CONFLICT', message: 'Domain already associated with a project' })
@@ -66,7 +70,7 @@ export const domainsRouter = router({
                 return result.rows[0]
             } catch (err) {
                 if (err instanceof TRPCError) throw err
-                console.error('[domains.add] Error:', err)
+                apiLogger.error({ err, input }, '[domains.add] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to add domain' })
             }
         }),
@@ -85,7 +89,7 @@ export const domainsRouter = router({
                 )
                 return { success: true }
             } catch (err) {
-                console.error('[domains.delete] Error:', err)
+                apiLogger.error({ err, input }, '[domains.delete] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to delete domain' })
             }
         }),
@@ -142,7 +146,7 @@ export const domainsRouter = router({
                 }
             } catch (err) {
                 if (err instanceof TRPCError) throw err
-                console.error('[domains.verify] Error:', err)
+                apiLogger.error({ err, input }, '[domains.verify] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Verification failed' })
             }
         }),

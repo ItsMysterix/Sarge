@@ -4,6 +4,10 @@ import { z } from 'zod'
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { authLogger } from '../../lib/logger'
+import { TRPCError } from '@trpc/server'
+import bcrypt from 'bcryptjs'
+import { getProviderCredentials } from '../lib/credentials'
 
 function getDataRoot() {
   // On Vercel/serverless, use /tmp (only writable location)
@@ -22,7 +26,7 @@ function tokensFile() {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   } catch (e) {
     // Filesystem is read-only (Vercel/serverless), RBAC tokens won't work
-    console.warn('[auth] Cannot create tokens directory (read-only filesystem):', (e as Error).message)
+    authLogger.warn({ e, dir }, '[auth] Cannot create tokens directory (read-only filesystem)')
   }
   return path.join(dir, 'tokens.json')
 }
@@ -85,8 +89,142 @@ export const authRouter = router({
         )
         return result.rows.map((row: any) => row.provider)
       } catch (err) {
-        console.error('[auth.getLinkedAccounts] Error:', err)
+        authLogger.error({ err, userId }, '[auth.getLinkedAccounts] Failed to fetch linked accounts')
         return []
+      }
+    }),
+
+  // Get user profile
+  getProfile: secureProcedure('auth.getProfile')
+    .query(async ({ ctx }) => {
+      try {
+        const user = await ctx.db.query(
+          `SELECT id, name, email, image FROM users WHERE id = $1`,
+          [ctx.session!.user!.id]
+        )
+        return user?.rows?.[0] || null
+      } catch (err) {
+        authLogger.error({ err, userId: ctx.session?.user?.id }, '[auth.getProfile] Error')
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch profile' })
+      }
+    }),
+
+  getGithubConnection: secureProcedure('auth.getGithubConnection')
+    .query(async ({ ctx }) => {
+      try {
+        // 1. Check if connected via OAuth (accessToken exists in session)
+        if ((ctx.session as any)?.accessToken) {
+          return { connected: true, source: 'oauth' }
+        }
+
+        // 2. Check for linked provider credentials
+        const credentials = await getProviderCredentials('github', ctx.db, ctx.session?.user?.id)
+        if (credentials?.github_token || (credentials as any)?.access_token) {
+          return { connected: true, source: 'linked' }
+        }
+
+        return { connected: false }
+      } catch (err) {
+        authLogger.error({ err, userId: ctx.session?.user?.id }, '[auth.getGithubConnection] Error')
+        return { connected: false }
+      }
+    }),
+
+  // Update user profile
+  updateProfile: secureProcedure('auth.updateProfile')
+    .input(z.object({
+      name: z.string().min(1).max(255).optional(),
+      image: z.string().url().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id
+      if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' })
+
+      try {
+        const setClauses: string[] = []
+        const params: any[] = []
+        if (input.name !== undefined) {
+          params.push(input.name)
+          setClauses.push(`name = $${params.length}`)
+        }
+        if (input.image !== undefined) {
+          params.push(input.image)
+          setClauses.push(`image = $${params.length}`)
+        }
+
+        if (setClauses.length === 0) return { success: true }
+
+        setClauses.push(`updated_at = NOW()`)
+        params.push(userId)
+
+        await ctx.db.query(
+          `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${params.length}`,
+          params
+        )
+
+        return { success: true }
+      } catch (err) {
+        authLogger.error({ err, userId, input }, '[auth.updateProfile] Failed to update profile')
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update profile' })
+      }
+    }),
+
+  // Change password
+  changePassword: secureProcedure('auth.changePassword')
+    .input(z.object({
+      currentPassword: z.string(),
+      newPassword: z.string().min(8),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id
+      if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' })
+
+      try {
+        // Get current password hash
+        const result = await ctx.db.query(
+          `SELECT password_hash FROM user_credentials WHERE user_id = $1`,
+          [userId]
+        )
+
+        if (result.rows.length === 0 || !result.rows[0].password_hash) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'This account uses OAuth authentication and cannot change password',
+          })
+        }
+
+        // Verify current password
+        const isValidPassword = await bcrypt.compare(
+          input.currentPassword,
+          result.rows[0].password_hash
+        )
+
+        if (!isValidPassword) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Current password is incorrect',
+          })
+        }
+
+        // Hash new password
+        const newPasswordHash = await bcrypt.hash(input.newPassword, 10)
+
+        // Update password
+        await ctx.db.query(
+          `UPDATE user_credentials 
+           SET password_hash = $1, updated_at = NOW()
+           WHERE user_id = $2`,
+          [newPasswordHash, userId]
+        )
+
+        return { success: true }
+      } catch (err) {
+        if (err instanceof TRPCError) throw err
+        authLogger.error({ err, userId }, '[auth.changePassword] Failed to change password')
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to change password',
+        })
       }
     }),
 })

@@ -4,6 +4,9 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { getProvider } from '../lib/providers'
 import { getProviderCredentials } from '../lib/credentials'
+import logger from '../../lib/logger'
+
+const trafficLogger = logger.child({ module: 'traffic' })
 
 /**
  * Traffic Management Router
@@ -55,7 +58,7 @@ export const trafficRouter = router({
           message: 'Blue/Green configuration created',
         }
       } catch (err) {
-        console.error('[traffic.createBlueGreen] Error:', err)
+        trafficLogger.error({ err, input }, '[traffic.createBlueGreen] Error')
         throw err
       }
     }),
@@ -98,7 +101,7 @@ export const trafficRouter = router({
           message: 'Canary configuration created',
         }
       } catch (err) {
-        console.error('[traffic.createCanary] Error:', err)
+        trafficLogger.error({ err, input }, '[traffic.createCanary] Error')
         throw err
       }
     }),
@@ -116,7 +119,10 @@ export const trafficRouter = router({
         const config = await ctx.db.query(
           `SELECT * FROM traffic_configs WHERE id = $1`,
           [input.trafficConfigId]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          trafficLogger.error({ err, trafficConfigId: input.trafficConfigId }, 'Failed to fetch traffic config for blue/green switch')
+          return { rows: [] }
+        })
 
         if (!config?.rows?.[0]) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Traffic config not found' })
@@ -157,14 +163,16 @@ export const trafficRouter = router({
               previousGreen: currentConfig.green_weight,
             }),
           ]
-        ).catch(() => { })
+        ).catch((err) => {
+          trafficLogger.error({ msg: 'Failed to record traffic switch in audit log', trafficConfigId: input.trafficConfigId, err });
+        })
 
         return {
           success: true,
           message: `Traffic switched to ${input.targetColor}`,
         }
       } catch (err) {
-        console.error('[traffic.executeBlueGreenSwitch] Error:', err)
+        trafficLogger.error({ err, input }, '[traffic.executeBlueGreenSwitch] Error')
         throw err
       }
     }),
@@ -180,7 +188,10 @@ export const trafficRouter = router({
         const config = await ctx.db.query(
           `SELECT * FROM traffic_configs WHERE id = $1`,
           [input.trafficConfigId]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          trafficLogger.error({ err, trafficConfigId: input.trafficConfigId }, 'Failed to fetch traffic config for canary increment')
+          return { rows: [] }
+        })
 
         if (!config?.rows?.[0]) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Traffic config not found' })
@@ -216,7 +227,7 @@ export const trafficRouter = router({
             : `Canary traffic increased to ${newCanaryWeight}%`,
         }
       } catch (err) {
-        console.error('[traffic.incrementCanary] Error:', err)
+        trafficLogger.error({ err, input }, '[traffic.incrementCanary] Error')
         throw err
       }
     }),
@@ -232,7 +243,10 @@ export const trafficRouter = router({
         const config = await ctx.db.query(
           `SELECT * FROM traffic_configs WHERE id = $1`,
           [input.trafficConfigId]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          trafficLogger.error({ err, trafficConfigId: input.trafficConfigId }, 'Failed to fetch traffic config for canary rollback')
+          return { rows: [] }
+        })
 
         if (config?.rows?.[0]) {
           const current = config.rows[0]
@@ -254,7 +268,7 @@ export const trafficRouter = router({
           message: 'Canary deployment rolled back to stable',
         }
       } catch (err) {
-        console.error('[traffic.rollbackCanary] Error:', err)
+        trafficLogger.error({ err, input }, '[traffic.rollbackCanary] Error')
         throw err
       }
     }),
@@ -276,7 +290,7 @@ export const trafficRouter = router({
 
         return result?.rows?.[0] || null
       } catch (err) {
-        console.error('[traffic.get] Error:', err)
+        trafficLogger.error({ err, input }, '[traffic.get] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch traffic config', cause: err as Error })
       }
     }),
@@ -304,7 +318,7 @@ export const trafficRouter = router({
 
         return result.rows
       } catch (err) {
-        console.error('[traffic.list] Error:', err)
+        trafficLogger.error({ err, input }, '[traffic.list] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch traffic configs', cause: err as Error })
       }
     }),

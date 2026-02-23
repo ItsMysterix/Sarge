@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic"
 import { Activity, Terminal, History, Box, Layers, ShieldAlert, Lock, Database, ShieldCheck, Bell, HeartPulse, Waypoints } from "lucide-react"
 import { AppShell } from "@/components/layout/app-shell"
 import { useProject } from "@/lib/project-context"
+import { useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   TelemetrySection,
@@ -35,6 +37,15 @@ const TABS = [
 
 export default function ObservatoryHub() {
   const { currentProject } = useProject()
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState("telemetry")
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab")
+    if (tab && TABS.some(t => t.id === tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   if (!currentProject) {
     return (
@@ -56,7 +67,7 @@ export default function ObservatoryHub() {
       </div>
     }>
       <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-[1600px] mx-auto w-full animate-fade-in">
-        <Tabs defaultValue="telemetry" className="w-full space-y-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
           <TabsList className="bg-transparent h-auto p-0 gap-6 border-b border-border w-full justify-start rounded-none overflow-x-auto no-scrollbar">
             {TABS.map(tab => (
               <TabsTrigger

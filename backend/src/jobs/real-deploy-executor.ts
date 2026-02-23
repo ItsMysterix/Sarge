@@ -9,11 +9,12 @@ import { ee } from '../api/lib/events'
 import { incDeploy, startQueryTimer, deploysRunning } from '../metrics/exporter'
 import { emitDeploy } from '../api/lib/deployEmit'
 import { uuidLockKey, withAdvisoryLock } from '../api/lib/pgLock'
+import { deployLogger } from '../lib/logger'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 
-export type DeployWork = { 
+export type DeployWork = {
   id: number
   repoUrl?: string
   branch?: string
@@ -29,7 +30,7 @@ export function startRealDeployExecutor() {
   function enqueue(work: DeployWork) {
     if (queue.length >= MAX_QUEUE) {
       queue.shift()
-      console.warn('real-deploy-executor: queue full, dropped oldest')
+      deployLogger.warn('real-deploy-executor: queue full, dropped oldest')
     }
     queue.push(work)
     process.nextTick(processQueue)
@@ -43,7 +44,7 @@ export function startRealDeployExecutor() {
     try {
       await runOne(job)
     } catch (err) {
-      console.error('real-deploy-executor error:', err)
+      deployLogger.error({ msg: 'real-deploy-executor error', err })
     } finally {
       running = false
       if (!stopped && queue.length > 0) process.nextTick(processQueue)
@@ -54,10 +55,10 @@ export function startRealDeployExecutor() {
     const { id, repoUrl, branch = 'main', buildCommand = 'npm run build' } = work
     const startTimer = startQueryTimer('deploy.executor.runOne')
     const key = uuidLockKey(String(id))
-    
+
     await withAdvisoryLock(db as any, key, async () => {
       let workDir: string | null = null
-      
+
       try {
         // Transition to running
         const res = await db.query(
@@ -68,11 +69,11 @@ export function startRealDeployExecutor() {
 
         const deployment = res.rows[0]
         deploysRunning.inc()
-        emitDeploy(ee, { 
-          type: 'deploys:update', 
-          id: String(deployment.id), 
-          status: 'running', 
-          started_at: deployment.started_at?.toString?.() ?? null 
+        emitDeploy(ee, {
+          type: 'deploys:update',
+          id: String(deployment.id),
+          status: 'running',
+          started_at: deployment.started_at?.toString?.() ?? null
         })
 
         // Log helper
@@ -83,12 +84,12 @@ export function startRealDeployExecutor() {
             [id, step, type, message]
           )
           const ts = ins.rows?.[0]?.timestamp ?? new Date().toISOString()
-          emitDeploy(ee, { 
-            type: 'deploys:log', 
-            id: String(id), 
-            step, 
-            line: message, 
-            ts: String(ts) 
+          emitDeploy(ee, {
+            type: 'deploys:log',
+            id: String(id),
+            step,
+            line: message,
+            ts: String(ts)
           })
         }
 
@@ -109,7 +110,7 @@ export function startRealDeployExecutor() {
         if (repoUrl) {
           await log('clone', 'info', `📥 Cloning repository: ${repoUrl}`)
           await log('clone', 'info', `git clone --depth=1 --branch=${branch} ${repoUrl} .`)
-          
+
           try {
             await execCommand('git', ['clone', '--depth=1', `--branch=${branch}`, repoUrl, '.'], workDir, async (line) => {
               await log('clone', 'info', line)
@@ -126,11 +127,11 @@ export function startRealDeployExecutor() {
         // Detect environment
         await log('setup', 'info', '⚙️ Detecting environment...')
         const packageJsonPath = path.join(workDir, 'package.json')
-        
+
         if (fs.existsSync(packageJsonPath)) {
           const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
           await log('setup', 'info', `📦 Project: ${packageJson.name || 'unknown'}`)
-          
+
           if (packageJson.dependencies?.next) {
             await log('setup', 'info', `🔧 Detected: Next.js ${packageJson.dependencies.next}`)
           }
@@ -154,7 +155,7 @@ export function startRealDeployExecutor() {
         // Install dependencies
         await log('install', 'info', '📦 Installing dependencies...')
         await log('install', 'info', `${installCmd} install`)
-        
+
         try {
           await execCommand(installCmd, ['install'], workDir, async (line) => {
             await log('install', 'info', line)
@@ -168,12 +169,12 @@ export function startRealDeployExecutor() {
         // Run build
         await log('build', 'info', '🔧 Running build command...')
         await log('build', 'info', buildCommand)
-        
+
         try {
           const buildParts = buildCommand.split(' ')
           const buildCmd = buildParts[0]
           const buildArgs = buildParts.slice(1)
-          
+
           await execCommand(buildCmd, buildArgs, workDir, async (line) => {
             await log('build', 'info', line)
           }, async (line) => {
@@ -203,11 +204,11 @@ export function startRealDeployExecutor() {
           [id]
         )
         const row = ok.rows[0]
-        emitDeploy(ee, { 
-          type: 'deploys:update', 
-          id: String(row.id), 
-          status: 'success', 
-          finished_at: row.finished_at?.toString?.() ?? null 
+        emitDeploy(ee, {
+          type: 'deploys:update',
+          id: String(row.id),
+          status: 'success',
+          finished_at: row.finished_at?.toString?.() ?? null
         })
         incDeploy('success')
 
@@ -218,12 +219,12 @@ export function startRealDeployExecutor() {
           [id, String(err?.message ?? err)]
         )
         const row = fail.rows[0]
-        emitDeploy(ee, { 
-          type: 'deploys:update', 
-          id: String(row.id), 
-          status: 'failed', 
-          error: row.error ?? null, 
-          finished_at: row.finished_at?.toString?.() ?? null 
+        emitDeploy(ee, {
+          type: 'deploys:update',
+          id: String(row.id),
+          status: 'failed',
+          error: row.error ?? null,
+          finished_at: row.finished_at?.toString?.() ?? null
         })
         incDeploy('failed')
       } finally {
@@ -232,7 +233,7 @@ export function startRealDeployExecutor() {
           try {
             fs.rmSync(workDir, { recursive: true, force: true })
           } catch (cleanupErr) {
-            console.error('Failed to cleanup workspace:', cleanupErr)
+            deployLogger.error({ msg: 'Failed to cleanup workspace', err: cleanupErr })
           }
         }
         deploysRunning.dec()
@@ -244,8 +245,8 @@ export function startRealDeployExecutor() {
   function onEnqueue(payload: any) {
     const id = payload?.id
     if (typeof id === 'number') {
-      enqueue({ 
-        id, 
+      enqueue({
+        id,
         repoUrl: payload?.repoUrl,
         branch: payload?.branch,
         buildCommand: payload?.buildCommand
@@ -274,8 +275,8 @@ function execCommand(
   onStderr?: (line: string) => Promise<void>
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, { cwd, shell: true })
-    
+    const proc = spawn(command, args, { cwd, shell: false })
+
     let stdout = ''
     let stderr = ''
 

@@ -7,6 +7,9 @@
 import { spawn, ChildProcess } from 'child_process'
 import { createGitHubAPI } from './github-api'
 import { DetectedService } from './github-scanner'
+import logger from '../lib/logger'
+
+const orchestratorLogger = logger.child({ module: 'orchestrator' })
 
 export interface DeploymentConfig {
   owner: string
@@ -34,7 +37,7 @@ export class DeploymentOrchestrator {
    * Deploy all services from a GitHub repo (no cloning!)
    */
   async deploy(config: DeploymentConfig): Promise<Map<string, ServiceInstance>> {
-    console.log(`[Orchestrator] Deploying ${config.owner}/${config.repo}`)
+    orchestratorLogger.info({ repo: `${config.owner}/${config.repo}`, branch: config.branch }, `[Orchestrator] Deploying ${config.owner}/${config.repo}`)
 
     // 1. Start external services first (databases, caches, monitoring)
     for (const service of config.externalServices) {
@@ -53,7 +56,7 @@ export class DeploymentOrchestrator {
    * Start external service via Docker
    */
   private async startExternalService(service: DetectedService): Promise<void> {
-    console.log(`[Orchestrator] Starting ${service.name} via Docker`)
+    orchestratorLogger.info({ service: service.name, image: service.dockerImage }, `[Orchestrator] Starting ${service.name} via Docker`)
 
     const instance: ServiceInstance = {
       name: service.name,
@@ -105,10 +108,10 @@ export class DeploymentOrchestrator {
         if (code === 0) {
           instance.status = 'running'
           instance.url = `http://localhost:${instance.port}`
-          console.log(`[Orchestrator] ✅ ${service.name} started on port ${instance.port}`)
+          orchestratorLogger.info({ service: service.name, port: instance.port }, `[Orchestrator] ✅ ${service.name} started on port ${instance.port}`)
         } else {
           instance.status = 'failed'
-          console.error(`[Orchestrator] ❌ ${service.name} failed to start`)
+          orchestratorLogger.error({ service: service.name, code }, `[Orchestrator] ❌ ${service.name} failed to start`)
         }
       })
 
@@ -116,7 +119,7 @@ export class DeploymentOrchestrator {
       await new Promise(resolve => setTimeout(resolve, 2000))
 
     } catch (err) {
-      console.error(`[Orchestrator] Failed to start ${service.name}:`, err)
+      orchestratorLogger.error({ msg: `[Orchestrator] Failed to start service ${service.name}`, service: service.name, err })
       instance.status = 'failed'
       instance.logs.push(`ERROR: ${err}`)
     }
@@ -126,7 +129,7 @@ export class DeploymentOrchestrator {
    * Start app service (fetch code from GitHub, build, run)
    */
   private async startAppService(service: DetectedService, config: DeploymentConfig): Promise<void> {
-    console.log(`[Orchestrator] Starting app service ${service.name}`)
+    orchestratorLogger.info({ service: service.name }, `[Orchestrator] Starting app service ${service.name}`)
 
     const instance: ServiceInstance = {
       name: service.name,
@@ -160,10 +163,10 @@ EXPOSE ${service.ports[0] || 3000}
       instance.url = `http://localhost:${instance.port}`
       instance.logs.push(`[INFO] Service would be started with: ${service.startCommand}`)
 
-      console.log(`[Orchestrator] ✅ ${service.name} ready`)
+      orchestratorLogger.info({ service: service.name }, `[Orchestrator] ✅ ${service.name} ready`)
 
     } catch (err) {
-      console.error(`[Orchestrator] Failed to start ${service.name}:`, err)
+      orchestratorLogger.error({ msg: `[Orchestrator] Failed to start service ${service.name}`, service: service.name, err })
       instance.status = 'failed'
       instance.logs.push(`ERROR: ${err}`)
     }
@@ -199,7 +202,7 @@ EXPOSE ${service.ports[0] || 3000}
    * Stop all services
    */
   async stopAll(): Promise<void> {
-    console.log('[Orchestrator] Stopping all services')
+    orchestratorLogger.info('[Orchestrator] Stopping all services')
 
     for (const [name, instance] of this.instances.entries()) {
       try {
@@ -207,7 +210,7 @@ EXPOSE ${service.ports[0] || 3000}
         await this.execCommand('docker', ['stop', `sarge-${name}`])
         instance.status = 'stopped'
       } catch (err) {
-        console.warn(`[Orchestrator] Could not stop ${name}:`, err)
+        orchestratorLogger.warn({ service: name, err }, `[Orchestrator] Could not stop ${name}`)
       }
     }
 

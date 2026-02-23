@@ -10,19 +10,10 @@ import { Search, Bell, Plus } from "lucide-react"
 // Map routes to page titles
 const pageTitles: Record<string, string> = {
   "/projects": "Projects",
-  "/environments": "Environments",
-  "/deployments": "Pipelines",
-  "/logs": "Logs",
-  "/observability": "Metrics",
-  "/metrics": "Metrics",
+  "/observability": "Observability",
   "/settings": "Settings",
   "/profile": "Profile",
-  "/stacks": "Stacks",
-  "/services": "Services",
-  "/aws": "AWS",
-  "/oneclick": "Deploy",
-  "/targets": "Targets",
-  "/explain": "Explain",
+  "/orchestration": "Orchestration",
 }
 
 export function Header() {

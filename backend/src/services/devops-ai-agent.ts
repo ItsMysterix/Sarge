@@ -6,6 +6,9 @@
  */
 
 import axios from 'axios';
+import logger from '../lib/logger';
+
+const aiAgentLogger = logger.child({ module: 'ai-agent' });
 
 export interface AIRecommendation {
     summary: string;
@@ -24,7 +27,7 @@ export class DevOpsAIAgent {
      * Analyze a service profile and historical metrics to provide recommendations
      */
     async getRecommendations(serviceId: string, context: any): Promise<AIRecommendation> {
-        console.log(`[DevOpsAIAgent] Analyzing service ${serviceId}...`);
+        aiAgentLogger.info({ serviceId }, `[DevOpsAIAgent] Analyzing service ${serviceId}...`);
 
         // 1. Store context in Qdrant (Simulated)
         await this.storeContext(serviceId, context).catch(() => { });
@@ -62,7 +65,7 @@ export class DevOpsAIAgent {
                     };
                 }
             } catch (e) {
-                console.error('[DevOpsAIAgent] Remediation planning failed:', e);
+                aiAgentLogger.error({ msg: '[DevOpsAIAgent] Remediation planning failed', err: e });
             }
         }
 
@@ -87,7 +90,7 @@ export class DevOpsAIAgent {
 
     private async storeContext(_id: string, _context: any): Promise<void> {
         // Implement Qdrant collection upsert here
-        console.log('[DevOpsAIAgent] Context stored in Qdrant');
+        aiAgentLogger.info({ serviceId: _id }, '[DevOpsAIAgent] Context stored in Qdrant');
     }
 
     private async searchSimilarPatterns(_context: any): Promise<any[]> {

@@ -29,7 +29,7 @@ export class SupabaseProvider implements IProvider {
                     organization_id: opts.credentials.supabase_org_id || 'default_org',
                     region: 'us-east-1',
                     plan: 'free',
-                    db_pass: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+                    db_pass: require('crypto').randomBytes(20).toString('base64url')
                 })
             })
 

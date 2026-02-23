@@ -5,6 +5,7 @@ import { TRPCError } from '@trpc/server'
 import { getProvider } from '../lib/providers'
 import { getProviderCredentials } from '../lib/credentials'
 import { logProjectActivity } from '../lib/activity'
+import { apiLogger } from '../../lib/logger'
 
 export const environmentsRouter = router({
   list: secureProcedure('environments.list')
@@ -40,7 +41,7 @@ export const environmentsRouter = router({
           }))
         }
       } catch (err) {
-        console.warn('[environments.list] DB error, returning defaults:', err)
+        apiLogger.warn({ err, input }, '[environments.list] DB error, returning defaults')
       }
 
       // Fallback: return default environments based on provider
@@ -55,7 +56,7 @@ export const environmentsRouter = router({
             })
             return envs
           } catch (err) {
-            console.warn(`[environments.list] Provider error:`, err)
+            apiLogger.warn({ err, input }, `[environments.list] Provider error`)
           }
         }
       }
@@ -137,7 +138,7 @@ export const environmentsRouter = router({
             JSON.stringify({ ...(deploymentResult.metadata || {}), deploymentId: deploymentResult.deploymentId })
           ]
         ).catch(err => {
-          console.warn('[environments.create] DB error:', err)
+          apiLogger.warn({ err, input }, '[environments.create] DB error')
           return null
         })
 
@@ -155,13 +156,13 @@ export const environmentsRouter = router({
 
           // Create services if provided
           if (input.services && input.services.length > 0) {
-            console.log(`[Environments] Initializing ${input.services.length} services for ${input.name}...`)
+            apiLogger.info({ serviceCount: input.services.length, envName: input.name }, '[Environments] Initializing services')
             for (const svcId of input.services) {
               await ctx.db.query(
                 `INSERT INTO services (environment_id, name, type, repo_url, branch, status, created_at)
                  VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
                 [env.id, svcId, 'web', repoUrl || 'pending', branch, 'starting']
-              ).catch(err => console.error(`[Environments] Failed to init service ${svcId}:`, err))
+              ).catch(err => apiLogger.error({ err, svcId }, `[Environments] Failed to init service`))
             }
           }
 
@@ -183,7 +184,7 @@ export const environmentsRouter = router({
           url: deploymentResult.previewUrl || ''
         }
       } catch (err) {
-        console.error('[environments.create] Error:', err);
+        apiLogger.error({ err, input }, '[environments.create] Error');
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: err instanceof Error ? err.message : 'Environment creation failed'
@@ -216,7 +217,7 @@ export const environmentsRouter = router({
             input.environmentId
           ]
         ).catch(err => {
-          console.warn('[environments.update] DB error:', err)
+          apiLogger.warn({ err, input }, '[environments.update] DB error')
           return null
         })
 
@@ -255,7 +256,7 @@ export const environmentsRouter = router({
            SET status = 'deleted', updated_at = NOW()
            WHERE id = $1`,
           [input.environmentId]
-        ).catch(err => console.warn('[environments.delete] DB error:', err))
+        ).catch(err => apiLogger.warn({ err, input }, '[environments.delete] DB error'))
 
         return { success: true }
       } catch (err) {
@@ -283,7 +284,7 @@ export const environmentsRouter = router({
            WHERE id = $1`,
           [input.environmentId]
         ).catch(err => {
-          console.warn('[environments.getDetails] DB error:', err)
+          apiLogger.warn({ err, input }, '[environments.getDetails] DB error')
           return null
         })
 
@@ -373,7 +374,9 @@ export const environmentsRouter = router({
              FROM secrets
              WHERE environment_id = $2`,
             [cloneId, input.sourceEnvironmentId]
-          ).catch(console.error)
+          ).catch(err => {
+            apiLogger.error({ err, cloneId }, 'Failed to clone secrets')
+          })
         }
 
         // 4. SERVICES CLONING (The "Full Fidelity" Engine)
@@ -383,7 +386,7 @@ export const environmentsRouter = router({
         ).catch(() => ({ rows: [] }));
 
         for (const service of services?.rows || []) {
-          console.log(`[Clone] Duplicating service: ${service.name} into environment: ${input.cloneName}`);
+          apiLogger.info({ serviceName: service.name, envName: input.cloneName }, '[Clone] Duplicating service');
 
           // a. Create new service record
           const newService = await ctx.db.query(
@@ -396,7 +399,9 @@ export const environmentsRouter = router({
               cloneId, service.name, service.type, service.repo_url, service.branch,
               service.build_command, service.start_command, service.port
             ]
-          ).catch(console.error);
+          ).catch(err => {
+            apiLogger.error({ err, cloneId }, 'Failed to insert cloned service record')
+          });
 
           // b. Trigger actual deployment via provider
           const provider = getProvider(sourceEnv.provider_id);
@@ -412,13 +417,13 @@ export const environmentsRouter = router({
               credentials,
               buildCommand: service.build_command,
               env: { SARGE_CLONED: 'true' }
-            }).catch(e => console.error(`[Clone] Deployment failed for ${service.name}:`, e));
+            }).catch(e => apiLogger.error({ err: e, serviceId: service.id }, `[Clone] Deployment failed for service`));
           }
         }
 
         // 5. DATABASES CLONING
         if (input.copyDatabases) {
-          console.log('[clone] Would clone databases from', input.sourceEnvironmentId)
+          apiLogger.info({ sourceEnvironmentId: input.sourceEnvironmentId }, '[clone] Would clone databases')
           // Integration with databasesRouter.cloneInstance would go here
         }
 
@@ -429,7 +434,7 @@ export const environmentsRouter = router({
           message: 'Full-fidelity environment cloning started',
         }
       } catch (err) {
-        console.error('[environments.clone] Error:', err)
+        apiLogger.error({ err, input }, '[environments.clone] Error')
         throw err
       }
     }),
@@ -488,7 +493,7 @@ export const environmentsRouter = router({
           message: 'Environment template created',
         }
       } catch (err) {
-        console.error('[environments.createTemplate] Error:', err)
+        apiLogger.error({ err, input }, '[environments.createTemplate] Error')
         throw err
       }
     }),
@@ -558,7 +563,9 @@ export const environmentsRouter = router({
             `INSERT INTO secrets (environment_id, key, value_encrypted, created_at)
              VALUES ($1, $2, $3, NOW())`,
             [envId, key, value] // Should encrypt value in production
-          ).catch(console.error)
+          ).catch(err => {
+            apiLogger.error({ err, envId, key }, 'Failed to apply default secret from template')
+          })
         }
 
         return {
@@ -567,7 +574,7 @@ export const environmentsRouter = router({
           message: 'Environment created from template',
         }
       } catch (err) {
-        console.error('[environments.createFromTemplate] Error:', err)
+        apiLogger.error({ err, input }, '[environments.createFromTemplate] Error')
         throw err
       }
     }),
@@ -594,7 +601,7 @@ export const environmentsRouter = router({
 
         return result?.rows || []
       } catch (err) {
-        console.error('[environments.listTemplates] Error:', err)
+        apiLogger.error({ err, input }, '[environments.listTemplates] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch templates', cause: err as Error })
       }
     }),

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { TRPCError } from '@trpc/server'
+import { apiLogger } from '../../lib/logger'
 
 export const stacksRouter = router({
   /**
@@ -37,7 +38,7 @@ export const stacksRouter = router({
       `)
       return result?.rows || []
     } catch (error) {
-      console.error('[stacks.list] Error:', error)
+      apiLogger.error({ error }, '[stacks.list] Error')
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch stacks', cause: error as Error })
     }
   }),
@@ -70,7 +71,7 @@ export const stacksRouter = router({
         `, [input.id])
         return result?.rows?.[0] || null
       } catch (error) {
-        console.error('[stacks.getById] Error:', error)
+        apiLogger.error({ error, input }, '[stacks.getById] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch stack', cause: error as Error })
       }
     }),
@@ -93,7 +94,7 @@ export const stacksRouter = router({
         )
         return { success: true, stack: result?.rows?.[0] }
       } catch (error) {
-        console.error('[stacks.create] Error:', error)
+        apiLogger.error({ error, input }, '[stacks.create] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create stack', cause: error as Error })
       }
     }),
@@ -112,7 +113,7 @@ export const stacksRouter = router({
         )
         return { success: true }
       } catch (error) {
-        console.error('[stacks.updateStatus] Error:', error)
+        apiLogger.error({ error, input }, '[stacks.updateStatus] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update status', cause: error as Error })
       }
     }),
@@ -125,7 +126,7 @@ export const stacksRouter = router({
         await ctx.db.query(`DELETE FROM stacks WHERE id = $1`, [input.id])
         return { success: true }
       } catch (error) {
-        console.error('[stacks.delete] Error:', error)
+        apiLogger.error({ error, input }, '[stacks.delete] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to delete stack', cause: error as Error })
       }
     }),
@@ -141,7 +142,7 @@ export const stacksRouter = router({
         )
         return result?.rows || []
       } catch (error) {
-        console.error('[stacks.getDeployments] Error:', error)
+        apiLogger.error({ error, input }, '[stacks.getDeployments] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch deployments', cause: error as Error })
       }
     }),
@@ -159,7 +160,7 @@ export const stacksRouter = router({
       `)
       return result?.rows?.[0] || { total_stacks: 0, running: 0, stopped: 0, error: 0 }
     } catch (error) {
-      console.error('[stacks.getStats] Error:', error)
+      apiLogger.error({ error }, '[stacks.getStats] Error')
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch stats', cause: error as Error })
     }
   }),
@@ -204,7 +205,7 @@ export const stacksRouter = router({
         )
         return { success: true, stack: result?.rows?.[0], blueprint }
       } catch (error) {
-        console.error('[stacks.createFromRepo] Error:', error)
+        apiLogger.error({ error, input }, '[stacks.createFromRepo] Error')
         const details = (error instanceof Error && error.message) ? error.message : String(error);
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create stack from repo: ' + details, cause: error as Error })
       }

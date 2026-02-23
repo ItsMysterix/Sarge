@@ -4,6 +4,9 @@ import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { getProvider } from '../lib/providers'
 import { getProviderCredentials } from '../lib/credentials'
+import logger from '../../lib/logger'
+
+const prLogger = logger.child({ module: 'pr-previews' })
 
 /**
  * PR Previews Router
@@ -35,7 +38,7 @@ export const prPreviewsRouter = router({
 
         const result = await ctx.db.query(query, params).catch((err: any) => {
           if (err?.message?.includes('pr_previews')) {
-            console.log('[pr.list] Table not migrated yet')
+            prLogger.warn('[pr.list] Table not migrated yet')
             return { rows: [] }
           }
           throw err
@@ -43,7 +46,7 @@ export const prPreviewsRouter = router({
 
         return result?.rows || []
       } catch (err) {
-        console.error('[pr.list] Error:', err)
+        prLogger.error({ err, input }, '[pr.list] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch PR previews', cause: err as Error })
       }
     }),
@@ -72,7 +75,7 @@ export const prPreviewsRouter = router({
       const [owner, repo] = input.repository.full_name.split('/')
       const projectId = `${owner}-${repo}`
 
-      console.log(`[PR Preview] Webhook: ${input.action} for PR #${input.pull_request.number}`)
+      prLogger.info({ action: input.action, prNumber: input.pull_request.number }, '[PR Preview] Webhook received')
 
       try {
         if (input.action === 'opened' || input.action === 'synchronize' || input.action === 'reopened') {
@@ -81,7 +84,10 @@ export const prPreviewsRouter = router({
             `SELECT id, deployment_id, provider_id FROM pr_previews 
              WHERE project_id = $1 AND pr_number = $2`,
             [projectId, input.pull_request.number]
-          ).catch(() => ({ rows: [] }))
+          ).catch((err) => {
+            prLogger.error({ msg: 'Failed to fetch existing PR preview', projectId, prNumber: input.pull_request.number, err });
+            return { rows: [] };
+          })
 
           let previewId: string;
           let providerId = 'local';
@@ -94,7 +100,9 @@ export const prPreviewsRouter = router({
                SET status = 'building', commit_sha = $1, updated_at = NOW()
                WHERE id = $2`,
               [input.pull_request.head.sha, previewId]
-            ).catch(() => { })
+            ).catch((err) => {
+              prLogger.error({ msg: 'Failed to update PR preview status to building', previewId, err });
+            })
           } else {
             const result = await ctx.db.query(
               `INSERT INTO pr_previews (
@@ -120,7 +128,7 @@ export const prPreviewsRouter = router({
           // 2. Trigger Actual Deployment (The "Enterprise" Part)
           const provider = getProvider(providerId);
           if (provider) {
-            console.log(`[PR Preview] Triggering ${providerId} deploy for PR #${input.pull_request.number}`);
+            prLogger.info({ providerId, prNumber: input.pull_request.number }, '[PR Preview] Triggering deploy');
 
             // In a real scenario, we'd fetch actual project-linked credentials
             const credentials = await getProviderCredentials(providerId, ctx.db, "system").catch(() => ({}));
@@ -141,7 +149,9 @@ export const prPreviewsRouter = router({
                  SET deployment_id = $1, preview_url = $2, status = 'ready', updated_at = NOW()
                  WHERE id = $3`,
                 [deployResult.deploymentId, deployResult.previewUrl, previewId]
-              ).catch(() => { });
+              ).catch((err) => {
+                prLogger.error({ msg: 'Failed to mark PR preview as ready', previewId, err });
+              });
 
               // 3. Post Back to GitHub (Simulated)
               await postGithubStatus(owner, repo, input.pull_request.number, deployResult.previewUrl!);
@@ -149,7 +159,9 @@ export const prPreviewsRouter = router({
               await ctx.db.query(
                 `UPDATE pr_previews SET status = 'failed', updated_at = NOW() WHERE id = $1`,
                 [previewId]
-              ).catch(() => { });
+              ).catch((err) => {
+                prLogger.error({ msg: 'Failed to mark PR preview as failed', previewId, err });
+              });
             }
           }
 
@@ -160,7 +172,10 @@ export const prPreviewsRouter = router({
             `SELECT id, deployment_id, provider_id FROM pr_previews 
              WHERE project_id = $1 AND pr_number = $2`,
             [projectId, input.pull_request.number]
-          ).catch(() => ({ rows: [] }))
+          ).catch((err) => {
+            prLogger.error({ msg: 'Failed to fetch PR preview for closing', projectId, prNumber: input.pull_request.number, err });
+            return { rows: [] };
+          })
 
           if (preview?.rows?.[0]) {
             const pr = preview.rows[0];
@@ -169,16 +184,18 @@ export const prPreviewsRouter = router({
                SET status = 'closed', closed_at = NOW(), updated_at = NOW()
                WHERE id = $1`,
               [pr.id]
-            ).catch(() => { })
+            ).catch((err) => {
+              prLogger.error({ msg: 'Failed to mark PR preview as closed', previewId: pr.id, err });
+            })
 
             // 2. Cleanup Resources
             const provider = getProvider(pr.provider_id || 'local');
             if (provider && (provider as any).destroy) {
-              console.log(`[PR Preview] Cleaning up resources for PR #${input.pull_request.number}`);
+              prLogger.info({ prNumber: input.pull_request.number }, '[PR Preview] Cleaning up resources');
               await (provider as any).destroy({
                 projectId,
                 deploymentId: pr.deployment_id
-              }).catch((e: any) => console.error('[PR Preview] Cleanup failed:', e));
+              }).catch((e: any) => prLogger.error({ err: e, prNumber: input.pull_request.number }, '[PR Preview] Cleanup failed'));
             }
 
             return { message: 'Preview environment cleanup started', previewId: pr.id }
@@ -187,7 +204,7 @@ export const prPreviewsRouter = router({
 
         return { message: 'Webhook processed' }
       } catch (err) {
-        console.error('[PR Preview] Webhook error:', err)
+        prLogger.error({ err }, '[PR Preview] Webhook error')
         throw err
       }
     }),
@@ -207,7 +224,10 @@ export const prPreviewsRouter = router({
           `SELECT * FROM pr_previews 
            WHERE project_id = $1 AND pr_number = $2`,
           [input.projectId, input.prNumber]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          prLogger.error({ msg: 'Failed to fetch PR preview for manual deploy', projectId: input.projectId, prNumber: input.prNumber, err });
+          return { rows: [] };
+        })
 
         if (!preview?.rows?.[0]) {
           throw new Error('PR preview not found')
@@ -241,7 +261,9 @@ export const prPreviewsRouter = router({
              SET deployment_id = $1, preview_url = $2, status = 'ready', updated_at = NOW()
              WHERE id = $3`,
             [deployResult.deploymentId, deployResult.previewUrl, pr.id]
-          ).catch(() => { })
+          ).catch((err) => {
+            prLogger.error({ msg: 'Failed to update PR preview deployment info', previewId: pr.id, err });
+          })
 
           return {
             success: true,
@@ -252,12 +274,14 @@ export const prPreviewsRouter = router({
           await ctx.db.query(
             `UPDATE pr_previews SET status = 'failed', updated_at = NOW() WHERE id = $1`,
             [pr.id]
-          ).catch(() => { })
+          ).catch((err) => {
+            prLogger.error({ msg: 'Failed to mark PR preview as failed after manual deploy', previewId: pr.id, err });
+          })
 
           throw new Error(deployResult.error || 'Deployment failed')
         }
       } catch (err) {
-        console.error('[pr.deploy] Error:', err)
+        prLogger.error({ err, input }, '[pr.deploy] Error')
         throw err
       }
     }),
@@ -272,7 +296,10 @@ export const prPreviewsRouter = router({
         const preview = await ctx.db.query(
           `SELECT * FROM pr_previews WHERE id = $1`,
           [input.previewId]
-        ).catch(() => ({ rows: [] }))
+        ).catch((err) => {
+          prLogger.error({ msg: 'Failed to fetch PR preview for manual cleanup', previewId: input.previewId, err });
+          return { rows: [] };
+        })
 
         if (!preview?.rows?.[0]) {
           throw new Error('Preview not found')
@@ -295,11 +322,13 @@ export const prPreviewsRouter = router({
            SET status = 'closed', closed_at = NOW(), updated_at = NOW()
            WHERE id = $1`,
           [input.previewId]
-        ).catch(() => { })
+        ).catch((err) => {
+          prLogger.error({ msg: 'Failed to mark PR preview as closed after manual cleanup', previewId: input.previewId, err });
+        })
 
         return { success: true }
       } catch (err) {
-        console.error('[pr.cleanup] Error:', err)
+        prLogger.error({ err, input }, '[pr.cleanup] Error')
         throw err
       }
     }),
@@ -325,7 +354,7 @@ export const prPreviewsRouter = router({
 
         return result?.rows?.[0] || null
       } catch (err) {
-        console.error('[pr.get] Error:', err)
+        prLogger.error({ err, input }, '[pr.get] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch PR preview', cause: err as Error })
       }
     }),
@@ -337,7 +366,7 @@ export const prPreviewsRouter = router({
  * Post a comment to the GitHub PR with the preview URL
  */
 async function postGithubStatus(owner: string, repo: string, prNumber: number, url: string) {
-  console.log(`[GitHub API] Posting preview URL to ${owner}/${repo} PR #${prNumber}: ${url}`);
+  prLogger.info({ owner, repo, prNumber, url }, '[GitHub API] Posting preview URL to PR');
 
   // In a real implementation:
   // await githubApp.octokit.rest.issues.createComment({

@@ -1,4 +1,7 @@
 import axios from 'axios';
+import logger from '../lib/logger';
+
+const rustLogger = logger.child({ module: 'rust-bridge' });
 
 const BRIDGE_URL = process.env.RUST_BRIDGE_URL || 'http://127.0.0.1:4000/rpc';
 
@@ -32,7 +35,7 @@ export class RustBridgeService {
 
             return response.data.result!;
         } catch (e: any) {
-            console.error(`[RustBridge] Failed to call ${method}:`, e.message);
+            rustLogger.error({ method, err: e.message }, `[RustBridge] Failed to call ${method}`);
             throw e;
         }
     }

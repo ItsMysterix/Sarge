@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useUserSettings } from "@/hooks/use-sarge-api"
 import { trpc } from "@/lib/trpc"
@@ -32,45 +33,57 @@ export default function Settings() {
   const { addToast, ToastContainer } = useToast()
   const { theme, setTheme } = useTheme()
   const { currentProject } = useProject()
-  const t = trpc as any
 
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab") as SettingsTab
+    if (tab && [
+      "general", "appearance", "notifications", "integrations", "billing", 
+      "security", "shortcuts", "variables", "targets", "domains", 
+      "members", "webhooks"
+    ].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
   const [selectedProvider, setSelectedProvider] = useState<any | null>(null)
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
 
   // Providers & Billing Queries
-  const providersQuery = t.providers.list.useQuery({ projectSlug: currentProject?.slug || 'global' })
-  const costQuery = t.costOptimization.getCostOverview.useQuery(
+  const providersQuery = trpc.providers.list.useQuery({ projectSlug: currentProject?.slug || 'global' })
+  const costQuery = trpc.costOptimization.getCostOverview.useQuery(
     { projectId: currentProject?.id || '' },
     { enabled: !!currentProject?.id }
   )
-  const recommendationsQuery = t.costOptimization.getRecommendations.useQuery(
+  const recommendationsQuery = trpc.costOptimization.getRecommendations.useQuery(
     { projectId: currentProject?.id || '' },
     { enabled: !!currentProject?.id }
   )
-  const budgetQuery = t.costOptimization.getBudgetStatus.useQuery(
+  const budgetQuery = trpc.costOptimization.getBudgetStatus.useQuery(
     { projectId: currentProject?.id || '' },
     { enabled: !!currentProject?.id }
   )
 
-  const accountsQuery = t.auth.getLinkedAccounts.useQuery()
-  const channelsQuery = t.alerts.listChannels.useQuery({ projectId: currentProject?.id || 'global' })
+  const accountsQuery = trpc.auth.getLinkedAccounts.useQuery()
+  const channelsQuery = trpc.alerts.listChannels.useQuery({ projectId: currentProject?.id || 'global' })
 
-  const toggleProviderMutation = t.providers.toggle.useMutation({
+  const toggleProviderMutation = trpc.providers.toggle.useMutation({
     onSuccess: () => {
       providersQuery.refetch()
       addToast({ type: 'success', title: 'Provider Visibility Updated' })
     }
   })
 
-  const saveCredentialsMutation = t.providers.saveCredentials.useMutation({
+  const saveCredentialsMutation = trpc.providers.saveCredentials.useMutation({
     onSuccess: () => {
       providersQuery.refetch()
       addToast({ type: 'success', title: 'Account Connected', description: 'Real-time billing and orchestration active.' })
       setIsConnectModalOpen(false)
       setSelectedProvider(null)
     },
-    onError: (err: any) => {
+    onError: (err) => {
       addToast({ type: 'error', title: 'Connection Failed', description: err.message })
     }
   })
@@ -112,20 +125,20 @@ export default function Settings() {
     })
   }
 
-  const clearDataMutation = t.settings.clearData.useMutation({
+  const clearDataMutation = trpc.settings.clearData.useMutation({
     onSuccess: () => {
       addToast({ type: "success", title: "Data Cleared", description: "All system logs and metrics have been removed." })
     },
-    onError: (err: any) => {
+    onError: (err) => {
       addToast({ type: "error", title: "Action Failed", description: err.message })
     }
   })
 
-  const testWebhookMutation = t.alerts.testChannel.useMutation({
+  const testWebhookMutation = trpc.alerts.testChannel.useMutation({
     onSuccess: () => {
       addToast({ type: "success", title: "Test Success", description: "Slack webhook test successful! Message sent." })
     },
-    onError: (err: any) => {
+    onError: (err) => {
       addToast({ type: "error", title: "Test Failed", description: err.message })
     },
     onSettled: () => setTestingWebhook(false)

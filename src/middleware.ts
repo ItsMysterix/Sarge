@@ -26,7 +26,7 @@ function setSecurityHeaders(res: NextResponse): void {
   // Content Security Policy — strict but functional
   res.headers.set('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
+    "script-src 'self' 'unsafe-inline' https://vercel.live",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",

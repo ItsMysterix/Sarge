@@ -1,3 +1,5 @@
+import { apiLogger } from '../../lib/logger'
+
 export async function logProjectActivity(
     db: any,
     projectId: string,
@@ -12,6 +14,6 @@ export async function logProjectActivity(
             [projectId, userId, action, JSON.stringify(details)]
         );
     } catch (err) {
-        console.error('[logProjectActivity] Error logging project activity:', err);
+        apiLogger.error({ err, projectId, action }, '[logProjectActivity] Error');
     }
 }

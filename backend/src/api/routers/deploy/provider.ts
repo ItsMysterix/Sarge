@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { getProvider } from '../../lib/providers'
 import { getProviderCredentials } from '../../lib/credentials'
+import { providerLogger } from '../../../lib/logger'
 
 /**
  * Deploy Provider sub-router endpoints
@@ -108,7 +109,7 @@ export const estimateCost = secureProcedure('deploy.estimateCost')
             }) : { estimatedMonthly: 0, currency: 'USD' }
             return cost
         } catch (err) {
-            console.error(`[deploy.estimateCost] Error:`, err)
+            providerLogger.error({ err, input }, '[deploy.estimateCost] Error')
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to estimate cost', cause: err as Error })
         }
     })
@@ -132,7 +133,7 @@ export const getProviderStatus = secureProcedure('deploy.getProviderStatus')
             })
             return status
         } catch (err) {
-            console.error(`[deploy.getProviderStatus] Error:`, err)
+            providerLogger.error({ err, input }, '[deploy.getProviderStatus] Error')
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch provider status', cause: err as Error })
         }
     })

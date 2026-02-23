@@ -6,6 +6,9 @@
  */
 
 import axios from 'axios';
+import logger from '../lib/logger';
+
+const thanosLogger = logger.child({ module: 'thanos' });
 
 export interface ThanosMetric {
     target: string;
@@ -42,7 +45,7 @@ export class ThanosService {
                 datapoints: r.values.map((v: any) => [parseFloat(v[1]), v[0]])
             }));
         } catch (error) {
-            console.error('[ThanosService] Query error:', error);
+            thanosLogger.error({ msg: '[ThanosService] Query error', err: error });
             throw error;
         }
     }

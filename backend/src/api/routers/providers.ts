@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { eq, and } from 'drizzle-orm'
 import { connectedProviders } from '../lib/drizzle-schema'
+import { providerLogger } from '../../lib/logger'
 
 export type ProviderKind = 'containers' | 'functions' | 'static'
 export type ProviderStatus = 'connected' | 'disconnected'
@@ -97,7 +98,7 @@ export const providersRouter = router({
           }
         })
       } catch (e) {
-        console.error('[providers.list] Drizzle error:', e)
+        providerLogger.error({ e, input }, '[providers.list] Drizzle error')
         return defaults
       }
     }),
@@ -135,7 +136,7 @@ export const providersRouter = router({
 
         return { id: input.providerId, status, connectedAt: connectedAt?.toISOString() }
       } catch (e) {
-        console.error('[providers.toggle] Drizzle error:', e)
+        providerLogger.error({ e, input }, '[providers.toggle] Drizzle error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update provider status' })
       }
     }),
@@ -171,7 +172,7 @@ export const providersRouter = router({
 
         return { success: true, providerId: input.providerId }
       } catch (e) {
-        console.error('[providers.saveCredentials] Drizzle error:', e)
+        providerLogger.error({ e, input }, '[providers.saveCredentials] Drizzle error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to save provider credentials' })
       }
     }),

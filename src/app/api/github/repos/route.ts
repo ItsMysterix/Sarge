@@ -15,9 +15,8 @@ export async function GET(req: NextRequest) {
     const token = sessionToken || linkedToken
 
     if (!token) {
-      console.error("No GitHub access token found in session or linked credentials")
       return NextResponse.json(
-        { 
+        {
           error: "GitHub access token not found. Connect GitHub in Settings to access your repositories.",
           action: "github_connect_required"
         },
@@ -25,7 +24,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    console.log("Fetching GitHub repositories with access token...")
+
 
     // Fetch all repositories with pagination
     let allRepos: any[] = []
@@ -33,7 +32,6 @@ export async function GET(req: NextRequest) {
     let hasMore = true
 
     while (hasMore && page <= 10) { // Safety limit of 10 pages (1000 repos)
-      console.log(`📥 Fetching page ${page}...`)
       const response = await fetch(
         `https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`,
         {
@@ -46,24 +44,23 @@ export async function GET(req: NextRequest) {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error(`GitHub API error: ${response.status} ${response.statusText}`, errorText)
-        
+
         // Handle 401 Unauthorized specifically
         if (response.status === 401) {
           return NextResponse.json(
-            { 
+            {
               error: "GitHub authentication expired or insufficient permissions. Please sign out and sign back in with GitHub to refresh your access.",
               action: "signout_required",
-              details: errorText 
+              details: errorText
             },
             { status: 401 }
           )
         }
-        
+
         return NextResponse.json(
-          { 
+          {
             error: `GitHub API error: ${response.statusText}. Please try signing out and signing in again with GitHub.`,
-            details: errorText 
+            details: errorText
           },
           { status: response.status }
         )
@@ -71,24 +68,21 @@ export async function GET(req: NextRequest) {
 
       const text = await response.text()
       if (!text || text.trim().length === 0) {
-        console.warn(`Empty response from GitHub API for page ${page}`)
         hasMore = false
         break
       }
-      
+
       let repos: any[]
       try {
         repos = JSON.parse(text)
       } catch (parseError) {
-        console.error(`Failed to parse GitHub API response:`, parseError)
         return NextResponse.json(
           { error: 'Invalid response from GitHub API', details: text.substring(0, 200) },
           { status: 500 }
         )
       }
-      console.log(`   ✓ Page ${page}: got ${repos.length} repositories`)
       allRepos = allRepos.concat(repos)
-      
+
       // If we got less than 100 repos, we've reached the last page
       if (repos.length < 100) {
         hasMore = false
@@ -97,7 +91,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`✅ Successfully fetched ${allRepos.length} total repositories from GitHub (${page} page${page > 1 ? 's' : ''})`)
     const repos = allRepos
 
     // Format the response
@@ -118,9 +111,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(formattedRepos)
   } catch (error) {
-    console.error("Error fetching GitHub repos:", error)
     return NextResponse.json(
-      { 
+      {
         error: "Failed to fetch repositories. Please ensure you're signed in with GitHub.",
         details: error instanceof Error ? error.message : String(error)
       },

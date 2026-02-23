@@ -13,6 +13,7 @@ import * as os from 'os'
 import { spawn } from 'child_process'
 import * as fs from 'fs'
 import { saveLogs, getCore, getDataRoot } from './shared/sarge-helpers'
+import { apiLogger } from '../../lib/logger'
 import createBufferedSubscription from '../lib/realtime'
 import { PlatformRouter, ServiceProfile } from '../../services/platform-router'
 
@@ -99,16 +100,16 @@ export const oneclickRouter = router({
           )
         }
 
-        console.log(`[OneClick] Scanning ${input.owner}/${input.repo} via GitHub API`)
+        apiLogger.info({ owner: input.owner, repo: input.repo }, '[OneClick] Scanning via GitHub API')
 
         const useAI = !!process.env.ANTHROPIC_API_KEY
-        console.log(`[OneClick] AI Analysis: ${useAI ? 'Enabled (Claude 3.5 Sonnet)' : 'Disabled (pattern matching)'}`)
+        apiLogger.info({ useAI }, '[OneClick] AI Analysis mode')
 
         // Use GitHub scanner with AI support
         const scanner = createGitHubScanner(input.accessToken, useAI)
         const blueprint = await scanner.scanRepository(input.owner, input.repo, input.branch)
 
-        console.log(`[OneClick] Scan complete: ${blueprint.services.length} services, ${blueprint.externalServices.length} external`)
+        apiLogger.info({ serviceCount: blueprint.services.length, externalCount: blueprint.externalServices.length }, '[OneClick] Scan complete')
 
         // DEFENSIVE: Map services with null guards to prevent serialization issues
         const safeServices = Array.isArray(blueprint?.services) ?
@@ -156,9 +157,7 @@ export const oneclickRouter = router({
         }
 
       } catch (error) {
-        console.error('[OneClick] detectRepo error:', error)
-        console.error('[OneClick] Error stack:', error instanceof Error ? error.stack : 'no stack')
-        console.error('[OneClick] Error name:', error instanceof Error ? error.name : typeof error)
+        apiLogger.error({ error, input: 'owner' in input ? { owner: input.owner, repo: input.repo } : {} }, '[OneClick] detectRepo error')
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: `Failed to analyze repository: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -201,7 +200,7 @@ export const oneclickRouter = router({
           overallRecommendation: results.length > 0 ? results[0].primary.platformId : 'local',
         }
       } catch (error) {
-        console.error('[OneClick] recommendPlatforms error:', error)
+        apiLogger.error({ error }, '[OneClick] recommendPlatforms error')
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to generate platform recommendations',
@@ -245,7 +244,7 @@ export const oneclickRouter = router({
           logs.push(logEntry)
           ctx.ee.emit(topic, logEntry)
 
-          console.log(`[Deployment ${input.owner}/${input.repo}] [${level.toUpperCase()}] ${msg}`)
+          apiLogger.info({ owner: input.owner, repo: input.repo, level }, msg)
 
           // Save to database asynchronously (don't wait)
           saveLogs([{
@@ -254,9 +253,9 @@ export const oneclickRouter = router({
             service: `${input.owner}/${input.repo}`,
             severity: level === 'error' ? 'high' : 'medium',
             timestamp: new Date().toISOString(),
-          }]).catch(e => console.error('Failed to save log:', e))
+          }]).catch(e => apiLogger.error({ err: e }, 'Failed to save deployment log'))
         } catch (err) {
-          console.error('[emit] Error:', err)
+          apiLogger.error({ err }, '[emit] Error')
         }
       }
 
@@ -311,10 +310,10 @@ export const oneclickRouter = router({
                       cost.hourlyRate,
                       JSON.stringify(cost.breakdown)
                     ]
-                  ).catch((err: any) => console.warn('[Cost] Failed to save estimate:', err));
+                  ).catch((err: any) => apiLogger.warn({ err }, '[Cost] Failed to save estimate'));
 
                   emit(`💰 Estimated cost: $${cost.monthlyEstimate.toFixed(2)}/mo`);
-                } catch (e) { console.warn('[Cost] Estimation failed:', e); }
+                } catch (e) { apiLogger.warn({ err: e }, '[Cost] Estimation failed'); }
 
                 return {
                   services: [{
@@ -415,7 +414,7 @@ export const oneclickRouter = router({
           // Cleanup temp directory after deployment
           setTimeout(() => {
             tarResult.cleanup()
-            console.log(`[Deploy] Cleaned up temporary deployment files`)
+            apiLogger.info('[Deploy] Cleaned up temporary deployment files')
           }, 5000) // Give client time to fetch logs before cleanup
 
           if (result.success) {
@@ -460,7 +459,7 @@ export const oneclickRouter = router({
       blueprint: z.any(), // Blueprint from detectRepo
     }))
     .mutation(async ({ input }) => {
-      console.log(`[OneClick] Deploying ${input.owner}/${input.repo} from GitHub (no cloning!)`)
+      apiLogger.info({ owner: input.owner, repo: input.repo }, '[OneClick] Deploying from GitHub (no cloning)')
 
       const instances = await orchestrator.deploy({
         owner: input.owner,
@@ -478,7 +477,7 @@ export const oneclickRouter = router({
         url: i.url,
       }))
 
-      console.log(`[OneClick] Deployed ${result.length} services`)
+      apiLogger.info({ count: result.length }, '[OneClick] Deployed services')
       return { services: result, status: 'deployed' }
     }),
 
@@ -578,7 +577,7 @@ export const oneclickRouter = router({
                 const provider = getProvider(input.provider);
                 if (!provider) {
                   // Fallback to local if provider not found (or treat as error)
-                  console.warn(`[logs.tail] Provider ${input.provider} not found, falling back to local events`);
+                  apiLogger.warn({ provider: input.provider }, '[logs.tail] Provider not found, falling back to local events');
                   const sub = createBufferedSubscription(ctx.ee, { topics: [`serviceLogs:${input.service}`] })()
                   const subscription = sub.subscribe({
                     next: (data) => emit.next(data),
@@ -589,7 +588,7 @@ export const oneclickRouter = router({
                   return;
                 }
 
-                console.log(`[logs.tail] Polling ${input.provider} logs for ${input.stackId}`);
+                apiLogger.info({ provider: input.provider, stackId: input.stackId }, '[logs.tail] Polling provider logs');
                 const credentials = await getProviderCredentials(input.provider, ctx.db, (ctx as any).userId);
 
                 let lastTimestamp = 0;
@@ -616,7 +615,7 @@ export const oneclickRouter = router({
                       }
                     }
                   } catch (err) {
-                    console.error(`[logs.tail] Error polling ${input.provider}:`, err);
+                    apiLogger.error({ err, provider: input.provider }, '[logs.tail] Error polling provider');
                   }
                 };
 
@@ -625,7 +624,7 @@ export const oneclickRouter = router({
                 cleanup = () => clearInterval(interval);
               }
             } catch (err) {
-              console.error('[logs.tail] Setup error:', err);
+              apiLogger.error({ err }, '[logs.tail] Setup error');
               emit.error(err);
             }
           };

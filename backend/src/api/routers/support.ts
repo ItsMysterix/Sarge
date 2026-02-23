@@ -2,6 +2,7 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import { apiLogger } from '../../lib/logger'
 
 export const supportRouter = router({
     createTicket: secureProcedure('support.createTicket')
@@ -40,7 +41,7 @@ export const supportRouter = router({
 
                 return { success: true, ticketId: result.rows[0].id }
             } catch (error) {
-                console.error('[support.createTicket] error:', error)
+                apiLogger.error({ error, userId }, '[support.createTicket] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' })
             }
         }),
@@ -59,7 +60,7 @@ export const supportRouter = router({
                 )
                 return { tickets: result.rows }
             } catch (error) {
-                console.error('[support.listMyTickets] error:', error)
+                apiLogger.error({ error, userId }, '[support.listMyTickets] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' })
             }
         }),

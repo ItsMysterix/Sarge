@@ -101,13 +101,12 @@ const EnvironmentsTab = ({ setShowModal }: { setShowModal: (v: boolean) => void 
 
 // --- Pipelines Tab (with Rollback) ---
 const PipelinesTab = () => {
-  const t = trpc as any
-  const { data, isLoading, refetch, isRefetching } = t.deploy.getDeployments.useInfiniteQuery(
+  const { data, isLoading, refetch, isRefetching } = trpc.deploy.getDeployments.useInfiniteQuery(
     { limit: 20 },
     { getNextPageParam: (lastPage: any) => lastPage.nextCursor }
   )
   const items = data?.pages.flatMap((page: any) => page.items) || []
-  const rollbackMutation = t.deploy.rollback.useMutation({ onSuccess: () => refetch() })
+  const rollbackMutation = trpc.deploy.rollback.useMutation({ onSuccess: () => refetch() })
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -181,9 +180,8 @@ const PipelinesTab = () => {
 
 // --- PR Previews Tab ---
 const PRPreviewsTab = () => {
-  const t = trpc as any
   const { currentProject } = useProject()
-  const previewsQ = t.prPreviews.list.useQuery({ projectId: currentProject?.id || '', status: undefined }, { enabled: !!currentProject?.id })
+  const previewsQ = trpc.prPreviews.list.useQuery({ projectId: currentProject?.id || '', status: undefined }, { enabled: !!currentProject?.id })
   const previews = previewsQ.data || []
   const loading = previewsQ.isLoading
 

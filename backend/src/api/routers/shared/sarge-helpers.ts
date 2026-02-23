@@ -7,6 +7,8 @@
  * - saveLogs(): Persist deployment logs to database
  */
 
+import { apiLogger } from '../../../lib/logger'
+
 /**
  * Dynamically import sarge-core at runtime.
  * Uses non-literal module name to prevent webpack static resolution during Next.js build.
@@ -70,12 +72,12 @@ export async function saveLogs(
                     }
                 })
             } catch (logErr) {
-                console.error('[saveLogs] Failed to insert log:', logErr)
+                apiLogger.error({ err: logErr }, '[saveLogs] Failed to insert log')
             }
         }
 
-        console.log('[saveLogs] Successfully saved', logs.length, 'log(s) to database')
+        apiLogger.info({ count: logs.length }, '[saveLogs] Successfully saved logs to database')
     } catch (err) {
-        console.error('[saveLogs] Database error:', err)
+        apiLogger.error({ err }, '[saveLogs] Database error')
     }
 }

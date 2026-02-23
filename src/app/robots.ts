@@ -8,12 +8,9 @@ export default function robots(): MetadataRoute.Robots {
             disallow: [
                 '/api/',
                 '/projects/',
-                '/services/',
                 '/settings/',
                 '/profile/',
-                '/stacks/',
                 '/orchestration/',
-                '/governance/',
                 '/observability/',
             ],
         },

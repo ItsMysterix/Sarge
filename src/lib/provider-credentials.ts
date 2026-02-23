@@ -5,10 +5,16 @@ interface ProviderCredentials {
   [key: string]: string | undefined
 }
 
-const ENCRYPTION_KEY = process.env.CREDENTIAL_ENCRYPTION_KEY || "default-dev-key-change-in-prod-32b"
+const ENCRYPTION_KEY = process.env.CREDENTIAL_ENCRYPTION_KEY;
+
+if (!ENCRYPTION_KEY && process.env.NODE_ENV !== 'development') {
+  throw new Error("CRITICAL: CREDENTIAL_ENCRYPTION_KEY is not set. Refusing to start to prevent insecure credential storage.");
+}
+
+const FINAL_KEY = ENCRYPTION_KEY || "default-dev-key-change-in-prod-32b";
 
 function encryptCredentials(plaintext: string): string {
-  const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32).padEnd(32, "0"))
+  const key = Buffer.from(FINAL_KEY.slice(0, 32).padEnd(32, "0"))
   const iv = crypto.randomBytes(16)
   const cipher = crypto.createCipheriv("aes-256-cbc", key, iv)
 
@@ -19,7 +25,7 @@ function encryptCredentials(plaintext: string): string {
 }
 
 function decryptCredentials(encrypted: string): string {
-  const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32).padEnd(32, "0"))
+  const key = Buffer.from(FINAL_KEY.slice(0, 32).padEnd(32, "0"))
   const [ivHex, encryptedData] = encrypted.split(":")
   const iv = Buffer.from(ivHex, "hex")
   const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv)

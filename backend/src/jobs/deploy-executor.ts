@@ -3,6 +3,7 @@ import { ee } from '../api/lib/events';
 import { incDeploy, startQueryTimer, deploysRunning } from '../metrics/exporter';
 import { emitDeploy } from '../api/lib/deployEmit';
 import { uuidLockKey, withAdvisoryLock } from '../api/lib/pgLock';
+import { deployLogger } from '../lib/logger';
 
 export type DeployWork = { id: number };
 
@@ -16,7 +17,7 @@ export function startDeployExecutor() {
     if (queue.length >= MAX_QUEUE) {
       // drop oldest to protect memory
       queue.shift();
-      console.warn('deploy-executor: queue full, dropped oldest');
+      deployLogger.warn('deploy-executor: queue full, dropped oldest');
     }
     queue.push(work);
     process.nextTick(processQueue);
@@ -30,7 +31,7 @@ export function startDeployExecutor() {
     try {
       await runOne(job);
     } catch (err) {
-      console.error('deploy-executor error:', err);
+      deployLogger.error({ msg: 'deploy-executor error', err });
     } finally {
       running = false;
       if (!stopped && queue.length > 0) process.nextTick(processQueue);

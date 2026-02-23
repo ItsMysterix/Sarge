@@ -1,6 +1,7 @@
 import { Pool } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import * as schema from './drizzle-schema';
+import logger from '../../lib/logger';
 
 // Note: Using a different global key to avoid conflicts if both run in same process
 declare global {
@@ -12,10 +13,10 @@ declare global {
 
 // Provide a resilient mock when DATABASE_URL is not configured
 const createMockPool = () => {
-    console.warn('[db] DATABASE_URL not set; using in-memory mock pool');
+    logger.warn('[db] DATABASE_URL not set; using in-memory mock pool');
     const mock: any = {
         async query(sql: string, params?: any[]) {
-            console.warn('[db/mock] Query called with no DB:', { sql: sql.substring(0, 100), params });
+            logger.warn({ sql: sql.substring(0, 100), params }, '[db/mock] Query called with no DB');
             return { rows: [] };
         },
         async end() { /* noop */ },

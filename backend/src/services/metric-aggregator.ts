@@ -8,6 +8,9 @@
 import { getProvider } from '../api/lib/providers'
 import { getProviderCredentials } from '../api/lib/credentials'
 import { ProviderMetric } from '../api/lib/providers/types'
+import logger from '../lib/logger'
+
+const metricsLogger = logger.child({ module: 'metric-aggregator' })
 
 export interface HealthScore {
     score: number // 0-100
@@ -51,7 +54,7 @@ export class MetricAggregator {
                 totalMemory += mem
                 deploymentCount++
             } catch (err) {
-                console.warn(`[MetricAggregator] Failed to fetch metrics for ${d.deploymentId}:`, err)
+                metricsLogger.warn({ deploymentId: d.deploymentId, providerId: d.providerId, err }, `[MetricAggregator] Failed to fetch metrics`)
                 issues += 2 // Treat missing metrics as a warning
             }
         }))

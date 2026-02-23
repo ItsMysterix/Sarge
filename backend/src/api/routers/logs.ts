@@ -190,4 +190,77 @@ export const logsRouter = router({
     .query(async ({ ctx, input }) => {
       return logAggregator.getUnifiedLogs(input.deployments, ctx.db, (ctx as any).userId, input)
     }),
+
+  // Legacy/Convenience Aliases
+  tail: secureProcedure('logs.tail')
+    .input(z.object({
+      service: z.string().optional(),
+      limit: z.number().optional().default(10),
+    }))
+    .query(async ({ ctx, input }) => {
+      // Re-use listing logic via internal call or just replicate the simple case
+      const result = await ctx.db.query(
+        `SELECT * FROM logs ${input.service ? 'WHERE service_id = $1 OR service = $1' : ''} ORDER BY created_at DESC LIMIT $${input.service ? '2' : '1'}`,
+        (input.service ? [input.service, input.limit] : [input.limit]) as any[]
+      );
+      return result.rows;
+    }),
+
+  search: secureProcedure('logs.search')
+    .input(z.object({
+      search: z.string(),
+      service: z.string().optional(),
+      limit: z.number().optional().default(50),
+    }))
+    .query(async ({ ctx, input }) => {
+      const where = [`message ILIKE $1`];
+      const params: any[] = [`%${input.search}%`];
+      if (input.service) {
+        params.push(input.service);
+        where.push(`(service_id = $${params.length} OR service = $${params.length})`);
+      }
+      params.push(input.limit);
+      const sql = `SELECT * FROM logs WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT $${params.length}`;
+      const result = await ctx.db.query(sql, params);
+      return result.rows;
+    }),
+
+  recent: secureProcedure('logs.recent')
+    .input(z.object({
+      type: z.string().optional(), // 'error', 'info', etc.
+      cursor: z.string().optional(),
+      limit: z.number().optional().default(50),
+    }))
+    .query(async ({ ctx, input }) => {
+      const where: string[] = [];
+      const params: any[] = [];
+      if (input.type) {
+        params.push(input.type);
+        where.push(`level = $${params.length}`);
+      }
+
+      if (input.cursor) {
+        try {
+          const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf8'));
+          params.push(decoded.created_at);
+          params.push(decoded.id);
+          where.push(`(created_at, id) < ($${params.length - 1}, $${params.length})`);
+        } catch { }
+      }
+
+      const whereStr = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      params.push(input.limit);
+      const sql = `SELECT * FROM logs ${whereStr} ORDER BY created_at DESC NULLS LAST, "timestamp" DESC NULLS LAST, id DESC LIMIT $${params.length}`;
+
+      const result = await ctx.db.query(sql, params);
+      const items = result?.rows || [];
+
+      let nextCursor: string | null = null;
+      if (items.length > 0 && items.length === input.limit) {
+        const last = items[items.length - 1];
+        nextCursor = Buffer.from(JSON.stringify({ created_at: last.created_at, id: last.id }), 'utf8').toString('base64');
+      }
+
+      return { items, nextCursor };
+    }),
 });

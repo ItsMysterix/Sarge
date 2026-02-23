@@ -4,8 +4,8 @@ import { CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface BillingTabProps {
-  stacks: any[]
-  awsSummary: any
+  stacks?: any[]
+  awsSummary?: any
 }
 
 export function BillingTab({ stacks, awsSummary }: BillingTabProps) {

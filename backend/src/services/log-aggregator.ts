@@ -8,6 +8,9 @@
 import { getProvider } from '../api/lib/providers'
 import { getProviderCredentials } from '../api/lib/credentials'
 import { LogEntry } from '../api/lib/providers/types'
+import logger from '../lib/logger'
+
+const aggregatorLogger = logger.child({ module: 'log-aggregator' })
 
 export interface AggregatedLogLine extends LogEntry {
     provider: string
@@ -40,7 +43,7 @@ export class LogAggregator {
 
                 allLogs.push(...logs.map(l => ({ ...l, provider: d.providerId })))
             } catch (err) {
-                console.warn(`[LogAggregator] Failed to fetch logs for ${d.deploymentId} on ${d.providerId}:`, err)
+                aggregatorLogger.warn({ deploymentId: d.deploymentId, providerId: d.providerId, err }, `[LogAggregator] Failed to fetch logs`)
             }
         }))
 

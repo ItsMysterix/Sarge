@@ -1,8 +1,13 @@
 "use client"
 
 import React, { Component, ReactNode } from "react"
-import { AlertTriangle, Bug, RefreshCw, Code, Users } from "lucide-react"
+import { 
+  AlertTriangle, Bug, RefreshCw, Code, 
+  ShieldOff, WifiOff, Edit3, Database, Settings,
+  ArrowLeft
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ERROR_REGISTRY, categorizeError, getErrorDetails } from "@/lib/error-registry"
 
 interface Props {
   children: ReactNode
@@ -14,10 +19,15 @@ interface State {
   error: Error | null
 }
 
-/**
- * Consolidated Error Boundary
- * Provides professional recovery UI for users and deep debugging for developers.
- */
+const ICON_MAP: Record<string, any> = {
+  AlertTriangle,
+  ShieldOff,
+  WifiOff,
+  Edit3,
+  Database,
+  Settings,
+};
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
@@ -30,12 +40,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("[ErrorBoundary] Uncaught error:", error, errorInfo)
-    // Future: Sentry.captureException(error, { extra: errorInfo })
   }
 
   render() {
     if (this.state.hasError) {
       const isDev = process.env.NODE_ENV === "development"
+      const error = this.state.error
+      const details = getErrorDetails(error)
+      const category = categorizeError(error)
+      const Icon = ICON_MAP[details.icon || 'AlertTriangle'] || AlertTriangle
       
       let fallbackType = this.props.fallbackType || "auto"
       if (fallbackType === "auto") {
@@ -45,29 +58,34 @@ export class ErrorBoundary extends Component<Props, State> {
       if (fallbackType === "user") {
         return (
           <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
-            <div className="glass-card p-8 max-w-md w-full text-center space-y-4 border border-warning/30">
+            <div className="glass-card p-8 max-w-md w-full text-center space-y-4 border border-white/10 shadow-2xl animate-fade-in">
               <div className="flex justify-center">
-                <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center animate-pulse">
-                  <AlertTriangle className="w-8 h-8 text-warning" />
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                  <Icon className="w-8 h-8 text-white/50" />
                 </div>
               </div>
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-white">Temporary Display Issue</h2>
+                <h2 className="text-xl font-bold text-white tracking-tight">{details.title}</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed px-4">
+                  {details.message}
+                </p>
               </div>
-              <p className="text-gray-400">
-                We're experiencing a minor issue with the dashboard interface. 
-                Your infrastructure is still running normally.
-              </p>
+              
               <div className="space-y-2 pt-4">
                 <Button
-                  onClick={() => window.location.reload()}
-                  className="w-full bg-accent hover:bg-accent/90 text-black font-bold"
+                  onClick={() => {
+                    if (category === 'auth') window.location.href = '/sign-in';
+                    else if (category === 'data') window.history.back();
+                    else window.location.reload();
+                  }}
+                  className="w-full bg-white text-black font-bold hover:bg-white/90 transition-all h-11"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh Dashboard
+                  {details.action}
                 </Button>
-                <p className="text-xs text-gray-500">
-                  Status: All systems operational
+                
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold pt-4">
+                  Incident ID: {Math.random().toString(36).substring(2, 10).toUpperCase()}
                 </p>
               </div>
             </div>
@@ -77,56 +95,65 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Developer fallback
       return (
-        <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
-          <div className="glass-card p-8 max-w-2xl w-full space-y-4 border-2 border-error/50">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center flex-shrink-0 animate-pulse">
-                <Bug className="w-6 h-6 text-error" />
+        <div className="min-h-screen bg-black flex items-center justify-center p-4 font-sans">
+          <div className="w-full max-w-3xl space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Runtime Exception</span>
               </div>
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-error">Runtime Exception</h2>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-error/10 border border-error/30">
-                    <Code className="w-3 h-3 text-error" />
-                    <span className="text-xs text-error font-medium">Developer Mode</span>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                {category} error
+              </div>
+            </div>
+
+            <div className="bg-[#0f0f15] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-500/50" />
+              
+              <div className="flex flex-col md:flex-row md:items-start gap-6">
+                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+                  <Bug className="w-6 h-6 text-white/40" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl font-bold text-white mb-2 truncate">
+                    {error?.name || "Error"}: {error?.message || "Unknown error"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-6 line-clamp-2">
+                    An unhandled exception occurred in the render lifecycle or an effect.
+                  </p>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        <Code className="w-3 h-3" />
+                        Stack Trace
+                      </div>
+                      <div className="bg-black/50 border border-white/5 rounded-xl p-4 overflow-auto max-h-[300px] scrollbar-thin">
+                        <pre className="text-xs font-mono text-white/70 whitespace-pre leading-relaxed">
+                          {error?.stack}
+                        </pre>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <p className="text-gray-400 text-sm">
-                  The application encountered an unhandled error. Debugging details below.
-                </p>
               </div>
-            </div>
 
-            <div className="bg-black/50 p-4 rounded-lg border border-white/10 overflow-auto">
-              <p className="text-xs text-error font-mono mb-2">Error Message:</p>
-              <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap">
-                {this.state.error?.message || "Unknown error"}
-              </pre>
-              {this.state.error?.stack && (
-                <>
-                  <p className="text-xs text-error font-mono mt-4 mb-2">Stack Trace:</p>
-                  <pre className="text-xs text-gray-500 font-mono whitespace-pre-wrap max-h-64 overflow-auto">
-                    {this.state.error.stack}
-                  </pre>
-                </>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={() => this.setState({ hasError: false, error: null })}
-                className="bg-accent hover:bg-accent/90 text-black font-bold"
-              >
-                Try Again
-              </Button>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="border-white/20 hover:border-accent/50"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reload Page
-              </Button>
+              <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap gap-3">
+                <Button
+                  onClick={() => this.setState({ hasError: false, error: null })}
+                  className="bg-white text-black font-bold h-10 px-6 hover:bg-white/90"
+                >
+                  Hot Reload
+                </Button>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  className="border-white/10 text-white font-bold h-10 px-6 hover:bg-white/5"
+                >
+                   Hard Refresh
+                </Button>
+              </div>
             </div>
           </div>
         </div>

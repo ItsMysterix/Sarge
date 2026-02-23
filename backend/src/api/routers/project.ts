@@ -3,6 +3,7 @@ import { router } from '../../trpc';
 import { secureProcedure } from '../trpc/middlewares/security';
 import { TRPCError } from '@trpc/server';
 import { getAIAnalyzer } from '../lib/ai-analyzer';
+import { apiLogger } from '../../lib/logger';
 
 // Project schema for validation
 const createProjectSchema = z.object({
@@ -74,7 +75,7 @@ export const projectRouter = router({
 
       return { projects: result.rows }
     } catch (error) {
-      console.error('Error fetching projects:', error)
+      apiLogger.error({ error }, 'Error fetching projects')
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch projects', cause: error as Error });
     }
   }),
@@ -124,7 +125,7 @@ export const projectRouter = router({
           updatedAt: row.updated_at,
         }
       } catch (error) {
-        console.error('[project.getById] error:', error)
+        apiLogger.error({ error, input }, '[project.getById] error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch project', cause: error as Error });
       }
     }),
@@ -174,7 +175,7 @@ export const projectRouter = router({
           updatedAt: row.updated_at,
         }
       } catch (error) {
-        console.error('[project.getBySlug] error:', error)
+        apiLogger.error({ error, input }, '[project.getBySlug] error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch project', cause: error as Error });
       }
     }),
@@ -221,7 +222,7 @@ export const projectRouter = router({
               }
             }
           } catch (err) {
-            console.error('[project.create] AI detection failed (non-fatal):', err)
+            apiLogger.error({ err, repositoryId: input.repositoryId }, '[project.create] AI detection failed (non-fatal)')
             // Continue without detection info
           }
         }
@@ -296,13 +297,12 @@ export const projectRouter = router({
             ]
           )
         } catch (logErr) {
-          console.error('[project.create] Failed to log activity/notification (non-fatal):', logErr)
+          apiLogger.error({ logErr, projectId: project.id }, '[project.create] Failed to log activity/notification (non-fatal)')
         }
 
         return project
       } catch (error: any) {
-        if (error instanceof TRPCError) throw error;
-        console.error('Error creating project:', error)
+        apiLogger.error({ error, input }, 'Error creating project')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `Failed to create project: ${error.message}` });
       }
     }),
@@ -416,7 +416,7 @@ export const projectRouter = router({
         return result.rows[0];
       } catch (err) {
         // If table doesn't exist yet, indicate no settings
-        console.error('[project.getSettings] Error:', err)
+        apiLogger.error({ err, input }, '[project.getSettings] Error')
         return null;
       }
     }),
@@ -518,7 +518,7 @@ export const projectRouter = router({
           avgDeployTime: Math.round(Number(ds.avg_deploy_time) || 0),
         };
       } catch (err) {
-        console.error('[project.getStats] Error:', err)
+        apiLogger.error({ err, input }, '[project.getStats] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch project stats', cause: err as Error });
       }
     }),
@@ -534,7 +534,7 @@ export const projectRouter = router({
     }))
     .mutation(async ({ input }) => {
       try {
-        console.log(`[tRPC] Analyzing repository: ${input.owner}/${input.repo}`);
+        apiLogger.info({ owner: input.owner, repo: input.repo }, `[tRPC] Analyzing repository: ${input.owner}/${input.repo}`);
 
         const analyzer = getAIAnalyzer();
         const analysis = await analyzer.analyzeRepository(
@@ -544,11 +544,11 @@ export const projectRouter = router({
           input.githubToken
         );
 
-        console.log(`[tRPC] Analysis complete: ${analysis.framework} (confidence: ${analysis.confidence})`);
+        apiLogger.info({ framework: analysis.framework, confidence: analysis.confidence }, `[tRPC] Analysis complete: ${analysis.framework} (confidence: ${analysis.confidence})`);
 
         return analysis;
       } catch (error) {
-        console.error('[tRPC] Analysis failed:', error);
+        apiLogger.error({ error, input }, '[tRPC] Analysis failed');
 
         // Structured error for frontend to parse
         const structuredError = {
@@ -601,7 +601,7 @@ export const projectRouter = router({
 
         return result.rows || [];
       } catch (error) {
-        console.error('[project.getActivity] Error:', error);
+        apiLogger.error({ error, input }, '[project.getActivity] Error');
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch activity', cause: error as Error });
       }
     }),
@@ -636,7 +636,7 @@ export const projectRouter = router({
            WHERE project_id = $1`,
           [projectId]
         ).catch(err => {
-          console.warn('[project.getDashboardSummary] Error fetching deployments (table might be missing):', err.message);
+          apiLogger.warn({ err, projectId }, '[project.getDashboardSummary] Error fetching deployments (table might be missing)');
           return { rows: [{ total: 0, successful: 0, failed: 0, active_services: 0, last_deployed_at: null, avg_deploy_time: 0 }] };
         });
 
@@ -648,7 +648,7 @@ export const projectRouter = router({
            LIMIT 15`,
           [projectId]
         ).catch(err => {
-          console.warn('[project.getDashboardSummary] Error fetching activity:', err.message);
+          apiLogger.warn({ err, projectId }, '[project.getDashboardSummary] Error fetching activity');
           return { rows: [] };
         });
 
@@ -656,7 +656,7 @@ export const projectRouter = router({
           `SELECT * FROM environments WHERE project_id = $1 ORDER BY updated_at DESC`,
           [projectId]
         ).catch(err => {
-          console.warn('[project.getDashboardSummary] Error fetching environments:', err.message);
+          apiLogger.warn({ err, projectId }, '[project.getDashboardSummary] Error fetching environments');
           return { rows: [] };
         });
 
@@ -664,7 +664,7 @@ export const projectRouter = router({
           `SELECT * FROM deployments WHERE project_id = $1 ORDER BY created_at DESC LIMIT 1`,
           [projectId]
         ).catch(err => {
-          console.warn('[project.getDashboardSummary] Error fetching latest deployment:', err.message);
+          apiLogger.warn({ err, projectId }, '[project.getDashboardSummary] Error fetching latest deployment');
           return { rows: [] };
         });
 
@@ -703,7 +703,7 @@ export const projectRouter = router({
           activity: activityRes.rows || []
         };
       } catch (err) {
-        console.error('[project.getDashboardSummary] Root Error:', err);
+        apiLogger.error({ err, input }, '[project.getDashboardSummary] Root Error');
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: `Failed to fetch dashboard summary: ${err instanceof Error ? err.message : 'Unknown error'}`

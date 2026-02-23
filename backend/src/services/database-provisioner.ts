@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios';
+import { dbOpsLogger } from '../lib/logger';
 
 export interface DatabaseConfig {
     name: string;
@@ -27,7 +28,7 @@ export class DatabaseProvisioner {
      * Provision a new database instance
      */
     async provision(config: DatabaseConfig, credentials: Record<string, string>): Promise<ProvisionResult> {
-        console.log(`[DatabaseProvisioner] Provisioning ${config.type} on ${config.provider}...`);
+        dbOpsLogger.info({ type: config.type, provider: config.provider, name: config.name }, `[DatabaseProvisioner] Provisioning ${config.type} on ${config.provider}...`);
 
         switch (config.provider) {
             case 'neon':
@@ -64,7 +65,7 @@ export class DatabaseProvisioner {
 
     private async provisionAWSRDS(config: DatabaseConfig, credentials: Record<string, string>): Promise<ProvisionResult> {
         // AWS RDS Mock (Implementation would use @aws-sdk/client-rds)
-        console.log('[DatabaseProvisioner] AWS RDS provisioning would happen here');
+        dbOpsLogger.info({ name: config.name }, '[DatabaseProvisioner] AWS RDS provisioning would happen here');
         return {
             success: true,
             connectionString: `postgres://admin:password@sarge-db-${config.name}.aws.com:5432/db`,

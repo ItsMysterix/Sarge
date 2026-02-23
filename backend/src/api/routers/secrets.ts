@@ -3,6 +3,9 @@ import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { encryptCredentials, decryptCredentials, maskCredential } from '../lib/credentials'
+import logger from '../../lib/logger'
+
+const secretsLogger = logger.child({ module: 'secrets' })
 
 /**
  * Secrets router
@@ -31,7 +34,7 @@ export const secretsRouter = router({
           [input.projectId, input.environmentId]
         ).catch((err: any) => {
           if (err?.message?.includes('secrets')) {
-            console.log('[secrets.list] Table not migrated yet')
+            secretsLogger.warn('[secrets.list] Table not migrated yet')
             return { rows: [] }
           }
           throw err
@@ -56,7 +59,7 @@ export const secretsRouter = router({
 
         return Array.from(secretsByKey.values())
       } catch (err) {
-        console.error('[secrets.list] Error:', err)
+        secretsLogger.error({ err, input }, '[secrets.list] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch secrets', cause: err as Error })
       }
     }),
@@ -85,7 +88,7 @@ export const secretsRouter = router({
         })
 
         if (!result?.rows?.[0]) {
-          throw new Error(`Secret ${input.key} not found`)
+          throw new TRPCError({ code: 'NOT_FOUND', message: `Secret ${input.key} not found` })
         }
 
         const secret = result.rows[0]
@@ -96,8 +99,8 @@ export const secretsRouter = router({
           `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
            VALUES ('secret.accessed', 'secret', $1, $2, $3, NOW())`,
           [secret.id, (ctx as any).userId || 'system', JSON.stringify({ key: input.key, environment: input.environmentId })]
-        ).catch(() => {
-          // Audit log optional if table doesn't exist yet
+        ).catch((err) => {
+          secretsLogger.error({ msg: 'Failed to record secret access in audit log', key: input.key, err });
         })
 
         return {
@@ -108,7 +111,8 @@ export const secretsRouter = router({
           createdAt: secret.created_at,
         }
       } catch (err) {
-        console.error('[secrets.get] Error:', err)
+        if (err instanceof TRPCError) throw err
+        secretsLogger.error({ err, input }, '[secrets.get] Error')
         throw err
       }
     }),
@@ -153,8 +157,8 @@ export const secretsRouter = router({
           `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
            VALUES ('secret.updated', 'secret', $1, $2, $3, NOW())`,
           [result.rows[0].id, userId, JSON.stringify({ key: input.key, environment: input.environmentId, version: nextVersion })]
-        ).catch(() => {
-          // Audit log optional
+        ).catch((err) => {
+          secretsLogger.error({ msg: 'Failed to record secret update in audit log', key: input.key, err });
         })
 
         return {
@@ -165,7 +169,7 @@ export const secretsRouter = router({
           masked: maskCredential(input.value),
         }
       } catch (err) {
-        console.error('[secrets.set] Error:', err)
+        secretsLogger.error({ err, input }, '[secrets.set] Error')
         throw err
       }
     }),
@@ -199,13 +203,13 @@ export const secretsRouter = router({
           `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
            VALUES ('secret.deleted', 'secret', $1, $2, $3, NOW())`,
           ['secret-' + input.key, userId, JSON.stringify({ key: input.key, environment: input.environmentId })]
-        ).catch(() => {
-          // Audit log optional
+        ).catch((err) => {
+          secretsLogger.error({ msg: 'Failed to record secret deletion in audit log', key: input.key, err });
         })
 
         return { success: true }
       } catch (err) {
-        console.error('[secrets.delete] Error:', err)
+        secretsLogger.error({ err, input }, '[secrets.delete] Error')
         throw err
       }
     }),
@@ -234,7 +238,7 @@ export const secretsRouter = router({
 
         return result?.rows || []
       } catch (err) {
-        console.error('[secrets.history] Error:', err)
+        secretsLogger.error({ err, input }, '[secrets.history] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch secret history', cause: err as Error })
       }
     }),
@@ -290,14 +294,16 @@ export const secretsRouter = router({
           `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
            VALUES ('secret.rolledback', 'secret', $1, $2, $3, NOW())`,
           [result.rows[0].id, userId, JSON.stringify({ key: input.key, from_version: input.targetVersion, to_version: nextVersion })]
-        ).catch(() => { })
+        ).catch((err) => {
+          secretsLogger.error({ msg: 'Failed to record secret rollback in audit log', key: input.key, err });
+        })
 
         return {
           success: true,
           newVersion: result.rows[0].version,
         }
       } catch (err) {
-        console.error('[secrets.rollback] Error:', err)
+        secretsLogger.error({ err, input }, '[secrets.rollback] Error')
         throw err
       }
     }),
@@ -336,11 +342,13 @@ export const secretsRouter = router({
           `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, metadata, created_at)
            VALUES ('secrets.exported', 'environment', $1, $2, $3, NOW())`,
           [input.environmentId, (ctx as any).userId || 'system', JSON.stringify({ projectId: input.projectId, count: Object.keys(secrets).length })]
-        ).catch(() => { })
+        ).catch((err) => {
+          secretsLogger.error({ msg: 'Failed to record secret export in audit log', environmentId: input.environmentId, err });
+        })
 
         return secrets
       } catch (err) {
-        console.error('[secrets.exportForDeployment] Error:', err)
+        secretsLogger.error({ err, input }, '[secrets.exportForDeployment] Error')
         return {}
       }
     }),

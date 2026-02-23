@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { getProvider } from '../lib/providers'
 import { rustBridge } from '../../services/rust-bridge'
+import { providerLogger } from '../../lib/logger'
 
 /**
  * Cost Optimization Router
@@ -39,7 +40,10 @@ export const costOptimizationRouter = router({
           const connected = await ctx.db.query(
             `SELECT provider_id, status, credentials FROM connected_providers WHERE project_slug = $1 AND status = 'connected'`,
             [project.slug]
-          ).catch(() => ({ rows: [] }))
+          ).catch((e) => {
+            providerLogger.error({ e, input }, 'Failed to fetch connected providers');
+            return { rows: [] };
+          })
 
           for (const row of connected.rows) {
             const provider = getProvider(row.provider_id)
@@ -68,13 +72,14 @@ export const costOptimizationRouter = router({
                 })
                 totalCost += spend.total
               } catch (e) {
-                console.error(`[CostExplorer] Failed to fetch spend for ${provider.id}:`, e)
+                providerLogger.error({ e, providerId: provider.id, projectId: input.projectId }, `[CostExplorer] Failed to fetch spend`)
               }
             }
           }
         }
 
         // 2. Fallback/Augment with historical estimates if real-time data is missing for some providers
+        const existingProviders = breakdown.map(b => b.provider.toLowerCase())
         const historical = await ctx.db.query(
           `SELECT 
             provider_id as provider,
@@ -83,9 +88,9 @@ export const costOptimizationRouter = router({
            FROM cost_estimates
            WHERE project_id = $1 
            AND created_at > NOW() - INTERVAL '30 days'
-           AND provider_id NOT IN (${breakdown.map(b => `'${b.provider.toLowerCase()}'`).join(',') || "''"})
+           ${existingProviders.length > 0 ? `AND provider_id != ALL($2)` : ''}
            GROUP BY provider_id`,
-          [input.projectId]
+          existingProviders.length > 0 ? [input.projectId, existingProviders] : [input.projectId]
         ).catch(() => ({ rows: [] }))
 
         for (const item of historical.rows || []) {
@@ -106,7 +111,7 @@ export const costOptimizationRouter = router({
           updatedAt: new Date().toISOString()
         }
       } catch (err) {
-        console.error('[cost.overview] Error:', err)
+        providerLogger.error({ err, input }, '[cost.overview] Failed to fetch cost overview')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch cost overview', cause: err as Error })
       }
     }),
@@ -231,7 +236,7 @@ export const costOptimizationRouter = router({
           period: 'monthly',
         }
       } catch (err) {
-        console.error('[cost.recommendations] Error:', err)
+        providerLogger.error({ err, input }, '[cost.recommendations] Failed to fetch cost recommendations')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch cost recommendations', cause: err as Error })
       }
     }),
@@ -252,7 +257,7 @@ export const costOptimizationRouter = router({
              SET resource_config = resource_config || $1
              WHERE id = $2`,
             [JSON.stringify(input.newConfig), input.resourceId]
-          ).catch(console.error)
+          ).catch((e) => providerLogger.error({ e, input }, 'Failed to resize resource'))
 
           return {
             success: true,
@@ -264,7 +269,7 @@ export const costOptimizationRouter = router({
              SET status = 'deleting'
              WHERE id = $1`,
             [input.resourceId]
-          ).catch(console.error)
+          ).catch((e) => providerLogger.error({ e, input }, 'Failed to mark resource for deletion'))
 
           return {
             success: true,
@@ -276,7 +281,7 @@ export const costOptimizationRouter = router({
              SET resource_config = resource_config || '{"useSpotInstances": true}'::jsonb
              WHERE id = $1`,
             [input.resourceId]
-          ).catch(console.error)
+          ).catch((e) => providerLogger.error({ e, input }, 'Failed to enable spot instances'))
 
           return {
             success: true,
@@ -289,7 +294,7 @@ export const costOptimizationRouter = router({
           message: 'Unknown action type',
         }
       } catch (err) {
-        console.error('[cost.applyRecommendation] Error:', err)
+        providerLogger.error({ err, input }, '[cost.applyRecommendation] Error')
         throw err
       }
     }),
@@ -329,7 +334,7 @@ export const costOptimizationRouter = router({
           message: 'Budget alert configured',
         }
       } catch (err) {
-        console.error('[cost.setBudget] Error:', err)
+        providerLogger.error({ err, input }, '[cost.setBudget] Error')
         throw err
       }
     }),
@@ -380,7 +385,7 @@ export const costOptimizationRouter = router({
           isOverBudget: percentUsed >= 100,
         }
       } catch (err) {
-        console.error('[cost.budgetStatus] Error:', err)
+        providerLogger.error({ err, input }, '[cost.budgetStatus] Error')
         return {
           hasBudget: false,
           currentSpend: 0,
@@ -444,7 +449,7 @@ export const costOptimizationRouter = router({
           trend: trend > 0 ? 'increasing' : trend < 0 ? 'decreasing' : 'stable',
         }
       } catch (err) {
-        console.error('[cost.forecast] Error:', err)
+        providerLogger.error({ err, input }, '[cost.forecast] Error')
         return {
           forecast: [],
           projectedTotal: 0,
@@ -470,7 +475,7 @@ export const costOptimizationRouter = router({
           const isIdle = await checkEnvActivity(env.id);
 
           if (isIdle) {
-            console.log(`[Cost] Environment ${env.name} is idle. Scaling to zero.`);
+            providerLogger.info({ envName: env.name, envId: env.id }, `[Cost] Environment is idle. Scaling to zero.`);
 
             await ctx.db.query(`UPDATE environments SET status = 'idle', updated_at = NOW() WHERE id = $1`, [env.id]);
 
@@ -490,7 +495,7 @@ export const costOptimizationRouter = router({
 
         return { success: true, actions: results };
       } catch (err) {
-        console.error('[cost.detectIdle] Error:', err);
+        providerLogger.error({ err, input }, '[cost.detectIdle] Error');
         throw err;
       }
     }),
@@ -503,7 +508,7 @@ export const costOptimizationRouter = router({
         if (!env?.rows?.[0]) throw new Error("Environment not found");
 
         const e = env.rows[0];
-        console.log(`[Cost] Waking up environment ${e.name}`);
+        providerLogger.info({ envName: e.name, envId: e.id }, `[Cost] Waking up environment`);
 
         await ctx.db.query(`UPDATE environments SET status = 'active', updated_at = NOW() WHERE id = $1`, [e.id]);
 
@@ -520,7 +525,7 @@ export const costOptimizationRouter = router({
 
         return { success: true, message: "Environment waking up" };
       } catch (err) {
-        console.error('[cost.wakeup] Error:', err);
+        providerLogger.error({ err, input }, '[cost.wakeup] Error');
         throw err;
       }
     }),

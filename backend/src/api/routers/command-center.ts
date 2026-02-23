@@ -5,6 +5,7 @@ import { getProvider } from "../lib/providers";
 import { eq, and } from "drizzle-orm";
 import { connectedProviders } from "../lib/drizzle-schema";
 import { TRPCError } from "@trpc/server";
+import { providerLogger } from "../../lib/logger";
 
 export const commandCenterRouter = router({
     /**
@@ -45,7 +46,7 @@ export const commandCenterRouter = router({
                                 providerName: provider.name
                             }))
                         } catch (e) {
-                            console.error(`[CommandCenter] Discovery failed for ${row.providerId}:`, e)
+                            providerLogger.error({ e, providerId: row.providerId }, '[CommandCenter] Discovery failed')
                             return []
                         }
                     }
@@ -90,7 +91,7 @@ export const commandCenterRouter = router({
                                 providerName: provider.name
                             }))
                         } catch (e) {
-                            console.error(`[CommandCenter] Security fetch failed for ${row.providerId}:`, e)
+                            providerLogger.error({ e, providerId: row.providerId }, '[CommandCenter] Security fetch failed')
                         }
                     }
                     return []
@@ -135,7 +136,7 @@ export const commandCenterRouter = router({
                                 providerName: provider.name
                             }))
                         } catch (e) {
-                            console.error(`[CommandCenter] Audit fetch failed for ${row.providerId}:`, e)
+                            providerLogger.error({ e, providerId: row.providerId }, '[CommandCenter] Audit fetch failed')
                         }
                     }
                     return []
@@ -198,7 +199,7 @@ export const commandCenterRouter = router({
                     try {
                         const data = await provider.getDomains({ credentials: row.credentials as Record<string, string> })
                         results.push(...data.map(d => ({ ...d, providerId: row.providerId })))
-                    } catch (e) { console.error(e) }
+                    } catch (e) { providerLogger.error({ e, providerId: row.providerId }, 'Failed to fetch domains') }
                 }
             }
             return results
@@ -216,7 +217,7 @@ export const commandCenterRouter = router({
                     try {
                         const data = await provider.getStorage({ credentials: row.credentials as Record<string, string> })
                         results.push(...data.map(d => ({ ...d, providerId: row.providerId })))
-                    } catch (e) { console.error(e) }
+                    } catch (e) { providerLogger.error({ e, providerId: row.providerId }, 'Failed to fetch storage') }
                 }
             }
             return results
@@ -234,7 +235,7 @@ export const commandCenterRouter = router({
                     try {
                         const data = await provider.getFirewall({ credentials: row.credentials as Record<string, string> })
                         results.push(...data.map(d => ({ ...d, providerId: row.providerId })))
-                    } catch (e) { console.error(e) }
+                    } catch (e) { providerLogger.error({ e, providerId: row.providerId }, 'Failed to fetch firewall') }
                 }
             }
             return results
@@ -252,7 +253,7 @@ export const commandCenterRouter = router({
                     try {
                         const data = await provider.getDetailedUsage({ credentials: row.credentials as Record<string, string> })
                         results.push(...data.map(d => ({ ...d, providerId: row.providerId })))
-                    } catch (e) { console.error(e) }
+                    } catch (e) { providerLogger.error({ e, providerId: row.providerId }, 'Failed to fetch detailed usage') }
                 }
             }
             return results
@@ -270,7 +271,7 @@ export const commandCenterRouter = router({
                     try {
                         const data = await provider.getAnalytics({ credentials: row.credentials as Record<string, string> })
                         results.push(...data.map(d => ({ ...d, providerId: row.providerId })))
-                    } catch (e) { console.error(e) }
+                    } catch (e) { providerLogger.error({ e, providerId: row.providerId }, 'Failed to fetch analytics') }
                 }
             }
             return results

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { userSettings } from '../lib/drizzle-schema'
 import { eq } from 'drizzle-orm'
+import { apiLogger } from '../../lib/logger'
 
 export const settingsRouter = router({
     get: secureProcedure('settings.get')
@@ -20,7 +21,7 @@ export const settingsRouter = router({
                 if (!settings) throw new Error('not_found')
                 return settings
             } catch (error) {
-                console.error('[settings.get] error (falling back to defaults):', error)
+                apiLogger.warn({ error, userId }, '[settings.get] Falling back to defaults')
                 return {
                     userId,
                     slackAlerts: true,
@@ -57,7 +58,18 @@ export const settingsRouter = router({
             zeroDowntime: z.boolean().optional(),
             healthChecks: z.boolean().optional(),
             resources: z.any().optional(),
-            notifications: z.any().optional(),
+            notifications: z.object({
+                deploySuccess: z.boolean().optional(),
+                deployFailure: z.boolean().optional(),
+                serviceDown: z.boolean().optional(),
+                highCpu: z.boolean().optional(),
+                highMemory: z.boolean().optional(),
+                securityAlerts: z.boolean().optional(),
+                emailNotifications: z.boolean().optional(),
+                slackNotifications: z.boolean().optional(),
+                deploymentEmails: z.boolean().optional(),
+                productEmails: z.boolean().optional(),
+            }).optional(),
         }))
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session?.user?.id || (ctx as any).userId
@@ -82,7 +94,7 @@ export const settingsRouter = router({
 
                 return updated
             } catch (error) {
-                console.error('[settings.update] error:', error)
+                apiLogger.error({ error, userId }, '[settings.update] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update settings' })
             }
         }),
@@ -102,7 +114,7 @@ export const settingsRouter = router({
 
                 return { success: true, message: 'Data cleared successfully' }
             } catch (error) {
-                console.error('[settings.clearData] error:', error)
+                apiLogger.error({ error, userId }, '[settings.clearData] Error')
                 throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to clear data' })
             }
         })

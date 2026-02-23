@@ -1,6 +1,9 @@
 import { secureProcedure } from '../../trpc/middlewares/security'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import logger from '../../../lib/logger'
+
+const rollbackLogger = logger.child({ module: 'rollback' })
 
 /**
  * Deploy Rollback & Cost sub-router endpoints
@@ -65,12 +68,16 @@ export const rollback = secureProcedure('deploy.rollback')
                     to: previousDeploy.rows[0].id,
                     reason: input.reason
                 })]
-            ).catch(() => { })
+            ).catch((err) => {
+                rollbackLogger.error({ msg: 'Failed to record rollback in audit log', deploymentId: input.deploymentId, err });
+            })
 
             await ctx.db.query(
                 `UPDATE deployment_rollbacks SET status = 'completed', completed_at = NOW() WHERE id = $1`,
                 [rollbackResult.rows[0].id]
-            ).catch(() => { })
+            ).catch((err) => {
+                rollbackLogger.error({ msg: 'Failed to update rollback status to completed', rollbackId: rollbackResult.rows[0].id, err });
+            })
 
             return {
                 success: true,
@@ -79,7 +86,7 @@ export const rollback = secureProcedure('deploy.rollback')
             }
         } catch (err) {
             if (err instanceof TRPCError) throw err
-            console.error('[deploy.rollback] Error:', err)
+            rollbackLogger.error({ err, input }, '[deploy.rollback] Error')
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Rollback failed', cause: err as Error })
         }
     })
@@ -109,7 +116,7 @@ export const getRollbackHistory = secureProcedure('deploy.getRollbackHistory')
             return result.rows
         } catch (err) {
             if (err instanceof TRPCError) throw err
-            console.error('[deploy.getRollbackHistory] Error:', err)
+            rollbackLogger.error({ err, input }, '[deploy.getRollbackHistory] Error')
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch rollback history', cause: err as Error })
         }
     })
@@ -148,7 +155,7 @@ export const trackCost = secureProcedure('deploy.trackCost')
             return { costId: result.rows[0].id }
         } catch (err) {
             if (err instanceof TRPCError) throw err
-            console.error('[deploy.trackCost] Error:', err)
+            rollbackLogger.error({ err, input }, '[deploy.trackCost] Error')
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to track deployment cost', cause: err as Error })
         }
     })
@@ -198,7 +205,7 @@ export const getCostHistory = secureProcedure('deploy.getCostHistory')
                 currency: 'USD',
             }
         } catch (err) {
-            console.error('[deploy.getCostHistory] Error:', err)
+            rollbackLogger.error({ err, input }, '[deploy.getCostHistory] Error')
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch cost history', cause: err as Error })
         }
     })
