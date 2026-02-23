@@ -7,7 +7,12 @@ export class ClerkProvider implements IProvider {
     valid = true
     errors: string[] = []
 
+    private getToken(creds: Record<string, string>): string {
+        return creds.access_token || creds.clerk_token || creds.token || ''
+    }
+
     async deploy(opts: DeployOptions): Promise<DeployResult> {
+        const token = this.getToken(opts.credentials)
         return { success: true, deploymentId: `clerk-${Date.now()}`, metadata: {}, estimatedDuration: 10 }
     }
     async getStatus(opts: StatusOptions): Promise<DeploymentStatus> { return { status: 'success', progress: 100, message: 'Clerk integration active', logs: [] } }

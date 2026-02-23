@@ -7,7 +7,12 @@ export class HerokuProvider implements IProvider {
     valid = true
     errors: string[] = []
 
+    private getToken(creds: Record<string, string>): string {
+        return creds.access_token || creds.heroku_token || creds.token || ''
+    }
+
     async deploy(opts: DeployOptions): Promise<DeployResult> {
+        const token = this.getToken(opts.credentials)
         return { success: true, deploymentId: `heroku-${Date.now()}`, metadata: {}, estimatedDuration: 10 }
     }
     async getStatus(opts: StatusOptions): Promise<DeploymentStatus> { return { status: 'success', progress: 100, message: 'Heroku integration active', logs: [] } }

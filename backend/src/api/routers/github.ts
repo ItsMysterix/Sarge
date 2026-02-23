@@ -2,6 +2,7 @@ import { router } from '../../trpc'
 import { secureProcedure } from '../trpc/middlewares/security'
 import { z } from 'zod'
 import { apiLogger } from '../../lib/logger'
+import { TRPCError } from '@trpc/server'
 
 /**
  * GitHub Router - Fetch real repository data
@@ -398,6 +399,136 @@ export const githubRouter = router({
       } catch (error) {
         apiLogger.error({ error, input }, 'Error fetching dependencies')
         return { dependencies: [], totalCount: 0, byEcosystem: {}, byType: {} }
+      }
+    }),
+
+  /**
+   * Sync integrations from GitHub (discover what's already installed)
+   * This allows Sarge to automatically verify and connect services like 
+   * Vercel, Sentry, or AWS if they are already tied to your GitHub account.
+   */
+  syncGitHubIntegrations: secureProcedure('github.syncGitHubIntegrations')
+    .mutation(async ({ ctx }) => {
+      const userId = ctx.session?.user?.id
+      if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' })
+
+      // 1. Get GitHub Token
+      let token = (ctx.session as any)?.accessToken
+      if (!token) {
+        const { getProviderCredentials } = await import('../lib/credentials')
+        const credentials = await getProviderCredentials('github', ctx.db, userId)
+        token = credentials?.github_token || (credentials as any)?.access_token
+      }
+
+      if (!token) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'GitHub not connected. Please connect GitHub first.',
+        })
+      }
+
+      try {
+        // 2a. Fetch User Installations (GitHub Apps)
+        const instRes = await fetch('https://api.github.com/user/installations', {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `token ${token}`
+          }
+        })
+
+        // 2b. Fetch Marketplace Purchases
+        const marketRes = await fetch('https://api.github.com/user/marketplace_purchases', {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `token ${token}`
+          }
+        })
+
+        const [instData, marketData] = await Promise.all([
+          instRes.ok ? instRes.json() : Promise.resolve({ installations: [] }),
+          marketRes.ok ? marketRes.json() : Promise.resolve([])
+        ])
+
+        const installations = (instData as any).installations || []
+        const purchases = (marketData as any) || []
+
+        // 3. Map GitHub identifiers to Sarge Providers
+        const mapping: Record<string, string> = {
+          // Compute & Hosting (OAuth Supported)
+          'vercel': 'vercel',
+          'netlify': 'netlify',
+          'railway': 'railway',
+          'heroku': 'heroku',
+          'fly': 'fly',
+          'digitalocean': 'digitalocean',
+          'google-cloud': 'gcp',
+          'azure': 'azure',
+
+          // Databases & Backend (OAuth Supported)
+          'supabase': 'supabase',
+          'neon-builder': 'neon',
+          'planetscale': 'planetscale',
+
+          // Identity & Security (OAuth Supported)
+          'auth0': 'auth0',
+          'clerk': 'clerk',
+
+          // Monitoring & Analytics (OAuth Supported)
+          'sentry': 'sentry',
+          'datadog': 'datadog',
+
+          // FinTech & APIs (OAuth Supported)
+          'stripe': 'stripe',
+          'alchemy-node': 'alchemy'
+        }
+
+        const discovered: string[] = []
+
+        // Process App Installations
+        for (const inst of installations) {
+          const slug = (inst.app_slug || '').toLowerCase()
+          if (mapping[slug]) discovered.push(mapping[slug])
+        }
+
+        // Process Marketplace Purchases
+        for (const purchase of purchases) {
+          const slug = (purchase.account?.login || '').toLowerCase()
+          if (mapping[slug]) discovered.push(mapping[slug])
+        }
+
+        // Unique set of discovered providers
+        const uniqueDiscovered = Array.from(new Set(discovered))
+
+        for (const providerId of uniqueDiscovered) {
+          // Discovery Phase: Detected presence via GitHub, but not yet authorized for direct API control
+          const metadata = { method: 'github_discovery_bridge', discovered_at: new Date().toISOString() }
+
+          // 1. Mark as 'discovered' for UI tracking
+          await ctx.db.query(
+            `INSERT INTO connected_providers (project_slug, provider_id, status, credentials, updated_at)
+             VALUES ($1, $2, $3, $4, NOW())
+             ON CONFLICT (project_slug, provider_id) 
+             DO UPDATE SET status = 'discovered', credentials = EXCLUDED.credentials, updated_at = NOW()`,
+            ['global', providerId, 'discovered', JSON.stringify(metadata)]
+          ).catch(e => apiLogger.warn({ e, providerId }, 'Failed to update connected_providers in discovery'))
+
+          // 2. Clear any stale credentials (safety first)
+          const { deleteProviderCredentials } = await import('../lib/credentials');
+          await deleteProviderCredentials(providerId, ctx.db, userId).catch(() => { })
+        }
+
+        return {
+          success: true,
+          count: uniqueDiscovered.length,
+          discovered: uniqueDiscovered,
+          totalScanned: installations.length + purchases.length
+        }
+      } catch (error) {
+        apiLogger.error({ error, userId }, 'Error syncing GitHub integrations')
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to sync GitHub integrations',
+        })
       }
     }),
 })

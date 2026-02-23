@@ -8,7 +8,7 @@ export class PosthogProvider implements IProvider {
     errors: string[] = []
 
     private getToken(creds: Record<string, string>): string {
-        return creds.posthog_personal_api_key || creds.token || ''
+        return creds.access_token || creds.posthog_personal_api_key || creds.token || ''
     }
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {

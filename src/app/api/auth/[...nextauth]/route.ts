@@ -1,6 +1,9 @@
 import NextAuth from "next-auth"
 import type { NextAuthOptions } from "next-auth"
 import GithubProvider from "next-auth/providers/github"
+import GoogleProvider from "next-auth/providers/google"
+import AzureADProvider from "next-auth/providers/azure-ad"
+import Auth0Provider from "next-auth/providers/auth0"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { getDbPool } from "@/lib/db"
 import { storeProviderCredentials } from "@/lib/provider-credentials"
@@ -26,19 +29,72 @@ export const authOptions: NextAuthOptions = {
   // adapter: PostgresAdapter(getDbPool()) as Adapter,
 
   providers: [
-    // GitHub OAuth provider (optional, requires GITHUB_ID and GITHUB_SECRET)
+    // GitHub OAuth provider
     ...(process.env.GITHUB_ID && process.env.GITHUB_SECRET
       ? [
         GithubProvider({
           clientId: process.env.GITHUB_ID,
           clientSecret: process.env.GITHUB_SECRET,
-          // Request scopes needed to list org/private repos and clone via token
-          // Users must re-consent after this change to grant the new scopes.
           authorization: {
             params: {
               scope: 'read:user user:email repo read:org',
             },
           },
+        }),
+      ]
+      : []),
+
+    // Google Cloud Provider
+    ...(process.env.GOOGLE_ID && process.env.GOOGLE_SECRET
+      ? [
+        GoogleProvider({
+          clientId: process.env.GOOGLE_ID,
+          clientSecret: process.env.GOOGLE_SECRET,
+          authorization: {
+            params: {
+              scope: 'openid email profile https://www.googleapis.com/auth/cloud-platform.read-only',
+              prompt: "consent",
+              access_type: "offline",
+              response_type: "code"
+            }
+          }
+        }),
+      ]
+      : []),
+
+    // Microsoft Azure Provider
+    ...(process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET
+      ? [
+        AzureADProvider({
+          clientId: process.env.AZURE_AD_CLIENT_ID,
+          clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+          tenantId: process.env.AZURE_AD_TENANT_ID,
+          authorization: {
+            params: {
+              scope: 'openid profile email AzureResourceManager.read',
+            },
+          },
+        }),
+      ]
+      : []),
+
+    // Auth0 Integration Bridge (Universal Gateway for the 61+ services)
+    ...(process.env.AUTH0_CLIENT_ID && process.env.AUTH0_CLIENT_SECRET
+      ? [
+        Auth0Provider({
+          id: "auth0",
+          name: "Auth0 Integration",
+          clientId: process.env.AUTH0_CLIENT_ID,
+          clientSecret: process.env.AUTH0_CLIENT_SECRET,
+          issuer: process.env.AUTH0_ISSUER || `https://${process.env.AUTH0_DOMAIN}`,
+          authorization: {
+            params: {
+              // The 'connection' parameter is dynamically passed by the UI
+              // to select the specific service (Vercel, Railway, etc.)
+              prompt: "login",
+              access_type: "offline",
+            }
+          }
         }),
       ]
       : []),
@@ -185,25 +241,40 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Store GitHub access token on first sign in
-      if (account?.provider === "github" && account.access_token) {
-        token.accessToken = account.access_token
+      // Universal OAuth Credential Storage
+      if (account?.access_token) {
+        let providerId = account.provider
 
-        const userEmail = user?.email || (profile as any)?.email || token.email
-        if (userEmail) {
+        // Auth0 Bridge Logic:
+        // If the provider is 'auth0', we extract the actual service identity 
+        // from the sub claim (format: provider|connection|id)
+        if (providerId === 'auth0') {
+          const sub = (profile?.sub || account.providerAccountId || "") as string
+          if (sub.includes('|')) {
+            const parts = sub.split('|')
+            if (parts.length >= 2) {
+              providerId = parts[1] // Extract 'vercel', 'railway', etc.
+            }
+          }
+        }
+
+        // Use the user's database ID (UUID) for storage to match backend rotation logic
+        const userKey = (token.sub || token.id) as string
+
+        if (userKey) {
           try {
             await storeProviderCredentials(
-              "github",
+              providerId,
               {
                 access_token: account.access_token,
+                refresh_token: account.refresh_token,
+                expires_at: account.expires_at,
                 scope: account.scope || "",
                 token_type: account.token_type || "",
               },
-              userEmail
+              userKey
             )
-          } catch (error) {
-            // Credential storage failure should not block sign-in
-          }
+          } catch (error) { }
         }
       }
 

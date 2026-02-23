@@ -35,6 +35,8 @@ import { settingsRouter } from './routers/settings';
 import { jobsRouter } from './routers/jobs';
 import { commandCenterRouter } from './routers/command-center';
 
+import { cloudIdentityRouter } from './routers/cloud-identity';
+
 export const appRouter = router({
   metrics: metricsRouter,
   logs: logsRouter,
@@ -46,6 +48,7 @@ export const appRouter = router({
   auth: authRouter,
   sarge: sargeRouter,
   github: githubRouter,
+  cloud: cloudIdentityRouter,
   stacks: stacksRouter,
   aws: awsRouter,
   project: projectRouter,

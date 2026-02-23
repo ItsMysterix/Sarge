@@ -194,6 +194,88 @@ export default function Settings() {
     testWebhookMutation.mutate({ channelId: webhookChannel.id })
   }
 
+  const [isSyncingGitHub, setIsSyncingGitHub] = useState(false)
+  const [isSyncingGoogle, setIsSyncingGoogle] = useState(false)
+  const [isSyncingAmazon, setIsSyncingAmazon] = useState(false)
+  const [isSyncingMicrosoft, setIsSyncingMicrosoft] = useState(false)
+
+  const syncGitHubMutation = trpc.github.syncGitHubIntegrations.useMutation({
+    onSuccess: (data) => {
+      providersQuery.refetch()
+      setIsSyncingGitHub(false)
+      if (data.count > 0) {
+        addToast({ 
+          type: 'success', 
+          title: 'Infrastructure Synced', 
+          description: `Discovered and connected ${data.count} services from your GitHub account.` 
+        })
+      }
+    },
+    onError: (err) => {
+      setIsSyncingGitHub(false)
+      addToast({ type: 'error', title: 'Sync Failed', description: err.message })
+    }
+  })
+
+  const syncGoogleMutation = trpc.cloud.syncGoogle.useMutation({
+    onSuccess: (data) => {
+      providersQuery.refetch()
+      setIsSyncingGoogle(false)
+      addToast({ type: 'success', title: 'Google Bridge Active', description: `Linked ${data.count} services from your Google Cloud identity.` })
+    },
+    onError: (err) => {
+      setIsSyncingGoogle(false)
+      addToast({ type: 'error', title: 'Google Sync Failed', description: err.message })
+    }
+  })
+
+  const verifyAmazonMutation = trpc.cloud.verifyAmazonConnection.useMutation({
+    onSuccess: () => {
+      providersQuery.refetch()
+      setIsSyncingAmazon(false)
+      addToast({ type: 'success', title: 'AWS Nexus Connected', description: 'Cross-account IAM role successfully assumed. Sarge is now orchestrating your AWS environment.' })
+    },
+    onError: (err) => {
+      setIsSyncingAmazon(false)
+      addToast({ type: 'error', title: 'AWS Verification Failed', description: err.message })
+    }
+  })
+
+  // We'll trigger the CloudFormation flow via the ConnectProviderModal
+  const handleSyncAmazon = () => {
+    const awsProvider = providersQuery.data?.find((p: any) => p.id === 'aws')
+    if (awsProvider) {
+      handleToggleProvider('aws', awsProvider.status)
+    }
+  }
+
+  const syncMicrosoftMutation = trpc.cloud.syncMicrosoft.useMutation({
+    onSuccess: (data) => {
+      providersQuery.refetch()
+      setIsSyncingMicrosoft(false)
+      addToast({ type: 'success', title: 'Microsoft Bridge Active', description: `Azure services discovered and linked to your Sarge workspace.` })
+    },
+    onError: (err) => {
+      setIsSyncingMicrosoft(false)
+      addToast({ type: 'error', title: 'Microsoft Sync Failed', description: err.message })
+    }
+  })
+
+  const handleSyncGitHub = () => {
+    setIsSyncingGitHub(true)
+    syncGitHubMutation.mutate()
+  }
+
+  const handleSyncGoogle = () => {
+    setIsSyncingGoogle(true)
+    syncGoogleMutation.mutate()
+  }
+
+  const handleSyncMicrosoft = () => {
+    setIsSyncingMicrosoft(true)
+    syncMicrosoftMutation.mutate()
+  }
+
   const handleExportSettings = () => {}
   const handleImportSettings = () => {}
   const handleClearData = async () => {
@@ -271,18 +353,26 @@ export default function Settings() {
           {activeTab === "integrations" && (
             <IntegrationsTab
               githubConnected={accountsQuery.data?.includes('github') ?? false}
-              slackAlerts={settings?.slackAlerts ?? false}
+              isGoogleConnected={accountsQuery.data?.includes('google') ?? false}
+              isAmazonConnected={providersQuery.data?.some((p: any) => p.id === 'aws' && p.status === 'connected') ?? false}
+              isMicrosoftConnected={accountsQuery.data?.includes('azure-ad') ?? false}
+              slackAlerts={settings?.notifications?.slackNotifications || false}
               autoRebuild={settings?.autoRebuild ?? false}
               webhookConfigured={channelsQuery.data?.some((c: any) => c.type === 'slack' || c.type === 'webhook') ?? false}
               isTestingWebhook={isTestingWebhook}
               providers={providersQuery.data || []}
+              isSyncingGitHub={isSyncingGitHub}
+              isSyncingGoogle={isSyncingGoogle}
+              isSyncingAmazon={isSyncingAmazon}
+              isSyncingMicrosoft={isSyncingMicrosoft}
               onToggle={handleToggle}
               onTestWebhook={handleWebhookTest}
-              onConnectGitHub={() => {
-                // In a real app, this would start the OAuth flow or redirect to account settings
-                addToast({ type: "info", title: "GitHub", description: "GitHub linkage is managed via your Auth account." })
-              }}
+              onConnectGitHub={handleSyncGitHub}
               onToggleProvider={handleToggleProvider}
+              onSyncGitHub={handleSyncGitHub}
+              onSyncGoogle={handleSyncGoogle}
+              onSyncAmazon={handleSyncAmazon}
+              onSyncMicrosoft={handleSyncMicrosoft}
             />
           )}
 

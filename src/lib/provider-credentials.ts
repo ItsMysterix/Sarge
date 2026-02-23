@@ -2,7 +2,7 @@ import * as crypto from "crypto"
 import { getDbPool } from "@/lib/db"
 
 interface ProviderCredentials {
-  [key: string]: string | undefined
+  [key: string]: any
 }
 
 const ENCRYPTION_KEY = process.env.CREDENTIAL_ENCRYPTION_KEY;

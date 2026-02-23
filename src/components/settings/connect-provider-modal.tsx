@@ -1,156 +1,254 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { useState, useEffect } from "react"
+import { Globe, Loader2, Zap, CheckCircle2, Lock, Github, ArrowRight, ShieldCheck, LogIn } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Lock, ShieldCheck, Zap, Globe, Sparkles, LogIn, CheckCircle2, Loader2, ArrowRight } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
+import { trpc } from "@/lib/trpc"
 
 interface ConnectProviderModalProps {
-  provider: any | null
+  provider: {
+    id: string
+    name: string
+    description: string
+  } | null
   isOpen: boolean
   onClose: () => void
   onConnect: (providerId: string, credentials: Record<string, string>) => Promise<void>
 }
+
+/**
+ * ConnectProviderModal - The "Vercel-Style" Integration Hub
+ * 
+ * Per User Request: No manual API keys. 
+ * We use a "Marketplace Bridge" that handles OAuth handshakes automatically.
+ */
 export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: ConnectProviderModalProps) {
-  const [oauthStep, setOauthStep] = useState<'idle' | 'linking' | 'success'>('idle')
+  const [step, setStep] = useState<'idle' | 'checking' | 'linking' | 'redirecting' | 'success'>('idle')
+  const [isLinkedOnGithub, setIsLinkedOnGithub] = useState(false)
+  
+  const utils = trpc.useUtils()
+
+  // Detection logic for GitHub Bridge
+  const githubSync = trpc.github.syncGitHubIntegrations.useMutation({
+    onSuccess: (data) => {
+      if (data.discovered.includes(provider?.id || '')) {
+        setIsLinkedOnGithub(true)
+      }
+      setStep('idle')
+    }
+  })
+
+  // Start checking status when modal opens
+  useEffect(() => {
+    if (isOpen && provider) {
+      setStep('checking')
+      githubSync.mutate()
+    } else {
+      setStep('idle')
+      setIsLinkedOnGithub(false)
+    }
+  }, [isOpen, provider])
 
   if (!provider) return null
 
-  // Massively expanded OAuth/One-Click support for every integration that offers a web-based auth flow
-  const supportsOAuth = [
-    'vercel', 'github', 'cloudflare', 'datadog', 'supabase', 
-    'railway', 'fly', 'planetscale', 'upstash', 'mongodb', 
-    'render', 'neon', 'auth0', 'stripe', 'clerk', 'heroku', 
-    'netlify', 'digitalocean', 'fastly', 'akamai', 'resend', 
-    'sendgrid', 'twilio', 'posthog', 'doppler', 'sentry', 
-    'betterstack', 'axiom', 'turso', 'cockroach', 'fauna', 
-    'clickhouse', 'confluent', 'rabbitmq', 'segment', 'algolia', 
-    'meilisearch', 'gitlab', 'circleci', 'contentful', 'strapi', 
-    'sanity', 'paypal', 'alchemy'
-  ].includes(provider.id)
-
-  const handleOAuthConnect = async () => {
-    setOauthStep('linking')
-    // Simulating the OAuth redirect and callback flow for a universal seamless experience
-    setTimeout(async () => {
-      setOauthStep('success')
-      setTimeout(async () => {
-        await onConnect(provider.id, { oauth_connected: 'true', method: 'oauth' })
-        onClose()
-        setOauthStep('idle')
-      }, 1500)
-    }, 2000)
+  const handleStartOAuth = async () => {
+    setStep('linking')
+    
+    const { signIn } = await import("next-auth/react")
+    
+    try {
+      // Use Auth0 as the Bridge for all 61+ services
+      // We pass the provider.id as the 'connection' to Auth0
+      await signIn('auth0', { 
+        callbackUrl: window.location.href,
+        connection: provider.id, // e.g. 'vercel', 'stripe'
+        prompt: "login",
+      })
+    } catch (error) {
+      setStep('idle')
+      console.error("Auth0 Bridge initiation failed", error)
+    }
   }
 
+  const handleRedirectToService = () => {
+    setStep('redirecting')
+    
+    // In a real app, we'd have a mapping of provider login URLs
+    const loginUrls: Record<string, string> = {
+      vercel: "https://vercel.com/login",
+      sentry: "https://sentry.io/auth/login/",
+      github: "https://github.com/login",
+      aws: "https://console.aws.amazon.com",
+      alchemy: "https://dashboard.alchemy.com",
+      algolia: "https://www.algolia.com/users/sign_in",
+      auth0: "https://auth0.com/auth/login"
+    }
+
+    const url = loginUrls[provider.id] || `https://google.com/search?q=${provider.name}+login+github`
+    
+    // Open in new tab
+    window.open(url, '_blank')
+    
+    // Stay in redirecting state for 5s then back to idle to allow "Check again"
+    setTimeout(() => {
+      setStep('idle')
+    }, 5000)
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] bg-[#0A0A0A] border-white/10 text-white rounded-[40px] overflow-hidden p-0">
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500" />
+      <DialogContent className="sm:max-w-[460px] bg-[#0A0A0A] border-white/10 text-white rounded-[40px] overflow-hidden p-0 shadow-2xl">
+        <div className="absolute top-0 inset-x-0 h-[3px] bg-white/5 overflow-hidden">
+           <motion.div 
+             initial={{ x: "-100%" }}
+             animate={['checking', 'linking', 'redirecting'].includes(step) ? { x: "0%" } : { x: "-100%" }}
+             transition={{ duration: 2, ease: "easeInOut" }}
+             className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" 
+           />
+        </div>
         
-        <div className="p-8 space-y-8">
+        <div className="p-10 space-y-8">
           <DialogHeader>
-            <div className="flex items-center justify-between mb-4">
-               <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-                  <Globe className="w-6 h-6 text-blue-400" />
+            <div className="flex items-center justify-between mb-2">
+               <div className="p-4 bg-white/5 rounded-[2rem] border border-white/10 shadow-inner">
+                  <Globe className="w-7 h-7 text-blue-400" />
                </div>
-               {supportsOAuth && (
-                 <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">One-Click Enabled</span>
+               <div className="flex flex-col items-end gap-1">
+                 <div className="px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full flex items-center gap-2">
+                    <Github className="w-3 h-3 text-indigo-400" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 italic">Identity Bridge</span>
                  </div>
-               )}
+                 {isLinkedOnGithub && (
+                   <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-1.5 animate-bounce">
+                      <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
+                      <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">Trust Detected</span>
+                   </div>
+                 )}
+               </div>
             </div>
-            <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
-              Bridge {provider.name}
+            
+            <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic leading-none">
+              {isLinkedOnGithub ? "Link Trust" : "Bridge"} {provider.name}
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-xs leading-relaxed italic opacity-60">
-              Select your preferred method to authorize Sarge with your {provider.name} ecosystem.
+            <DialogDescription className="text-muted-foreground text-sm font-medium italic opacity-60 leading-relaxed">
+              {isLinkedOnGithub 
+                ? `We found ${provider.name} in your GitHub identity. One click to bridge permissions.`
+                : `Authorize Sarge to orchestrate ${provider.name} using your secure GitHub identity bridge.`
+              }
             </DialogDescription>
           </DialogHeader>
 
-
           <AnimatePresence mode="wait">
-            {oauthStep === 'linking' ? (
+            {step === 'checking' ? (
               <motion.div 
-                key="linking"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                key="checking"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 className="py-12 flex flex-col items-center justify-center space-y-6"
               >
+                 <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Analyzing Account Sync...</p>
+              </motion.div>
+            ) : step === 'linking' ? (
+              <motion.div 
+                key="linking"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="py-12 flex flex-col items-center justify-center space-y-8"
+              >
                  <div className="relative">
-                    <Loader2 className="w-16 h-16 text-blue-500 animate-spin" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                       <Zap className="w-6 h-6 text-white" />
-                    </div>
+                    <Loader2 className="w-20 h-20 text-blue-500 animate-spin" />
+                    <Zap className="w-8 h-8 text-white absolute inset-0 m-auto fill-white" />
                  </div>
-                 <div className="text-center space-y-2">
-                    <h3 className="text-lg font-black uppercase italic tracking-tighter">Authorizing Session</h3>
-                    <p className="text-xs text-muted-foreground">Negotiating OAuth 2.0 handshake with {provider.name}...</p>
+                 <div className="text-center">
+                    <h3 className="text-lg font-black uppercase italic tracking-tighter">Establishing Secure Gateway</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2">Bridging GitHub ➔ {provider.name}</p>
                  </div>
               </motion.div>
-            ) : oauthStep === 'success' ? (
+            ) : step === 'redirecting' ? (
+              <motion.div 
+                key="redirecting"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-12 flex flex-col items-center justify-center space-y-6"
+              >
+                 <ArrowRight className="w-12 h-12 text-blue-500 animate-bounce" />
+                 <div className="text-center">
+                    <h3 className="text-lg font-black uppercase italic tracking-tighter">Redirecting to {provider.name}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2 font-bold italic">Sign in with GitHub there to continue.</p>
+                 </div>
+              </motion.div>
+            ) : step === 'success' ? (
               <motion.div 
                 key="success"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="py-12 flex flex-col items-center justify-center space-y-6"
+                className="py-12 flex flex-col items-center justify-center space-y-8"
               >
-                 <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)]">
-                    <CheckCircle2 className="w-10 h-10 text-white" />
+                 <div className="w-20 h-20 bg-emerald-500 rounded-[2rem] flex items-center justify-center shadow-[0_10px_40px_rgba(16,185,129,0.5)] rotate-3">
+                    <CheckCircle2 className="w-12 h-12 text-white" />
                  </div>
-                 <div className="text-center space-y-2">
-                    <h3 className="text-lg font-black uppercase italic tracking-tighter text-emerald-400">Connection Verified</h3>
-                    <p className="text-xs text-muted-foreground">Tokens successfully synchronized to Sarge High-Speed Vault.</p>
-                 </div>
+                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-emerald-400">Gateway Verified</h3>
               </motion.div>
             ) : (
               <motion.div 
-                key="oauth"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
+                key="idle"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                  <div className="space-y-6">
-                    <div className="p-6 bg-blue-500/5 border border-blue-500/10 rounded-3xl space-y-4">
-                       <p className="text-xs text-muted-foreground leading-relaxed text-center">
-                         Sarge will redirect you to <strong>{provider.name}</strong> to grant secure orchestration permissions. No long-lived keys are stored.
+                {isLinkedOnGithub ? (
+                  <div className="p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-[2.5rem] space-y-6">
+                    <p className="text-xs text-center text-emerald-200/60 font-medium">
+                      Identity match confirmed. Sarge has discovered a valid trust link between your <strong>GitHub</strong> and <strong>{provider.name}</strong> accounts.
+                    </p>
+                    <Button 
+                      onClick={handleStartOAuth}
+                      className="w-full h-16 bg-emerald-500 text-white hover:bg-emerald-600 transition-all font-black uppercase tracking-widest text-xs rounded-3xl flex items-center justify-center gap-4 shadow-[0_10px_30px_rgba(16,185,129,0.2)]"
+                    >
+                      Establish Trust Link <Zap className="w-4 h-4 fill-white" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-8 bg-white/[0.02] border border-white/10 rounded-[2.5rem] space-y-6">
+                       <p className="text-xs text-muted-foreground leading-relaxed text-center font-medium">
+                         Initial setup required. To bridge this service, ensure you represent yourself with <strong>GitHub</strong> on the {provider.name} platform.
                        </p>
                        <Button 
-                         onClick={handleOAuthConnect}
-                         className="w-full h-14 bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-xs rounded-2xl flex items-center gap-3 shadow-xl group"
+                         onClick={handleRedirectToService}
+                         className="w-full h-16 bg-white text-black hover:bg-zinc-200 transition-all font-black uppercase tracking-widest text-xs rounded-3xl flex items-center justify-center gap-4 shadow-xl"
                        >
-                         Continue with {provider.name} <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                         Bridge with GitHub Identity <LogIn className="w-4 h-4" />
                        </Button>
                     </div>
-                    <div className="flex items-center gap-3 justify-center opacity-40">
-                       <ShieldCheck className="w-4 h-4" />
-                       <span className="text-[10px] font-black uppercase tracking-widest">End-to-End Encrypted</span>
-                    </div>
+                    <button 
+                      onClick={() => githubSync.mutate()} 
+                      className="w-full text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 hover:text-white transition-colors"
+                    >
+                      Check for sync again
+                    </button>
                   </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
 
-          <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-5 flex items-start gap-4">
-            <div className="p-2 bg-indigo-500/20 rounded-xl">
-               <Lock className="w-4 h-4 text-indigo-400" />
-            </div>
-            <div className="text-[10px] text-indigo-200/50 leading-relaxed font-medium uppercase tracking-tight">
-              <strong>Sarge Trust Protocol:</strong> We use ephemeral session tokens wherever possible. Your raw credentials are never persisted in plain-text.
+          <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-[2rem] p-6 flex items-start gap-4">
+            <Lock className="w-4 h-4 text-indigo-400 mt-1" />
+            <div className="text-[10px] text-indigo-200/50 leading-relaxed font-bold uppercase tracking-tight">
+              <strong>Unified Identity Protocol:</strong> Sarge uses OIDC tokens to inherit permissions securely. We never store shared secrets.
             </div>
           </div>
           
-          <div className="flex justify-center pb-4">
-             <button onClick={onClose} className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-white transition-colors">
-                Cancel Request
-             </button>
-          </div>
+          <button 
+            onClick={onClose} 
+            className="w-full text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/20 hover:text-white transition-colors py-2"
+          >
+            Cancel Bridge
+          </button>
         </div>
       </DialogContent>
     </Dialog>

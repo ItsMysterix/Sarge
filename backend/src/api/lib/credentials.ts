@@ -159,6 +159,19 @@ export async function getProviderCredentials(
       const decrypted = decryptCredentials(encrypted)
       const parsed = JSON.parse(decrypted)
 
+      // 2a. Automatic Token Rotation (Invisible Background Refresh)
+      const { isTokenExpired, rotateProviderToken } = await import('./token-rotation');
+      if (userId && isTokenExpired(parsed)) {
+        credLogger.info({ providerId }, `[credentials] Token expired for ${providerId}. Triggering background rotation.`);
+        try {
+          const rotated = await rotateProviderToken(providerId, parsed, db, userId);
+          return rotated;
+        } catch (refreshErr) {
+          credLogger.error({ providerId, refreshErr }, `[credentials] Automatic rotation failed. UI may require re-auth.`);
+          // Fallback to old keys - provider might still work if drift is small
+        }
+      }
+
       credLogger.info({ providerId }, `Using credentials from database for ${providerId}`);
       return parsed
     }

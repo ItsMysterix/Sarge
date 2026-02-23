@@ -8,7 +8,7 @@ export class GithubProvider implements IProvider {
     errors: string[] = []
 
     private getToken(creds: Record<string, string>): string {
-        return creds.github_token || creds.token || ''
+        return creds.access_token || creds.github_token || creds.token || ''
     }
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {

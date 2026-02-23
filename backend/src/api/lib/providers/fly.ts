@@ -7,8 +7,12 @@ export class FlyProvider implements IProvider {
     valid = true
     errors: string[] = []
 
+    private getToken(creds: Record<string, string>): string {
+        return creds.access_token || creds.fly_token || creds.fly_api_token || creds.token || ''
+    }
+
     async deploy(opts: DeployOptions): Promise<DeployResult> {
-        const token = opts.credentials.fly_token || opts.credentials.fly_api_token || ''
+        const token = this.getToken(opts.credentials)
         if (!token) {
             // No token — return mock for UI preview
             return {

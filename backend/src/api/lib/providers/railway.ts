@@ -7,8 +7,12 @@ export class RailwayProvider implements IProvider {
     valid = true
     errors: string[] = []
 
+    private getToken(creds: Record<string, string>): string {
+        return creds.access_token || creds.railway_token || creds.token || ''
+    }
+
     async deploy(opts: DeployOptions): Promise<DeployResult> {
-        const token = opts.credentials.railway_token
+        const token = this.getToken(opts.credentials)
         if (!token) throw new Error('Railway token required')
 
         // Railway: deploy via API with GitHub integration

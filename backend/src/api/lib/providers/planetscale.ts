@@ -8,7 +8,7 @@ export class PlanetScaleProvider implements IProvider {
     errors: string[] = []
 
     private getToken(creds: Record<string, string>): string {
-        return creds.planetscale_token || creds.token || ''
+        return creds.access_token || creds.planetscale_token || creds.token || ''
     }
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
