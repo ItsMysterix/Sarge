@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@tanstack/react-query': 4.42.0
+  '@tanstack/react-query': 5.90.21
   '@tanstack/query-core': 4.41.0
 
 importers:
@@ -52,17 +52,17 @@ importers:
         specifier: ^10.39.0
         version: 10.39.0(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(next@14.2.33(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(webpack@5.105.2(esbuild@0.25.11))
       '@tanstack/react-query':
-        specifier: 4.42.0
-        version: 4.42.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 5.90.21
+        version: 5.90.21(react@18.3.1)
       '@tanstack/react-virtual':
-        specifier: ^3.1.0
-        version: 3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^3.13.18
+        version: 3.13.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@trpc/client':
         specifier: ^10.45.2
         version: 10.45.2(@trpc/server@10.45.2)
       '@trpc/react-query':
         specifier: ^10.45.2
-        version: 10.45.2(@tanstack/react-query@4.42.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 10.45.2(@tanstack/react-query@5.90.21(react@18.3.1))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@trpc/server':
         specifier: ^10.45.2
         version: 10.45.2
@@ -325,7 +325,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.1
-        version: 4.0.3(@types/debug@4.1.12)(@types/node@20.19.23)(@vitest/ui@4.0.18(vitest@4.0.3))(jiti@1.21.7)(jsdom@24.1.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0)
+        version: 4.0.3(@types/debug@4.1.12)(@types/node@20.19.23)(@vitest/ui@4.0.18)(jiti@1.21.7)(jsdom@24.1.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0)
       zod:
         specifier: ^4.1.12
         version: 4.1.12
@@ -509,12 +509,6 @@ importers:
   packages/sarge-services-sns: {}
 
   packages/sarge-services-sqs: {}
-
-  src/app:
-    dependencies:
-      next-auth:
-        specifier: ^4.24.13
-        version: 4.24.13(next@14.2.33(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(nodemailer@7.0.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
 packages:
 
@@ -3392,26 +3386,19 @@ packages:
   '@tanstack/query-core@4.41.0':
     resolution: {integrity: sha512-193R4Jp9hjvlij6LryxrB5Mpbffd2L9PeWh3KlIy/hJV4SkBOfiQZ+jc5qAZLDCrdbkA5FjGj+UoDYw6TcNnyA==}
 
-  '@tanstack/react-query@4.42.0':
-    resolution: {integrity: sha512-j0tiofkzE3CSrYKmVRaKuwGgvCE+P2OOEDlhmfjeZf5ufcuFHwYwwgw3j08n4WYPVZ+OpsHblcFYezhKA3jDwg==}
+  '@tanstack/react-query@5.90.21':
+    resolution: {integrity: sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-native: '*'
-    peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-native:
-        optional: true
+      react: ^18 || ^19
 
-  '@tanstack/react-virtual@3.13.12':
-    resolution: {integrity: sha512-Gd13QdxPSukP8ZrkbgS2RwoZseTTbQPLnQEn7HY/rqtM+8Zt95f7xKC7N0EsKs7aoz0WzZ+fditZux+F8EzYxA==}
+  '@tanstack/react-virtual@3.13.18':
+    resolution: {integrity: sha512-dZkhyfahpvlaV0rIKnvQiVoWPyURppl6w4m9IwMDpuIjcJ1sD9YGWrt0wISvgU7ewACXx2Ct46WPgI6qAD4v6A==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@tanstack/virtual-core@3.13.12':
-    resolution: {integrity: sha512-1YBOJfRHV4sXUmWsFSf5rQor4Ss82G8dQWLRbnk3GA4jeP8hQt1hxXh0tmflpC0dz3VgEv/1+qwPyLeWkQuPFA==}
+  '@tanstack/virtual-core@3.13.18':
+    resolution: {integrity: sha512-Mx86Hqu1k39icq2Zusq+Ey2J6dDWTjDvEv43PJtRCoEYTLyfaPnxIQ6iy7YAOK0NV/qOEmZQ/uCufrppZxTgcg==}
 
   '@tootallnate/quickjs-emscripten@0.23.0':
     resolution: {integrity: sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==}
@@ -3424,7 +3411,7 @@ packages:
   '@trpc/react-query@10.45.2':
     resolution: {integrity: sha512-BAqb9bGZIscroradlNx+Cc9522R+idY3BOSf5z0jHUtkxdMbjeGKxSSMxxu7JzoLqSIEC+LVzL3VvF8sdDWaZQ==}
     peerDependencies:
-      '@tanstack/react-query': 4.42.0
+      '@tanstack/react-query': 5.90.21
       '@trpc/client': 10.45.2
       '@trpc/server': 10.45.2
       react: '>=16.8.0'
@@ -3565,6 +3552,9 @@ packages:
 
   '@types/node@22.18.12':
     resolution: {integrity: sha512-BICHQ67iqxQGFSzfCFTT7MRQ5XcBjG5aeKh5Ok38UBbPe5fxTyE+aHFxwVrGyr8GNlqFMLKD1D3P2K/1ks8tog==}
+
+  '@types/node@22.19.11':
+    resolution: {integrity: sha512-BH7YwL6rA93ReqeQS1c4bsPpcfOmJasG+Fkr6Y59q83f9M1WcBRHR2vM+P9eOisYRcN3ujQoiZY8uk5W+1WL8w==}
 
   '@types/nodemailer@7.0.3':
     resolution: {integrity: sha512-fC8w49YQ868IuPWRXqPfLf+MuTRex5Z1qxMoG8rr70riqqbOp2F5xgOKE9fODEBPzpnvjkJXFgK6IL2xgMSTnA==}
@@ -3882,6 +3872,11 @@ packages:
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
+  acorn@8.16.0:
+    resolution: {integrity: sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
 
@@ -5575,8 +5570,8 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  libpq@1.8.15:
-    resolution: {integrity: sha512-4lSWmly2Nsj3LaTxxtFmJWuP3Kx+0hYHEd+aNrcXEWT0nKWaPd9/QZPiMkkC680zeALFGHQdQWjBvnilL+vgWA==}
+  libpq@1.9.0:
+    resolution: {integrity: sha512-/o/IlSJqHiwD5UoGUQnl/vxSEdsGEteuLyAQ1gYsZ/e/vqOP3E1AXp+4iqaGNYQJ+OVLb55iRiNv2Gml8usHrg==}
 
   lilconfig@3.1.3:
     resolution: {integrity: sha512-/vlFKAoH5Cgt3Ie+JLhRbwOsCQePABiU3tJ1egGvyQ+33R/vcwM2Zl2QR/LzjsBeItPt3oSVXapn+m4nQDvpzw==}
@@ -5888,8 +5883,8 @@ packages:
   mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}
 
-  nan@2.22.2:
-    resolution: {integrity: sha512-DANghxFkS1plDdRsX0X9pm0Z6SJNN6gBdtXfanwoZ8hooC5gosGFSBGRYHUVPz1asKA/kMRqDRdHrluZ61SpBQ==}
+  nan@2.23.1:
+    resolution: {integrity: sha512-r7bBUGKzlqk8oPBDYxt6Z0aEdF1G1rwlMcLk8LCOMbOzf0mG+JUfUzG4fIMWwHWP0iyaLWEQZJmtB7nOHEm/qw==}
 
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
@@ -6334,6 +6329,7 @@ packages:
   prebuild-install@7.1.1:
     resolution: {integrity: sha512-jAXscXWMcCK8GgCoHOfIr0ODh5ai8mj63L2nWrjuAgXE6tDyYGnx4/8o/rCgU+B4JSyZBKbeZqzhtwtC3ovxjw==}
     engines: {node: '>=10'}
+    deprecated: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -7380,6 +7376,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -11894,21 +11891,18 @@ snapshots:
 
   '@tanstack/query-core@4.41.0': {}
 
-  '@tanstack/react-query@4.42.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@tanstack/react-query@5.90.21(react@18.3.1)':
     dependencies:
       '@tanstack/query-core': 4.41.0
       react: 18.3.1
-      use-sync-external-store: 1.5.0(react@18.3.1)
-    optionalDependencies:
-      react-dom: 18.3.1(react@18.3.1)
 
-  '@tanstack/react-virtual@3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@tanstack/react-virtual@3.13.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@tanstack/virtual-core': 3.13.12
+      '@tanstack/virtual-core': 3.13.18
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@tanstack/virtual-core@3.13.12': {}
+  '@tanstack/virtual-core@3.13.18': {}
 
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 
@@ -11916,9 +11910,9 @@ snapshots:
     dependencies:
       '@trpc/server': 10.45.2
 
-  '@trpc/react-query@10.45.2(@tanstack/react-query@4.42.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@trpc/react-query@10.45.2(@tanstack/react-query@5.90.21(react@18.3.1))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@tanstack/react-query': 4.42.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@tanstack/react-query': 5.90.21(react@18.3.1)
       '@trpc/client': 10.45.2(@trpc/server@10.45.2)
       '@trpc/server': 10.45.2
       react: 18.3.1
@@ -12073,6 +12067,10 @@ snapshots:
       undici-types: 6.21.0
 
   '@types/node@22.18.12':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.19.11':
     dependencies:
       undici-types: 6.21.0
 
@@ -12270,6 +12268,14 @@ snapshots:
       chai: 6.2.0
       tinyrainbow: 3.0.3
 
+  '@vitest/mocker@4.0.3(vite@7.1.12(@types/node@20.19.23)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0))':
+    dependencies:
+      '@vitest/spy': 4.0.3
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.1.12(@types/node@20.19.23)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0)
+
   '@vitest/mocker@4.0.3(vite@7.1.12(@types/node@22.18.12)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0))':
     dependencies:
       '@vitest/spy': 4.0.3
@@ -12427,9 +12433,9 @@ snapshots:
     dependencies:
       acorn: 8.15.0
 
-  acorn-import-phases@1.0.4(acorn@8.15.0):
+  acorn-import-phases@1.0.4(acorn@8.16.0):
     dependencies:
-      acorn: 8.15.0
+      acorn: 8.16.0
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
@@ -12440,6 +12446,8 @@ snapshots:
       acorn: 8.15.0
 
   acorn@8.15.0: {}
+
+  acorn@8.16.0: {}
 
   agent-base@6.0.2:
     dependencies:
@@ -13373,7 +13381,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1)
       eslint-plugin-react: 7.37.5(eslint@8.57.1)
       eslint-plugin-react-hooks: 5.0.0-canary-7118f5dd7-20230705(eslint@8.57.1)
@@ -13403,7 +13411,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -13418,7 +13426,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -14224,7 +14232,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.18.12
+      '@types/node': 22.19.11
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -14333,10 +14341,10 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  libpq@1.8.15:
+  libpq@1.9.0:
     dependencies:
       bindings: 1.5.0
-      nan: 2.22.2
+      nan: 2.23.1
     optional: true
 
   lilconfig@3.1.3: {}
@@ -14850,7 +14858,7 @@ snapshots:
       object-assign: 4.1.1
       thenify-all: 1.6.0
 
-  nan@2.22.2:
+  nan@2.23.1:
     optional: true
 
   nanoid@3.3.11: {}
@@ -15135,7 +15143,7 @@ snapshots:
 
   pg-native@3.5.0:
     dependencies:
-      libpq: 1.8.15
+      libpq: 1.9.0
       pg-types: 2.2.0
     optional: true
 
@@ -16165,7 +16173,7 @@ snapshots:
   terser@5.46.0:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.15.0
+      acorn: 8.16.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -16534,10 +16542,10 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.8.0
 
-  vitest@4.0.3(@types/debug@4.1.12)(@types/node@20.19.23)(@vitest/ui@4.0.18(vitest@4.0.3))(jiti@1.21.7)(jsdom@24.1.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0):
+  vitest@4.0.3(@types/debug@4.1.12)(@types/node@20.19.23)(@vitest/ui@4.0.18)(jiti@1.21.7)(jsdom@24.1.3)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0):
     dependencies:
       '@vitest/expect': 4.0.3
-      '@vitest/mocker': 4.0.3(vite@7.1.12(@types/node@22.18.12)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0))
+      '@vitest/mocker': 4.0.3(vite@7.1.12(@types/node@20.19.23)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.0))
       '@vitest/pretty-format': 4.0.3
       '@vitest/runner': 4.0.3
       '@vitest/snapshot': 4.0.3
@@ -16643,8 +16651,8 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@webassemblyjs/wasm-edit': 1.14.1
       '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.15.0
-      acorn-import-phases: 1.0.4(acorn@8.15.0)
+      acorn: 8.16.0
+      acorn-import-phases: 1.0.4(acorn@8.16.0)
       browserslist: 4.28.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.19.0
