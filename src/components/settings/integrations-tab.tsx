@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { Github, MessageSquare, Brain, Database, CheckCircle, AlertTriangle, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Toggle } from "./toggle"
 
 interface IntegrationsTabProps {
   githubConnected: boolean
@@ -30,23 +31,6 @@ export function IntegrationsTab({
   onConnectGitHub,
   onToggleProvider
 }: IntegrationsTabProps) {
-  const Toggle = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
-    <button
-      onClick={onChange}
-      className={`
-        relative w-12 h-6 rounded-full transition-colors
-        ${enabled ? 'bg-accent' : 'bg-white/10'}
-      `}
-    >
-      <div
-        className={`
-          absolute top-1 w-4 h-4 bg-white rounded-full transition-transform
-          ${enabled ? 'translate-x-7' : 'translate-x-1'}
-        `}
-      />
-    </button>
-  )
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

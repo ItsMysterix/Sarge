@@ -101,25 +101,6 @@ export const LEVEL_STYLES: Record<string, string> = {
 // SHARED UI PRIMITIVES
 // ────────────────────────────────────────────────────────────────────────────────
 
-export const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn("bg-card border border-border rounded-xl p-6 shadow-sm", className)}>
-    {children}
-  </div>
-)
-
-export const EmptyState = ({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) => (
-  <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border rounded-xl bg-muted/30">
-    <Icon className="w-12 h-12 text-muted-foreground/20 mb-4" />
-    <p className="text-sm font-medium text-muted-foreground">{title}</p>
-    {subtitle && <p className="text-xs text-muted-foreground/60 mt-1 max-w-sm">{subtitle}</p>}
-  </div>
-)
-
-export const SectionHeader = ({ title, icon: Icon, action }: { title: string; icon: any; action?: React.ReactNode }) => (
-  <div className="flex items-center justify-between mb-6">
-    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-      <Icon className="w-3.5 h-3.5" /> {title}
-    </h3>
-    {action}
-  </div>
-)
+export { Card } from "./card"
+export { EmptyState } from "./empty-state"
+export { SectionHeader } from "./section-header"

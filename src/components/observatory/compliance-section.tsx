@@ -1,6 +1,6 @@
 "use client"
 
-import { Coins, TrendingDown, AlertTriangle, CheckCircle2, ArrowDown } from "lucide-react"
+import { Coins, TrendingDown, AlertTriangle, CheckCircle2, ArrowDown, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { trpc } from "@/lib/trpc"
 import { GridLoader } from "@/components/ui/grid-loader"
@@ -110,9 +110,40 @@ export const ComplianceSection = ({ projectId }: { projectId: string }) => {
         </div>
       )}
 
-      {recommendations.length === 0 && overview.totalCost === 0 && (
-        <EmptyState icon={Coins} title="No cost data yet." subtitle="Connect cloud providers and deploy services to see cost analytics and optimization recommendations." />
-      )}
+      {/* Budget & Spend Policies */}
+      <div className="pt-6">
+        <SectionHeader title="Cost Control & Spend Policies" icon={ShieldCheck} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="p-6">
+            <h3 className="text-sm font-bold mb-1">Monthly Budget Limit</h3>
+            <p className="text-xs text-muted-foreground mb-4">Set a hard billing threshold to avoid unexpected cloud runtime costs.</p>
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono">$</span>
+                <input 
+                  type="number" 
+                  defaultValue={150}
+                  className="w-full bg-background border border-border rounded-lg pl-7 pr-3 py-2 text-sm font-bold font-mono focus:outline-none focus:border-foreground/30 transition-colors" 
+                />
+              </div>
+              <button className="px-4 py-2 bg-foreground text-background rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-foreground/90 transition-all">
+                 Enforce Limit
+              </button>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-sm font-bold mb-1">Threshold Enforcement Policy</h3>
+            <p className="text-xs text-muted-foreground mb-4">What should Sarge do when the cluster exceeds the monthly budget?</p>
+            <select className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-foreground/30 appearance-none cursor-pointer">
+               <option value="alert">Alert Only (Slack / Email)</option>
+               <option value="suspend_previews">Suspend all PR Preview Environments</option>
+               <option value="suspend_non_prod">Suspend all Non-Production Services</option>
+               <option value="hard_stop" disabled>Hard Stop (Shuts down Production) - Contact Support</option>
+            </select>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

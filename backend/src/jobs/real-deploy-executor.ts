@@ -68,7 +68,7 @@ export function startRealDeployExecutor() {
         if (res.rowCount === 0) return
 
         const deployment = res.rows[0]
-        deploysRunning.inc()
+          (deploysRunning as any).inc()
         emitDeploy(ee, {
           type: 'deploys:update',
           id: String(deployment.id),
@@ -236,7 +236,7 @@ export function startRealDeployExecutor() {
             deployLogger.error({ msg: 'Failed to cleanup workspace', err: cleanupErr })
           }
         }
-        deploysRunning.dec()
+        (deploysRunning as any).dec()
         startTimer()
       }
     })

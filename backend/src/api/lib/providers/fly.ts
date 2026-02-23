@@ -8,16 +8,69 @@ export class FlyProvider implements IProvider {
     errors: string[] = []
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
-        // Fly.io: Global Anycast deployment
-        // URLs: https://project.fly.dev
+        const token = opts.credentials.fly_token || opts.credentials.fly_api_token || ''
+        if (!token) {
+            // No token — return mock for UI preview
+            return {
+                success: true,
+                deploymentId: `fly-mock-${Date.now()}`,
+                previewUrl: `https://${opts.projectId}-${opts.environmentName}.fly.dev`,
+                productionUrl: opts.environmentName === 'production' ? `https://${opts.projectId}.fly.dev` : undefined,
+                metadata: { appName: `sarge-${opts.projectId}`, mock: true },
+                estimatedDuration: 300,
+            }
+        }
 
-        return {
-            success: true,
-            deploymentId: `fly-${Date.now()}`,
-            previewUrl: `https://${opts.projectId}-${opts.environmentName}.fly.dev`,
-            productionUrl: opts.environmentName === 'production' ? `https://${opts.projectId}.fly.dev` : undefined,
-            metadata: { appName: `sarge-${opts.projectId}` },
-            estimatedDuration: 300,
+        try {
+            const appName = `sarge-${opts.projectId}`.replace(/[^a-z0-9-]/g, '').substring(0, 30)
+
+            // 1. Create app (ignore if exists)
+            await fetch('https://api.machines.dev/v1/apps', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ app_name: appName, org_slug: 'personal' })
+            })
+
+            // 2. Launch machine
+            const machineRes = await fetch(`https://api.machines.dev/v1/apps/${appName}/machines`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    config: {
+                        image: opts.env?.FLY_IMAGE || 'registry.fly.io/placeholder:latest',
+                        env: opts.env || {},
+                        services: [{
+                            ports: [{ port: 443, handlers: ['tls', 'http'] }, { port: 80, handlers: ['http'] }],
+                            protocol: 'tcp',
+                            internal_port: 8080,
+                        }],
+                        guest: { cpu_kind: 'shared', cpus: 1, memory_mb: 256 },
+                    }
+                })
+            })
+
+            const machineData = await machineRes.json() as any
+
+            if (!machineRes.ok) {
+                throw new Error(machineData?.error || `Fly API error: ${machineRes.status}`)
+            }
+
+            return {
+                success: true,
+                deploymentId: machineData.id || `fly-${Date.now()}`,
+                previewUrl: `https://${appName}.fly.dev`,
+                productionUrl: opts.environmentName === 'production' ? `https://${appName}.fly.dev` : undefined,
+                metadata: { appName, machineId: machineData.id },
+                estimatedDuration: 60,
+            }
+        } catch (err) {
+            return {
+                success: false,
+                deploymentId: '',
+                error: err instanceof Error ? err.message : 'Fly.io deploy failed',
+                metadata: {},
+                estimatedDuration: 0,
+            }
         }
     }
 

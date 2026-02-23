@@ -27,6 +27,8 @@ const colorMap: Record<string, any> = {
   error: { icon: "text-muted-foreground", bg: "bg-muted/30", border: "border-muted-foreground/20" },
 }
 
+import CountUp from "react-countup"
+
 export function StatCard({
   title,
   value,
@@ -42,6 +44,23 @@ export function StatCard({
   const isNamedColor = colorMap[color]
   const colors = isNamedColor || { icon: "text-foreground", bg: "bg-foreground/5", border: "border-foreground/10" }
   const isClickable = !!onClick
+
+  // Try to parse string values like "$4,200", "500ms" to animate them. 
+  // If it's pure number, animate it directly
+  let renderValue: React.ReactNode = value
+  if (typeof value === "number") {
+    renderValue = <CountUp end={value} duration={2} separator="," />
+  } else if (typeof value === "string") {
+    const numMatch = value.match(/^([^\d]*)?([\d,.]+)([^\d]*)?$/)
+    if (numMatch) {
+      const prefix = numMatch[1] || ""
+      const numValue = parseFloat(numMatch[2].replace(/,/g, ""))
+      const suffix = numMatch[3] || ""
+      if (!isNaN(numValue)) {
+        renderValue = <CountUp end={numValue} duration={2} separator="," prefix={prefix} suffix={suffix} decimals={numValue % 1 !== 0 ? 2 : 0} />
+      }
+    }
+  }
 
   return (
     <motion.div
@@ -63,14 +82,16 @@ export function StatCard({
         </div>
         {trend && (
           <div className={cn("flex items-center gap-1 text-xs text-muted-foreground")}>
-            {trend.direction === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            <span className="font-mono">{Math.abs(trend.value)}%</span>
+            {trend.direction === "up" ? <TrendingUp className="w-3 h-3 text-green-500" /> : <TrendingDown className="w-3 h-3 text-red-500" />}
+            <span className={cn("font-mono", trend.direction === "up" ? "text-green-500" : "text-red-500")}>
+              {Math.abs(trend.value)}%
+            </span>
           </div>
         )}
       </div>
       
       <div className="space-y-1">
-        <div className={cn("font-bold terminal-text", size === "lg" ? "text-3xl" : "text-2xl")}>{value}</div>
+        <div className={cn("font-bold terminal-text", size === "lg" ? "text-3xl" : "text-2xl")}>{renderValue}</div>
         <div className="text-xs text-gray-400">{title}</div>
         {(subtitle || detail) && (
           <div className="text-xs text-gray-500 terminal-text">{subtitle || detail}</div>

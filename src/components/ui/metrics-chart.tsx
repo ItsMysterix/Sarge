@@ -209,67 +209,8 @@ export function MetricsChart({
 }
 
 // Pre-configured chart components for common use cases
-export function CPUUsageChart({ data }: { data?: any[] }) {
-  return (
-    <MetricsChart
-      data={data}
-      type="area"
-      dataKey="cpu"
-      xAxisKey="time"
-      title="CPU Usage Over Time"
-      color={COLORS.accent}
-    />
-  )
-}
-
-export function MemoryUsageChart({ data }: { data?: any[] }) {
-  return (
-    <MetricsChart
-      data={data}
-      type="area"
-      dataKey="memory"
-      xAxisKey="time"
-      title="Memory Usage Over Time"
-      color={COLORS.warning}
-    />
-  )
-}
-
-export function RequestVolumeChart({ data }: { data?: any[] }) {
-  return (
-    <MetricsChart
-      data={data}
-      type="bar"
-      dataKey="requests"
-      xAxisKey="time"
-      title="Request Volume"
-      color={COLORS.info}
-    />
-  )
-}
-
-export function ErrorRateChart({ data }: { data?: any[] }) {
-  return (
-    <MetricsChart
-      data={data}
-      type="line"
-      dataKey="errors"
-      xAxisKey="time"
-      title="Error Rate"
-      color={COLORS.error}
-    />
-  )
-}
-
-export function ServiceDistributionChart({ data }: { data?: any[] }) {
-  return (
-    <MetricsChart
-      data={data}
-      type="pie"
-      dataKey="value"
-      xAxisKey="name"
-      title="Service Distribution"
-      height={250}
-    />
-  )
-}
+export { CPUUsageChart } from "./cpu-usage-chart"
+export { MemoryUsageChart } from "./memory-usage-chart"
+export { RequestVolumeChart } from "./request-volume-chart"
+export { ErrorRateChart } from "./error-rate-chart"
+export { ServiceDistributionChart } from "./service-distribution-chart"

@@ -19,37 +19,95 @@ export class GCPProvider implements IProvider {
             throw new Error('GCP service account key and project ID required')
         }
 
-        // GCP: Deploy to Cloud Run (serverless containers)
-        // Uses gcloud CLI or Cloud Run API
-        // URL format: https://<service>-<hash>-<region>.run.app
-
-        const serviceName = `${opts.projectId}-${opts.environmentName}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+        const serviceName = `sarge-${opts.projectId.toLowerCase()}`.replace(/[^a-z0-9-]/g, '').substring(0, 30)
         const region = opts.credentials.gcp_region || 'us-central1'
 
-        providerLogger.info(`[GCP] Deploying ${serviceName} to Cloud Run in ${region}`)
+        providerLogger.info(`[GCPProvider] Using Terraform to deploy GCP infrastructure for ${opts.projectId}`)
 
-        // In real implementation:
-        // 1. Authenticate with service account
-        // 2. Build container image with Cloud Build
-        // 3. Push to Google Container Registry (GCR) or Artifact Registry
-        // 4. Deploy to Cloud Run with image
-        // 5. Configure environment variables, scaling, resources
+        const tfConfig = `
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
+}
 
-        const deploymentId = `gcp-${Date.now()}`
-        const previewUrl = `https://${serviceName}-${deploymentId.slice(-8)}-${region}.run.app`
+provider "google" {
+  project = "${projectId}"
+  region  = "${region}"
+}
 
-        return {
-            success: true,
-            deploymentId,
-            previewUrl,
-            productionUrl: opts.environmentName === 'production' ? previewUrl : undefined,
-            metadata: {
-                projectId,
-                serviceName,
-                region,
-                platform: 'cloud-run',
-            },
-            estimatedDuration: 240,
+# Cloud Run Service (Serverless Container)
+resource "google_cloud_run_service" "app" {
+  name     = "${serviceName}"
+  location = "${region}"
+
+  template {
+    spec {
+      containers {
+        # Default placeholder image, will be swapped out during CI/CD push
+        image = "us-docker.pkg.dev/cloudrun/container/hello"
+      }
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+}
+
+# Allow unauthenticated invocations (Public API)
+resource "google_cloud_run_service_iam_member" "public_access" {
+  service  = google_cloud_run_service.app.name
+  location = google_cloud_run_service.app.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# GCS Bucket for assets
+resource "google_storage_bucket" "assets" {
+  name          = "${projectId}-assets-bucket"
+  location      = "${region}"
+  force_destroy = true
+}
+`
+        try {
+            const { TerraformProvider } = await import('./terraform')
+            const tf = new TerraformProvider()
+
+            const deploymentId = `gcp-tf-${Date.now()}`
+            const res = await tf.deploy({ ...opts, terraformConfig: tfConfig } as any)
+
+            if (!res.success) throw new Error(res.error)
+
+            const previewUrl = `https://${serviceName}-${deploymentId.slice(-8)}-${region}.run.app`
+
+            return {
+                success: true,
+                deploymentId,
+                previewUrl,
+                productionUrl: opts.environmentName === 'production' ? previewUrl : undefined,
+                metadata: {
+                    projectId,
+                    serviceName,
+                    region,
+                    platform: 'cloud-run',
+                    tfOutput: res.metadata?.output
+                },
+                estimatedDuration: 240,
+            }
+        } catch (err) {
+            providerLogger.error({ err }, '[GCPProvider] Deployment failed')
+            return {
+                success: false,
+                deploymentId: `gcp-err-${Date.now()}`,
+                error: err instanceof Error ? err.message : 'Unknown GCP error',
+                metadata: { projectId },
+                estimatedDuration: 0,
+            }
         }
     }
 

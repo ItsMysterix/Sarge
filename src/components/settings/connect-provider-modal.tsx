@@ -15,13 +15,7 @@ interface ConnectProviderModalProps {
   onClose: () => void
   onConnect: (providerId: string, credentials: Record<string, string>) => Promise<void>
 }
-
-type ConnectionMethod = 'oauth' | 'keys'
-
 export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: ConnectProviderModalProps) {
-  const [method, setMethod] = useState<ConnectionMethod>('oauth')
-  const [credentials, setCredentials] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [oauthStep, setOauthStep] = useState<'idle' | 'linking' | 'success'>('idle')
 
   if (!provider) return null
@@ -39,24 +33,6 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
     'sanity', 'paypal', 'alchemy'
   ].includes(provider.id)
 
-  const handleInputChange = (key: string, value: string) => {
-    setCredentials(prev => ({ ...prev, [key]: value }))
-  }
-
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    try {
-      await onConnect(provider.id, credentials)
-      onClose()
-      setCredentials({})
-    } catch (error) {
-      console.error("Failed to connect provider:", error)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   const handleOAuthConnect = async () => {
     setOauthStep('linking')
     // Simulating the OAuth redirect and callback flow for a universal seamless experience
@@ -70,43 +46,6 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
     }, 2000)
   }
 
-  const renderKeysFields = () => {
-    switch (provider.id) {
-      case 'aws':
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="aws_token" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AWS Access Key ID</Label>
-              <Input id="aws_token" placeholder="AKIA..." className="bg-white/5 border-white/10 text-white rounded-xl" value={credentials.aws_token || ''} onChange={e => handleInputChange('aws_token', e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="aws_secret" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AWS Secret Access Key</Label>
-              <Input id="aws_secret" type="password" placeholder="••••••••••••••••" className="bg-white/5 border-white/10 text-white rounded-xl" value={credentials.aws_secret || ''} onChange={e => handleInputChange('aws_secret', e.target.value)} required />
-            </div>
-          </div>
-        )
-      case 'gcp':
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="gcp_project_id" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">GCP Project ID</Label>
-              <Input id="gcp_project_id" placeholder="my-project-id" className="bg-white/5 border-white/10 text-white rounded-xl" value={credentials.gcp_project_id || ''} onChange={e => handleInputChange('gcp_project_id', e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gcp_service_account_key" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Service Account Key (JSON)</Label>
-              <Input id="gcp_service_account_key" type="password" placeholder='{"type": "service_account", ...}' className="bg-white/5 border-white/10 text-white rounded-xl" value={credentials.gcp_service_account_key || ''} onChange={e => handleInputChange('gcp_service_account_key', e.target.value)} required />
-            </div>
-          </div>
-        )
-      default:
-        return (
-          <div className="space-y-2">
-            <Label htmlFor="generic_token" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{provider.name} API Key / Token</Label>
-            <Input id="generic_token" type="password" placeholder={`Enter your ${provider.name} token`} className="bg-white/5 border-white/10 text-white rounded-xl" value={credentials[`${provider.id}_token`] || ''} onChange={e => handleInputChange(`${provider.id}_token`, e.target.value)} required />
-          </div>
-        )
-    }
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -134,28 +73,6 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
             </DialogDescription>
           </DialogHeader>
 
-          {supportsOAuth && oauthStep === 'idle' && (
-            <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
-               <button 
-                 onClick={() => setMethod('oauth')}
-                 className={cn(
-                   "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                   method === 'oauth' ? "bg-white text-black shadow-xl" : "text-muted-foreground hover:text-foreground"
-                 )}
-               >
-                 One-Click Login
-               </button>
-               <button 
-                onClick={() => setMethod('keys')}
-                className={cn(
-                  "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                  method === 'keys' ? "bg-white text-black shadow-xl" : "text-muted-foreground hover:text-foreground"
-                )}
-               >
-                 Manual Keys
-               </button>
-            </div>
-          )}
 
           <AnimatePresence mode="wait">
             {oauthStep === 'linking' ? (
@@ -193,13 +110,12 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
               </motion.div>
             ) : (
               <motion.div 
-                key={method}
-                initial={{ opacity: 0, x: method === 'oauth' ? -20 : 20 }}
+                key="oauth"
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: method === 'oauth' ? 20 : -20 }}
+                exit={{ opacity: 0, x: 20 }}
                 className="space-y-6"
               >
-                {method === 'oauth' && supportsOAuth ? (
                   <div className="space-y-6">
                     <div className="p-6 bg-blue-500/5 border border-blue-500/10 rounded-3xl space-y-4">
                        <p className="text-xs text-muted-foreground leading-relaxed text-center">
@@ -217,17 +133,6 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
                        <span className="text-[10px] font-black uppercase tracking-widest">End-to-End Encrypted</span>
                     </div>
                   </div>
-                ) : (
-                  <form onSubmit={handleManualSubmit} className="space-y-6">
-                    {renderKeysFields()}
-                    <Button 
-                      disabled={isSubmitting} 
-                      className="w-full h-14 bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl border-none"
-                    >
-                      {isSubmitting ? "Orchestrating..." : `Verify & Link ${provider.name}`}
-                    </Button>
-                  </form>
-                )}
               </motion.div>
             )}
           </AnimatePresence>

@@ -18,9 +18,9 @@ export function createServer(opts: ShimOptions = {}) {
   let last: LastRequestRecord | null = null
   const insecure = opts.insecure ?? process.env.SARGE_AWS_INSECURE === '1'
   const dataRoot = process.env.SARGE_DATA_DIR ? path.resolve(process.cwd(), process.env.SARGE_DATA_DIR) : path.resolve(process.cwd(), 'data/sarge/workspaces/default')
-  const s3 = new S3Service({ dataRoot })
-  const cw = new CloudWatchLogsService({ dataRoot })
-  const dynamo = new DynamoService({ dataRoot })
+  const s3 = new S3Service({ dataRoot }) as any
+  const cw = new CloudWatchLogsService({ dataRoot }) as any
+  const dynamo = new DynamoService({ dataRoot }) as any
   const sqs = new SqsService({ dataRoot })
   const lambda = new LambdaService({ dataRoot })
   const sns = new SnsService({}, { sqs, lambda })
@@ -29,12 +29,12 @@ export function createServer(opts: ShimOptions = {}) {
   const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
       const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
-    const chunks: Buffer[] = []
-    req.on('data', (c: Buffer) => chunks.push(c))
-    await new Promise<void>((resolve) => req.on('end', () => resolve()))
-    const rawBuffer = Buffer.concat(chunks)
-    const rawBody = rawBuffer.toString('utf-8')
-    ;(req as any).__rawBuffer = rawBuffer
+      const chunks: Buffer[] = []
+      req.on('data', (c: Buffer) => chunks.push(c))
+      await new Promise<void>((resolve) => req.on('end', () => resolve()))
+      const rawBuffer = Buffer.concat(chunks)
+      const rawBody = rawBuffer.toString('utf-8')
+        ; (req as any).__rawBuffer = rawBuffer
 
       // debug snapshot
       try {
@@ -45,7 +45,7 @@ export function createServer(opts: ShimOptions = {}) {
           headers: req.headers,
           body: rawBody,
         }, null, 2))
-      } catch {}
+      } catch { }
 
       // Health/debug endpoint
       if (url.pathname === '/__sarge/last') {
@@ -148,7 +148,7 @@ export function createServer(opts: ShimOptions = {}) {
         if (req.method === 'POST' && match) {
           const functionName = decodeURIComponent(match[1])
           let event: any = {}
-          try { event = rawBody ? JSON.parse(rawBody) : {} } catch {}
+          try { event = rawBody ? JSON.parse(rawBody) : {} } catch { }
           const out = await lambda.invoke(functionName, { payload: event })
           if (out.ok) {
             // Return raw payload body as JSON per AWS Lambda Invoke semantics
@@ -196,21 +196,21 @@ export function createServer(opts: ShimOptions = {}) {
       }
 
       if (service === 's3') {
-            // IAM enforcement helper
-            const check = (action: string, resource: string): boolean => {
-              if (!(process.env.SARGE_STRICT_IAM === '1' || opts.strictIam)) return true
-              const ok = evaluateIam({ principal: 'local', action, resource, statements: loadLocalPolicy() })
-              if (!ok.allowed) {
-                json(res, 403, { __type: 'AccessDeniedException', message: ok.reason || 'Access denied' })
-                return false
-              }
-              return true
-            }
+        // IAM enforcement helper
+        const check = (action: string, resource: string): boolean => {
+          if (!(process.env.SARGE_STRICT_IAM === '1' || opts.strictIam)) return true
+          const ok = evaluateIam({ principal: 'local', action, resource, statements: loadLocalPolicy() })
+          if (!ok.allowed) {
+            json(res, 403, { __type: 'AccessDeniedException', message: ok.reason || 'Access denied' })
+            return false
+          }
+          return true
+        }
         // S3 path-style routing
-  const seg = url.pathname.split('/').filter(Boolean)
-  const offset = seg[0] === 's3' ? 1 : 0
-  const bucket = seg[offset]
-  const key = seg.slice(offset + 1).join('/')
+        const seg = url.pathname.split('/').filter(Boolean)
+        const offset = seg[0] === 's3' ? 1 : 0
+        const bucket = seg[offset]
+        const key = seg.slice(offset + 1).join('/')
         const aclHeader = (req.headers['x-amz-acl'] as string | undefined) || 'private'
         const acl = (aclHeader === 'public-read' ? 'public-read' : 'private') as 'private' | 'public-read'
         if (req.method === 'GET' && url.pathname === '/') {
@@ -265,7 +265,7 @@ export function createServer(opts: ShimOptions = {}) {
           }
           if (req.method === 'HEAD') {
             if (!check('s3:GetObject', `arn:aws:s3:::${bucket}/${key}`)) return
-            const meta = await s3.headObject(bucket, key)
+            const meta = (await s3.headObject(bucket, key)) as any
             res.statusCode = 200
             res.setHeader('content-type', meta.contentType)
             res.setHeader('etag', `"${meta.etag}"`)
@@ -447,7 +447,7 @@ export function createServer(opts: ShimOptions = {}) {
           const Name = (receivedShape as any).Name as string
           const Pattern = (receivedShape as any).EventPattern
           let parsed: any = undefined
-          try { parsed = Pattern ? JSON.parse(Pattern) : undefined } catch {}
+          try { parsed = Pattern ? JSON.parse(Pattern) : undefined } catch { }
           await events.putRule(Name, parsed)
           json(res, 200, { RuleArn: `arn:aws:events:local:000000000000:rule/${Name}` })
           return
@@ -504,14 +504,14 @@ export function createServer(opts: ShimOptions = {}) {
 
   // Wrap close to destroy open sockets first (prevents test hangs)
   const _close = server.close.bind(server)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(server as any).close = ((cb?: (err?: Error) => void) => {
-    for (const s of sockets) {
-      try { s.destroy() } catch {}
-    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return _close(cb as any)
-  })
+    ; (server as any).close = ((cb?: (err?: Error) => void) => {
+      for (const s of sockets) {
+        try { s.destroy() } catch { }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return _close(cb as any)
+    })
 
   function listen(port = opts.port ?? 0): Promise<number> {
     return new Promise((resolve) => {
@@ -538,7 +538,7 @@ function json(res: http.ServerResponse, code: number, body: unknown, headers: Re
     const out = { code, type: 'application/json' as const, body }
     fs.mkdirSync(path.join(process.cwd(), 'data/sarge/workspaces/default'), { recursive: true })
     fs.writeFileSync(path.join(process.cwd(), 'data/sarge/workspaces/default/last-response.json'), JSON.stringify(out, null, 2))
-  } catch {}
+  } catch { }
 }
 
 function detectService(url: URL, req?: http.IncomingMessage, raw?: string): string {
@@ -619,13 +619,13 @@ function detectOperation(service: string, req: http.IncomingMessage, url: URL): 
 
 function parseShape(service: string, req: http.IncomingMessage, raw: string, url: URL): unknown {
   // cache raw for detectOperation
-  ;(req as any).__rawBody = raw
+  ; (req as any).__rawBody = raw
   if (!raw) return {}
   try {
     if (service === 'dynamodb' || service === 'cloudwatch-logs' || service === 'lambda' || service === 'events' || service === 'sqs' || service === 'sns') {
       return JSON.parse(raw)
     }
-  } catch {}
+  } catch { }
   // Query protocol (SQS/SNS)
   const ct = (req.headers['content-type'] as string | undefined) || ''
   if (service === 'sqs' || service === 'sns' || ct.includes('application/x-www-form-urlencoded')) {
@@ -658,7 +658,7 @@ function xmlOut(res: http.ServerResponse, code: number, xml: string) {
     const out = { code, type: 'text/xml' as const }
     fs.mkdirSync(path.join(process.cwd(), 'data/sarge/workspaces/default'), { recursive: true })
     fs.writeFileSync(path.join(process.cwd(), 'data/sarge/workspaces/default/last-response.json'), JSON.stringify(out, null, 2))
-  } catch {}
+  } catch { }
 }
 
 function buildQueueUrl(name: string): string {

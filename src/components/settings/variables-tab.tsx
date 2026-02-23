@@ -17,6 +17,8 @@ export function VariablesTab() {
   const [newKey, setNewKey] = useState("")
   const [newValue, setNewValue] = useState("")
   const [isAdding, setIsAdding] = useState(false)
+  const [isBulkMode, setIsBulkMode] = useState(false)
+  const [bulkText, setBulkText] = useState("")
   
   const secretsQuery = t.secrets?.list?.useQuery(
     { projectId: currentProject?.id, environmentId: activeEnv },
@@ -28,7 +30,6 @@ export function VariablesTab() {
       secretsQuery?.refetch()
       setNewKey("")
       setNewValue("")
-      setIsAdding(false)
       addToast({ type: "success", title: "Variable added", description: `Secret saved for ${activeEnv}` })
     },
     onError: (err: any) => {
@@ -51,6 +52,27 @@ export function VariablesTab() {
       key: newKey,
       value: newValue
     })
+    setIsAdding(false)
+  }
+
+  const handleBulkAdd = () => {
+    if (!bulkText) return;
+    const lines = bulkText.split('\n');
+    lines.forEach((line) => {
+      if (!line.trim() || line.startsWith('#')) return;
+      const [key, ...rest] = line.split('=');
+      if (key && key.trim() !== '') {
+        const val = rest.join('=').trim().replace(/^["'](.*)["']$/, '$1');
+        setMutation?.mutate({
+          projectId: currentProject?.id,
+          environmentId: activeEnv,
+          key: key.trim(),
+          value: val
+        });
+      }
+    });
+    setBulkText("");
+    setIsAdding(false);
   }
 
   const handleDelete = (key: string) => {
@@ -111,30 +133,51 @@ export function VariablesTab() {
 
       {/* Add New Variable Form */}
       {isAdding && (
-        <div className="glass-card p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">Key</label>
-              <input
-                type="text"
-                value={newKey}
-                onChange={(e) => setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_"))}
-                placeholder="DATABASE_URL"
-                className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg text-sm font-mono focus:outline-none focus:border-white/20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">Value</label>
-              <input
-                type="password"
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg text-sm font-mono focus:outline-none focus:border-white/20"
-              />
-            </div>
+        <div className="glass-card p-4 space-y-4 border border-foreground/10 bg-muted/20">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+             <div className="flex gap-4">
+                <button onClick={() => setIsBulkMode(false)} className={cn("text-xs font-bold uppercase tracking-widest", !isBulkMode ? "text-foreground" : "text-muted-foreground")}>Single Key-Value</button>
+                <button onClick={() => setIsBulkMode(true)} className={cn("text-xs font-bold uppercase tracking-widest", isBulkMode ? "text-foreground" : "text-muted-foreground")}>Bulk Editor (.env)</button>
+             </div>
           </div>
-          <div className="flex justify-end gap-2">
+          
+          {!isBulkMode ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Key</label>
+                <input
+                  type="text"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_"))}
+                  placeholder="DATABASE_URL"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-foreground/30"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Value</label>
+                <input
+                  type="password"
+                  value={newValue}
+                  onChange={(e) => setNewValue(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-foreground/30"
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1.5">Paste .env contents</label>
+              <textarea
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                placeholder={"API_KEY=your_key_here\nDATABASE_URL=postgres://...\n# this is a comment"}
+                rows={5}
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-foreground/30 resize-y"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={() => setIsAdding(false)}
               className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -142,12 +185,12 @@ export function VariablesTab() {
               Cancel
             </button>
             <button
-              onClick={handleAdd}
-              disabled={!newKey || !newValue || setMutation?.isLoading}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white text-black rounded-lg disabled:opacity-50"
+              onClick={isBulkMode ? handleBulkAdd : handleAdd}
+              disabled={(isBulkMode ? !bulkText : (!newKey || !newValue)) || setMutation?.isLoading}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-foreground text-background font-medium hover:bg-foreground/90 rounded-lg disabled:opacity-50"
             >
               {setMutation?.isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-              Save
+              Save {isBulkMode ? 'Variables' : 'Variable'}
             </button>
           </div>
         </div>

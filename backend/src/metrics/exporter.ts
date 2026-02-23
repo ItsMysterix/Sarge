@@ -52,7 +52,7 @@ export const deploysTotal = new Counter<"status">({
   registers: [registry],
 });
 
-export const deploysRunning = new Gauge<string>({
+export const deploysRunning = new Gauge({
   name: `${METRICS_PREFIX}deploys_running`,
   help: 'Current number of running deployments',
   registers: [registry],

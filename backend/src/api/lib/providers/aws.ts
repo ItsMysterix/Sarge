@@ -123,40 +123,62 @@ export class AWSProvider implements IProvider {
 
     async deploy(opts: DeployOptions): Promise<DeployResult> {
         try {
-            const { eks, s3 } = this.getClients(opts.credentials)
+            providerLogger.info(`[AWSProvider] Using Terraform to deploy AWS infrastructure for ${opts.projectId}`)
 
-            // 1. Verify EKS cluster exists (the "environment")
-            providerLogger.info(`[AWSProvider] Verifying cluster: ${opts.environmentName}`)
-            let clusterArn = ''
-            try {
-                const clusterInfo = await eks.send(new DescribeClusterCommand({ name: opts.environmentName }))
-                clusterArn = clusterInfo.cluster?.arn || ''
-            } catch (err) {
-                providerLogger.warn(`[AWSProvider] Cluster ${opts.environmentName} not found, using generic deployment`)
-            }
+            const region = opts.credentials.aws_region || 'us-east-1'
+            const appName = `sarge-${opts.projectId.toLowerCase()}`.replace(/[^a-z0-9-]/g, '').substring(0, 30)
 
-            // 2. Ensure project bucket exists
-            const bucketName = `sarge-assets-${opts.projectId.toLowerCase()}`
-            try {
-                await s3.send(new CreateBucketCommand({ Bucket: bucketName }))
-                providerLogger.info(`[AWSProvider] Created S3 bucket: ${bucketName}`)
-            } catch (err: any) {
-                if (err.name !== 'BucketAlreadyExists' && err.name !== 'BucketAlreadyOwnedByYou') {
-                    providerLogger.warn(`[AWSProvider] S3 Bucket issue:`, err.message)
-                }
-            }
+            // Baseline standard AWS ECS Infrastructure as Code for apps
+            const tfConfig = `
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
 
-            const deploymentId = `aws-${Date.now()}`
+provider "aws" {
+  region = "${region}"
+}
+
+# 1. ECR Repository for Docker image
+resource "aws_ecr_repository" "app" {
+  name          = "${appName}"
+  force_destroy = true
+}
+
+# 2. ECS Cluster
+resource "aws_ecs_cluster" "main" {
+  name = "${appName}-cluster"
+}
+
+# 3. S3 Bucket for static assets/storage
+resource "aws_s3_bucket" "assets" {
+  bucket        = "${appName}-assets-random123"
+  force_destroy = true
+}
+`
+            // Pass the generated Terraform configuration to the Terraform Provider
+            // which will handle execution (or simulation if binary is missing)
+            const { TerraformProvider } = await import('./terraform')
+            const tf = new TerraformProvider()
+
+            const deploymentId = `aws-tf-${Date.now()}`
+            const res = await tf.deploy({ ...opts, terraformConfig: tfConfig } as any)
+
+            if (!res.success) throw new Error(res.error)
+
             return {
                 success: true,
                 deploymentId,
                 previewUrl: `https://${opts.projectId}.${opts.environmentName}.elb.amazonaws.com`,
                 productionUrl: opts.environmentName === 'production' ? `https://${opts.projectId}.elb.amazonaws.com` : undefined,
                 metadata: {
-                    clusterArn,
-                    bucketName,
-                    region: opts.credentials.aws_region || 'us-east-1',
-                    method: clusterArn ? 'eks' : 'basic-aws'
+                    region,
+                    appName,
+                    tfOutput: res.metadata?.output
                 },
                 estimatedDuration: 300,
             }
@@ -188,8 +210,8 @@ export class AWSProvider implements IProvider {
                     return {
                         status: statusMap[cluster.status!] || 'success',
                         progress: cluster.status === 'ACTIVE' ? 100 : 50,
-                        message: `EKS Cluster ${name} is ${cluster.status}`,
-                        logs: [`Cluster ARN: ${cluster.arn}`],
+                        message: `EKS Cluster ${name} is ${cluster.status} `,
+                        logs: [`Cluster ARN: ${cluster.arn} `],
                     }
                 }
             } catch (e) { }
@@ -202,8 +224,8 @@ export class AWSProvider implements IProvider {
                     return {
                         status: service.status === 'ACTIVE' ? 'success' : 'deploying',
                         progress: service.runningCount === service.desiredCount ? 100 : 50,
-                        message: `ECS Service ${name} is ${service.status}`,
-                        logs: [`Desired: ${service.desiredCount}, Running: ${service.runningCount}`],
+                        message: `ECS Service ${name} is ${service.status} `,
+                        logs: [`Desired: ${service.desiredCount}, Running: ${service.runningCount} `],
                     }
                 }
             } catch (e) { }

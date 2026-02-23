@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Bell, Mail, MessageSquare, AlertTriangle } from "lucide-react"
+import { Toggle } from "./toggle"
 
 interface NotificationsTabProps {
   notifications: {
@@ -18,22 +19,6 @@ interface NotificationsTabProps {
 }
 
 export function NotificationsTab({ notifications, onToggle }: NotificationsTabProps) {
-  const Toggle = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
-    <button
-      onClick={onChange}
-      className={`
-        relative w-12 h-6 rounded-full transition-colors
-        ${enabled ? 'bg-accent' : 'bg-white/10'}
-      `}
-    >
-      <div
-        className={`
-          absolute top-1 w-4 h-4 bg-white rounded-full transition-transform
-          ${enabled ? 'translate-x-7' : 'translate-x-1'}
-        `}
-      />
-    </button>
-  )
 
   return (
     <motion.div

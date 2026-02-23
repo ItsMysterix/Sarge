@@ -16,6 +16,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import { CommandPalette } from "./command-palette"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -104,25 +105,20 @@ export function AppShell({ children, title, actions }: AppShellProps) {
                 </>
               )}
 
-              {/* Search */}
-              <form onSubmit={handleSearch} className="relative group">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-foreground transition-colors z-10" />
-                  <input 
-                    type="text"
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className={cn(
-                      "h-9 pl-9 pr-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground transition-[width,background-color,border-color] outline-none placeholder:text-muted-foreground/50",
-                      "w-48 focus:w-80 focus:text-foreground focus:border-ring focus:bg-background"
-                    )}
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
-                    <kbd className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground font-semibold">↵</kbd>
-                  </div>
+              {/* Search Trigger */}
+              <button 
+                onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'k', 'metaKey': true}))}
+                className="relative group cursor-pointer flex items-center justify-between w-48 focus-within:w-64 transition-[width] h-9 px-3 rounded-lg bg-muted border border-border text-xs text-muted-foreground hover:border-border/80 outline-none"
+              >
+                <div className="flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>Search...</span>
                 </div>
-              </form>
+                <div className="flex gap-1 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
+                  <kbd className="text-[10px] bg-background px-1.5 py-0.5 rounded border border-border font-mono font-medium">⌘</kbd>
+                  <kbd className="text-[10px] bg-background px-1.5 py-0.5 rounded border border-border font-mono font-medium">K</kbd>
+                </div>
+              </button>
 
               <div className="w-px h-4 bg-border mx-1" />
               
@@ -144,6 +140,7 @@ export function AppShell({ children, title, actions }: AppShellProps) {
           {children}
         </main>
       </div>
+      <CommandPalette />
     </div>
   )
 }

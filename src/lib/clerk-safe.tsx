@@ -32,37 +32,6 @@ export function useAuth() {
   } as any
 }
 
-export function UserButton(props: any) {
-  const { data: session } = useSession()
-  
-  if (!session?.user) return null
-  
-  return (
-    <div className="flex items-center gap-2">
-      {session.user.image && (
-        <img
-          src={session.user.image}
-          alt={session.user.name || "User"}
-          className="w-8 h-8 rounded-full"
-        />
-      )}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => signOut({ callbackUrl: "/" })}
-      >
-        Sign Out
-      </Button>
-    </div>
-  )
-}
-
-export function SignedIn({ children }: { children?: React.ReactNode }) {
-  const { status } = useSession()
-  return status === "authenticated" ? <>{children}</> : null
-}
-
-export function SignedOut({ children }: { children?: React.ReactNode }) {
-  const { status } = useSession()
-  return status !== "authenticated" ? <>{children}</> : null
-}
+export { UserButton } from "./clerk-safe/user-button"
+export { SignedIn } from "./clerk-safe/signed-in"
+export { SignedOut } from "./clerk-safe/signed-out"

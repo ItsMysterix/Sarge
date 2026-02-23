@@ -38,8 +38,8 @@ function makeAdapters(dataRoot: string, s3: S3Service, ddb: DynamoService): Snap
 describe('Snapshot E2E with S3 and Dynamo', () => {
   it('round-trips data through snapshot', async () => {
     const dataRoot = tmpRoot()
-    const s3 = new S3Service({ dataRoot })
-    const ddb = new DynamoService({ dataRoot })
+    const s3 = new S3Service({ dataRoot }) as any
+    const ddb = new DynamoService({ dataRoot }) as any
 
     await s3.createBucket('b1')
     await s3.putObject('b1', 'foo.txt', Buffer.from('hello'), 'text/plain')

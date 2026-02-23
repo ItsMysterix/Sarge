@@ -151,12 +151,17 @@ export const providersRouter = router({
       const slug = input.projectSlug || 'global'
 
       try {
+        // Encrypt credentials before storing — never store plaintext tokens
+        const { encryptCredentials } = await import('../lib/credentials')
+        const encrypted = encryptCredentials(JSON.stringify(input.credentials))
+
+        // Store encrypted blob in connected_providers (for UI status tracking)
         await ctx.drizzleDb.insert(connectedProviders)
           .values({
             projectSlug: slug,
             providerId: input.providerId,
             status: 'connected',
-            credentials: input.credentials,
+            credentials: { encrypted }, // Store encrypted blob, not raw tokens
             connectedAt: new Date(),
             updatedAt: new Date()
           })
@@ -164,15 +169,30 @@ export const providersRouter = router({
             target: [connectedProviders.projectSlug, connectedProviders.providerId],
             set: {
               status: 'connected',
-              credentials: input.credentials,
+              credentials: { encrypted },
               connectedAt: new Date(),
               updatedAt: new Date()
             }
           })
 
+        // Also sync to provider_credentials table (used by getProviderCredentials at deploy time)
+        const userId = (ctx as any).userId || null
+        await ctx.db.query(
+          `INSERT INTO provider_credentials (provider_id, user_id, credentials_encrypted, created_at, updated_at)
+           VALUES ($1, $2, $3, NOW(), NOW())
+           ON CONFLICT (provider_id, user_id)
+           DO UPDATE SET credentials_encrypted = $3, updated_at = NOW()`,
+          [input.providerId, userId, encrypted]
+        ).catch((err: any) => {
+          // Table may not exist yet — connected_providers has the data as fallback
+          if (!err?.message?.includes('provider_credentials')) throw err
+          providerLogger.warn('[providers.saveCredentials] provider_credentials table not migrated yet')
+        })
+
+        providerLogger.info({ providerId: input.providerId }, '[providers.saveCredentials] Credentials saved (encrypted)')
         return { success: true, providerId: input.providerId }
       } catch (e) {
-        providerLogger.error({ e, input }, '[providers.saveCredentials] Drizzle error')
+        providerLogger.error({ e, input: { providerId: input.providerId } }, '[providers.saveCredentials] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to save provider credentials' })
       }
     }),
