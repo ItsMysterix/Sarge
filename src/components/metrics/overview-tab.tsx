@@ -30,7 +30,7 @@ export function OverviewTab({
           icon={Cpu}
           title="CPU Usage"
           value={`${currentMetrics?.cpu?.toFixed(1) || avgCpu.toFixed(1)}%`}
-          detail={`Avg: ${avgCpu.toFixed(1)}% · Peak: ${Math.max(...displayData.map(d => d.cpu)).toFixed(1)}%`}
+          detail={`Avg: ${avgCpu.toFixed(1)}% · Peak: ${(displayData?.length > 0 ? Math.max(...displayData.map(d => d.cpu)) : 0).toFixed(1)}%`}
           color="text-accent"
           delay={0.1}
         />
@@ -56,7 +56,7 @@ export function OverviewTab({
         <StatCard
           icon={TrendingUp}
           title="Throughput"
-          value={Math.floor(totalRequests / displayData.length)}
+          value={displayData?.length > 0 ? Math.floor(totalRequests / displayData.length) : 0}
           detail={`req/min · ${totalRequests.toLocaleString()} total`}
           color="text-success"
           delay={0.25}
