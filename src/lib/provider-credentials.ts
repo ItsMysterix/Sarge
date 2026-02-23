@@ -7,14 +7,18 @@ interface ProviderCredentials {
 
 const ENCRYPTION_KEY = process.env.CREDENTIAL_ENCRYPTION_KEY;
 
-if (!ENCRYPTION_KEY && process.env.NODE_ENV !== 'development') {
-  throw new Error("CRITICAL: CREDENTIAL_ENCRYPTION_KEY is not set. Refusing to start to prevent insecure credential storage.");
+function getFinalKey() {
+  if (!ENCRYPTION_KEY && process.env.NODE_ENV === 'production' && !process.env.NEXT_PHASE) {
+    // We throw only if we are in production and NOT in a build phase.
+    // However, during build (NEXT_PHASE === 'phase-production-build'), we allow it to be missing.
+    // If it's missing at actual runtime, it will throw when first used.
+    throw new Error("CRITICAL: CREDENTIAL_ENCRYPTION_KEY is not set. Refusing to operate to prevent insecure credential storage.");
+  }
+  return ENCRYPTION_KEY || "default-dev-key-change-in-prod-32b";
 }
 
-const FINAL_KEY = ENCRYPTION_KEY || "default-dev-key-change-in-prod-32b";
-
 function encryptCredentials(plaintext: string): string {
-  const key = Buffer.from(FINAL_KEY.slice(0, 32).padEnd(32, "0"))
+  const key = Buffer.from(getFinalKey().slice(0, 32).padEnd(32, "0"))
   const iv = crypto.randomBytes(16)
   const cipher = crypto.createCipheriv("aes-256-cbc", key, iv)
 
@@ -25,7 +29,7 @@ function encryptCredentials(plaintext: string): string {
 }
 
 function decryptCredentials(encrypted: string): string {
-  const key = Buffer.from(FINAL_KEY.slice(0, 32).padEnd(32, "0"))
+  const key = Buffer.from(getFinalKey().slice(0, 32).padEnd(32, "0"))
   const [ivHex, encryptedData] = encrypted.split(":")
   const iv = Buffer.from(ivHex, "hex")
   const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv)

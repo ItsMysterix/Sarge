@@ -82,10 +82,13 @@ export const oneclickRouter = router({
         accessToken: z.string().min(1),
       }),
     ]))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        // Path-based detection for local repos (test mode)
+        // Path-based detection for local repos (restricted to admin)
         if ('path' in input) {
+          const role = (ctx as any).role;
+          if (role !== 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Path-based detection is restricted to admins' });
+
           const core = await getCore()
           const blueprint = await core?.detector?.detectStack?.(input.path)
           return (
@@ -223,8 +226,10 @@ export const oneclickRouter = router({
       environment: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
       // Emit progress logs via event emitter so client can subscribe
-      const topic = `oneclick:connected:${input.owner}/${input.repo}`
+      const topic = `oneclick:connected:${userId}:${input.owner}/${input.repo}`
       const logs: any[] = []
 
       const classify = (rawMsg: string): string => {
@@ -260,7 +265,8 @@ export const oneclickRouter = router({
       }
 
       try {
-        emit(`🚀 Starting deployment for ${input.owner}/${input.repo}`)
+        emit(`🚀 Starting deployment for ${input.owner
+          } / ${input.repo}`)
         emit(`📍 Provider: ${input.provider || 'local'} | Environment: ${input.environment || 'preview'}`)
 
         // If provider is specified and not 'local' or 'docker', use provider-specific deployment
@@ -517,8 +523,9 @@ export const oneclickRouter = router({
       workspaceId: z.string().optional(),
       repoPath: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
-      const repoPath = input.repoPath || process.cwd()
+    .mutation(async ({ ctx, input }) => {
+      const role = (ctx as any).role;
+      const repoPath = (role === 'admin' && input.repoPath) ? input.repoPath : process.cwd()
 
       // Start services via local runtime; caller may subscribe to logs separately
       const core = await getCore()
@@ -637,11 +644,13 @@ export const oneclickRouter = router({
   streamConnected: secureProcedure('sarge.oneclick.streamConnected')
     .input(z.object({ owner: z.string(), repo: z.string() }))
     .subscription(({ input, ctx }) => {
-      const topic = `oneclick:connected:${input.owner}/${input.repo}`
+      const userId = (ctx as any).userId;
+      if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+      const topic = `oneclick:connected:${userId}:${input.owner}/${input.repo}`
       return createBufferedSubscription(ctx.ee, { topics: [topic], bufferSize: 300, perTickCap: 50 })()
     }),
 
-  toggleDocker: secureProcedure('sarge.oneclick.toggleDocker')
+  toggleDocker: secureProcedure('sarge.oneclick.toggleDocker', { requiresRole: 'admin' })
     .input(ToggleDockerInput)
     .mutation(async ({ input }) => {
       process.env.DOCKER_MODE = input.enabled ? 'true' : 'false'

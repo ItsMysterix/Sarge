@@ -29,7 +29,7 @@ export const systemRouter = router({
             }
         }),
 
-    getLogs: secureProcedure('system.getLogs')
+    getLogs: secureProcedure('system.getLogs', { requiresRole: 'admin' })
         .query(async ({ ctx }: any) => {
             // In a real app, this would be admin-only
             try {

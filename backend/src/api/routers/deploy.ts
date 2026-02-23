@@ -14,6 +14,7 @@ import { deployLogger } from '../../lib/logger';
 import { deployToProvider, estimateCost, getProviderStatus } from './deploy/provider';
 import { rollback, getRollbackHistory, trackCost, getCostHistory } from './deploy/rollback';
 import { logProjectActivity } from '../lib/activity';
+import { ensureProjectOwnership, ensureDeploymentOwnership, ensureProjectOwnershipBySlug } from '../lib/security-utils';
 
 export const deployRouter = router({
   create: secureProcedure('deploy.create')
@@ -58,6 +59,10 @@ export const deployRouter = router({
           input.projectId || (ctx as any).projectId || null
         ]
       )
+
+      if (input.projectId) {
+        await ensureProjectOwnership((ctx as any).userId, input.projectId);
+      }
       end();
 
       if (!result || !result.rows || result.rows.length === 0) {
@@ -142,18 +147,20 @@ export const deployRouter = router({
         const queryParams: any[] = [limit + 1];
         let query = `
           SELECT 
-            id, branch, commit, status, summary, services,
-            created_at, updated_at
-          FROM deployments 
-          WHERE 1=1
+            d.id, d.branch, d.commit, d.status, d.summary, d.services,
+            d.created_at, d.updated_at
+          FROM deployments d
+          JOIN projects p ON d.project_id = p.id
+          WHERE p.user_id = $${queryParams.length + 1}
         `;
+        queryParams.push((ctx as any).userId);
 
         if (cursor) {
-          query += ` AND created_at < $2`;
+          query += ` AND d.created_at < $${queryParams.length + 1}`;
           queryParams.push(cursor);
         }
 
-        query += ` ORDER BY created_at DESC LIMIT $1`;
+        query += ` ORDER BY d.created_at DESC LIMIT $1`;
 
         const result = await ctx.db.query(query, queryParams);
 
@@ -187,8 +194,11 @@ export const deployRouter = router({
 
       try {
         const projectId = input?.projectId;
-        const whereClause = projectId ? 'WHERE project_id = $1' : 'WHERE 1=1';
-        const params = projectId ? [projectId] : [];
+        if (projectId) {
+          await ensureProjectOwnership((ctx as any).userId, projectId);
+        }
+        const whereClause = projectId ? 'WHERE project_id = $1' : 'WHERE project_id IN (SELECT id FROM projects WHERE user_id = $1)';
+        const params = projectId ? [projectId] : [(ctx as any).userId];
 
         // Parallel queries for efficiency
         const [counts, todayCount] = await Promise.all([
@@ -236,6 +246,7 @@ export const deployRouter = router({
       })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await ensureDeploymentOwnership((ctx as any).userId, input.deploymentId);
       const result = await ctx.db.query(
         `UPDATE deployments 
          SET status = $1, services = $2, updated_at = NOW()
@@ -272,6 +283,7 @@ export const deployRouter = router({
   stopDeployment: secureProcedure('deploy.stop')
     .input(z.object({ deploymentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await ensureDeploymentOwnership((ctx as any).userId, input.deploymentId);
       const result = await ctx.db.query(
         `UPDATE deployments 
          SET status = 'stopped', updated_at = NOW()
@@ -298,6 +310,7 @@ export const deployRouter = router({
   getDeploymentLogs: secureProcedure('deploy.getLogs')
     .input(z.object({ deploymentId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
+      await ensureDeploymentOwnership((ctx as any).userId, input.deploymentId);
       try {
         const result = await ctx.db.query(
           `SELECT id, step, type, message, timestamp 

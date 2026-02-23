@@ -101,15 +101,16 @@ export const awsRouter = router({
   // Get all AWS resources summary
   getSummary: secureProcedure('aws.getSummary').query(async ({ ctx }) => {
     try {
+      const userId = (ctx as any).userId;
       const [s3Result, dynamoResult, lambdaResult, iamResult, cwResult, s3StorageResult, dynamoItemsResult, lambdaInvocResult] = await Promise.all([
-        ctx.db.query(`SELECT COUNT(*)::int as count FROM s3_buckets`),
-        ctx.db.query(`SELECT COUNT(*)::int as count FROM dynamodb_tables`),
-        ctx.db.query(`SELECT COUNT(*)::int as count FROM lambda_functions`),
-        ctx.db.query(`SELECT COUNT(*)::int as count FROM iam_roles`),
-        ctx.db.query(`SELECT COUNT(*)::int as count FROM cloudwatch_log_groups`),
-        ctx.db.query(`SELECT COALESCE(SUM(size_bytes), 0)::bigint as total FROM s3_buckets`),
-        ctx.db.query(`SELECT COALESCE(SUM(item_count), 0)::bigint as total FROM dynamodb_tables`),
-        ctx.db.query(`SELECT COUNT(*)::int as count FROM lambda_invocations WHERE invoked_at > NOW() - INTERVAL '24 hours'`),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM s3_buckets WHERE user_id = $1`, [userId]),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM dynamodb_tables WHERE user_id = $1`, [userId]),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM lambda_functions WHERE user_id = $1`, [userId]),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM iam_roles WHERE user_id = $1`, [userId]),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM cloudwatch_log_groups WHERE user_id = $1`, [userId]),
+        ctx.db.query(`SELECT COALESCE(SUM(size_bytes), 0)::bigint as total FROM s3_buckets WHERE user_id = $1`, [userId]),
+        ctx.db.query(`SELECT COALESCE(SUM(item_count), 0)::bigint as total FROM dynamodb_tables WHERE user_id = $1`, [userId]),
+        ctx.db.query(`SELECT COUNT(*)::int as count FROM lambda_invocations li JOIN lambda_functions lf ON li.function_id = lf.id WHERE lf.user_id = $1 AND li.invoked_at > NOW() - INTERVAL '24 hours'`, [userId]),
       ])
 
       return {
@@ -142,7 +143,8 @@ export const awsRouter = router({
     listBuckets: secureProcedure('aws.s3.listBuckets').query(async ({ ctx }) => {
       const result = await ctx.db.query(
         `SELECT id, name, region, versioning_enabled, size_bytes, object_count, created_at
-         FROM s3_buckets ORDER BY created_at DESC`
+         FROM s3_buckets WHERE user_id = $1 ORDER BY created_at DESC`,
+        [(ctx as any).userId]
       )
       return result.rows
     }),
@@ -151,7 +153,7 @@ export const awsRouter = router({
       .input(z.object({ name: z.string() }))
       .query(async ({ ctx, input }) => {
         const bucketResult = await ctx.db.query(
-          `SELECT * FROM s3_buckets WHERE name = $1`, [input.name]
+          `SELECT * FROM s3_buckets WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId]
         )
         const bucket = bucketResult.rows[0]
         if (!bucket) throw new TRPCError({ code: 'NOT_FOUND', message: 'Bucket not found' })
@@ -171,9 +173,9 @@ export const awsRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const result = await ctx.db.query(
-          `INSERT INTO s3_buckets (name, region, versioning_enabled)
-           VALUES ($1, $2, $3) RETURNING *`,
-          [input.name, input.region, input.versioningEnabled]
+          `INSERT INTO s3_buckets (name, region, versioning_enabled, user_id)
+           VALUES ($1, $2, $3, $4) RETURNING *`,
+          [input.name, input.region, input.versioningEnabled, (ctx as any).userId]
         )
         return result.rows[0]
       }),
@@ -181,7 +183,7 @@ export const awsRouter = router({
     deleteBucket: secureProcedure('aws.s3.deleteBucket')
       .input(z.object({ name: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        await ctx.db.query(`DELETE FROM s3_buckets WHERE name = $1`, [input.name])
+        await ctx.db.query(`DELETE FROM s3_buckets WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId])
         return { success: true }
       }),
   }),
@@ -193,7 +195,8 @@ export const awsRouter = router({
         `SELECT id, name, status, partition_key, partition_key_type,
                 sort_key, sort_key_type, item_count, size_bytes,
                 read_capacity_units, write_capacity_units, created_at
-         FROM dynamodb_tables ORDER BY created_at DESC`
+         FROM dynamodb_tables WHERE user_id = $1 ORDER BY created_at DESC`,
+        [(ctx as any).userId]
       )
       return result.rows
     }),
@@ -202,7 +205,7 @@ export const awsRouter = router({
       .input(z.object({ name: z.string() }))
       .query(async ({ ctx, input }) => {
         const tableResult = await ctx.db.query(
-          `SELECT * FROM dynamodb_tables WHERE name = $1`, [input.name]
+          `SELECT * FROM dynamodb_tables WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId]
         )
         const table = tableResult.rows[0]
         if (!table) throw new TRPCError({ code: 'NOT_FOUND', message: 'Table not found' })
@@ -229,11 +232,11 @@ export const awsRouter = router({
           `INSERT INTO dynamodb_tables (
             name, partition_key, partition_key_type,
             sort_key, sort_key_type,
-            read_capacity_units, write_capacity_units
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            read_capacity_units, write_capacity_units, user_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
           [input.name, input.partitionKey, input.partitionKeyType,
           input.sortKey || null, input.sortKeyType || null,
-          input.readCapacity, input.writeCapacity]
+          input.readCapacity, input.writeCapacity, (ctx as any).userId]
         )
         return result.rows[0]
       }),
@@ -241,7 +244,7 @@ export const awsRouter = router({
     deleteTable: secureProcedure('aws.dynamodb.deleteTable')
       .input(z.object({ name: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        await ctx.db.query(`DELETE FROM dynamodb_tables WHERE name = $1`, [input.name])
+        await ctx.db.query(`DELETE FROM dynamodb_tables WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId])
         return { success: true }
       }),
   }),
@@ -253,7 +256,8 @@ export const awsRouter = router({
         `SELECT id, name, runtime, handler, code_size, memory_size,
                 timeout, status, invocation_count, error_count,
                 last_modified, created_at
-         FROM lambda_functions ORDER BY created_at DESC`
+         FROM lambda_functions WHERE user_id = $1 ORDER BY created_at DESC`,
+        [(ctx as any).userId]
       )
       return result.rows
     }),
@@ -262,7 +266,7 @@ export const awsRouter = router({
       .input(z.object({ name: z.string() }))
       .query(async ({ ctx, input }) => {
         const funcResult = await ctx.db.query(
-          `SELECT * FROM lambda_functions WHERE name = $1`, [input.name]
+          `SELECT * FROM lambda_functions WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId]
         )
         const func = funcResult.rows[0]
         if (!func) throw new TRPCError({ code: 'NOT_FOUND', message: 'Function not found' })
@@ -287,11 +291,11 @@ export const awsRouter = router({
       .mutation(async ({ ctx, input }) => {
         const result = await ctx.db.query(
           `INSERT INTO lambda_functions (
-            name, runtime, handler, code_size, memory_size, timeout, role_arn
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            name, runtime, handler, code_size, memory_size, timeout, role_arn, user_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
           [input.name, input.runtime, input.handler,
           input.codeSize, input.memorySize, input.timeout,
-          input.roleArn || 'arn:aws:iam::000000000000:role/lambda-exec']
+          input.roleArn || 'arn:aws:iam::000000000000:role/lambda-exec', (ctx as any).userId]
         )
         return result.rows[0]
       }),
@@ -299,7 +303,7 @@ export const awsRouter = router({
     deleteFunction: secureProcedure('aws.lambda.deleteFunction')
       .input(z.object({ name: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        await ctx.db.query(`DELETE FROM lambda_functions WHERE name = $1`, [input.name])
+        await ctx.db.query(`DELETE FROM lambda_functions WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId])
         return { success: true }
       }),
 
@@ -310,7 +314,7 @@ export const awsRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const funcResult = await ctx.db.query(
-          `SELECT * FROM lambda_functions WHERE name = $1`, [input.name]
+          `SELECT * FROM lambda_functions WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId]
         )
         const func = funcResult.rows[0]
         if (!func) throw new TRPCError({ code: 'NOT_FOUND', message: 'Function not found' })
@@ -348,7 +352,8 @@ export const awsRouter = router({
   iam: router({
     listRoles: secureProcedure('aws.iam.listRoles').query(async ({ ctx }) => {
       const result = await ctx.db.query(
-        `SELECT id, name, arn, description, created_at FROM iam_roles ORDER BY created_at DESC`
+        `SELECT id, name, arn, description, created_at FROM iam_roles WHERE user_id = $1 ORDER BY created_at DESC`,
+        [(ctx as any).userId]
       )
       return result.rows
     }),
@@ -357,7 +362,7 @@ export const awsRouter = router({
       .input(z.object({ name: z.string() }))
       .query(async ({ ctx, input }) => {
         const roleResult = await ctx.db.query(
-          `SELECT * FROM iam_roles WHERE name = $1`, [input.name]
+          `SELECT * FROM iam_roles WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId]
         )
         const role = roleResult.rows[0]
         if (!role) throw new TRPCError({ code: 'NOT_FOUND', message: 'Role not found' })
@@ -380,9 +385,9 @@ export const awsRouter = router({
       .mutation(async ({ ctx, input }) => {
         const arn = `arn:aws:iam::000000000000:role/${input.name}`
         const result = await ctx.db.query(
-          `INSERT INTO iam_roles (name, arn, assume_role_policy, description)
-           VALUES ($1, $2, $3, $4) RETURNING *`,
-          [input.name, arn, JSON.stringify(input.assumeRolePolicy), input.description || '']
+          `INSERT INTO iam_roles (name, arn, assume_role_policy, description, user_id)
+           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+          [input.name, arn, JSON.stringify(input.assumeRolePolicy), input.description || '', (ctx as any).userId]
         )
         return result.rows[0]
       }),
@@ -393,7 +398,8 @@ export const awsRouter = router({
     listLogGroups: secureProcedure('aws.cloudwatch.listLogGroups').query(async ({ ctx }) => {
       const result = await ctx.db.query(
         `SELECT id, name, retention_days, size_bytes, created_at
-         FROM cloudwatch_log_groups ORDER BY created_at DESC`
+         FROM cloudwatch_log_groups WHERE user_id = $1 ORDER BY created_at DESC`,
+        [(ctx as any).userId]
       )
       return result.rows
     }),
@@ -402,7 +408,7 @@ export const awsRouter = router({
       .input(z.object({ name: z.string() }))
       .query(async ({ ctx, input }) => {
         const lgResult = await ctx.db.query(
-          `SELECT * FROM cloudwatch_log_groups WHERE name = $1`, [input.name]
+          `SELECT * FROM cloudwatch_log_groups WHERE name = $1 AND user_id = $2`, [input.name, (ctx as any).userId]
         )
         const logGroup = lgResult.rows[0]
         if (!logGroup) throw new TRPCError({ code: 'NOT_FOUND', message: 'Log group not found' })

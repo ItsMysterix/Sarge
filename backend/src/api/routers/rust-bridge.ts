@@ -46,13 +46,13 @@ export const rustBridgeRouter = router({
             return await rustBridge.enforceRbac(input.userId, input.resource, input.action);
         }),
 
-    getSecret: secureProcedure('rust.getSecret')
+    getSecret: secureProcedure('rust.getSecret', { requiresRole: 'admin' })
         .input(z.object({ key: z.string() }))
         .query(async ({ input }) => {
             return await rustBridge.getSecret(input.key);
         }),
 
-    setSecret: secureProcedure('rust.setSecret')
+    setSecret: secureProcedure('rust.setSecret', { requiresRole: 'admin' })
         .input(z.object({ key: z.string(), value: z.string() }))
         .mutation(async ({ input }) => {
             return await rustBridge.setSecret(input.key, input.value);
