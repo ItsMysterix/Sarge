@@ -75,7 +75,15 @@ export const prPreviewsRouter = router({
       const [owner, repo] = input.repository.full_name.split('/')
       const projectId = `${owner}-${repo}`
 
-      prLogger.info({ action: input.action, prNumber: input.pull_request.number }, '[PR Preview] Webhook received')
+      // Look up user_id from the database to find who connected this repository
+      const projectResult = await ctx.db.query(
+        "SELECT user_id FROM projects WHERE repository_id = $1 OR slug = $2",
+        [input.repository.full_name, projectId]
+      ).catch(() => ({ rows: [] }));
+
+      const userId = projectResult.rows?.[0]?.user_id;
+
+      prLogger.info({ action: input.action, prNumber: input.pull_request.number, projectId, userId }, '[PR Preview] Webhook received')
 
       try {
         if (input.action === 'opened' || input.action === 'synchronize' || input.action === 'reopened') {
@@ -153,8 +161,8 @@ export const prPreviewsRouter = router({
                 prLogger.error({ msg: 'Failed to mark PR preview as ready', previewId, err });
               });
 
-              // 3. Post Back to GitHub (Simulated)
-              await postGithubStatus(owner, repo, input.pull_request.number, deployResult.previewUrl!);
+              // 3. Post Back to GitHub via Nango using the Project Owner's credentials
+              await postGithubStatus(owner, repo, input.pull_request.number, deployResult.previewUrl!, userId);
             } else {
               await ctx.db.query(
                 `UPDATE pr_previews SET status = 'failed', updated_at = NOW() WHERE id = $1`,
@@ -365,14 +373,39 @@ export const prPreviewsRouter = router({
 /**
  * Post a comment to the GitHub PR with the preview URL
  */
-async function postGithubStatus(owner: string, repo: string, prNumber: number, url: string) {
+async function postGithubStatus(owner: string, repo: string, prNumber: number, url: string, userId?: string) {
   prLogger.info({ owner, repo, prNumber, url }, '[GitHub API] Posting preview URL to PR');
 
-  // In a real implementation:
-  // await githubApp.octokit.rest.issues.createComment({
-  //   owner, repo, issue_number: prNumber,
-  //   body: `🚀 SARGE Preview Environment is ready!\n\n**URL**: [${url}](${url})`
-  // });
+  if (!userId || !process.env.NANGO_SECRET_KEY) {
+    prLogger.warn('[GitHub API] Skipping PR comment: Missing userId or NANGO_SECRET_KEY');
+    return;
+  }
 
-  return Promise.resolve();
+  try {
+    const { Nango } = await import('@nangohq/node');
+    const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+
+    // Ensure user has a GitHub connection before trying to proxy the request
+    const connection = await nango.getConnection('github', userId);
+    if (!connection) {
+      prLogger.warn('[GitHub API] User has not connected GitHub via Nango. Cannot post comment.');
+      return;
+    }
+
+    // Proxy the request through Nango directly to GitHub's REST API using the user's fresh OAuth token
+    await nango.proxy({
+      connectionId: userId,
+      providerConfigKey: 'github',
+      retries: 2,
+      endpoint: `/repos/${owner}/${repo}/issues/${prNumber}/comments`,
+      data: {
+        body: `🚀 **SARGE Preview Environment Deployed!**\n\nThe preview for this PR is running at:\n[${url}](${url})\n\n*(Automatically provisioned via Sarge CI)*`
+      },
+      method: "POST"
+    });
+
+    prLogger.info('[GitHub API] Successfully posted preview comment to GitHub via Nango');
+  } catch (error: any) {
+    prLogger.error({ err: error?.message || error }, '[GitHub API] Failed to post PR comment via Nango');
+  }
 }

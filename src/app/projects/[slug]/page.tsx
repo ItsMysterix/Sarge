@@ -45,6 +45,20 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
   const activity = dashboardQuery.data?.activity || []
   const latestDeployment = (dashboardQuery.data as any)?.latestDeployment
 
+  const exportMutation = trpc.export.exportToTerraform.useMutation({
+    onMutate: () => addToast({ title: "Exporting...", description: "Ejecting blueprint to Terraform", type: "info" }),
+    onSuccess: (res) => {
+      addToast({ title: "Export Complete", description: `Saved as ${res.fileName}`, type: "success" });
+      const blob = new Blob([res.terraformCode], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.fileName;
+      a.click();
+    },
+    onError: (e) => addToast({ title: "Export Failed", description: e.message, type: "error" })
+  })
+
   // Loading State
   if (dashboardQuery.isLoading) {
     return (
@@ -223,9 +237,37 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                 )}
               </div>
 
-           </div>
+               {/* Modern Enterprise Features Section */}
+               <div className="pt-8">
+                  <div className="flex items-center justify-between px-1 h-8 mb-4">
+                     <h2 className="text-sm font-semibold text-muted-foreground">Extensions & Infrastructure</h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     {/* Eject to Terraform Panel */}
+                     <div className="bg-card border border-border rounded-2xl p-6 hover:border-indigo-500/50 transition-colors group cursor-pointer" onClick={() => exportMutation.mutate({ projectId: projectSlug })}>
+                        <div className="flex items-start justify-between">
+                           <Code className="w-8 h-8 text-indigo-400 mb-4 group-hover:scale-110 transition-transform" />
+                           <Badge variant="outline" className="text-[9px] uppercase tracking-widest bg-indigo-500/10 text-indigo-400 border-indigo-500/20">Enterprise</Badge>
+                        </div>
+                        <h3 className="text-sm font-bold text-foreground">Eject to Terraform</h3>
+                        <p className="text-xs text-muted-foreground mt-2 font-medium">Download the complete raw Infrastructure-as-Code state. Break the glass and take manual control of your BYOC cluster.</p>
+                     </div>
 
-           {/* Right Column: Activity Feed (Audit Trail) */}
+                     {/* Add-ons Marketplace Panel */}
+                     <div className="bg-card border border-border rounded-2xl p-6 hover:border-emerald-500/50 transition-colors group cursor-pointer" onClick={() => router.push(`/projects/${projectSlug}/addons`)}>
+                        <div className="flex items-start justify-between">
+                           <Layers className="w-8 h-8 text-emerald-400 mb-4 group-hover:scale-110 transition-transform" />
+                           <Badge variant="outline" className="text-[9px] uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Marketplace</Badge>
+                        </div>
+                        <h3 className="text-sm font-bold text-foreground">1-Click Add-ons</h3>
+                        <p className="text-xs text-muted-foreground mt-2 font-medium">Instantly provision stateful workloads (Redis, PostgreSQL, RabbitMQ) into your connected Kubernetes cluster via Nango.</p>
+                     </div>
+                  </div>
+               </div>
+
+            </div>
+
+            {/* Right Column: Activity Feed (Audit Trail) */}
            <div className="lg:col-span-4 flex flex-col space-y-4">
               <div className="flex items-center justify-between px-1 h-8">
                  <h2 className="text-sm font-semibold text-muted-foreground">Activity Feed</h2>

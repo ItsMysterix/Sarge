@@ -36,8 +36,12 @@ import { jobsRouter } from './routers/jobs';
 import { commandCenterRouter } from './routers/command-center';
 
 import { cloudIdentityRouter } from './routers/cloud-identity';
+import { addonsRouter } from './routers/addons';
+import { exportRouter } from './routers/export';
 
 export const appRouter = router({
+  addons: addonsRouter,
+  export: exportRouter,
   metrics: metricsRouter,
   logs: logsRouter,
   deploy: deployRouter,
