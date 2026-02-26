@@ -70,6 +70,27 @@ export async function getProviderCredentials(
   providerId: string,
   userKey: string
 ): Promise<ProviderCredentials> {
+  // 1. First, check Nango (Enterprise credentials hub)
+  if (process.env.NANGO_SECRET_KEY && userKey) {
+    try {
+      const { Nango } = await import('@nangohq/node');
+      const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+      const connection = await nango.getConnection(providerId, userKey);
+
+      if (connection && connection.credentials && (connection.credentials as any).access_token) {
+        return {
+          [`${providerId}_token`]: (connection.credentials as any).access_token,
+          access_token: (connection.credentials as any).access_token
+        };
+      }
+    } catch (err: any) {
+      if (!err?.message?.includes('Connection not found')) {
+        console.warn(`[credentials] Nango lookup error for ${providerId}:`, err.message);
+      }
+    }
+  }
+
+  // 2. Fallback to Local Database
   const db = getDbPool()
 
   try {

@@ -102,11 +102,34 @@ export async function getProviderCredentials(
 
       const connection = await nango.getConnection(providerId, userId);
 
-      if (connection && connection.credentials && (connection.credentials as any).access_token) {
-        credLogger.info({ providerId }, `[credentials] Using Nango for ${providerId} (Fresh OAuth Token)`);
-        credentials[`${providerId}_token`] = (connection.credentials as any).access_token;
-        credentials.access_token = (connection.credentials as any).access_token;
-        return credentials;
+      if (connection && connection.credentials) {
+        credLogger.info({ providerId }, `[credentials] Using Nango for ${providerId} (Fresh Token)`);
+
+        const c = connection.credentials as any;
+
+        // Grab whatever standard keys Nango might yield
+        const token = c.access_token || c.apiKey || c.password || c.api_key || c.token;
+        if (token) {
+          credentials[`${providerId}_token`] = token;
+          credentials.access_token = token;
+        }
+
+        // AWS explicit mapping if via Nango Custom Integration
+        if (providerId === 'aws') {
+          credentials.aws_token = c.aws_access_key_id || c.access_key_id || c.accessKeyId || credentials.access_token;
+          credentials.aws_secret = c.aws_secret_access_key || c.secret_access_key || c.secretAccessKey || c.apiKey;
+          credentials.aws_region = c.aws_region || c.region || process.env.AWS_REGION || 'us-east-1';
+        }
+
+        // GCP explicit mapping 
+        if (providerId === 'gcp') {
+          credentials.gcp_project_id = c.project_id || c.projectId || process.env.GCP_PROJECT_ID;
+          credentials.gcp_service_account_key = c.service_account_key || c.private_key || credentials.access_token;
+          credentials.gcp_region = c.region || 'us-central1';
+        }
+
+        // Merge the remainder in case providers look for raw keys mapped by Nango
+        return { ...credentials, ...c };
       }
     } catch (err: any) {
       // If Nango doesn't have the connection, we just fall back
