@@ -1,0 +1,65 @@
+integrations:
+  # --- Core Infrastructure ---
+  vercel-integration:
+    provider: vercel
+    syncs: []
+  railway-integration:
+    provider: railway
+  netlify-integration:
+    provider: netlify
+  heroku-integration:
+    provider: heroku
+  digitalocean-integration:
+    provider: digitalocean
+  fly-integration:
+    provider: flyio # Depending on nango's naming
+  aws-integration:
+    provider: aws
+  gcp-integration:
+    provider: google
+  azure-integration:
+    provider: azure
+
+  # --- Database & Registry ---
+  supabase-integration:
+    provider: supabase
+  planetscale-integration:
+    provider: planetscale
+  neon-integration:
+    provider: oauth2 # Custom provider
+  
+  # --- Insight & Billing ---
+  stripe-integration:
+    provider: stripe
+  sentry-integration:
+    provider: sentry
+  datadog-integration:
+    provider: datadog
+  posthog-integration:
+    provider: posthog
+  
+  # --- DevOps & Git ---
+  github-integration:
+    provider: github
+  gitlab-integration:
+    provider: gitlab
+  circleci-integration:
+    provider: circleci
+
+  # --- Productivity & Extensibility ---
+  slack-integration:
+    provider: slack
+  notion-integration:
+    provider: notion
+  linear-integration:
+    provider: linear
+  jira-integration:
+    provider: jira
+  asana-integration:
+    provider: asana
+  hubspot-integration:
+    provider: hubspot
+  salesforce-integration:
+    provider: salesforce
+  discord-integration:
+    provider: discord

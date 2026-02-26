@@ -92,6 +92,31 @@ export async function getProviderCredentials(
 ): Promise<ProviderCredentials> {
   const credentials: ProviderCredentials = {}
 
+  // 1. Try Nango Integration
+  // Nango manages all OAuth flows securely, provides guaranteed fresh tokens,
+  // and completely eliminates our need for custom token rotation.
+  if (process.env.NANGO_SECRET_KEY && userId) {
+    try {
+      const { Nango } = await import('@nangohq/node');
+      const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+
+      const connection = await nango.getConnection(`${providerId}-integration`, userId);
+
+      if (connection && connection.credentials && (connection.credentials as any).access_token) {
+        credLogger.info({ providerId }, `[credentials] Using Nango for ${providerId} (Fresh OAuth Token)`);
+        credentials[`${providerId}_token`] = (connection.credentials as any).access_token;
+        credentials.access_token = (connection.credentials as any).access_token;
+        return credentials;
+      }
+    } catch (err: any) {
+      // If Nango doesn't have the connection, we just fall back
+      // Silent catch since not all providers are on Nango
+      if (!err?.message?.includes('Connection not found')) {
+        credLogger.warn({ providerId, err: err.message }, `[credentials] Nango lookup error for ${providerId}`);
+      }
+    }
+  }
+
   // Environment variable mapping
   const envMap: Record<string, string> = {
     vercel: 'VERCEL_TOKEN',
@@ -104,7 +129,7 @@ export async function getProviderCredentials(
     azure: 'AZURE_TENANT_ID', // Also need AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_SUBSCRIPTION_ID
   }
 
-  // 1. Try environment variables first (instant setup)
+  // 2. Try environment variables next (instant setup)
   const envVar = envMap[providerId]
   if (envVar && process.env[envVar]) {
     credLogger.info({ providerId, envVar }, `[credentials] Using ${envVar} from environment`)
@@ -136,7 +161,7 @@ export async function getProviderCredentials(
     return credentials
   }
 
-  // 2. Try database (encrypted storage)
+  // 3. Try database (legacy manual user keys)
   try {
     const result = await db.query(
       `SELECT credentials_encrypted, metadata 
@@ -159,27 +184,14 @@ export async function getProviderCredentials(
       const decrypted = decryptCredentials(encrypted)
       const parsed = JSON.parse(decrypted)
 
-      // 2a. Automatic Token Rotation (Invisible Background Refresh)
-      const { isTokenExpired, rotateProviderToken } = await import('./token-rotation');
-      if (userId && isTokenExpired(parsed)) {
-        credLogger.info({ providerId }, `[credentials] Token expired for ${providerId}. Triggering background rotation.`);
-        try {
-          const rotated = await rotateProviderToken(providerId, parsed, db, userId);
-          return rotated;
-        } catch (refreshErr) {
-          credLogger.error({ providerId, refreshErr }, `[credentials] Automatic rotation failed. UI may require re-auth.`);
-          // Fallback to old keys - provider might still work if drift is small
-        }
-      }
-
-      credLogger.info({ providerId }, `Using credentials from database for ${providerId}`);
+      credLogger.info({ providerId }, `Using non-Nango credentials from database for ${providerId}`);
       return parsed
     }
   } catch (err) {
     credLogger.warn({ providerId, err }, `[credentials] Database lookup failed for ${providerId}`);
   }
 
-  // 3. Return empty (provider will handle missing creds gracefully)
+  // 4. Return empty (provider will handle missing creds gracefully)
   credLogger.info({ providerId }, `[credentials] No credentials found for ${providerId} - will use mock/local fallback`);
   return credentials
 }

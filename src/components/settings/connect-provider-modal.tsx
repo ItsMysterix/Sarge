@@ -56,19 +56,34 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
   const handleStartOAuth = async () => {
     setStep('linking')
     
-    const { signIn } = await import("next-auth/react")
-    
     try {
-      // Use Auth0 as the Bridge for all 61+ services
-      // We pass the provider.id as the 'connection' to Auth0
-      await signIn('auth0', { 
-        callbackUrl: window.location.href,
-        connection: provider.id, // e.g. 'vercel', 'stripe'
-        prompt: "login",
-      })
+      const { getSession } = await import("next-auth/react")
+      const session = await getSession()
+      const userId = session?.user?.id || 'unknown-user'
+      
+      // Initialize Nango Frontend SDK
+      const Nango = (await import('@nangohq/frontend')).default
+      const nango = new Nango({ publicKey: process.env.NEXT_PUBLIC_NANGO_PUBLIC_KEY || 'MISSING_KEY' })
+      
+      // Use Nango as the Bridge for all 61+ services
+      nango.auth(`${provider.id}-integration`, userId)
+        .then(async (result) => {
+          setStep('success')
+          // Inform our backend that Nango handled the credentials
+          await onConnect(provider.id, { _nango_connected: "true" })
+          setTimeout(() => {
+              onClose()
+              setStep('idle')
+              utils.providers.list.invalidate()
+          }, 1500)
+        })
+        .catch((err) => {
+          console.error("Nango Auth failed", err)
+          setStep('idle')
+        })
     } catch (error) {
       setStep('idle')
-      console.error("Auth0 Bridge initiation failed", error)
+      console.error("Nango Bridge initiation failed", error)
     }
   }
 

@@ -81,6 +81,14 @@ const defaults: ProviderRecord[] = [
   { id: 'sanity', name: 'Sanity', kind: 'static', badge: 'CMS', description: 'Structured content platform', costHint: 'Free tier available', status: 'disconnected' },
   { id: 'paypal', name: 'PayPal', kind: 'static', badge: 'Payments', description: 'Merchant services', costHint: 'Transaction fees', status: 'disconnected' },
   { id: 'alchemy', name: 'Alchemy', kind: 'static', badge: 'Web3', description: 'Blockchain infrastructure', costHint: 'Free tier available', status: 'disconnected' },
+  { id: 'slack', name: 'Slack', kind: 'static', badge: 'Ops/Chat', description: 'Deploy notifications and ChatOps', costHint: 'Requires Slack Workspace', status: 'disconnected' },
+  { id: 'discord', name: 'Discord', kind: 'static', badge: 'Ops/Chat', description: 'Discord Webhooks & Bots', costHint: 'Free', status: 'disconnected' },
+  { id: 'notion', name: 'Notion', kind: 'static', badge: 'Docs', description: 'Internal syncs & changelogs', costHint: 'Free tier available', status: 'disconnected' },
+  { id: 'linear', name: 'Linear', kind: 'static', badge: 'PM', description: 'Issue tracking & sprint syncing', costHint: 'Free tier available', status: 'disconnected' },
+  { id: 'jira', name: 'Jira', kind: 'static', badge: 'PM', description: 'Enterprise issue tracking', costHint: '10 users free', status: 'disconnected' },
+  { id: 'asana', name: 'Asana', kind: 'static', badge: 'PM', description: 'Work tracking and metrics', costHint: 'Basic plan free', status: 'disconnected' },
+  { id: 'hubspot', name: 'HubSpot', kind: 'static', badge: 'CRM', description: 'Marketing & Customer syncs', costHint: 'Free tools available', status: 'disconnected' },
+  { id: 'salesforce', name: 'Salesforce', kind: 'static', badge: 'CRM', description: 'Enterprise CRM operations', costHint: 'Enterprise pricing', status: 'disconnected' },
 ]
 
 export const providersRouter = router({

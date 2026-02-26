@@ -78,26 +78,6 @@ export const authOptions: NextAuthOptions = {
       ]
       : []),
 
-    // Auth0 Integration Bridge (Universal Gateway for the 61+ services)
-    ...(process.env.AUTH0_CLIENT_ID && process.env.AUTH0_CLIENT_SECRET
-      ? [
-        Auth0Provider({
-          id: "auth0",
-          name: "Auth0 Integration",
-          clientId: process.env.AUTH0_CLIENT_ID,
-          clientSecret: process.env.AUTH0_CLIENT_SECRET,
-          issuer: process.env.AUTH0_ISSUER || `https://${process.env.AUTH0_DOMAIN}`,
-          authorization: {
-            params: {
-              // The 'connection' parameter is dynamically passed by the UI
-              // to select the specific service (Vercel, Railway, etc.)
-              prompt: "login",
-              access_type: "offline",
-            }
-          }
-        }),
-      ]
-      : []),
 
     // Credentials provider with database validation
     CredentialsProvider({
@@ -241,42 +221,6 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Universal OAuth Credential Storage
-      if (account?.access_token) {
-        let providerId = account.provider
-
-        // Auth0 Bridge Logic:
-        // If the provider is 'auth0', we extract the actual service identity 
-        // from the sub claim (format: provider|connection|id)
-        if (providerId === 'auth0') {
-          const sub = (profile?.sub || account.providerAccountId || "") as string
-          if (sub.includes('|')) {
-            const parts = sub.split('|')
-            if (parts.length >= 2) {
-              providerId = parts[1] // Extract 'vercel', 'railway', etc.
-            }
-          }
-        }
-
-        // Use the user's database ID (UUID) for storage to match backend rotation logic
-        const userKey = (token.sub || token.id) as string
-
-        if (userKey) {
-          try {
-            await storeProviderCredentials(
-              providerId,
-              {
-                access_token: account.access_token,
-                refresh_token: account.refresh_token,
-                expires_at: account.expires_at,
-                scope: account.scope || "",
-                token_type: account.token_type || "",
-              },
-              userKey
-            )
-          } catch (error) { }
-        }
-      }
 
       return token
     },
