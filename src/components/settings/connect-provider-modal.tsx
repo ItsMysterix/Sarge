@@ -214,7 +214,34 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                {isLinkedOnGithub ? (
+                {provider.id === 'kubernetes' ? (
+                  <div className="space-y-6">
+                    <div className="p-8 bg-white/[0.02] border border-white/10 rounded-[2.5rem] space-y-4">
+                       <p className="text-xs text-muted-foreground leading-relaxed text-center font-medium">
+                         Paste your <strong className="text-white">kubeconfig.yaml</strong> to bridge your cluster. 
+                         Sarge encrypts this at rest using AES-256 and only decrypts it in memory during deployment orchestration.
+                       </p>
+                       <textarea 
+                         id="kubeconfig-input" 
+                         className="w-full h-32 bg-[#050505] border border-white/10 rounded-2xl p-4 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition-colors shadow-inner"
+                         placeholder="apiVersion: v1&#10;clusters: ..."
+                       />
+                       <Button 
+                         onClick={() => {
+                           const el = document.getElementById('kubeconfig-input') as HTMLTextAreaElement;
+                           const val = el?.value?.trim();
+                           if (val) {
+                             setStep('linking');
+                             onConnect(provider.id, { kubeconfig: val, kubeconfig_path: "byok" }).then(() => setStep('success')).catch(() => setStep('idle'));
+                           }
+                         }}
+                         className="w-full h-16 bg-white text-black hover:bg-zinc-200 transition-all font-black uppercase tracking-widest text-xs rounded-3xl flex items-center justify-center gap-4 shadow-xl mt-4"
+                       >
+                         Bridge Cluster <Lock className="w-4 h-4" />
+                       </Button>
+                    </div>
+                  </div>
+                ) : isLinkedOnGithub ? (
                   <div className="p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-[2.5rem] space-y-6">
                     <p className="text-xs text-center text-emerald-200/60 font-medium">
                       Identity match confirmed. Sarge has discovered a valid trust link between your <strong>GitHub</strong> and <strong>{provider.name}</strong> accounts.
