@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/layout/app-shell"
 import { trpc } from "@/lib/trpc"
@@ -56,6 +56,15 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
     { deploymentId: latestDeployment?.id || '' },
     { enabled: !!latestDeployment?.id, refetchInterval: 15000 }
   )
+
+
+  useEffect(() => {
+    if (driftQuery.data?.driftDetails?.actual?.replicas) {
+      setTargetReplicas(driftQuery.data.driftDetails.actual.replicas)
+    } else if (latestDeployment?.replicas) {
+      setTargetReplicas(latestDeployment.replicas)
+    }
+  }, [driftQuery.data?.driftDetails?.actual?.replicas, latestDeployment?.replicas])
 
   const scaleMutation = trpc.kubernetes.scale.useMutation({
     onSuccess: () => addToast({ title: 'Scaling Initiated', description: `Replicas set to ${targetReplicas}`, type: 'success' }),
@@ -227,32 +236,55 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                 </div>
 
                 <div className="space-y-3">
-                   {/* Mock List for Fleet (Using latest deployment + historical mock) */}
                    {latestDeployment && fleetTab === 'production' ? (
                      <>
-                        {[{...latestDeployment, isCurrent: true}, {id: 'hist1', branch: 'main', commit: 'a1b2c3d', status: 'success', summary: 'fix: updated internal routing logic', created_at: new Date(Date.now() - 86400000).toISOString(), isCurrent: false}].map((dep: any) => (
-                          <div key={dep.id} className={cn("p-4 rounded-lg flex items-center justify-between group", dep.isCurrent ? "bg-white/5 border border-white/10" : "bg-transparent border border-border hover:bg-white/[0.02]")}>
+                        {activity.filter((a: any) => a.action.includes('DEPLOY')).length > 0 ? (
+                           activity.filter((a: any) => a.action.includes('DEPLOY')).slice(0, 5).map((dep: any, i: number) => (
+                             <div key={dep.id} className={cn("p-4 rounded-lg flex items-center justify-between group", i === 0 ? "bg-white/5 border border-white/10" : "bg-transparent border border-border hover:bg-white/[0.02]")}>
+                                <div className="flex items-center gap-4 min-w-0">
+                                   <div className="p-2 bg-indigo-500/10 rounded-md border border-indigo-500/20">
+                                      <GitCommit className="w-4 h-4 text-indigo-400" />
+                                   </div>
+                                   <div className="min-w-0 space-y-1">
+                                      <p className="text-sm font-medium truncate">{dep.details?.message || dep.action.replace(/_/g, ' ')}</p>
+                                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-mono">
+                                         <span>{dep.details?.branch || 'main'}</span>
+                                         <span className="w-1 h-1 rounded-full bg-white/20" />
+                                         <span>{dep.details?.commit?.slice(0,7) || '---'}</span>
+                                         <span className="w-1 h-1 rounded-full bg-white/20" />
+                                         <span>{formatDistanceToNow(new Date(dep.created_at))} ago</span>
+                                      </div>
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                   {i === 0 && <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase tracking-widest hidden sm:flex">Current</Badge>}
+                                   <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-white transition-colors" />
+                                </div>
+                             </div>
+                           ))
+                        ) : (
+                           <div className={cn("p-4 rounded-lg flex items-center justify-between group", "bg-white/5 border border-white/10")}>
                              <div className="flex items-center gap-4 min-w-0">
                                 <div className="p-2 bg-indigo-500/10 rounded-md border border-indigo-500/20">
                                    <GitCommit className="w-4 h-4 text-indigo-400" />
                                 </div>
                                 <div className="min-w-0 space-y-1">
-                                   <p className="text-sm font-medium truncate">{dep.summary}</p>
+                                   <p className="text-sm font-medium truncate">{latestDeployment?.summary || 'Initial Deployment'}</p>
                                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-mono">
-                                      <span>{dep.branch}</span>
+                                      <span>{latestDeployment?.branch || 'main'}</span>
                                       <span className="w-1 h-1 rounded-full bg-white/20" />
-                                      <span>{dep.commit?.slice(0,7)}</span>
+                                      <span>{latestDeployment?.commit?.slice(0,7) || '---'}</span>
                                       <span className="w-1 h-1 rounded-full bg-white/20" />
-                                      <span>{formatDistanceToNow(new Date(dep.created_at))} ago</span>
+                                      <span>{formatDistanceToNow(new Date(latestDeployment?.created_at))} ago</span>
                                    </div>
                                 </div>
                              </div>
                              <div className="flex items-center gap-4">
-                                {dep.isCurrent && <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase tracking-widest hidden sm:flex">Current</Badge>}
+                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase tracking-widest hidden sm:flex">Current</Badge>
                                 <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-white transition-colors" />
                              </div>
                           </div>
-                        ))}
+                        )}
                      </>
                    ) : fleetTab === 'preview' ? (
                       <div className="py-12 border border-dashed border-border/50 rounded-lg text-center flex flex-col items-center p-8">
@@ -273,10 +305,15 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                       <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                         <Lock className="w-3.5 h-3.5" /> GitOps Reconciler
                       </h3>
-                      <button onClick={() => driftQuery.refetch()} className="text-muted-foreground hover:text-white"><RefreshCw className={cn("w-3 h-3", driftQuery.isFetching && "animate-spin")} /></button>
+                      {latestDeployment && <button onClick={() => driftQuery.refetch()} className="text-muted-foreground hover:text-white"><RefreshCw className={cn("w-3 h-3", driftQuery.isFetching && "animate-spin")} /></button>}
                    </div>
                    <div className="p-5 flex flex-col space-y-5">
-                      {driftQuery.isLoading ? (
+                      {!latestDeployment ? (
+                         <div className="flex items-center gap-3 text-sm text-foreground/50 border border-dashed border-white/10 rounded-lg p-4 bg-white/[0.02]">
+                            <RefreshCw className="w-4 h-4 opacity-30" />
+                            <span className="text-xs">Waiting for active deployment to begin monitoring...</span>
+                         </div>
+                      ) : driftQuery.isLoading ? (
                          <div className="flex items-center gap-3 text-sm text-foreground/50 animate-pulse"><RefreshCw className="w-4 h-4" /> Analyzing live cluster...</div>
                       ) : driftQuery.data?.hasDrift ? (
                          <>
@@ -321,7 +358,14 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                       </h3>
                    </div>
                    <div className="p-5 flex flex-col space-y-6">
-                      <div className="space-y-3">
+                      {!latestDeployment ? (
+                         <div className="flex items-center gap-3 text-sm text-foreground/50 border border-dashed border-white/10 rounded-lg p-4 bg-white/[0.02]">
+                            <Sliders className="w-4 h-4 opacity-30" />
+                            <span className="text-xs">Target inactive. Provision your first deployment to scale.</span>
+                         </div>
+                      ) : (
+                         <>
+                            <div className="space-y-3">
                          <div className="flex justify-between items-end">
                             <span className="text-xs font-medium text-foreground">Target Replicas</span>
                             <span className="text-sm font-mono text-indigo-400 font-bold">{targetReplicas}</span>
@@ -347,6 +391,8 @@ export default function ProjectDetailsPage({ params }: { params: { slug: string 
                       >
                          {scaleMutation.isLoading ? 'Applying Scale...' : 'Apply Scale Policy'}
                       </Button>
+                    </>
+                  )}
                    </div>
                 </div>
 
