@@ -138,8 +138,8 @@ export const prPreviewsRouter = router({
           if (provider) {
             prLogger.info({ providerId, prNumber: input.pull_request.number }, '[PR Preview] Triggering deploy');
 
-            // In a real scenario, we'd fetch actual project-linked credentials
-            const credentials = await getProviderCredentials(providerId, ctx.db, "system").catch(() => ({}));
+            // Fetch actual project-linked credentials via Nango
+            const credentials = await getProviderCredentials(providerId, ctx.db, userId).catch(() => ({}));
 
             const deployResult = await provider.deploy({
               projectId,
