@@ -65,8 +65,8 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
       const Nango = (await import('@nangohq/frontend')).default
       const nango = new Nango({ publicKey: process.env.NEXT_PUBLIC_NANGO_PUBLIC_KEY || 'MISSING_KEY' })
       
-      // Use Nango as the Bridge for all 61+ services
-      nango.auth(`${provider.id}-integration`, userId)
+      // Use Nango as the Bridge for all services
+      nango.auth(provider.id, userId)
         .then(async (result) => {
           setStep('success')
           // Inform our backend that Nango handled the credentials

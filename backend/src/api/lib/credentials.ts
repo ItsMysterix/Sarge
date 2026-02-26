@@ -100,7 +100,7 @@ export async function getProviderCredentials(
       const { Nango } = await import('@nangohq/node');
       const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
 
-      const connection = await nango.getConnection(`${providerId}-integration`, userId);
+      const connection = await nango.getConnection(providerId, userId);
 
       if (connection && connection.credentials && (connection.credentials as any).access_token) {
         credLogger.info({ providerId }, `[credentials] Using Nango for ${providerId} (Fresh OAuth Token)`);
