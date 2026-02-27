@@ -13,59 +13,85 @@ export const PRPreviewsTab = () => {
   const previews = previewsQ.data || []
   const loading = previewsQ.isLoading
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-28 bg-[#0a0a0a] border border-white/5 rounded-[2rem] animate-pulse ring-1 ring-inset ring-white/[0.01]" />
+        ))}
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="space-y-1">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <GitPullRequest className="w-4 h-4" /> PR Preview Environments
-        </h3>
-        <p className="text-xs text-muted-foreground font-medium">Automatic preview deployments for pull requests</p>
+    <div className="space-y-12 animate-in fade-in duration-1000">
+      <div className="flex items-center justify-between border-b border-white/5 pb-10">
+        <div className="flex items-center gap-6">
+           <div className="w-14 h-14 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center ring-1 ring-inset ring-white/[0.01] shadow-2xl">
+             <GitPullRequest className="w-7 h-7 text-muted-foreground/20" />
+           </div>
+           <div>
+             <h3 className="text-[14px] font-black uppercase tracking-[0.4em] text-foreground">Transient_Ephemeral_Manifests</h3>
+             <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
+               <div className="w-1 h-1 rounded-full bg-amber-500/40" />
+               Automated_Preview_Propagation // Pull_Request_Protocols
+             </p>
+           </div>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="py-20"><LoadingScreen title="Loading Previews" subtitle="Scanning PR environments..." /></div>
-      ) : previews.length === 0 ? (
-        <div className="py-24 text-center border border-dashed border-border rounded-xl bg-muted/20">
-          <GitPullRequest className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-          <p className="text-sm font-bold text-foreground mb-1">No PR previews active.</p>
-          <p className="text-xs text-muted-foreground mb-4">Configure a GitHub webhook to automatically spin up preview environments for every pull request.</p>
-          <code className="text-[10px] bg-muted/50 border border-border rounded-lg px-4 py-2 inline-block font-mono text-muted-foreground">
-            POST /api/trpc/prPreviews.githubWebhook
-          </code>
+      {previews.length === 0 ? (
+        <div className="py-48 text-center border border-dashed border-white/5 rounded-[3rem] bg-[#050505] ring-1 ring-inset ring-white/[0.01] shadow-2xl relative overflow-hidden">
+          <GitPullRequest className="w-20 h-20 text-muted-foreground/5 mx-auto mb-10" />
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground/20 mb-4">REGISTRY_VOID_DETECTED</p>
+          <p className="text-[10px] font-black text-muted-foreground/10 uppercase tracking-[0.2em] mb-12 max-w-sm mx-auto leading-relaxed">
+            No transient nodes active. Configure an epistemic webhook to automatically provision environments for every pull request event.
+          </p>
+          <div className="mt-8 flex items-center justify-center">
+            <code className="text-[10px] font-black uppercase tracking-[0.3em] bg-white/[0.02] border border-white/5 rounded-2xl px-10 py-5 font-mono text-indigo-400/40 shadow-xl">
+              POST_HOOK: /API/TRPC/PR_PREVIEWS.SYNC
+            </code>
+          </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-6">
           {previews.map((pr: any) => (
-            <div key={pr.id} className="bg-card border border-border rounded-xl p-5 flex items-center gap-4 group hover:border-foreground/20 transition-all">
-              <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border",
-                pr.status === 'ready' ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400" :
-                pr.status === 'building' ? "border-amber-500/20 bg-amber-500/5 text-amber-400" :
-                pr.status === 'failed' ? "border-red-500/20 bg-red-500/5 text-red-400" :
-                "border-border bg-muted text-muted-foreground"
+            <div key={pr.id} className="relative bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 flex items-center gap-10 group hover:border-white/10 transition-all duration-700 shadow-2xl overflow-hidden ring-1 ring-inset ring-white/[0.01]">
+              <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center border transition-all duration-1000 shadow-2xl",
+                pr.status === 'ready' ? "border-emerald-500/10 bg-emerald-500/[0.02] text-emerald-400 group-hover:border-emerald-500/30 group-hover:bg-emerald-500/5 transition-all" :
+                pr.status === 'building' ? "border-amber-500/10 bg-amber-500/[0.02] text-amber-400" :
+                pr.status === 'failed' ? "border-red-500/10 bg-red-500/[0.02] text-red-400" :
+                "border-white/5 bg-white/[0.01] text-muted-foreground/20"
               )}>
-                <GitPullRequest className="w-5 h-5" />
+                <GitPullRequest className={cn("w-8 h-8 transition-all duration-1000", pr.status === 'building' && "animate-pulse")} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-bold truncate">#{pr.pr_number} {pr.pr_title}</span>
-                  <Badge variant="outline" className={cn("text-[9px] uppercase font-bold tracking-widest",
-                    pr.status === 'ready' ? "text-emerald-400 border-emerald-500/20" :
-                    pr.status === 'building' ? "text-amber-400 border-amber-500/20" :
-                    pr.status === 'failed' ? "text-red-400 border-red-500/20" :
-                    "text-muted-foreground"
-                  )}>{pr.status}</Badge>
+                <div className="flex items-center gap-6 mb-4">
+                  <span className="text-[15px] font-black text-foreground/80 tracking-tight truncate uppercase italic group-hover:text-foreground transition-colors duration-700">NODE_#{pr.pr_number} // {pr.pr_title}</span>
+                  <div className={cn("text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-xl border shadow-inner",
+                    pr.status === 'ready' ? "text-emerald-400/40 border-emerald-500/10 bg-emerald-500/[0.02]" :
+                    pr.status === 'building' ? "text-amber-400/40 border-amber-500/10 bg-amber-500/[0.02]" :
+                    pr.status === 'failed' ? "text-red-400/40 border-red-500/10 bg-red-500/[0.02]" :
+                    "text-muted-foreground/20 border-white/5 bg-white/[0.01]"
+                  )}>{pr.status}</div>
                 </div>
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                  <span>{pr.pr_author}</span>
-                  <span className="flex items-center gap-1"><GitBranch className="w-3 h-3" /> {pr.branch}</span>
-                  <span className="font-mono">#{pr.commit_sha?.slice(0,7)}</span>
+                <div className="flex items-center gap-6 text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.2em]">
+                  <span className="text-foreground/40">{pr.pr_author}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/[0.05]" />
+                  <span className="flex items-center gap-3"><GitBranch className="w-4 h-4 text-indigo-400/40" /> {pr.branch?.toUpperCase()}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/[0.05]" />
+                  <span className="font-mono text-indigo-400/[0.15] tracking-[0.3em] font-black">HASH_#{pr.commit_sha?.toUpperCase().slice(0,8)}</span>
                 </div>
               </div>
-              {pr.preview_url && (
+              {pr.preview_url ? (
                 <a href={pr.preview_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">
-                  <ExternalLink className="w-3.5 h-3.5" /> Preview
+                  className="flex items-center gap-6 h-16 px-10 rounded-[1.5rem] border border-white/5 hover:border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 hover:text-foreground transition-all duration-700 shadow-xl group/access active:scale-95">
+                  <ExternalLink className="w-5 h-5 group-hover/access:scale-110 transition-all duration-700" /> LAUNCH_ACCESS_KEY
                 </a>
+              ) : (
+                <div className="h-16 px-10 rounded-[1.5rem] border border-white/5 bg-white/[0.01] text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground/10 flex items-center justify-center opacity-40 italic">
+                   AWAITING_UPLINK
+                </div>
               )}
             </div>
           ))}

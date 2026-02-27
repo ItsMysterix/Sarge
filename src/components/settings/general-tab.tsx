@@ -28,111 +28,130 @@ export function GeneralTab({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-12 pb-20"
     >
       {/* Default Project Settings */}
-      <div className="glass-card p-6 border border-white/10">
-        <div className="flex items-center gap-3 mb-6">
-          <Settings2 className="w-5 h-5 text-accent" />
-          <h3 className="text-lg font-semibold">Default Project Settings</h3>
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl space-y-12">
+        <div className="flex items-center gap-4 border-b border-white/5 pb-10">
+          <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+            <Settings2 className="w-6 h-6 text-indigo-400/60" />
+          </div>
+          <div className="flex flex-col">
+             <h3 className="text-sm font-black uppercase tracking-[0.3em] text-foreground">Core Protocol Defaults</h3>
+             <p className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest mt-1">Standardized environment & regional initialization</p>
+          </div>
         </div>
         
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10">
-            <div>
-              <div className="font-medium">Default Region</div>
-              <div className="text-sm text-gray-400">Primary region for new deployments</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {[
+            { 
+              label: 'Default Kernel Region', 
+              field: 'region', 
+              value: defaultRegion,
+              setter: (v: string) => { setDefaultRegion(v); updateSettings?.({ defaultRegion: v }) },
+              options: [
+                { value: 'us-east-1', label: 'US_EAST_VIRGINIA' },
+                { value: 'us-west-2', label: 'US_WEST_OREGON' },
+                { value: 'eu-west-1', label: 'EU_WEST_IRELAND' },
+                { value: 'ap-southeast-1', label: 'AP_SOUTH_SINGAPORE' },
+                { value: 'local', label: 'OFFLINE_LOCAL' }
+              ]
+            },
+            { 
+              label: 'Execution Environment', 
+              field: 'env', 
+              value: defaultEnvironment,
+              setter: (v: string) => { setDefaultEnvironment(v); updateSettings?.({ defaultEnvironment: v }) },
+              options: [
+                { value: 'development', label: 'DEV_SANDBOX' },
+                { value: 'preview', label: 'PREVIEW_STAGING' },
+                { value: 'production', label: 'PROD_STABLE' }
+              ]
+            }
+          ].map((item) => (
+            <div key={item.label} className="bg-[#050505] border border-white/5 rounded-3xl p-8 space-y-6 ring-1 ring-inset ring-white/[0.01]">
+              <div className="flex items-center gap-3">
+                 <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                 <label className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">{item.label}</label>
+              </div>
+              <select 
+                value={item.value}
+                onChange={(e) => item.setter(e.target.value)}
+                className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-5 py-3.5 text-[11px] outline-none focus:border-indigo-500/30 transition-all font-black text-foreground/80 uppercase tracking-widest cursor-pointer"
+              >
+                {item.options.map(opt => <option key={opt.value} value={opt.value} className="bg-[#0a0a0a]">{opt.label}</option>)}
+              </select>
             </div>
-            <select 
-              value={defaultRegion}
-              onChange={(e) => {
-                const val = e.target.value
-                setDefaultRegion(val)
-                updateSettings?.({ defaultRegion: val })
-              }}
-              className="glass-card px-4 py-2 rounded border border-white/10 focus:border-accent focus:outline-none bg-transparent"
-            >
-              <option value="us-east-1" className="bg-[#1a1a1a]">US East (N. Virginia)</option>
-              <option value="us-west-2" className="bg-[#1a1a1a]">US West (Oregon)</option>
-              <option value="eu-west-1" className="bg-[#1a1a1a]">EU (Ireland)</option>
-              <option value="ap-southeast-1" className="bg-[#1a1a1a]">Asia Pacific (Singapore)</option>
-              <option value="local" className="bg-[#1a1a1a]">Local (Offline)</option>
-            </select>
-          </div>
-          
-          <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10">
-            <div>
-              <div className="font-medium">Default Environment</div>
-              <div className="text-sm text-gray-400">Environment for new branches</div>
-            </div>
-            <select 
-              value={defaultEnvironment}
-              onChange={(e) => {
-                const val = e.target.value
-                setDefaultEnvironment(val)
-                updateSettings?.({ defaultEnvironment: val })
-              }}
-              className="glass-card px-4 py-2 rounded border border-white/10 focus:border-accent focus:outline-none bg-transparent"
-            >
-              <option value="development" className="bg-[#1a1a1a]">Development</option>
-              <option value="preview" className="bg-[#1a1a1a]">Preview</option>
-              <option value="production" className="bg-[#1a1a1a]">Production</option>
-            </select>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Infrastructure & Resources */}
-      <div className="glass-card p-6 border border-white/10">
-        <div className="flex items-center gap-3 mb-6">
-          <Globe className="w-5 h-5 text-accent" />
-          <h3 className="text-lg font-semibold">Infrastructure & Resources</h3>
+      {/* Infrastructure Allocation */}
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl space-y-12">
+        <div className="flex items-center gap-4 border-b border-white/5 pb-10">
+          <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+            <Globe className="w-6 h-6 text-emerald-400/60" />
+          </div>
+          <div className="flex flex-col">
+             <h3 className="text-sm font-black uppercase tracking-[0.3em] text-foreground">Infrastructure Allocation</h3>
+             <p className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest mt-1">Resource quotas & computational weight</p>
+          </div>
         </div>
         
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Allocation: vCPU</span>
-              <span className="font-mono text-accent">{cpu} vCPU</span>
-            </div>
-            <input 
-              type="range" min="0.1" max="4" step="0.1" 
-              value={cpu} 
-              onChange={(e) => {
-                const val = parseFloat(e.target.value)
-                setCpu(val)
-                updateSettings?.({ resources: { ...settings?.resources, cpu: val } })
-              }}
-              className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
-            />
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+             <div className="space-y-6 bg-[#050505] border border-white/5 rounded-3xl p-8 ring-1 ring-inset ring-white/[0.01]">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
+                    <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">vCPU_QUOTA</span>
+                  </div>
+                  <span className="font-mono text-[11px] font-black text-emerald-400 uppercase">{cpu} CORES</span>
+                </div>
+                <input 
+                  type="range" min="0.1" max="4" step="0.1" 
+                  value={cpu} 
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value)
+                    setCpu(val)
+                    updateSettings?.({ resources: { ...settings?.resources, cpu: val } })
+                  }}
+                  className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-emerald-500 focus:outline-none"
+                />
+             </div>
+
+             <div className="space-y-6 bg-[#050505] border border-white/5 rounded-3xl p-8 ring-1 ring-inset ring-white/[0.01]">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500/40" />
+                    <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">RAM_CAPACITY</span>
+                  </div>
+                  <span className="font-mono text-[11px] font-black text-blue-400 uppercase">{memory} MiB</span>
+                </div>
+                <input 
+                  type="range" min="128" max="8192" step="128" 
+                  value={memory} 
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value)
+                    setMemory(val)
+                    updateSettings?.({ resources: { ...settings?.resources, memory: val } })
+                  }}
+                  className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-blue-500 focus:outline-none"
+                />
+             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Allocation: RAM</span>
-              <span className="font-mono text-accent">{memory} MB</span>
+          <div className="bg-[#050505] border border-white/5 rounded-3xl p-8 space-y-6 ring-1 ring-inset ring-white/[0.01]">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40" />
+                 <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">MIN_REPLICA_THRESHOLD</span>
+               </div>
+               <span className="font-mono text-[11px] font-black text-indigo-400 uppercase">{replicas} NODES</span>
             </div>
-            <input 
-              type="range" min="128" max="8192" step="128" 
-              value={memory} 
-              onChange={(e) => {
-                const val = parseInt(e.target.value)
-                setMemory(val)
-                updateSettings?.({ resources: { ...settings?.resources, memory: val } })
-              }}
-              className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Minimum Replicas</span>
-              <span className="font-mono text-accent">{replicas}</span>
-            </div>
-            <div className="flex gap-2">
+            <div className="flex gap-4">
               {[1, 2, 3, 5, 10].map(r => (
                 <button
                   key={r}
@@ -141,8 +160,10 @@ export function GeneralTab({
                     updateSettings?.({ resources: { ...settings?.resources, replicas: r } })
                   }}
                   className={cn(
-                    "px-3 py-1 rounded border text-xs transition-all",
-                    replicas === r ? "bg-white text-black border-transparent" : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"
+                    "flex-1 h-12 flex items-center justify-center rounded-xl text-[11px] font-black transition-all duration-500 ring-1 ring-inset uppercase tracking-widest",
+                    replicas === r 
+                      ? "bg-white text-black ring-transparent shadow-[0_0_20px_rgba(255,255,255,0.1)]" 
+                      : "bg-[#0a0a0a] ring-white/5 text-muted-foreground/40 hover:ring-white/10 hover:text-muted-foreground/60"
                   )}
                 >
                   {r}
@@ -153,100 +174,99 @@ export function GeneralTab({
         </div>
       </div>
 
-      {/* Advanced Deployment */}
-      <div className="glass-card p-6 border border-white/10">
-        <div className="flex items-center gap-3 mb-6">
-          <Zap className="w-5 h-5 text-accent" />
-          <h3 className="text-lg font-semibold">Advanced Deployment</h3>
+      {/* Deployment Hardening */}
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl space-y-12">
+        <div className="flex items-center gap-4 border-b border-white/5 pb-10">
+          <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+            <Zap className="w-6 h-6 text-amber-400/60" />
+          </div>
+          <div className="flex flex-col">
+             <h3 className="text-sm font-black uppercase tracking-[0.3em] text-foreground">Deployment Hardening</h3>
+             <p className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest mt-1">High-availability & automated recovery protocols</p>
+          </div>
         </div>
         
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10">
-            <div className="flex-1">
-              <div className="font-medium">Zero-Downtime Deployments</div>
-              <div className="text-sm text-gray-400">Use Rolling Updates or Blue/Green strategies.</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {[
+            { 
+              title: 'Zero_Downtime Propagation', 
+              desc: 'Utilize rolling update & mirror strategies', 
+              active: settings?.zeroDowntime,
+              toggle: () => updateSettings?.({ zeroDowntime: !settings?.zeroDowntime })
+            },
+            { 
+              title: 'Active_Pulse Checks', 
+              desc: 'Automated health-based container recycling', 
+              active: settings?.healthChecks,
+              toggle: () => updateSettings?.({ healthChecks: !settings?.healthChecks })
+            }
+          ].map((item) => (
+            <div key={item.title} className="flex items-center justify-between p-8 bg-[#050505] border border-white/5 rounded-3xl group hover:border-white/10 transition-all duration-500 ring-1 ring-inset ring-white/[0.01]">
+              <div className="flex-1 space-y-2">
+                <div className="text-[11px] font-black text-foreground/80 uppercase tracking-widest">{item.title}</div>
+                <div className="text-[9px] font-bold text-muted-foreground/20 uppercase tracking-[0.2em]">{item.desc}</div>
+              </div>
+              <button
+                onClick={item.toggle}
+                className={cn(
+                  "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-500 outline-none",
+                  item.active ? "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]" : "bg-white/5"
+                )}
+              >
+                <span className={cn(
+                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-500",
+                  item.active ? 'translate-x-[1.625rem]' : 'translate-x-[0.125rem]'
+                )} />
+              </button>
             </div>
-            <button
-              onClick={() => updateSettings?.({ zeroDowntime: !settings?.zeroDowntime })}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings?.zeroDowntime ? 'bg-accent' : 'bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                   settings?.zeroDowntime ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 glass-card rounded border border-white/10">
-            <div className="flex-1">
-              <div className="font-medium">Active Health Checks</div>
-              <div className="text-sm text-gray-400">Kill and restart unhealthy containers automatically.</div>
-            </div>
-            <button
-              onClick={() => updateSettings?.({ healthChecks: !settings?.healthChecks })}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings?.healthChecks ? 'bg-accent' : 'bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings?.healthChecks ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Data Management */}
-      <div className="glass-card p-6 border border-white/10">
-        <div className="flex items-center gap-3 mb-6">
-          <Database className="w-5 h-5 text-accent" />
-          <h3 className="text-lg font-semibold">Data Management</h3>
+      {/* Data Sovereignty */}
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl space-y-10">
+        <div className="flex items-center gap-4">
+          <div className="p-2.5 bg-white/[0.03] border border-white/5 rounded-xl">
+             <Database className="w-5 h-5 text-muted-foreground/30" />
+          </div>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-foreground/40">Data Sovereignty Control</h3>
         </div>
         
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button 
             onClick={onExport}
-            className="w-full flex items-center justify-between p-4 glass-card border border-white/10 hover:bg-white/5 rounded transition-colors"
+            className="flex flex-col items-start gap-6 p-8 bg-[#050505] border border-white/5 rounded-3xl hover:bg-[#080808] hover:border-white/10 transition-all duration-500 ring-1 ring-inset ring-white/[0.01] text-left group"
           >
-            <div className="flex items-center gap-3">
-              <Download className="w-5 h-5 text-accent" />
-              <div className="text-left">
-                <div className="font-medium">Export Settings</div>
-                <div className="text-sm text-gray-400">Download all configuration as JSON</div>
-              </div>
+            <Download className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-black text-foreground/80 uppercase tracking-widest">Export_Nexus</div>
+              <div className="text-[8px] font-bold text-muted-foreground/10 uppercase tracking-[0.3em]">Download binary state JSON</div>
             </div>
           </button>
 
           <button 
             onClick={onImport}
-            className="w-full flex items-center justify-between p-4 glass-card border border-white/10 hover:bg-white/5 rounded transition-colors"
+            className="flex flex-col items-start gap-6 p-8 bg-[#050505] border border-white/5 rounded-3xl hover:bg-[#080808] hover:border-white/10 transition-all duration-500 ring-1 ring-inset ring-white/[0.01] text-left group"
           >
-            <div className="flex items-center gap-3">
-              <Upload className="w-5 h-5 text-accent" />
-              <div className="text-left">
-                <div className="font-medium">Import Settings</div>
-                <div className="text-sm text-gray-400">Upload configuration from JSON file</div>
-              </div>
+            <Upload className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-black text-foreground/80 uppercase tracking-widest">Import_Override</div>
+              <div className="text-[8px] font-bold text-muted-foreground/10 uppercase tracking-[0.3em]">Restore configuration binary</div>
             </div>
           </button>
 
           <button 
             onClick={onClearData}
-            className="w-full flex items-center justify-between p-4 glass-card border border-red-500/30 hover:bg-red-500/10 rounded transition-colors"
+            className="flex flex-col items-start gap-6 p-8 bg-[#050505] border border-red-500/5 rounded-3xl hover:bg-red-500/10 hover:border-red-500/20 transition-all duration-500 ring-1 ring-inset ring-red-500/[0.01] text-left group"
           >
-            <div className="flex items-center gap-3">
-              <Trash2 className="w-5 h-5 text-red-400" />
-              <div className="text-left">
-                <div className="font-medium text-red-400">Clear All Data</div>
-                <div className="text-sm text-gray-400">Remove all deployments, logs, and cache</div>
-              </div>
+            <div className="w-full flex justify-between items-center">
+               <Trash2 className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
+               <AlertTriangle className="w-4 h-4 text-red-500/20" />
             </div>
-            <AlertTriangle className="w-5 h-5 text-red-400" />
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-black text-red-400 uppercase tracking-widest">Nuke_Execution</div>
+              <div className="text-[8px] font-bold text-muted-foreground/20 uppercase tracking-[0.3em]">Purge deployments/logs/cache</div>
+            </div>
           </button>
         </div>
       </div>

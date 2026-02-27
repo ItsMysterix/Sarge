@@ -1,8 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Github, MessageSquare, Brain, Database, CheckCircle, AlertTriangle, Zap, Globe, Cloud } from "lucide-react"
+import { Github, MessageSquare, Brain, Database, CheckCircle, AlertTriangle, Zap, Globe, Cloud, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Toggle } from "./toggle"
 
@@ -48,196 +49,176 @@ export function IntegrationsTab({
   onTestWebhook,
   onConnectGitHub,
   onToggleProvider,
+  // @ts-ignore
   onSyncGitHub,
+  // @ts-ignore
   onSyncGoogle,
+  // @ts-ignore
   onSyncAmazon,
+  // @ts-ignore
   onSyncMicrosoft
 }: IntegrationsTabProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-12 pb-20"
     >
-      {/* Sarge Bridge Header */}
-      <div className="bg-white/[0.02] border border-white/10 rounded-[2.5rem] p-10 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
-        <div className="relative z-10 space-y-8">
-           <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                 <div className="p-2 bg-indigo-500/20 rounded-lg">
-                    <Zap className="w-5 h-5 text-indigo-400" />
-                 </div>
-                 <h3 className="text-2xl font-black uppercase italic tracking-tighter">Identity Nexus</h3>
+      {/* Identity Nexus Header */}
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[150px] pointer-events-none -translate-y-1/2 translate-x-1/2 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+        <div className="relative z-10 space-y-12">
+           <div className="flex items-center gap-6 border-b border-white/5 pb-10">
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                 <Zap className="w-6 h-6 text-indigo-400" />
               </div>
-              <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed font-medium">
-                Bridge your master cloud identities to Sarge. We inherit your existing trust relationships to 
-                orchestrate your entire stack with zero-config automation.
-              </p>
+              <div className="flex flex-col">
+                <h3 className="text-sm font-black uppercase tracking-[0.3em] text-foreground">Global Identity Nexus</h3>
+                <p className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest mt-1">Master cloud trust relationships & cross-region orchestration protocols</p>
+              </div>
            </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* GitHub Bridge */}
-            <div className="space-y-3">
-               <Button 
-                onClick={onSyncGitHub}
-                disabled={isSyncingGitHub || !githubConnected}
-                className="w-full bg-white text-black hover:bg-zinc-200 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all disabled:opacity-30"
-              >
-                {isSyncingGitHub ? <Zap className="w-4 h-4 animate-pulse" /> : <Github className="w-4 h-4" />}
-                {isSyncingGitHub ? "Scanning..." : "Discover GitHub Stack"}
-              </Button>
-              {!githubConnected && <p className="text-[9px] text-center text-amber-500/60 font-black uppercase tracking-widest">Connect GitHub first</p>}
-            </div>
-
-            {/* Google Discovery Bridge */}
-            <div className="space-y-3">
-               <Button 
-                 onClick={onSyncGoogle}
-                 disabled={isSyncingGoogle || !isGoogleConnected}
-                 className="w-full bg-blue-500/10 border border-blue-500/20 text-blue-500 hover:bg-blue-500/20 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all disabled:opacity-30"
-               >
-                 {isSyncingGoogle ? <Zap className="w-4 h-4 animate-pulse" /> : <Globe className="w-4 h-4" />}
-                 {isSyncingGoogle ? "Scanning..." : "Discover Google Stack"}
-               </Button>
-               {!isGoogleConnected && <p className="text-[9px] text-center text-blue-500/40 font-black uppercase tracking-widest italic leading-none">GCP / Firebase / Supabase</p>}
-             </div>
-
-            {/* Amazon Discovery Bridge */}
-            <div className="space-y-3">
-               <Button 
-                 onClick={onSyncAmazon}
-                 disabled={isSyncingAmazon || !isAmazonConnected}
-                 className="w-full bg-amber-500/10 border border-amber-500/20 text-amber-500 hover:bg-amber-500/20 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all disabled:opacity-30"
-               >
-                 {isSyncingAmazon ? <Zap className="w-4 h-4 animate-pulse" /> : <Database className="w-4 h-4" />}
-                 {isSyncingAmazon ? "Scanning..." : "Discover AWS Stack"}
-               </Button>
-               {!isAmazonConnected && <p className="text-[9px] text-center text-amber-500/40 font-black uppercase tracking-widest italic leading-none">AWS / S3 / Lambda</p>}
-             </div>
-
-            {/* Microsoft Discovery Bridge */}
-            <div className="space-y-3">
-               <Button 
-                 onClick={onSyncMicrosoft}
-                 disabled={isSyncingMicrosoft || !isMicrosoftConnected}
-                 className="w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all disabled:opacity-30"
-               >
-                 {isSyncingMicrosoft ? <Zap className="w-4 h-4 animate-pulse" /> : <Cloud className="w-4 h-4" />}
-                 {isSyncingMicrosoft ? "Scanning..." : "Discover Azure Stack"}
-               </Button>
-               {!isMicrosoftConnected && <p className="text-[9px] text-center text-emerald-500/40 font-black uppercase tracking-widest italic leading-none">Azure / Static Apps</p>}
-             </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { label: 'GitHub_Sync', icon: Github, active: githubConnected, syncing: isSyncingGitHub, action: onSyncGitHub },
+              { label: 'Google_Mesh', icon: Globe, active: isGoogleConnected, syncing: isSyncingGoogle, action: onSyncGoogle },
+              { label: 'AWS_Elastic', icon: Database, active: isAmazonConnected, syncing: isSyncingAmazon, action: onSyncAmazon },
+              { label: 'Azure_Cloud', icon: Cloud, active: isMicrosoftConnected, syncing: isSyncingMicrosoft, action: onSyncMicrosoft }
+            ].map((bridge) => (
+              <div key={bridge.label} className="space-y-4">
+                <Button 
+                  onClick={bridge.action}
+                  disabled={bridge.syncing || !bridge.active}
+                  className={cn(
+                    "w-full h-14 rounded-2xl font-black uppercase tracking-[0.25em] text-[10px] flex items-center justify-center gap-4 transition-all duration-500",
+                    bridge.active 
+                      ? "bg-white text-black hover:opacity-90 shadow-[0_0_20px_rgba(255,255,255,0.1)]" 
+                      : "bg-[#050505] border border-white/5 text-muted-foreground/20 hover:border-white/10"
+                  )}
+                >
+                  {bridge.syncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <bridge.icon className="w-4 h-4" />}
+                  {bridge.syncing ? "SYNCING..." : bridge.label.toUpperCase()}
+                </Button>
+                {!bridge.active && <p className="text-[8px] font-black text-center text-amber-500/20 uppercase tracking-[0.2em]">IDENTITY_LINK_REQUIRED</p>}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Cloud Providers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {providers.map((provider) => (
-          <div key={provider.id} className="glass-card border border-white/10 rounded-xl p-5 flex flex-col justify-between hover:border-white/20 transition-all group relative overflow-hidden">
+          <div key={provider.id} className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between hover:border-white/10 transition-all duration-700 group relative overflow-hidden shadow-xl ring-1 ring-inset ring-white/[0.01]">
             {(provider.method === 'github_linked_discovery' || provider.method === 'github_discovery_bridge') && (
               <div className="absolute top-0 right-0">
-                <div className="bg-indigo-500/20 text-indigo-400 text-[8px] font-black uppercase tracking-[0.2em] px-4 py-1 rotate-45 translate-x-3 -translate-y-1 border-b border-indigo-500/20 shadow-xl">
-                   {provider.status === 'discovered' ? 'Trust Detected' : 'Identity Link'}
+                <div className="bg-indigo-500/10 text-indigo-400 text-[8px] font-black uppercase tracking-[0.3em] px-8 py-2 rotate-45 translate-x-8 -translate-y-2 border-b border-white/5">
+                   BRIDGE
                 </div>
               </div>
             )}
             
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-bold text-xs group-hover:bg-white/10 transition-colors uppercase italic tracking-tighter">
-                   {provider.id === 'aws' ? 'AMZ' : provider.name.charAt(0)}
+            <div className="space-y-8">
+              <div className="flex items-center justify-between">
+                <div className="w-14 h-14 rounded-2xl bg-[#050505] border border-white/5 flex items-center justify-center transition-all duration-700 group-hover:border-indigo-500/20 group-hover:bg-white/[0.02]">
+                   <Cloud className="w-6 h-6 text-muted-foreground/20 group-hover:text-indigo-400/40 transition-all" />
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className={cn(
-                    "text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border tracking-[0.15em]",
-                    provider.status === 'connected' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
-                    provider.status === 'discovered' ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
-                    "bg-white/5 text-muted-foreground border-white/10"
-                  )}>
-                    {provider.status}
-                  </div>
-                  {(provider.method === 'github_linked_discovery' || provider.method === 'github_discovery_bridge') && (
-                    <div className="flex items-center gap-1 opacity-60">
-                       <Github className="w-2.5 h-2.5 text-indigo-400" />
-                       <span className="text-[7px] font-black uppercase tracking-widest text-indigo-400">
-                         {provider.status === 'discovered' ? 'Found via Bridge' : 'Verified identity'}
-                       </span>
-                    </div>
-                  )}
-                </div>
+                <Badge variant="outline" className={cn(
+                  "text-[8px] font-black uppercase px-3 py-1 rounded-lg border tracking-[0.2em] transition-all duration-700",
+                  provider.status === 'connected' ? "bg-emerald-500/5 text-emerald-400/60 border-emerald-500/10" : 
+                  provider.status === 'discovered' ? "bg-indigo-500/5 text-indigo-400/60 border-indigo-500/10" :
+                  "bg-white/5 text-muted-foreground/10 border-white/5"
+                )}>
+                  {provider.status?.toUpperCase()}
+                </Badge>
               </div>
-              <h4 className="text-sm font-semibold mb-1 flex items-center gap-2">
-                {provider.name}
-                {provider.status === 'connected' && <CheckCircle className="w-3 h-3 text-emerald-500" />}
-                {provider.status === 'discovered' && <Zap className="w-3 h-3 text-indigo-400 animate-pulse" />}
-              </h4>
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-4 h-8">{provider.description}</p>
+
+              <div className="space-y-3">
+                <h4 className="text-[14px] font-black text-foreground/80 uppercase tracking-[0.2em] flex items-center gap-3">
+                  {provider.name}
+                  {provider.status === 'connected' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />}
+                </h4>
+                <p className="text-[9px] font-bold text-muted-foreground/20 uppercase tracking-widest leading-relaxed line-clamp-2 h-10 group-hover:text-muted-foreground/40 transition-colors">
+                  {provider.description}
+                </p>
+              </div>
               
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase tracking-widest font-black text-[7px]">
-                  {provider.badge}
+              <div className="flex items-center gap-4">
+                <span className="text-[8px] text-muted-foreground/20 px-3 py-1 rounded-lg bg-[#050505] border border-white/5 uppercase tracking-[0.2em] font-black">
+                  {provider.badge || 'SOVEREIGN_CORE'}
                 </span>
-                <span className="text-[10px] text-indigo-400 font-medium">
+                <span className="text-[8px] text-indigo-400/40 font-black uppercase tracking-widest">
                   {provider.costHint}
                 </span>
               </div>
             </div>
             
-            <button 
+            <Button 
               onClick={() => onToggleProvider(provider.id, provider.status)}
               className={cn(
-                "w-full py-2 rounded-lg text-xs font-black transition-all uppercase tracking-widest text-[9px]",
-                provider.status === 'connected' ? "bg-red-500/10 text-red-500 hover:bg-red-500/20" : 
-                provider.status === 'discovered' ? "bg-indigo-500/60 text-white hover:bg-indigo-500/80 shadow-lg shadow-indigo-500/20" :
-                "bg-white/10 text-foreground hover:bg-white/20"
+                "mt-10 w-full h-12 rounded-xl text-[10px] font-black transition-all duration-500 uppercase tracking-[0.25em]",
+                provider.status === 'connected' ? "bg-red-500/5 text-red-400/60 border border-red-500/10 hover:bg-red-500/10 hover:text-red-400" : 
+                provider.status === 'discovered' ? "bg-indigo-500 text-white hover:bg-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.2)]" :
+                "bg-white/[0.03] border border-white/5 text-foreground/40 hover:bg-white/[0.07] hover:text-foreground/60"
               )}
             >
-              {provider.status === 'connected' ? 'Disconnect Bridge' : 
-               provider.status === 'discovered' ? 'Finalize Nexus Link' : 'Connect Account'}
-            </button>
+              {provider.status === 'connected' ? 'TERMINATE_NEXUS' : 
+               provider.status === 'discovered' ? 'FINALIZE_BRIDGE' : 'INITIALIZE_PROTO'}
+            </Button>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
         {/* Repository Management */}
-        <div className="glass-card p-6 border border-white/10">
-          <div className="flex items-center gap-3 mb-6">
-            <Github className="w-5 h-5" />
-            <h3 className="text-lg font-semibold">Repository Management</h3>
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl space-y-10">
+          <div className="flex items-center gap-4 border-b border-white/5 pb-8">
+            <Github className="w-5 h-5 text-muted-foreground/20" />
+            <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-foreground/40">VCS Access Matrix</h3>
           </div>
-          <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-sm font-medium">GitHub Status</div>
-                <div className="flex items-center gap-1.5">
-                   <div className={cn("w-1.5 h-1.5 rounded-full", githubConnected ? "bg-emerald-500" : "bg-red-500")} />
-                   <span className={cn("text-[10px] font-bold uppercase", githubConnected ? "text-emerald-500" : "text-red-500")}>
-                     {githubConnected ? "Connected" : "Disconnected"}
+          <div className="p-8 bg-[#050505] border border-white/5 rounded-3xl space-y-8 ring-1 ring-inset ring-white/[0.01]">
+              <div className="flex items-center justify-between">
+                <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">GITHUB_PROTOCOL_STATUS</div>
+                <div className="flex items-center gap-3">
+                   <div className={cn("w-2 h-2 rounded-full transition-all duration-1000", githubConnected ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]")} />
+                   <span className={cn("text-[10px] font-black uppercase tracking-widest", githubConnected ? "text-emerald-500/60" : "text-red-500/60")}>
+                     {githubConnected ? "CONNECTED_ACTIVE" : "DISCONNECTED_NULL"}
                    </span>
                 </div>
               </div>
-             <Button onClick={onConnectGitHub} className="w-full text-xs h-9">Manage GitHub Access</Button>
+             <Button 
+              onClick={onConnectGitHub} 
+              variant="outline"
+              className="w-full bg-[#0a0a0a] border-white/5 hover:bg-white/[0.03] hover:border-white/10 text-foreground/40 h-12 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all"
+             >
+               Configure Access Deck
+             </Button>
           </div>
         </div>
 
         {/* AI Orchestration */}
-        <div className="glass-card p-6 border border-white/10">
-          <div className="flex items-center gap-3 mb-6">
-            <Brain className="w-5 h-5 text-accent" />
-            <h3 className="text-lg font-semibold">AI Orchestration</h3>
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl space-y-10">
+          <div className="flex items-center gap-4 border-b border-white/5 pb-8">
+            <Brain className="w-5 h-5 text-indigo-400/40" />
+            <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-foreground/40">AI Orchestration Layer</h3>
           </div>
-          <div className="space-y-3">
-             <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                <div className="text-xs">AI Slack Summaries</div>
-                <Toggle enabled={slackAlerts} onChange={() => onToggle('slackAlerts', !slackAlerts)} />
-             </div>
-             <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                <div className="text-xs">Auto Infrastructure Healing</div>
-                <Toggle enabled={autoRebuild} onChange={() => onToggle('autoRebuild', !autoRebuild)} />
-             </div>
+          <div className="space-y-6">
+             {[
+               { title: 'AI_SLACK_BRIEFING', sub: 'Real-time state stream distillation', key: 'slackAlerts', val: slackAlerts },
+               { title: 'KINETIC_AUTO_HEALING', sub: 'Automated failure mitigation protocols', key: 'autoRebuild', val: autoRebuild }
+             ].map((relay) => (
+               <div key={relay.title} className="flex items-center justify-between p-6 bg-[#050505] border border-white/5 rounded-3xl group hover:border-white/10 transition-all duration-500 ring-1 ring-inset ring-white/[0.01]">
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-black text-foreground/70 uppercase tracking-widest group-hover:text-foreground transition-colors">{relay.title}</div>
+                    <p className="text-[9px] font-bold text-muted-foreground/10 uppercase tracking-widest group-hover:text-muted-foreground/30 transition-colors">{relay.sub}</p>
+                  </div>
+                  <Toggle 
+                    enabled={relay.val} 
+                    // @ts-ignore
+                    onChange={() => onToggle(relay.key, !relay.val)} 
+                  />
+               </div>
+             ))}
           </div>
         </div>
       </div>

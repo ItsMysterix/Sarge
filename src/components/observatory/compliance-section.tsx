@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { trpc } from "@/lib/trpc"
 import { GridLoader } from "@/components/ui/grid-loader"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, EmptyState, SectionHeader } from "./shared"
 
 export const ComplianceSection = ({ projectId }: { projectId: string }) => {
@@ -16,132 +17,154 @@ export const ComplianceSection = ({ projectId }: { projectId: string }) => {
   const overview = costQ.data || { totalCost: 0, breakdown: [] }
   const recommendations = recsQ.data?.recommendations || []
   const budget = budgetQ?.data
+  const isLoading = costQ.isLoading
 
-  const loading = costQ.isLoading
-
-  if (loading) return <div className="flex justify-center py-20"><GridLoader /></div>
+  if (isLoading) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-500">
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-32 bg-white/[0.02] border border-white/5 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 bg-white/[0.02] border border-white/5 rounded-2xl animate-pulse" />
+      </div>
+    )
+  }
 
   const severityColor: Record<string, string> = {
-    high: 'text-red-400 bg-red-500/10 border-red-500/30',
-    medium: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-    low: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    high: 'text-red-400 border-red-500/20 bg-red-500/5',
+    medium: 'text-amber-400 border-amber-500/20 bg-amber-500/5',
+    low: 'text-blue-400 border-blue-500/20 bg-blue-500/5',
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Cost Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="text-center py-8">
-          <Coins className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Monthly Spend</p>
-          <p className="text-3xl font-bold tracking-tight">${overview.totalCost.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">{overview.currency || 'USD'}</p>
-        </Card>
+    <div className="space-y-12 animate-in fade-in duration-700">
+      {/* FinOps Overview Matrix */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+            <Coins className="w-16 h-16" />
+          </div>
+          <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-4">Projected Monthly Burn</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-black text-foreground/90 tabular-nums">${overview.totalCost.toFixed(2)}</span>
+            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">{overview.currency || 'USD'}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-4 text-[9px] font-bold text-emerald-500/60 uppercase tracking-widest">
+            <CheckCircle2 className="w-3 h-3" />
+            Live reconciliation
+          </div>
+        </div>
 
-        <Card className="text-center py-8">
-          <TrendingDown className="w-6 h-6 text-emerald-400/30 mx-auto mb-3" />
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Potential Savings</p>
-          <p className="text-3xl font-bold tracking-tight text-emerald-400">
-            ${(recsQ.data?.totalPotentialSavings || 0).toFixed(2)}
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-1">{recommendations.length} optimizations found</p>
-        </Card>
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+            <TrendingDown className="w-16 h-16" />
+          </div>
+          <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-4">Total Optimization Yield</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-black text-emerald-400 tabular-nums">${(recsQ.data?.totalPotentialSavings || 0).toFixed(2)}</span>
+          </div>
+          <p className="text-[9px] font-bold text-muted-foreground/40 mt-4 uppercase tracking-widest">{recommendations.length} active opportunities</p>
+        </div>
 
-        <Card className="text-center py-8">
-          <CheckCircle2 className={cn("w-6 h-6 mx-auto mb-3",
-            budget?.overBudget ? "text-red-400/30" : "text-emerald-400/30"
-          )} />
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Budget Status</p>
-          <p className={cn("text-3xl font-bold tracking-tight uppercase",
-            budget?.overBudget ? "text-red-400" : "text-emerald-400"
-          )}>
-            {budget ? (budget.overBudget ? 'Over' : 'Under') : 'OK'}
-          </p>
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+             <ShieldCheck className="w-16 h-16" />
+          </div>
+          <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-4">Budget Hardstop Status</p>
+          <div className="flex items-baseline gap-3">
+             <span className={cn("text-3xl font-black uppercase tracking-tight",
+              budget?.overBudget ? "text-red-400" : "text-indigo-400"
+            )}>
+              {budget ? (budget.overBudget ? 'Exceeded' : 'Compliant') : 'Nominal'}
+            </span>
+          </div>
           {budget?.percentage != null && (
-            <p className="text-[10px] text-muted-foreground mt-1">{budget.percentage.toFixed(0)}% of budget used</p>
+            <div className="mt-4 w-full h-1 bg-white/[0.03] rounded-full overflow-hidden">
+               <div 
+                className={cn("h-full transition-all duration-1000", budget.overBudget ? 'bg-red-500' : 'bg-indigo-500')} 
+                style={{ width: `${Math.min(budget.percentage, 100)}%` }} 
+              />
+            </div>
           )}
-        </Card>
+        </div>
       </div>
 
-      {/* Cost Breakdown by Provider */}
-      {overview.breakdown?.length > 0 && (
-        <div>
-          <SectionHeader title="Cost by Provider" icon={Coins} />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {overview.breakdown.map((item: any, i: number) => (
-              <Card key={i} className="flex items-center gap-4 py-4">
-                <div className="flex-1">
-                  <p className="text-sm font-bold">{item.provider || item.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {Object.entries(item.breakdown || {}).map(([k, v]) => `${k}: $${Number(v).toFixed(2)}`).join(' · ')}
-                  </p>
-                </div>
-                <p className="text-sm font-bold font-mono">${Number(item.cost || item.total || 0).toFixed(2)}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Cost Recommendations */}
+      {/* Optimization Recommendations Feed */}
       {recommendations.length > 0 && (
-        <div>
-          <SectionHeader title="Optimization Recommendations" icon={TrendingDown} />
+        <div className="space-y-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-2 text-muted-foreground/60">
+            <TrendingDown className="w-3.5 h-3.5" />
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Efficiency Protocol Yields</h3>
+          </div>
           <div className="space-y-3">
             {recommendations.map((rec: any, i: number) => (
-              <Card key={i} className="flex items-start gap-4 py-4">
-                <div className={cn("shrink-0 p-2 rounded-lg border", severityColor[rec.severity] || severityColor.low)}>
-                  {rec.severity === 'high' ? <AlertTriangle className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+              <div key={i} className="bg-white/[0.02] border border-white/5 rounded-xl p-5 flex items-center gap-6 hover:border-white/10 transition-all shadow-sm group">
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border", severityColor[rec.severity] || severityColor.low)}>
+                  {rec.severity === 'high' ? <AlertTriangle className="w-5 h-5" /> : <ArrowDown className="w-5 h-5" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-bold">{rec.recommendation || rec.type}</p>
-                    <Badge variant="secondary" className="text-[9px] uppercase font-bold tracking-widest">{rec.type?.replace(/_/g, ' ')}</Badge>
+                  <div className="flex items-center gap-3 mb-2">
+                    <p className="text-sm font-black text-foreground/90 tracking-tight truncate">{rec.recommendation || rec.type}</p>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-white/5 border-white/10 opacity-60">
+                      {rec.type?.replace(/_/g, ' ')}
+                    </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{rec.resource} — Current cost: ${Number(rec.currentCost || 0).toFixed(2)}/mo</p>
+                  <p className="text-[11px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                     Resource: <span className="text-foreground/40">{rec.resource}</span> · Current Burn: ${Number(rec.currentCost || 0).toFixed(2)}/mo
+                  </p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-emerald-400">-${Number(rec.estimatedSavings || 0).toFixed(2)}</p>
-                  <p className="text-[10px] text-muted-foreground">/month</p>
+                <div className="text-right shrink-0 bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-4 py-2 hover:bg-emerald-500/10 transition-colors">
+                  <p className="text-sm font-black text-emerald-400">-${Number(rec.estimatedSavings || 0).toFixed(2)}</p>
+                  <p className="text-[8px] font-black text-emerald-500/40 uppercase tracking-widest">Est. Savings</p>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Budget & Spend Policies */}
-      <div className="pt-6">
-        <SectionHeader title="Cost Control & Spend Policies" icon={ShieldCheck} />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card className="p-6">
-            <h3 className="text-sm font-bold mb-1">Monthly Budget Limit</h3>
-            <p className="text-xs text-muted-foreground mb-4">Set a hard billing threshold to avoid unexpected cloud runtime costs.</p>
+      {/* Enforcement Policies */}
+      <div className="space-y-6 pt-6 border-t border-white/5">
+        <div className="flex items-center gap-2 text-muted-foreground/60">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Sovereign Budget Guardrails</h3>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-[#080808] border border-white/5 rounded-2xl p-6 shadow-xl">
+            <h3 className="text-sm font-black text-foreground/90 mb-1 uppercase tracking-tight">Capacitance Limit</h3>
+            <p className="text-[10px] font-bold text-muted-foreground/40 mb-6 uppercase tracking-widest">Define mandatory billing hard-stop in localized currency.</p>
             <div className="flex items-center gap-4">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 font-black text-sm">$</span>
                 <input 
                   type="number" 
                   defaultValue={150}
-                  className="w-full bg-background border border-border rounded-lg pl-7 pr-3 py-2 text-sm font-bold font-mono focus:outline-none focus:border-foreground/30 transition-colors" 
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-8 pr-4 py-3 text-sm font-black font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-foreground/80" 
                 />
               </div>
-              <button className="px-4 py-2 bg-foreground text-background rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-foreground/90 transition-all">
-                 Enforce Limit
-              </button>
+              <Button className="h-11 px-6 bg-foreground text-background text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:opacity-90">
+                 Bind Guard
+              </Button>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-6">
-            <h3 className="text-sm font-bold mb-1">Threshold Enforcement Policy</h3>
-            <p className="text-xs text-muted-foreground mb-4">What should Sarge do when the cluster exceeds the monthly budget?</p>
-            <select className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-foreground/30 appearance-none cursor-pointer">
-               <option value="alert">Alert Only (Slack / Email)</option>
-               <option value="suspend_previews">Suspend all PR Preview Environments</option>
-               <option value="suspend_non_prod">Suspend all Non-Production Services</option>
-               <option value="hard_stop" disabled>Hard Stop (Shuts down Production) - Contact Support</option>
-            </select>
-          </Card>
+          <div className="bg-[#080808] border border-white/5 rounded-2xl p-6 shadow-xl">
+            <h3 className="text-sm font-black text-foreground/90 mb-1 uppercase tracking-tight">Escalation Protocol</h3>
+            <p className="text-[10px] font-bold text-muted-foreground/40 mb-6 uppercase tracking-widest">Automated response when consumption hits 110% of defined limit.</p>
+            <div className="relative">
+              <select className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-5 py-3 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-indigo-500/50 transition-all text-foreground/70 appearance-none cursor-pointer">
+                <option value="alert">Silent Signal (Notify Node)</option>
+                <option value="suspend_previews">Suspend Transient Previews</option>
+                <option value="suspend_non_prod">Shutdown Non-Prod Clusters</option>
+                <option value="hard_stop" disabled>Full System Blackout (L3 Only)</option>
+              </select>
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                 <ArrowDown className="w-3 h-3" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

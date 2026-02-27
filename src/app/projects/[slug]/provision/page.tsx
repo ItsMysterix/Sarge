@@ -282,29 +282,29 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
 
   // --- Render Helpers ---
   const renderSourceStep = () => (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-12 animate-in fade-in duration-1000">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <SourceCard 
           id="github" 
-          icon={<Github className="w-4 h-4" />} 
-          title="GitHub Integration" 
-          desc="Authorized access to managed repositories." 
+          icon={<Github className="w-6 h-6" />} 
+          title="GitHub Registry" 
+          desc="Authorized identity access to VCS managed repositories." 
           active={sourceType === 'github'} 
           onClick={() => setSourceType('github')} 
         />
         <SourceCard 
           id="url" 
-          icon={<Link className="w-4 h-4" />} 
+          icon={<Link className="w-6 h-6" />} 
           title="Remote Endpoint" 
-          desc="Clone via public repository URL." 
+          desc="Injest via public git repository protocol." 
           active={sourceType === 'url'} 
           onClick={() => setSourceType('url')} 
         />
         <SourceCard 
           id="local" 
-          icon={<FolderOpen className="w-4 h-4" />} 
-          title="Local Filesystem" 
-          desc="Direct sync from development workspace." 
+          icon={<FolderOpen className="w-6 h-6" />} 
+          title="Local Workspace" 
+          desc="Synchronized tunnel from development environment." 
           active={sourceType === 'local'} 
           onClick={() => setSourceType('local')} 
         />
@@ -313,49 +313,59 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
       <AnimatePresence mode="wait">
         <motion.div
           key={sourceType}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.4 }}
         >
           {sourceType === 'github' && (
-            <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
-               <div className="relative group max-w-md">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                 <input 
-                   type="text" 
-                   placeholder="Filter repositories..." 
-                   className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-2 text-xs outline-none focus:border-foreground/20 transition-colors"
-                   value={repoSearch}
-                   onChange={(e) => setRepoSearch(e.target.value)}
-                   autoFocus
-                 />
+            <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 space-y-10 shadow-2xl ring-1 ring-inset ring-white/[0.01]">
+               <div className="flex items-center justify-between border-b border-white/5 pb-8">
+                  <div className="relative group flex-1 max-w-xl">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/20 group-focus-within:text-indigo-500/40 transition-colors" />
+                    <input 
+                      type="text" 
+                      placeholder="FILTER_VCS_REGISTRY..." 
+                      className="w-full bg-[#050505] border border-white/5 rounded-[1.25rem] pl-16 pr-8 py-5 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-indigo-500/20 transition-all placeholder:text-muted-foreground/10"
+                      value={repoSearch}
+                      onChange={(e) => setRepoSearch(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/20">
+                     <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> IDENTITY_VERIFIED</span>
+                  </div>
                </div>
                
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                   {isLoadingRepos ? (
-                    <div className="col-span-full py-12 flex flex-col items-center gap-3">
-                       <RefreshCw className="w-5 h-5 text-muted-foreground animate-spin" />
-                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Indexing GitHub...</p>
+                    <div className="col-span-full py-32 flex flex-col items-center gap-6">
+                       <RefreshCw className="w-10 h-10 text-indigo-500/20 animate-spin" />
+                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/20">Indexing_Global_Manifests...</p>
                     </div>
                   ) : filteredRepos.length > 0 ? filteredRepos.map(repo => (
                     <button 
                       key={repo.id}
                       onClick={() => setSelectedRepo(repo)}
                       className={cn(
-                        "flex flex-col items-start p-3 border rounded-lg transition-all text-left group",
+                        "flex flex-col items-start p-6 border rounded-[1.5rem] transition-all duration-500 text-left group relative overflow-hidden",
                         selectedRepo?.id === repo.id 
-                          ? "bg-foreground border-foreground text-background shadow-lg" 
-                          : "bg-background border-border hover:border-foreground/20"
+                          ? "bg-white/[0.03] border-indigo-500/40 shadow-2xl" 
+                          : "bg-white/[0.01] border-white/5 hover:border-white/10"
                       )}
                     >
-                      <span className="text-[10px] font-bold truncate w-full mb-0.5">{repo.name}</span>
+                      <div className="flex items-center justify-between w-full mb-4">
+                         <Github className={cn("w-4 h-4 transition-colors", selectedRepo?.id === repo.id ? "text-indigo-400" : "text-muted-foreground/10 group-hover:text-muted-foreground/20")} />
+                         {selectedRepo?.id === repo.id && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />}
+                      </div>
+                      <span className={cn("text-[11px] font-black uppercase tracking-widest truncate w-full transition-colors", selectedRepo?.id === repo.id ? "text-foreground" : "text-muted-foreground/40")}>{repo.name}</span>
                     </button>
                   )) : (
-                    <div className="col-span-full py-12 text-center">
-                       <p className="text-xs font-medium text-muted-foreground">No repositories found in this scope.</p>
-                       <Button variant="link" className="text-[10px] uppercase font-bold tracking-widest text-foreground mt-2">
-                         Configure GitHub App
-                       </Button>
+                    <div className="col-span-full py-32 text-center bg-[#050505] rounded-[2rem] border border-dashed border-white/5">
+                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/10">No match detected within registry scope.</p>
+                       <button className="text-[9px] font-black uppercase tracking-[0.4em] text-indigo-400/40 hover:text-indigo-400 transition-colors mt-6">
+                         REAUTH_GITHUB_BRIDGE
+                       </button>
                     </div>
                   )}
                </div>
@@ -363,12 +373,13 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
           )}
 
           {(sourceType === 'url' || sourceType === 'local') && (
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-               <div className="relative max-w-2xl">
+            <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl ring-1 ring-inset ring-white/[0.01]">
+               <div className="relative max-w-4xl">
+                 <div className="text-[9px] font-black text-muted-foreground/20 uppercase tracking-[0.3em] mb-4 ml-2">TARGET_RESOURCE_LOCATOR</div>
                  <input 
                    type="text" 
-                   placeholder={sourceType === 'url' ? "https://github.com/org/repo.git" : "/path/to/local/source"}
-                   className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-xs font-mono outline-none focus:border-foreground/20 transition-colors"
+                   placeholder={sourceType === 'url' ? "HTTPS://GITHUB.COM/MANIFEST.GIT" : "/VAR/WWW/SRC/NODE"}
+                   className="w-full bg-[#050505] border border-white/5 rounded-[1.5rem] px-8 py-5 text-[11px] font-mono font-black uppercase tracking-[0.2em] outline-none focus:border-indigo-500/20 transition-all text-white/80 placeholder:text-muted-foreground/5"
                    value={publicUrl}
                    onChange={(e) => setPublicUrl(e.target.value)}
                  />
@@ -378,57 +389,70 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex justify-start pt-2">
+      <div className="flex justify-start">
         <Button 
           disabled={sourceType === 'github' ? !selectedRepo : !publicUrl}
           onClick={handleStartAnalysis}
-          className="h-9 px-6 bg-foreground text-background font-bold uppercase text-[10px] tracking-widest rounded-lg hover:bg-foreground/90 transition-all flex items-center gap-2 shadow-lg"
+          className="h-16 px-12 bg-white text-black font-black uppercase text-[11px] tracking-[0.3em] rounded-2xl hover:bg-zinc-200 transition-all flex items-center gap-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95"
         >
-          Initialize Service Scan <SearchCode className="w-3.5 h-3.5" />
+          Initialize Service Scan <SearchCode className="w-5 h-5" />
         </Button>
       </div>
     </div>
   )
 
   const renderAnalysisStep = () => (
-    <div className="max-w-4xl space-y-6 animate-in fade-in duration-500">
-      <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
-         <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 bg-muted rounded-lg border border-border">
-               <Cpu className="w-5 h-5 text-muted-foreground" />
+    <div className="max-w-6xl space-y-10 animate-in fade-in duration-1000">
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-12 shadow-2xl ring-1 ring-inset ring-white/[0.01] relative overflow-hidden group">
+         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/[0.02] blur-[150px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
+         
+         <div className="flex items-center gap-6 mb-12 relative z-10">
+            <div className="w-14 h-14 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center shadow-xl">
+               <Cpu className="w-7 h-7 text-indigo-400/80" />
             </div>
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Architectural Discovery</h2>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">AI Assisted Node Mapping</p>
+              <h2 className="text-[14px] font-black uppercase tracking-[0.4em] text-foreground">Architectural Discovery Matrix</h2>
+              <p className="text-[10px] text-muted-foreground/20 font-black uppercase tracking-[0.2em] mt-1">AI-Assisted Infrastructure Node Mapping</p>
             </div>
          </div>
 
          {isAnalyzing ? (
-           <div className="space-y-6 py-8">
-              <div className="h-1 bg-muted rounded-full overflow-hidden w-64">
-                <motion.div initial={{ x: "-100%" }} animate={{ x: "0%" }} transition={{ duration: 2, repeat: Infinity }} className="h-full bg-foreground/40" />
+           <div className="space-y-10 py-12 relative z-10 flex flex-col items-center">
+              <div className="w-80 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/10 ring-1 ring-inset ring-white/[0.01]">
+                <motion.div initial={{ x: "-100%" }} animate={{ x: "100%" }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} className="h-full bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.5)]" />
               </div>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
-                 <RefreshCw className="w-3 h-3 animate-spin" /> Analyzing project structure...
-              </p>
+              <div className="flex flex-col items-center gap-4">
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 animate-pulse flex items-center gap-4">
+                   <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" /> 
+                   Mapping_Source_Graph...
+                </span>
+                <p className="text-[9px] font-bold text-muted-foreground/10 uppercase tracking-widest">Identifying core dependencies & fleet requirements</p>
+              </div>
            </div>
          ) : (
-           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-             <div className="p-6 bg-muted/30 border border-border rounded-xl">
-                <p className="text-sm font-medium leading-relaxed text-foreground/90 max-w-3xl">
+           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-1000 relative z-10">
+             <div className="p-10 bg-[#050505] border border-white/5 rounded-[2rem] ring-1 ring-inset ring-white/[0.01] hover:border-white/10 transition-colors duration-700">
+                <div className="text-[9px] font-black text-muted-foreground/10 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-4">AUTONOMOUS_SUMMARY_MANIFEST</div>
+                <p className="text-[13px] font-bold leading-relaxed text-foreground/70 uppercase tracking-widest max-w-4xl">
                   {claudeAnalysis?.summary}
                 </p>
              </div>
              
-             <div className="flex items-center gap-8 px-2">
-                <div className="flex flex-col gap-1">
-                   <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Confidence Matrix</span>
-                   <span className="text-xl font-bold text-emerald-500">
-                     {((claudeAnalysis?.confidence || 0) * 100).toFixed(1)}%
-                   </span>
+             <div className="flex items-center justify-between gap-12 border-t border-white/5 pt-10">
+                <div className="flex items-center gap-10">
+                   <div className="flex flex-col gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20">CONFIDENCE_POOL</span>
+                      <div className="flex items-center gap-4">
+                         <span className="text-4xl font-black text-emerald-400 tracking-tighter">
+                           {((claudeAnalysis?.confidence || 0) * 100).toFixed(1)}%
+                         </span>
+                         <div className="h-8 w-px bg-white/5" />
+                         <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500/20">NOMINAL_STATE</span>
+                      </div>
+                   </div>
                 </div>
-                <Button onClick={handleApplyAnalysis} className="bg-foreground text-background font-bold px-8 py-5 rounded-xl uppercase tracking-widest text-[10px] flex items-center gap-2 ml-auto shadow-lg">
-                  Configure Blueprint <ArrowRight className="w-4 h-4" />
+                <Button onClick={handleApplyAnalysis} className="h-16 px-12 bg-white text-black font-black uppercase tracking-[0.3em] text-[11px] rounded-2xl flex items-center gap-6 shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:bg-zinc-200 transition-all active:scale-[0.98]">
+                  GENERATE_BLUEPRINT_MATRIX <ArrowRight className="w-5 h-5" />
                 </Button>
              </div>
            </div>
@@ -439,29 +463,35 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
 
   return (
     <AppShell title={
-      <div className="flex items-center gap-2">
-        <Code className="w-4 h-4 text-muted-foreground" /> 
-        <span className="font-bold tracking-tight">Provisioning</span>
+      <div className="flex items-center gap-6">
+        <div className="w-12 h-12 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center shadow-2xl ring-1 ring-inset ring-white/[0.01]">
+          <Zap className="w-6 h-6 text-indigo-400/60" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-[14px] font-black tracking-[0.5em] uppercase text-foreground/90">Operational_Node_Provisioning</span>
+          <span className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] flex items-center gap-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)] animate-pulse" />
+            Genesis_Protocol_v9.1 // {project.slug?.toUpperCase()}
+          </span>
+        </div>
       </div>
     }>
       <ToastContainer />
-      <div className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
+      <div className="flex-1 p-10 lg:p-14 max-w-[1700px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-1000">
         
-        {/* Progress Nav */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-border pb-6">
-           <div className="flex items-center gap-2">
+        {/* Progress Nav - Control Sub-Grid Style */}
+        <div className="flex flex-col xl:flex-row items-center justify-between gap-10 border-b border-white/5 pb-10">
+           <div className="flex items-center gap-6">
               <button 
                 onClick={() => router.back()}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all group"
+                className="flex items-center gap-4 text-muted-foreground/40 hover:text-foreground transition-all group px-6 py-3 bg-white/[0.02] border border-white/5 rounded-2xl"
               >
-                <div className="p-1.5 rounded-md bg-muted border border-border group-hover:bg-foreground group-hover:text-background transition-colors">
-                  <ArrowLeft className="w-3 h-3" />
-                </div>
-                <span className="text-xs font-bold uppercase tracking-widest">Back</span>
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Abort_Protocol</span>
               </button>
            </div>
            
-           <div className="flex">
+           <div className="flex items-center gap-2 bg-[#0a0a0a] p-2 rounded-2xl border border-white/5 shadow-2xl">
              {(['source', 'analysis', 'blueprint', 'ready'] as step[]).map((s, idx) => (
                 <button 
                   key={s}
@@ -469,12 +499,12 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
                     if (idx <= stepIndex(currentStep)) setCurrentStep(s)
                   }}
                   className={cn(
-                    "px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[0.1em] transition-all border border-transparent mx-1",
+                    "px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden",
                     currentStep === s 
-                     ? "bg-foreground text-background shadow-sm" 
+                     ? "text-white bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]" 
                      : idx < stepIndex(currentStep)
-                       ? "text-foreground bg-muted hover:bg-muted/80 border-border"
-                       : "text-muted-foreground/40 cursor-not-allowed"
+                       ? "text-foreground/60 bg-white/[0.03] hover:bg-white/[0.07] border border-white/5"
+                       : "text-muted-foreground/20 cursor-not-allowed opacity-40"
                   )}
                 >
                   {s}
@@ -487,15 +517,15 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
-              initial={{ opacity: 0, y: 5 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.15 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             >
               {currentStep === 'source' && renderSourceStep()}
               {currentStep === 'analysis' && renderAnalysisStep()}
               {currentStep === 'blueprint' && (
-                 <div className="space-y-6">
+                 <div className="space-y-10">
                     <InfrastructureBlueprint 
                       selectedServices={selectedServices}
                       setSelectedServices={setSelectedServices}
@@ -530,66 +560,72 @@ function SourceCard({ icon, title, desc, active, onClick }: { id: string, icon: 
     <button 
       onClick={onClick}
       className={cn(
-        "p-4 rounded-xl border transition-all flex items-center gap-4 text-left group relative",
+        "p-8 rounded-[2rem] border transition-all duration-700 flex items-center gap-8 text-left group relative ring-1 ring-inset overflow-hidden",
         active 
-          ? "bg-foreground border-foreground text-background shadow-lg" 
-          : "bg-card border-border hover:border-foreground/20 hover:bg-muted/30"
+          ? "bg-white/[0.03] border-indigo-500/40 ring-indigo-500/10 shadow-2xl" 
+          : "bg-[#0a0a0a] border-white/5 ring-white/[0.01] hover:border-white/10"
       )}
     >
+      {active && <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] pointer-events-none" />}
       <div className={cn(
-        "p-2 rounded-lg border transition-colors shrink-0",
-        active ? "bg-background/10 border-background/20 text-background" : "bg-muted border-border text-muted-foreground"
+        "w-14 h-14 rounded-2xl border transition-all duration-700 shrink-0 flex items-center justify-center",
+        active ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-white/[0.03] border-white/5 text-muted-foreground/20 group-hover:text-muted-foreground/40"
       )}>
          {icon}
       </div>
-      <div className="space-y-0.5 min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-widest truncate">{title}</p>
-        <p className={cn("text-[8px] font-medium opacity-70 truncate", active ? "text-background" : "text-muted-foreground")}>{desc}</p>
+      <div className="space-y-2 min-w-0 flex-1">
+        <p className={cn("text-[11px] font-black uppercase tracking-[0.3em] transition-colors duration-700", active ? "text-foreground" : "text-muted-foreground/40")}>{title}</p>
+        <p className={cn("text-[9px] font-bold uppercase tracking-widest transition-colors duration-700 leading-relaxed", active ? "text-foreground/40" : "text-muted-foreground/10")}>{desc}</p>
       </div>
+      <div className={cn("w-2 h-2 rounded-full transition-all duration-700 shrink-0", active ? "bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]" : "bg-white/5 opacity-0")} />
     </button>
   )
 }
 
 function ReadyStep({ selectedServices, onDeploy, isDeploying }: { selectedServices: string[], onDeploy: () => void, isDeploying: boolean }) {
   return (
-    <div className="max-w-6xl space-y-12 animate-in fade-in duration-700">
-      <div className="space-y-2">
-        <h2 className="text-xl font-bold tracking-tight">Final Verification</h2>
-        <p className="text-muted-foreground text-xs max-w-2xl font-medium">Review the orchestration blueprint before initializing the deployment sequence across target cloud regions.</p>
+    <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-1000">
+      <div className="space-y-4">
+        <h2 className="text-3xl font-black tracking-tighter text-foreground">FINAL_MANIFEST_VALIDATION</h2>
+        <p className="text-muted-foreground/40 text-[10px] uppercase font-black tracking-[0.3em]">Review the orchestration matrix before initializing the deployment sequence across target clusters.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-        <div className="bg-card border border-border rounded-2xl p-6 spaces-y-8 shadow-sm">
-           <h3 className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between mb-4">
-              Provisioning Matrix <span>{selectedServices.length} Nodes</span>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 items-start">
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl flex flex-col gap-10 ring-1 ring-inset ring-white/[0.01]">
+           <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground/20 flex items-center justify-between border-b border-white/5 pb-6">
+              ORCHESTRATION_POOL <span>{selectedServices.length}_NODES</span>
            </h3>
-           <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
              {selectedServices.map(id => (
-                  <div key={id} className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg transition-all hover:bg-muted/50">
-                    <div className="flex items-center gap-3">
-                       <div className="p-1.5 bg-foreground text-background rounded">
-                         <Zap className="w-3.5 h-3.5" />
+                  <div key={id} className="flex items-center justify-between p-6 bg-white/[0.01] border border-white/5 rounded-[1.5rem] transition-all hover:bg-white/[0.03] group hover:border-white/10">
+                    <div className="flex items-center gap-6">
+                       <div className="w-10 h-10 bg-indigo-500/5 text-indigo-400/40 rounded-xl flex items-center justify-center border border-indigo-500/10 group-hover:text-indigo-400 group-hover:border-indigo-500/20 transition-all">
+                         <Zap className="w-5 h-5" />
                        </div>
                        <div>
-                         <p className="text-[10px] font-bold tracking-tight uppercase">{id.replace(/-/g, ' ')}</p>
-                         <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest">Active Component</p>
+                         <p className="text-[11px] font-black tracking-[0.1em] uppercase text-foreground/70">{id.replace(/-/g, ' ')}</p>
+                         <p className="text-[8px] text-muted-foreground/20 font-black uppercase tracking-widest mt-1">ACTIVE_MANIFEST_COMPONENT</p>
                        </div>
                     </div>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400/40" />
                   </div>
              ))}
            </div>
         </div>
 
-        <div className="flex flex-col space-y-6">
-           <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-xl relative overflow-hidden">
-             <div className="flex items-start gap-4">
-                <Shield className="w-5 h-5 text-indigo-500 mt-1 shrink-0" />
-                <div className="space-y-2">
-                   <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Deployment Guard</h3>
-                   <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
-                     Orchestration requires final confirmation. All security groups, ephemeral storage, and routing tables will be provisioned according to the verified blueprint.
-                   </p>
+        <div className="flex flex-col gap-10">
+           <div className="p-10 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-[2.5rem] relative overflow-hidden ring-1 ring-inset ring-indigo-500/[0.05]">
+             <div className="absolute top-0 right-0 p-10">
+                <Shield className="w-12 h-12 text-indigo-500/10" />
+             </div>
+             <div className="space-y-6 relative z-10">
+                <h3 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.4em]">DEPLOYMENT_HARDENING_PROTOCOL</h3>
+                <p className="text-[10px] text-muted-foreground/40 leading-relaxed font-bold uppercase tracking-[0.2em]">
+                   Orchestration requires manual confirmation. All security group rules, persistence layers, and mesh routing protocols will be provisioned according to the verified kernel blueprint.
+                </p>
+                <div className="flex items-center gap-4 text-emerald-400/40">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                   <span className="text-[8px] font-black uppercase tracking-[0.3em]">IAAS_READINESS_CONFIRMED</span>
                 </div>
              </div>
            </div>
@@ -597,18 +633,18 @@ function ReadyStep({ selectedServices, onDeploy, isDeploying }: { selectedServic
            <Button 
             disabled={isDeploying}
             onClick={onDeploy}
-            className="w-full h-14 bg-foreground text-background hover:bg-foreground/90 font-bold uppercase text-xs tracking-widest rounded-xl shadow-xl transition-all active:scale-[0.98] group"
+            className="w-full h-20 bg-white text-black hover:bg-zinc-200 font-black uppercase text-[12px] tracking-[0.4em] rounded-[1.5rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] transition-all active:scale-[0.98] group flex items-center justify-center gap-6"
            >
              {isDeploying ? (
-                <div className="flex items-center gap-3">
-                   <RefreshCw className="w-4 h-4 animate-spin" />
-                   Provisioning...
-                </div>
+                <>
+                   <RefreshCw className="w-6 h-6 animate-spin" />
+                   INITIALIZING_SEQUENCES...
+                </>
              ) : (
-               <div className="flex items-center gap-3">
-                 Awaken Environment
-                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-               </div>
+               <>
+                 AWAKEN_ENVIRONMENT_MATRIX
+                 <ArrowRight className="w-6 h-6 group-hover:translate-x-4 transition-transform duration-700" />
+               </>
              )}
            </Button>
         </div>

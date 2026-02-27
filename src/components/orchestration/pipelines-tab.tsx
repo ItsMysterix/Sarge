@@ -16,66 +16,87 @@ export const PipelinesTab = () => {
   const items = data?.pages.flatMap((page: any) => page.items) || []
   const rollbackMutation = trpc.deploy.rollback.useMutation({ onSuccess: () => refetch() })
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-24 bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] animate-pulse ring-1 ring-inset ring-white/[0.01]" />
+        ))}
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-           <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-             <Workflow className="w-4 h-4" /> Global Pipelines
-           </h3>
-           <p className="text-xs text-muted-foreground font-medium">Recent deployment activity across all projects</p>
+    <div className="space-y-12 animate-in fade-in duration-1000">
+      <div className="flex items-center justify-between border-b border-white/5 pb-10">
+        <div className="flex items-center gap-6">
+           <div className="w-14 h-14 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center ring-1 ring-inset ring-white/[0.01] shadow-2xl">
+             <Workflow className="w-7 h-7 text-muted-foreground/20" />
+           </div>
+           <div>
+             <h3 className="text-[14px] font-black uppercase tracking-[0.4em] text-foreground">Deployment_Propagation_Pipelines</h3>
+             <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
+               <div className="w-1 h-1 rounded-full bg-indigo-500/40" />
+               CI/CD Manifest Sync // Sovereign_Fleet_Orchestration
+             </p>
+           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-8 text-[10px] font-bold uppercase gap-2 hover:bg-muted">
-           <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} /> Refresh
+        <Button variant="outline" onClick={() => refetch()} className="h-14 px-8 bg-white/[0.02] border-white/5 text-white/40 text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white/[0.05] transition-all shadow-xl active:scale-95 flex items-center gap-4">
+           <RefreshCw className={cn("w-5 h-5", isRefetching && "animate-spin")} /> Re-Sample_Protocol_History
         </Button>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <div className="divide-y divide-border">
-          {isLoading ? (
-            <div className="w-full py-20"><LoadingScreen title="Fetching Pipelines" subtitle="Indexing global deployment history..." /></div>
-          ) : items.length === 0 ? (
-            <div className="p-20 text-center space-y-4">
-               <Activity className="w-10 h-10 text-muted-foreground/20 mx-auto" />
-               <p className="text-xs text-muted-foreground font-medium">No global pipeline execution recorded yet.</p>
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-inset ring-white/[0.01]">
+        <div className="divide-y divide-white/[0.03]">
+          {items.length === 0 ? (
+            <div className="py-48 text-center bg-transparent">
+               <Activity className="w-16 h-16 text-muted-foreground/5 mx-auto mb-10" />
+               <p className="text-[11px] font-black text-muted-foreground/20 uppercase tracking-[0.4em]">Zero_Orchestration_Executions_Detected</p>
             </div>
           ) : (
             items.map((deploy: any) => (
-              <div key={deploy.id} className="p-4 sm:p-5 flex items-center gap-4 hover:bg-muted/30 group transition-colors">
+              <div key={deploy.id} className="p-8 flex items-center gap-10 hover:bg-white/[0.01] group transition-all duration-700">
                 <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-lg border",
-                  deploy.status === 'success' ? "border-emerald-500/20 text-emerald-500 bg-emerald-500/5" :
-                  deploy.status === 'rolled-back' ? "border-amber-500/20 text-amber-500 bg-amber-500/5" :
-                  "border-red-500/20 text-red-500 bg-red-500/5"
+                  "flex items-center justify-center w-14 h-14 rounded-2xl border transition-all duration-1000 shadow-2xl",
+                  deploy.status === 'success' ? "border-emerald-500/10 text-emerald-400 bg-emerald-500/[0.02]" :
+                  deploy.status === 'rolled-back' ? "border-amber-500/10 text-amber-400 bg-amber-500/[0.02]" :
+                  "border-red-500/10 text-red-400 bg-red-500/[0.02]"
                 )}>
-                   {deploy.status === 'success' ? <CheckCircle2 className="w-4 h-4" /> :
-                    deploy.status === 'rolled-back' ? <RotateCcw className="w-4 h-4" /> :
-                    <XCircle className="w-4 h-4" />}
+                   {deploy.status === 'success' ? <CheckCircle2 className="w-7 h-7" /> :
+                    deploy.status === 'rolled-back' ? <RotateCcw className="w-7 h-7" /> :
+                    <XCircle className="w-7 h-7" />}
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-bold text-foreground tracking-tight truncate">{deploy.summary || 'Pipeline Execution'}</span>
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 rounded border-border bg-muted text-muted-foreground font-medium uppercase tracking-wide">
+                  <div className="flex items-center gap-6 mb-3">
+                    <span className="text-[15px] font-black text-foreground/80 tracking-tight truncate uppercase">{deploy.summary || 'KERNEL_PROPAGATION_EVENT'}</span>
+                    <div className={cn(
+                      "text-[9px] px-4 py-1.5 rounded-xl border font-black uppercase tracking-[0.2em] shadow-inner",
+                      deploy.status === 'success' ? "border-emerald-500/10 bg-emerald-500/[0.02] text-emerald-500/40" :
+                      "border-white/5 bg-white/[0.02] text-muted-foreground/20"
+                    )}>
                        {deploy.status}
-                    </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] font-medium text-muted-foreground">
-                    <span className="flex items-center gap-1"><GitBranch className="w-3 h-3 opacity-50" /> {deploy.branch || 'main'}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3 opacity-50" /> <TimeAgo datetime={deploy.created_at} /></span>
-                    <span className="font-mono text-muted-foreground/70">#{deploy.commit?.slice(0,7)}</span>
+                  <div className="flex items-center gap-6 text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.2em]">
+                    <span className="flex items-center gap-3"><GitBranch className="w-4 h-4 text-indigo-400/40" /> {deploy.branch || 'MAIN'}</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/[0.05]" />
+                    <span className="flex items-center gap-3"><Clock className="w-4 h-4 text-muted-foreground/10" /> <TimeAgo datetime={deploy.created_at} /></span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/[0.05]" />
+                    <span className="font-mono text-indigo-400/[0.15] tracking-[0.3em] font-black">{deploy.commit?.toUpperCase().slice(0,8)}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="flex items-center gap-6 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-all duration-700 translate-x-4 group-hover:translate-x-0">
                    {deploy.status === 'success' && rollbackMutation && (
-                     <Button variant="ghost" size="sm" onClick={() => rollbackMutation.mutate({ deploymentId: deploy.id })}
-                       className="h-7 text-[10px] font-bold uppercase rounded-md text-amber-400 hover:text-amber-300 hover:bg-amber-500/10">
-                       <RotateCcw className="w-3 h-3 mr-1" /> Rollback
+                     <Button variant="outline" onClick={() => rollbackMutation.mutate({ deploymentId: deploy.id })}
+                       className="h-12 px-6 text-[10px] font-black uppercase tracking-[0.3em] border-amber-500/10 bg-amber-500/[0.02] text-amber-400/60 hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all">
+                       <RotateCcw className="w-4 h-4 mr-3" /> Rollback_Node
                      </Button>
                    )}
-                   <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase rounded-md">Logs</Button>
-                   <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground" />
+                   <Button variant="ghost" className="h-12 px-6 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 hover:text-foreground group/btn">
+                     LOGS <ArrowUpRight className="w-4 h-4 ml-3 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+                   </Button>
                 </div>
               </div>
             ))

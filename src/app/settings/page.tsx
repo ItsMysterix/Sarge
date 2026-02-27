@@ -26,6 +26,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { Settings as SettingsIcon, CreditCard } from 'lucide-react'
 import posthog from 'posthog-js'
 import { LoadingScreen } from "@/components/ui/loading-screen"
+import { Button } from "@/components/ui/button"
 
 export default function Settings() {
   const { data: settings, loading, error, updateSettings } = useUserSettings()
@@ -101,14 +102,12 @@ export default function Settings() {
 
   const handleToggleProvider = (providerId: string, currentStatus: string) => {
     if (currentStatus === 'connected') {
-      // Disconnect immediately (clears credentials on backend)
       toggleProviderMutation.mutate({
         providerId,
         projectSlug: currentProject?.slug || 'global',
         status: 'disconnected'
       })
     } else {
-      // Open modal to collect credentials
       const provider = providersQuery.data?.find((p: any) => p.id === providerId)
       if (provider) {
         setSelectedProvider(provider)
@@ -241,7 +240,6 @@ export default function Settings() {
     }
   })
 
-  // We'll trigger the CloudFormation flow via the ConnectProviderModal
   const handleSyncAmazon = () => {
     const awsProvider = providersQuery.data?.find((p: any) => p.id === 'aws')
     if (awsProvider) {
@@ -285,37 +283,54 @@ export default function Settings() {
   if (loading || (activeTab === 'integrations' && providersQuery.isLoading)) {
     return (
       <AppShell>
-        <LoadingScreen title="Synchronizing Preferences" subtitle="Restoring your configuration..." />
+        <LoadingScreen title="Synchronizing System Preferences" subtitle="Negotiating identity protocols..." />
       </AppShell>
     )
   }
 
   if (error) {
     return (
-      <AppShell title="Settings">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center">
-             <SettingsIcon className="w-6 h-6 text-error" />
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 animate-in fade-in duration-700">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shadow-2xl">
+             <SettingsIcon className="w-8 h-8 text-red-400" />
           </div>
-          <p className="text-sm font-medium">Failed to load settings</p>
-          <button 
+          <div className="text-center space-y-2">
+            <h2 className="text-sm font-black uppercase tracking-widest text-foreground">Kernel Protocol Violation</h2>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Failed to synchronize master configuration</p>
+          </div>
+          <Button 
             onClick={() => window.location.reload()}
-            className="text-xs text-accent hover:underline"
+            variant="outline"
+            className="h-10 px-6 border-white/10 hover:bg-white/5 text-[10px] font-black uppercase tracking-[0.2em]"
           >
-            Retry Connection
-          </button>
+            Re-Initialize Handshake
+          </Button>
         </div>
       </AppShell>
     )
   }
 
   return (
-    <AppShell title="Settings">
+    <AppShell title={
+      <div className="flex items-center gap-6">
+        <div className="w-12 h-12 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center shadow-2xl ring-1 ring-inset ring-white/[0.01]">
+          <SettingsIcon className="w-6 h-6 text-indigo-400/60" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-[14px] font-black tracking-[0.5em] uppercase text-foreground/90">Kernel_Master_Configuration</span>
+          <span className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] flex items-center gap-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)] animate-pulse" />
+            System_Handshake_Established // Access_Level_4
+          </span>
+        </div>
+      </div>
+    }>
       <ToastContainer />
-      <div className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full animate-fade-in">
+      <div className="flex-1 p-10 lg:p-14 max-w-[1800px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-1000">
         <TabsNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <div className="mt-10">
+        <div className="min-h-[700px] animate-in slide-in-from-bottom-8 duration-1000">
           {activeTab === "general" && (
             <GeneralTab
               settings={settings}

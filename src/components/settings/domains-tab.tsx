@@ -6,6 +6,9 @@ import { trpc } from "@/lib/trpc"
 import { useProject } from "@/lib/project-context"
 import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { EmptyState } from "@/components/observatory/empty-state"
 
 export function DomainsTab() {
   const { currentProject } = useProject()
@@ -61,99 +64,95 @@ export function DomainsTab() {
   const domains = domainsQuery?.data || []
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-12 pb-20 animate-in fade-in duration-1000">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Globe className="w-5 h-5 text-muted-foreground" />
-            Custom Domains
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configure custom hostnames and SSL for your applications.
-          </p>
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+             <Globe className="w-6 h-6 text-emerald-400" />
+          </div>
+          <div className="flex flex-col">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-foreground">Ingress & Edge Mesh</h2>
+            <p className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest mt-1">Configure external hostnames & L7 load balancing protocols</p>
+          </div>
         </div>
-        <button
+        <Button
           onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
+          className="h-10 px-6 bg-white/[0.03] border border-white/10 hover:bg-white/[0.07] text-[9px] font-black uppercase tracking-[0.2em] rounded-xl transition-all"
         >
-          <Plus className="w-4 h-4" />
-          Add Domain
-        </button>
+          <Plus className="w-4 h-4 mr-2" /> Assign Hostname
+        </Button>
       </div>
 
       {/* Add Domain Form */}
       {isAdding && (
-        <div className="glass-card p-4 space-y-4 border border-white/10">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1.5">Hostname</label>
-            <div className="flex gap-2">
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
+          <div className="space-y-3">
+            <label className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] flex items-center gap-2">TARGET_HOSTNAME_ENDPOINT</label>
+            <div className="flex gap-4">
               <input
                 type="text"
                 value={newHostname}
                 onChange={(e) => setNewHostname(e.target.value.toLowerCase())}
-                placeholder="app.example.com"
-                className="flex-1 px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg text-sm focus:outline-none focus:border-white/20"
+                placeholder="APP.REDACTED.NETWORK"
+                className="flex-1 bg-[#050505] border border-white/5 rounded-xl px-5 py-3.5 text-[11px] font-mono outline-none focus:border-emerald-500/30 transition-all font-black text-foreground/80 uppercase tracking-widest placeholder:text-white/5"
               />
-              <button
+              <Button
                 onClick={handleAdd}
                 disabled={!newHostname || addMutation?.isLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium disabled:opacity-50"
+                className="h-12 px-10 bg-emerald-500 text-white hover:bg-emerald-400 text-[10px] font-black uppercase tracking-[0.25em] rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.2)]"
               >
-                {addMutation?.isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                Connect
-              </button>
+                {addMutation?.isLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Sync_Mesh
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {/* Domains List */}
-      <div className="glass-card divide-y divide-white/[0.06] border border-white/10">
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] divide-y divide-white/5 shadow-xl overflow-hidden">
         {domainsQuery?.isLoading ? (
-          <div className="p-8 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <div className="p-20 flex items-center justify-center">
+            <Loader2 className="w-10 h-10 animate-spin text-emerald-500/20" />
           </div>
         ) : domains.length === 0 ? (
-          <div className="p-12 text-center">
-            <Globe className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-            <h3 className="font-medium mb-1">No domains connected</h3>
-            <p className="text-sm text-muted-foreground">
-              Add a custom domain to give your app a professional URL
-            </p>
-          </div>
+          <EmptyState 
+            icon={Globe} 
+            title="Mesh Void" 
+            subtitle="No hostnames registered within the ingress routing matrix" 
+          />
         ) : (
           domains.map((domain: any) => (
-            <div key={domain.id} className="p-4 space-y-4 hover:bg-white/[0.01]">
+            <div key={domain.id} className="p-10 space-y-10 hover:bg-white/[0.01] transition-all duration-500 group">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="font-medium">{domain.hostname}</div>
+                <div className="flex items-center gap-6">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500/40 group-hover:bg-emerald-500 transition-colors" />
+                  <div className="text-[13px] font-black text-foreground/80 uppercase tracking-widest">{domain.hostname}</div>
                   {domain.is_verified ? (
-                    <span className="flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 uppercase tracking-wider font-bold">
-                      <ShieldCheck className="w-3 h-3" />
-                      Active
-                    </span>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-[0.2em] h-6 px-3 bg-emerald-500/5 text-emerald-400/60 border-emerald-500/10">
+                      ACTIVE_ROUTING
+                    </Badge>
                   ) : (
-                    <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase tracking-wider font-bold">
-                      <AlertCircle className="w-3 h-3" />
-                      Pending DNS
-                    </span>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-[0.2em] h-6 px-3 bg-amber-500/5 text-amber-400/60 border-amber-500/10 animate-pulse">
+                      DNS_PROPAGATION_PENDING
+                    </Badge>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => verifyMutation?.mutate({ domainId: domain.id })}
                     disabled={verifyMutation?.isLoading}
-                    className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-white/5"
-                    title="Refresh DNS Status"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.02] border border-white/5 text-muted-foreground/20 hover:text-foreground/60 hover:bg-white/5 transition-all duration-500"
+                    title="Refresh Mesh Status"
                   >
                     <RefreshCw className={cn("w-4 h-4", verifyMutation?.isLoading && "animate-spin")} />
                   </button>
                   <button
                     onClick={() => deleteMutation?.mutate({ domainId: domain.id })}
-                    className="p-2 text-muted-foreground hover:text-red-400 rounded-lg hover:bg-white/5"
-                    title="Remove Domain"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.02] border border-white/5 text-muted-foreground/20 hover:text-red-400/60 hover:bg-red-500/5 transition-all duration-500"
+                    title="Purge Routing"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -161,19 +160,23 @@ export function DomainsTab() {
               </div>
 
               {!domain.is_verified && (
-                <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 text-xs space-y-2">
-                  <div className="text-muted-foreground font-medium uppercase tracking-tighter">DNS Configuration Needed</div>
-                  <div className="grid grid-cols-3 gap-2 py-1">
-                    <div className="text-gray-500">Type</div>
-                    <div className="text-gray-500">Name</div>
-                    <div className="text-gray-500">Value</div>
-                    <div className="font-mono">CNAME</div>
-                    <div className="font-mono">@</div>
-                    <div className="font-mono text-emerald-400">cname.sarge-ingress.io</div>
+                <div className="bg-[#050505] border border-white/5 rounded-3xl p-8 space-y-8 ring-1 ring-inset ring-white/[0.01]">
+                  <div className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] border-b border-white/5 pb-4">DNS_CONFIGURATION_MANIFEST</div>
+                  <div className="grid grid-cols-3 gap-8">
+                    {[
+                      { label: 'RECORD_TYPE', val: 'CNAME' },
+                      { label: 'HOST_TARGET', val: '@' },
+                      { label: 'MESH_ENDPOINT', val: 'CNAME.SARGE-INGRESS.IO', technical: true }
+                    ].map(rec => (
+                      <div key={rec.label} className="space-y-2">
+                         <div className="text-[8px] font-black text-muted-foreground/10 uppercase tracking-widest">{rec.label}</div>
+                         <div className={cn("text-[11px] font-mono font-black uppercase tracking-widest", rec.technical ? "text-emerald-400/60" : "text-foreground/40")}>{rec.val}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="pt-2 flex items-center gap-2 text-amber-400/80">
-                    <ExternalLink className="w-3 h-3" />
-                    <span>Propagating DNS can take up to 48 hours.</span>
+                  <div className="pt-4 flex items-center gap-3 text-amber-500/40">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Global propagation may consume up to 48 hours of cycle time.</span>
                   </div>
                 </div>
               )}
@@ -183,12 +186,14 @@ export function DomainsTab() {
       </div>
 
       {/* SSL Notice */}
-      <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-4 flex gap-3">
-        <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-        <div className="text-sm">
-          <div className="font-medium text-emerald-300">Automatic SSL Certificates</div>
-          <p className="text-emerald-300/60 mt-0.5">
-            Sarge automatically provisions and renews Let's Encrypt certificates for all verified domains.
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-xl flex gap-8 items-center border-emerald-500/5">
+        <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+           <ShieldCheck className="w-6 h-6 text-emerald-400/40" />
+        </div>
+        <div className="space-y-1.5 flex-1">
+          <div className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em]">Automated SSL Certification</div>
+          <p className="text-[9px] font-bold text-muted-foreground/20 uppercase tracking-widest leading-relaxed">
+            Sarge automatically provisions and renews Let's Encrypt certificates for all verified domains within the mesh routing layer.
           </p>
         </div>
       </div>

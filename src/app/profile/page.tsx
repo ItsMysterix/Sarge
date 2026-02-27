@@ -1,7 +1,7 @@
 "use client"
 
 import { AppShell } from "@/components/layout/app-shell"
-import { AlertTriangle, Github } from "lucide-react"
+import { AlertTriangle, Github, Lock } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/clerk-safe"
 import { trpc } from "@/lib/trpc"
@@ -121,21 +121,30 @@ export default function ProfilePage() {
   }
 
   return (
-    <AppShell title="Account Settings">
-      <div className="flex-1 p-6 max-w-6xl mx-auto w-full animate-fade-in">
-        <ToastContainer />
-        <div className="mb-8 hidden">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Account Settings</h1>
-          <p className="text-muted-foreground mt-1">Manage your profile, security, and preferences.</p>
+    <AppShell title={
+      <div className="flex items-center gap-6">
+        <div className="w-12 h-12 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center shadow-2xl ring-1 ring-inset ring-white/[0.01]">
+          <Lock className="w-6 h-6 text-indigo-400/60" />
         </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-[14px] font-black tracking-[0.5em] uppercase text-foreground/90">Protocol_Identity_Registry</span>
+          <span className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] flex items-center gap-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+            Authenticated_Kernel_Admin // {user?.fullName?.toUpperCase() || 'ROOT_ADMIN'}
+          </span>
+        </div>
+      </div>
+    }>
+      <div className="flex-1 p-10 lg:p-14 max-w-[1400px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-1000">
+        <ToastContainer />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-muted border border-border p-1">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-            <TabsTrigger value="developer">Developer</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-12">
+          <TabsList className="bg-transparent h-auto p-0 gap-10 justify-start rounded-none border-b border-white/5 pb-2">
+            <TabsTrigger value="general" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Identity_Manifest</TabsTrigger>
+            <TabsTrigger value="account" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Security_Protocols</TabsTrigger>
+            <TabsTrigger value="billing" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Credit_Registry</TabsTrigger>
+            <TabsTrigger value="developer" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Uplink_Secrets</TabsTrigger>
+            <TabsTrigger value="notifications" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Signal_Matrix</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
