@@ -54,26 +54,27 @@ export default async function middleware(req: NextRequest) {
   }
 
   // [CISO S5] Strict Origin Validation
-  // 1. Verify Origin header (if present) matches configured allowed origins OR current host
-  // 2. If Origin missing (standard GET/HEAD), verify Referer matches current host
-  // 3. Fallback: Block if neither match (unless ALLOWED_ORIGINS is explicitly empty/open)
   const originHeader = req.headers.get('origin')
   const refererHeader = req.headers.get('referer')
   const host = req.headers.get('host')
   const protocol = req.nextUrl.protocol
   const selfOrigin = `${protocol}//${host}`
 
+  // Automatically allow Vercel dynamic URLs (previews, dev branches)
+  const isVercelDomain = host?.endsWith('.vercel.app')
+  const isAllowedVercelOrigin = originHeader?.endsWith('.vercel.app')
+
   const isSameOrigin = originHeader
     ? originHeader === selfOrigin
     : refererHeader?.startsWith(selfOrigin)
 
-  const isAllowedOrigin = originHeader && allowed.includes(originHeader)
+  const isAllowedOrigin = (originHeader && allowed.includes(originHeader)) || (isVercelDomain && isAllowedVercelOrigin)
 
   // If validations are required (API route + ALLOWED_ORIGINS set)
   // We allow if:
   // 1. It's an Auth API (existing exception)
   // 2. ALLOWED_ORIGINS is empty (open mode)
-  // 3. Origin is explicitly allowed
+  // 3. Origin is explicitly allowed (or it's a trusted Vercel preview)
   // 4. Request is same-origin (verified by Origin or Referer)
   const isAllowed = isAuthApi || !isApi || allowed.length === 0 || isAllowedOrigin || isSameOrigin
 

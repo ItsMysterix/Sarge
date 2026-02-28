@@ -42,3 +42,4 @@ export const StatCard = React.memo(({ label, value, icon, trend, trendUp }: {
     </div>
   )
 })
+StatCard.displayName = "StatCard"

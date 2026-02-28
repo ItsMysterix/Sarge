@@ -20,3 +20,4 @@ export const ResourceLink = React.memo(({ icon, label, count, onClick }: {
     </button>
   )
 })
+ResourceLink.displayName = "ResourceLink"

@@ -32,7 +32,7 @@ export function SupportModal({ open, onOpenChange }: SupportModalProps) {
           </div>
 
           <p className="text-sm text-muted-foreground mb-8">
-            Choose how you'd like to reach out. We use professional tools to track and prioritize requests.
+            Choose how you&apos;d like to reach out. We use professional tools to track and prioritize requests.
           </p>
 
           <div className="grid gap-4">

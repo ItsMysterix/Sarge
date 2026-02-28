@@ -1,5 +1,7 @@
 import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry, DiscoverOptions, DiscoveredResource, ProviderMetric, SecurityFinding, DomainInfo, StorageInfo, FirewallInfo, UsageRecord, AnalyticsData } from './types'
 
+import { providerLogger } from '../../../lib/logger'
+
 export class RailwayProvider implements IProvider {
     id = 'railway'
     name = 'Railway'
@@ -167,11 +169,69 @@ export class RailwayProvider implements IProvider {
     }
 
     async discoverResources(opts: DiscoverOptions): Promise<DiscoveredResource[]> {
-        return [
-            { id: 'ry-srv-1', name: 'sarge-api', type: 'railway_service', status: 'SUCCESS', region: 'us-west-2', metadata: { environment: 'production' } },
-            { id: 'ry-db-1', name: 'sarge-postgres', type: 'railway_database', status: 'SUCCESS', region: 'us-west-2', metadata: { database: 'postgresql' } },
-            { id: 'ry-redis-1', name: 'sarge-redis', type: 'railway_redis', status: 'SUCCESS', region: 'us-west-2', metadata: {} },
-        ]
+        const token = this.getToken(opts.credentials);
+        if (!token) return [];
+
+        try {
+            const res = await fetch('https://backboard.railway.app/graphql/v2', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: `
+            query {
+              projects {
+                edges {
+                  node {
+                    id
+                    name
+                    services {
+                      edges {
+                        node {
+                          id
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `
+                })
+            });
+
+            if (!res.ok) return [];
+            const data = await res.json() as any;
+            const projects = data.data?.projects?.edges || [];
+            const resources: DiscoveredResource[] = [];
+
+            for (const pEdge of projects) {
+                const project = pEdge.node;
+                const services = project.services?.edges || [];
+                for (const sEdge of services) {
+                    const service = sEdge.node;
+                    resources.push({
+                        id: service.id,
+                        name: service.name,
+                        type: 'railway_service',
+                        status: 'SUCCESS',
+                        region: 'us-west-2',
+                        metadata: {
+                            projectId: project.id,
+                            projectName: project.name
+                        }
+                    });
+                }
+            }
+
+            return resources;
+        } catch (err) {
+            providerLogger.error({ err }, '[RailwayProvider] Resource discovery error');
+            return [];
+        }
     }
 
     async getAccountLogs(opts: { credentials: Record<string, string>; resourceId?: string; limit?: number }): Promise<LogEntry[]> {

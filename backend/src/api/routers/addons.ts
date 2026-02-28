@@ -13,11 +13,11 @@ export const addonsRouter = router({
     listAvailable: secureProcedure('addons.listAvailable')
         .query(async () => {
             return [
-                { id: 'redis', name: 'Redis Cache', description: 'In-memory data structure store', icon: 'Database' },
-                { id: 'postgresql', name: 'PostgreSQL Server', description: 'Powerful, open source object-relational database', icon: 'Database' },
-                { id: 'rabbitmq', name: 'RabbitMQ', description: 'Reliable message broker', icon: 'MessageSquare' },
-                { id: 'minio', name: 'MinIO Object Storage', description: 'S3 compatible high-performance object storage', icon: 'Box' },
-                { id: 'meilisearch', name: 'Meilisearch', description: 'Lightning-fast search engine', icon: 'Search' },
+                { id: 'redis', name: 'Redis Cache', description: 'In-memory data structure store', icon: 'Database', category: 'Databases', price: 15 },
+                { id: 'postgresql', name: 'PostgreSQL Server', description: 'Powerful, open source object-relational database', icon: 'Database', category: 'Databases', price: 25 },
+                { id: 'rabbitmq', name: 'RabbitMQ', description: 'Reliable message broker', icon: 'MessageSquare', category: 'Messaging', price: 10 },
+                { id: 'minio', name: 'MinIO Object Storage', description: 'S3 compatible high-performance object storage', icon: 'Box', category: 'Storage', price: 5 },
+                { id: 'meilisearch', name: 'Meilisearch', description: 'Lightning-fast search engine', icon: 'Search', category: 'Search', price: 15 },
             ];
         }),
 

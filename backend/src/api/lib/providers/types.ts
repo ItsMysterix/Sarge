@@ -263,6 +263,7 @@ export interface ProviderMetric {
 
 export interface DiscoverOptions {
     credentials: Record<string, string>
+    projectId?: string
 }
 
 export interface DiscoveredResource {

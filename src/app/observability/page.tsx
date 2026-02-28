@@ -52,22 +52,20 @@ export default function ObservatoryHub() {
 
   if (!currentProject) {
     return (
-      <AppShell>
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-24 min-h-[85vh] bg-[#050505] relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_rgba(99,102,241,0.02),transparent_60%)] pointer-events-none" />
-          <div className="w-24 h-24 rounded-[2.5rem] bg-[#0a0a0a] border border-white/5 flex items-center justify-center mb-12 shadow-3xl relative group ring-1 ring-inset ring-white/[0.01] transition-all duration-1000 hover:scale-110">
-            <div className="absolute inset-0 bg-indigo-500/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-all duration-1000" />
-            <Activity className="w-12 h-12 text-muted-foreground/10 group-hover:text-indigo-400/40 relative z-10 transition-colors duration-1000" />
+      <AppShell title="Observatory">
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-24 min-h-[85vh] bg-[#050505] animate-in fade-in duration-700">
+          <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center mb-8 shadow-xl">
+            <Activity className="w-8 h-8 text-white/10" />
           </div>
-          <h2 className="text-[18px] font-black tracking-[0.6em] text-foreground/90 mb-6 uppercase">Telemetry_Lock_Engaged</h2>
-          <p className="text-[10px] font-black text-muted-foreground/10 max-w-sm leading-relaxed uppercase tracking-[0.4em] mb-16">
-            Initialize an operational node protocol to establish a telemetry uplink and access high-fidelity infrastructure metrics.
+          <h2 className="text-xl font-bold text-white mb-3 uppercase tracking-tight">No Project Selected</h2>
+          <p className="text-xs text-white/20 max-w-sm leading-relaxed mb-10 uppercase font-bold tracking-widest">
+            Select a project to access real-time status and monitoring data across your infrastructure.
           </p>
           <Button 
-            className="bg-white text-black hover:bg-zinc-200 h-14 px-12 rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] shadow-2xl transition-all active:scale-95"
+            className="bg-white text-black hover:bg-zinc-200 h-10 px-8 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
             onClick={() => (window as any).nextRouter?.push('/projects')}
           >
-            Sovereign_Node_Registry
+            Go to Projects
           </Button>
         </div>
       </AppShell>
@@ -75,79 +73,46 @@ export default function ObservatoryHub() {
   }
 
   return (
-    <AppShell title={
-      <div className="flex items-center gap-6">
-        <div className="w-12 h-12 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center shadow-2xl ring-1 ring-inset ring-white/[0.01]">
-          <Activity className="w-6 h-6 text-indigo-400/60" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-[14px] font-black tracking-[0.5em] uppercase text-foreground/90">Intelligence_Observatory_Nexus</span>
-          <span className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] flex items-center gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-            {currentProject.name}_Node // High_Fidelity_Uplink_v4.2
-          </span>
-        </div>
-      </div>
-    }>
-      <div className="flex-1 p-10 lg:p-14 max-w-[1900px] mx-auto w-full flex flex-col gap-16 animate-in fade-in duration-1000">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-16">
-          <div className="border-b border-white/5 relative">
-            <div className="absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
-            <TabsList className="bg-transparent h-auto p-0 gap-12 justify-start rounded-none overflow-x-auto no-scrollbar pb-6">
+    <AppShell title="Observability">
+      <div className="flex-1 p-8 lg:p-12 max-w-[1900px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-700">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-12">
+          <div className="border-b border-white/5">
+            <TabsList className="bg-transparent h-auto p-0 gap-8 justify-start rounded-none overflow-x-auto no-scrollbar pb-4 text-white/20">
               {TABS.map(tab => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="px-0 py-2 rounded-none border-none bg-transparent shadow-none gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/10 data-[state=active]:text-foreground transition-all hover:text-muted-foreground/30 relative group"
-                >
-                  <tab.icon className={cn("w-4 h-4 transition-all duration-700", activeTab === tab.id ? "text-indigo-400 scale-110" : "group-hover:scale-110")} />
-                  <span className="hidden sm:inline-block">{tab.name}_SENSOR</span>
-                  {activeTab === tab.id && (
-                    <motion.div 
-                      layoutId="activeTabUnderline"
-                      className="absolute -bottom-6 left-0 right-0 h-1 bg-indigo-500 rounded-t-full shadow-[0_0_20px_rgba(99,102,241,0.6)] z-10" 
-                    />
+                  className={cn(
+                    "bg-transparent border-none p-0 flex items-center gap-2.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none group transition-all",
+                    "text-[10px] font-bold uppercase tracking-widest hover:text-white/40",
+                    "data-[state=active]:text-white -mb-[17px] pb-4 border-b-2 data-[state=active]:border-white border-transparent"
                   )}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.name}
                 </TabsTrigger>
               ))}
             </TabsList>
           </div>
 
-          <div className="min-h-[800px] animate-in slide-in-from-bottom-8 duration-1000">
-            <TabsContent value="telemetry" className="m-0 focus-visible:outline-none">
-              <TelemetrySection projectSlug={currentProject.slug} />
-            </TabsContent>
-            <TabsContent value="activity" className="m-0 focus-visible:outline-none">
-              <ActivitySection slug={currentProject.slug} />
-            </TabsContent>
-            <TabsContent value="inventory" className="m-0 focus-visible:outline-none">
-              <InventorySection projectSlug={currentProject.slug} />
-            </TabsContent>
-            <TabsContent value="services" className="m-0 focus-visible:outline-none">
-              <ServicesSection />
-            </TabsContent>
-            <TabsContent value="alerts" className="m-0 focus-visible:outline-none">
-              <AlertsSection projectId={currentProject.id} />
-            </TabsContent>
-            <TabsContent value="health" className="m-0 focus-visible:outline-none">
-              <HealthSection projectId={currentProject.id} />
-            </TabsContent>
-            <TabsContent value="traces" className="m-0 focus-visible:outline-none">
-              <TracesSection />
-            </TabsContent>
-            <TabsContent value="security" className="m-0 focus-visible:outline-none">
-              <SecuritySection projectSlug={currentProject.slug} />
-            </TabsContent>
-            <TabsContent value="audit" className="m-0 focus-visible:outline-none">
-              <AuditSection projectSlug={currentProject.slug} />
-            </TabsContent>
-            <TabsContent value="infra" className="m-0 focus-visible:outline-none">
-              <InfraSection projectSlug={currentProject.slug} />
-            </TabsContent>
-            <TabsContent value="compliance" className="m-0 focus-visible:outline-none">
-              <ComplianceSection projectId={currentProject.id} />
-            </TabsContent>
-          </div>
+          <motion.div 
+            key={activeTab}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8"
+          >
+            <TabsContent value="telemetry" className="mt-0 outline-none"><TelemetrySection projectSlug={currentProject.slug} /></TabsContent>
+            <TabsContent value="activity" className="mt-0 outline-none"><ActivitySection slug={currentProject.slug} /></TabsContent>
+            <TabsContent value="inventory" className="mt-0 outline-none"><InventorySection projectSlug={currentProject.slug} /></TabsContent>
+            <TabsContent value="services" className="mt-0 outline-none"><ServicesSection /></TabsContent>
+            <TabsContent value="alerts" className="mt-0 outline-none"><AlertsSection projectId={currentProject.id} /></TabsContent>
+            <TabsContent value="health" className="mt-0 outline-none"><HealthSection projectId={currentProject.id} /></TabsContent>
+            <TabsContent value="traces" className="mt-0 outline-none"><TracesSection /></TabsContent>
+            <TabsContent value="security" className="mt-0 outline-none"><SecuritySection projectSlug={currentProject.slug} /></TabsContent>
+            <TabsContent value="audit" className="mt-0 outline-none"><AuditSection projectSlug={currentProject.slug} /></TabsContent>
+            <TabsContent value="infra" className="mt-0 outline-none"><InfraSection projectSlug={currentProject.slug} /></TabsContent>
+            <TabsContent value="compliance" className="mt-0 outline-none"><ComplianceSection projectId={currentProject.id} /></TabsContent>
+          </motion.div>
         </Tabs>
       </div>
     </AppShell>

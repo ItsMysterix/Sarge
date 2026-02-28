@@ -30,3 +30,4 @@ export const QuickAction = React.memo(({ icon, label, description, onClick, prim
     </button>
   )
 })
+QuickAction.displayName = "QuickAction"

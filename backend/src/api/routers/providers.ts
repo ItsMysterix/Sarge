@@ -121,6 +121,35 @@ export const providersRouter = router({
       }
     }),
 
+  getConnectToken: secureProcedure('providers.getConnectToken')
+    .query(async ({ ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User ID missing from session' });
+      }
+
+      if (!process.env.NANGO_SECRET_KEY) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'NANGO_SECRET_KEY is not configured' });
+      }
+
+      try {
+        const { Nango } = await import('@nangohq/node');
+        const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+
+        const session = await nango.createConnectSession({
+          end_user: { id: userId }
+        });
+
+        return { token: session.token };
+      } catch (e: any) {
+        providerLogger.error({ e, userId }, '[providers.getConnectToken] Nango error');
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to generate Nango session token: ${e.message}`
+        });
+      }
+    }),
+
   toggle: secureProcedure('providers.toggle')
     .input(z.object({
       providerId: z.string(),
@@ -212,6 +241,40 @@ export const providersRouter = router({
       } catch (e) {
         providerLogger.error({ e, input: { providerId: input.providerId } }, '[providers.saveCredentials] Error')
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to save provider credentials' })
+      }
+    }),
+
+  discover: secureProcedure('providers.discover')
+    .input(z.object({ providerId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const { getProvider } = await import('../lib/providers')
+        const { getProviderCredentials } = await import('../lib/credentials')
+
+        const provider = getProvider(input.providerId)
+        if (!provider) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Provider ${input.providerId} not supported` })
+        }
+
+        const credentials = await getProviderCredentials(input.providerId, ctx.db, (ctx as any).userId)
+
+        // If we found credentials (either via Nango or DB), try to discover real apps
+        if (credentials && Object.keys(credentials).length > 0 && provider.discoverResources) {
+          const resources = await provider.discoverResources({
+            credentials,
+            projectId: (ctx as any).projectId || 'sarge-global'
+          })
+          return { resources, isMocked: false }
+        }
+
+        // Fallback or empty state
+        return { resources: [], isMocked: false }
+      } catch (e: any) {
+        providerLogger.error({ e, providerId: input.providerId }, '[providers.discover] Error');
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to discover resources: ${e.message}`
+        });
       }
     }),
 })

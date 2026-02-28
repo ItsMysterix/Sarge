@@ -641,6 +641,118 @@ export const oneclickRouter = router({
         });
       })
   }),
+
+  deployOrchestratedStack: secureProcedure('sarge.oneclick.deployOrchestratedStack')
+    .input(z.object({
+      projectSlug: z.string(),
+      owner: z.string(),
+      repo: z.string(),
+      branch: z.string().default('main'),
+      serviceIds: z.array(z.string()), // e.g. ['vercel-nextjs', 'render-service']
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx as any).userId;
+      if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+      // 1. Resolve Project
+      const projectRes = await ctx.db.query('SELECT id FROM projects WHERE slug = $1', [input.projectSlug])
+      const projectId = projectRes.rows[0]?.id
+      if (!projectId) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+
+      const results = []
+      const errors = []
+
+      // Provider extraction map (fallback)
+      const getProviderId = (id: string) => {
+        if (id.startsWith('vercel-')) return 'vercel'
+        if (id.startsWith('render-')) return 'render'
+        if (id.startsWith('railway-')) return 'railway'
+        if (id.startsWith('fly-')) return 'fly'
+        if (id.startsWith('aws-')) return 'aws'
+        if (id.startsWith('gcp-')) return 'gcp'
+        if (id.startsWith('azure-')) return 'azure'
+        if (id.startsWith('neon-')) return 'neon'
+        if (id.startsWith('planetscale-')) return 'planetscale'
+        if (id.startsWith('supabase-')) return 'supabase'
+        if (id.startsWith('mongodb-')) return 'mongodb'
+        return 'local'
+      }
+
+      for (const serviceId of input.serviceIds) {
+        const providerId = getProviderId(serviceId)
+        apiLogger.info({ serviceId, providerId }, '[OneClick] Orchestrating deployment')
+
+        if (providerId === 'local') {
+          results.push({ serviceId, providerId, status: 'manual_setup_required' })
+          continue
+        }
+
+        const provider = getProvider(providerId)
+        if (!provider) {
+          errors.push(`Provider ${providerId} for service ${serviceId} not supported`)
+          continue
+        }
+
+        try {
+          const credentials = await getProviderCredentials(providerId, ctx.db, userId)
+
+          // 2. Actually Deploy
+          const deployResult = await provider.deploy({
+            projectId: input.projectSlug,
+            repoUrl: `https://github.com/${input.owner}/${input.repo}`,
+            branch: input.branch,
+            commit: 'HEAD',
+            environmentName: 'production',
+            credentials,
+            env: { 'SARGE_MANAGED': 'true', 'SERVICE_ID': serviceId }
+          })
+
+          if (!deployResult.success) {
+            errors.push(`${serviceId} deploy failed: ${deployResult.error}`)
+            continue
+          }
+
+          // 3. Create Environment record
+          const envRes = await ctx.db.query(
+            `INSERT INTO environments (project_id, provider_id, name, type, status, provider_metadata, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id`,
+            [
+              projectId,
+              providerId,
+              `${serviceId}-prod`,
+              'production',
+              'active',
+              JSON.stringify({ deploymentId: deployResult.deploymentId, url: deployResult.productionUrl })
+            ]
+          )
+          const envId = envRes.rows[0].id
+
+          // 4. Create Service record
+          await ctx.db.query(
+            `INSERT INTO services (environment_id, name, type, repo_url, branch, status, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+            [envId, serviceId, 'web', `https://github.com/${input.owner}/${input.repo}`, input.branch, 'deploying']
+          )
+
+          results.push({
+            serviceId,
+            providerId,
+            success: true,
+            url: deployResult.productionUrl || deployResult.previewUrl
+          })
+        } catch (err: any) {
+          apiLogger.error({ err, serviceId }, '[OneClick] Deployment internal error')
+          errors.push(`${serviceId} internal error: ${err.message}`)
+        }
+      }
+
+      return {
+        success: errors.length === 0,
+        results,
+        errors
+      }
+    }),
+
   streamConnected: secureProcedure('sarge.oneclick.streamConnected')
     .input(z.object({ owner: z.string(), repo: z.string() }))
     .subscription(({ input, ctx }) => {

@@ -210,6 +210,21 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
     }
   })
 
+  const deployStackMutation = t.oneclick.deployOrchestratedStack.useMutation({
+    onSuccess: (data: any) => {
+      if (data.success) {
+        addToast({ type: 'success', title: 'Stack Awoken', description: 'All target nodes are initializing.' })
+        router.push(`/projects/${projectSlug}`)
+      } else {
+        addToast({ type: 'warning', title: 'Partial Success', description: 'Some nodes failed to initialize. Check details in dashboard.' })
+        router.push(`/projects/${projectSlug}`)
+      }
+    },
+    onError: (err: any) => {
+      addToast({ type: 'error', title: 'Orchestration Failed', description: err.message })
+    }
+  })
+
 
 
   // --- Actions ---
@@ -270,14 +285,24 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   }
 
   const handleFinalDeploy = () => {
-    createEnvMutation.mutate({
-      projectSlug,
-      name: `prod-${Math.random().toString(36).substring(7)}`,
-      type: 'production',
-      providerId: sourceType === 'github' ? 'vercel' : 'local',
-      region: 'us-east-1',
-      services: selectedServices
-    })
+    if (sourceType === 'github' && selectedRepo) {
+      deployStackMutation.mutate({
+        projectSlug,
+        owner: selectedRepo.full_name.split('/')[0],
+        repo: selectedRepo.name,
+        branch: selectedRepo.default_branch,
+        serviceIds: selectedServices
+      })
+    } else {
+      createEnvMutation.mutate({
+        projectSlug,
+        name: `prod-${Math.random().toString(36).substring(7)}`,
+        type: 'production',
+        providerId: 'local',
+        region: 'us-east-1',
+        services: selectedServices
+      })
+    }
   }
 
   // --- Render Helpers ---
@@ -462,32 +487,19 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
   )
 
   return (
-    <AppShell title={
-      <div className="flex items-center gap-6">
-        <div className="w-12 h-12 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center shadow-2xl ring-1 ring-inset ring-white/[0.01]">
-          <Zap className="w-6 h-6 text-indigo-400/60" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-[14px] font-black tracking-[0.5em] uppercase text-foreground/90">Operational_Node_Provisioning</span>
-          <span className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] flex items-center gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)] animate-pulse" />
-            Genesis_Protocol_v9.1 // {project.slug?.toUpperCase()}
-          </span>
-        </div>
-      </div>
-    }>
+    <AppShell title="Provisioning">
       <ToastContainer />
-      <div className="flex-1 p-10 lg:p-14 max-w-[1700px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-1000">
+      <div className="flex-1 p-8 lg:p-12 max-w-[1700px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-700">
         
         {/* Progress Nav - Control Sub-Grid Style */}
         <div className="flex flex-col xl:flex-row items-center justify-between gap-10 border-b border-white/5 pb-10">
            <div className="flex items-center gap-6">
               <button 
                 onClick={() => router.back()}
-                className="flex items-center gap-4 text-muted-foreground/40 hover:text-foreground transition-all group px-6 py-3 bg-white/[0.02] border border-white/5 rounded-2xl"
+                className="flex items-center gap-3 text-white/30 hover:text-white transition-all group px-5 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl"
               >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Abort_Protocol</span>
+                <span className="text-xs font-bold uppercase tracking-widest">Back</span>
               </button>
            </div>
            
@@ -536,7 +548,13 @@ export default function ProvisionPage({ params }: { params: { slug: string } }) 
                     />
                  </div>
               )}
-              {currentStep === 'ready' && <ReadyStep selectedServices={selectedServices} onDeploy={handleFinalDeploy} isDeploying={createEnvMutation.isLoading} />}
+              {currentStep === 'ready' && (
+                <ReadyStep 
+                  selectedServices={selectedServices} 
+                  onDeploy={handleFinalDeploy} 
+                  isDeploying={createEnvMutation.isLoading || deployStackMutation.isLoading} 
+                />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

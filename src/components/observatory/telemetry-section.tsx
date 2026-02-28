@@ -26,10 +26,6 @@ const LogSkeleton = () => (
   </div>
 )
 
-/**
- * Infer severity from log data — mirrors the logic in log-line.tsx
- * so the distribution bar counts match what the user sees visually.
- */
 function classifySeverity(log: any): string {
   if (log.severity) return log.severity
   const level = log.level || ''
@@ -118,7 +114,6 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
 
   const doRefetch = deployments.length > 0 ? unifiedQuery.refetch : listingQuery.refetch
 
-  // 6. Apply filters (including severity)
   const filteredLogs = useMemo(() => {
     return rawLogs.filter((l: any) => {
       if (search && !l.message?.toLowerCase().includes(search.toLowerCase()) && !l.provider?.toLowerCase().includes(search.toLowerCase())) return false
@@ -129,7 +124,6 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
     })
   }, [rawLogs, search, levelFilter, severityFilter, providerFilter])
 
-  // 6b. Compute severity distribution from ALL raw logs (not filtered)
   const severityDist = useMemo(() => {
     const dist: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 }
     for (const log of rawLogs) dist[classifySeverity(log)]++
@@ -138,7 +132,6 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
 
   const totalLogs = rawLogs.length
 
-  // 7. Group logs by provider for split view
   const logsByProvider = useMemo(() => {
     const grouped: Record<string, any[]> = {}
     for (const p of activeProviders) grouped[p as string] = []
@@ -150,7 +143,6 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
     return grouped
   }, [filteredLogs, activeProviders])
 
-  // Auto-scroll unified view
   useEffect(() => {
     if (isLive && viewMode === 'unified' && unifiedScrollRef.current) {
       unifiedScrollRef.current.scrollTop = unifiedScrollRef.current.scrollHeight
@@ -169,84 +161,81 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
   const providerCount = Object.keys(logsByProvider).length
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
-      {/* ── Control Deck ── */}
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Search & Controls */}
       <div className="bg-[#0a0a0a] border border-white/5 rounded-3xl p-8 shadow-xl space-y-8">
-        {/* Row 1: Search + View Interface */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="relative flex-1 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/30 group-focus-within:text-indigo-400 transition-colors" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/10 group-focus-within:text-white/40 transition-colors" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="SEARCH PROTOCOLS & LOG PAYLOADS..."
-              className="w-full bg-[#050505] border border-white/5 rounded-xl pl-12 pr-4 py-3.5 text-[11px] font-black uppercase tracking-widest outline-none focus:border-indigo-500/30 transition-all placeholder:text-muted-foreground/10"
+              placeholder="Search logs and events..."
+              className="w-full bg-black border border-white/5 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20 transition-all placeholder:text-white/5"
             />
           </div>
 
           <div className="flex items-center gap-3">
-             {/* View mode toggle */}
-            <div className="flex bg-[#050505] border border-white/5 rounded-xl p-1 gap-1">
+            <div className="flex bg-black border border-white/5 rounded-xl p-1 gap-1">
               <button
                 onClick={() => setViewMode('unified')}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2.5",
+                  "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
                   viewMode === 'unified' 
                     ? "bg-white text-black shadow-lg" 
-                    : "text-muted-foreground/30 hover:text-muted-foreground/60"
+                    : "text-white/10 hover:text-white/30"
                 )}
               >
-                <List className="w-3.5 h-3.5" /> Unified_Stream
+                <List className="w-3.5 h-3.5" /> Unified
               </button>
               <button
                 onClick={() => setViewMode('split')}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2.5",
+                  "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
                   viewMode === 'split' 
                     ? "bg-white text-black shadow-lg" 
-                    : "text-muted-foreground/30 hover:text-muted-foreground/60"
+                    : "text-white/10 hover:text-white/30"
                 )}
               >
-                <Columns className="w-3.5 h-3.5" /> Matrix_View
+                <Columns className="w-3.5 h-3.5" /> Split
               </button>
             </div>
 
-            {/* Live toggle */}
             <button
               onClick={() => setIsLive(!isLive)}
               className={cn(
-                "flex items-center gap-2.5 px-5 py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-[0.2em] transition-all",
+                "flex items-center gap-2 px-4 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all",
                 isLive
-                  ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-                  : "bg-white/[0.02] border-white/5 text-muted-foreground/30 hover:text-muted-foreground/60"
+                  ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-400/60"
+                  : "bg-white/[0.02] border-white/5 text-white/10"
               )}
             >
-              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isLive ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-muted-foreground/20")} />
-              {isLive ? "Stream_Live" : "Pipe_Paused"}
+              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isLive ? "bg-emerald-500 animate-pulse" : "bg-white/10")} />
+              Live
             </button>
 
             <Button 
               onClick={() => doRefetch()} 
               variant="outline"
-              className="h-10 px-5 border-white/5 bg-white/[0.02] hover:bg-white/[0.05] rounded-xl text-[9px] font-black uppercase tracking-[0.25em]"
+              size="sm"
+              className="h-9 px-4 border-white/5 bg-white/[0.02] hover:bg-white/[0.05] rounded-xl text-[10px] font-bold uppercase tracking-widest"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5 mr-2", isRefetching && "animate-spin")} /> Force_Sync
+              <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} />
             </Button>
           </div>
         </div>
 
-        {/* Row 2: Severity distribution & Poll Control */}
-        <div className="flex flex-col md:flex-row md:items-center gap-8 justify-between">
+        <div className="flex flex-col md:flex-row md:items-center gap-8 justify-between pt-6 border-t border-white/5">
            <div className="flex-1 space-y-4">
               <div className="flex items-center justify-between">
-                 <div className="text-[9px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 flex items-center gap-2">
-                    <Activity className="w-3 h-3" /> Entropy_Distribution
+                 <div className="text-[10px] font-bold uppercase tracking-widest text-white/20 flex items-center gap-2">
+                    <Activity className="w-3.5 h-3.5" /> Severity Distribution
                  </div>
-                 <div className="text-[9px] font-black text-muted-foreground/20 tracking-widest uppercase">
-                    Sample_Size: {totalLogs} Events
+                 <div className="text-[9px] font-bold text-white/10 tracking-widest uppercase">
+                    {totalLogs} Events Captured
                  </div>
               </div>
-              <div className="flex h-1.5 rounded-full overflow-hidden bg-white/5">
+              <div className="flex h-1 bg-white/5 rounded-full overflow-hidden">
                 {SEVERITY_CONFIG.map(s => {
                   const count = severityDist[s.key] || 0
                   const pct = totalLogs > 0 ? (count / totalLogs) * 100 : 0
@@ -259,8 +248,8 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
                       className={cn(s.color, "transition-all duration-500 relative group cursor-pointer hover:brightness-125")}
                       onClick={() => toggleSeverity(s.key)}
                     >
-                       <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black border border-white/10 px-2 py-1 rounded text-[8px] font-black uppercase whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                          {s.label}: {count} ({pct.toFixed(0)}%)
+                       <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-black border border-white/10 px-2 py-1 rounded text-[8px] font-bold uppercase whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                          {s.label}: {count}
                        </div>
                     </motion.div>
                   )
@@ -268,39 +257,34 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
               </div>
            </div>
 
-           <div className="flex items-center gap-6">
-              <div className="flex items-center gap-4 px-4 py-2.5 bg-[#050505] border border-white/5 rounded-xl">
-                 <Clock className="w-3.5 h-3.5 text-muted-foreground/20" />
+           <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 px-3 py-1.5 bg-black border border-white/5 rounded-xl">
+                 <Clock className="w-3.5 h-3.5 text-white/10" />
                  <select
                    value={pollInterval}
                    onChange={(e) => setPollInterval(Number(e.target.value))}
-                   className="bg-transparent border-none text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest outline-none cursor-pointer focus:text-indigo-400 transition-colors"
+                   className="bg-transparent border-none text-[10px] font-bold text-white/30 uppercase tracking-widest outline-none cursor-pointer focus:text-white transition-colors"
                  >
-                   <option value={2000}>Buffer_2s</option>
-                   <option value={5000}>Buffer_5s</option>
-                   <option value={10000}>Buffer_10s</option>
-                   <option value={30000}>Buffer_30s</option>
+                   <option value={2000}>2s Poll</option>
+                   <option value={5000}>5s Poll</option>
+                   <option value={10000}>10s Poll</option>
+                   <option value={30000}>30s Poll</option>
                  </select>
               </div>
            </div>
         </div>
 
-        {/* Row 3: Filter Matrix */}
-        <div className="flex items-center gap-3 flex-wrap pt-8 border-t border-white/5">
-          <div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg mr-2">
-            <Filter className="w-3 h-3 text-indigo-400" />
-          </div>
-
-          <div className="flex items-center gap-2 bg-[#050505] p-1 rounded-xl border border-white/5">
+        <div className="flex items-center gap-2 flex-wrap pt-6 border-t border-white/5">
+          <div className="flex items-center gap-1.5 bg-black p-1 rounded-xl border border-white/5">
             {['info', 'warn', 'error', 'critical'].map(level => (
               <button
                 key={level}
                 onClick={() => toggleLevel(level)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all",
+                  "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all",
                   levelFilter.includes(level)
-                    ? (LEVEL_STYLES[level] || 'text-red-500 bg-red-500/15')
-                    : "text-muted-foreground/20 hover:text-muted-foreground/40"
+                    ? "bg-white/[0.05] text-white"
+                    : "text-white/10 hover:text-white/20"
                 )}
               >
                 {level}
@@ -308,21 +292,18 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
             ))}
           </div>
 
-          {activeProviders.length > 0 && <div className="w-px h-6 bg-white/5 mx-2" />}
-
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-2">
             {activeProviders.map((p: string) => {
-              const color = PROVIDER_COLORS[p] || 'bg-zinc-500/5 text-zinc-400/40 border-zinc-500/10'
               const isActive = providerFilter.includes(p)
               return (
                 <button
                   key={p}
                   onClick={() => toggleProvider(p)}
                   className={cn(
-                    "px-4 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-[0.2em] transition-all",
+                    "px-3 py-1.5 rounded-xl border text-[9px] font-bold uppercase tracking-widest transition-all",
                     isActive
-                      ? color + " shadow-lg"
-                      : "bg-[#050505] border-white/5 text-muted-foreground/20 hover:text-muted-foreground/40 hover:border-white/10"
+                      ? "bg-white/[0.05] text-white border-white/20"
+                      : "bg-black border-white/5 text-white/10 hover:text-white/20"
                   )}
                 >
                   {p}
@@ -330,14 +311,10 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
               )
             })}
           </div>
-
-          <div className="ml-auto text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.3em]">
-            Stream_Count: <span className="text-foreground/40">{filteredLogs.length}</span>
-          </div>
         </div>
       </div>
 
-      {/* ── Ledger Interface ── */}
+      {/* Logs View */}
       <AnimatePresence mode="wait">
         {isLoading ? (
           <motion.div 
@@ -346,50 +323,35 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
             exit={{ opacity: 0 }}
             className="bg-[#0a0a0a] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
           >
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01] text-[9px] font-black uppercase tracking-[0.25em] text-muted-foreground/30">
-              <div className="col-span-1">Timestamp</div>
-              <div className="col-span-1">Entropy</div>
-              <div className="col-span-2">Telemetry_Node</div>
-              <div className="col-span-8">Payload_Data</div>
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01] text-[10px] font-bold uppercase tracking-widest text-white/10">
+              <div className="col-span-1">Time</div>
+              <div className="col-span-1">Level</div>
+              <div className="col-span-2">Provider</div>
+              <div className="col-span-8">Message</div>
             </div>
-            <div className="p-4 space-y-4">
-               {[...Array(12)].map((_, i) => (
-                <div key={i} className="flex gap-4 animate-pulse px-2">
-                  <div className="w-20 h-2 bg-white/5 rounded-full" />
-                  <div className="w-16 h-2 bg-white/5 rounded-full" />
-                  <div className="w-32 h-2 bg-white/5 rounded-full" />
-                  <div className="flex-1 h-2 bg-white/5 rounded-full" />
-                </div>
-               ))}
-            </div>
+            <LogSkeleton />
           </motion.div>
         ) : viewMode === 'unified' ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.99 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#0a0a0a] border border-white/5 rounded-3xl overflow-hidden shadow-2xl group transition-all duration-700"
+            className="bg-[#0a0a0a] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
           >
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01] text-[9px] font-black uppercase tracking-[0.25em] text-muted-foreground/30 ring-1 ring-inset ring-white/[0.02]">
-              <div className="col-span-1">Timestamp</div>
-              <div className="col-span-1">Entropy</div>
-              <div className="col-span-2">Telemetry_Node</div>
-              <div className="col-span-8">Payload_Data</div>
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01] text-[10px] font-bold uppercase tracking-widest text-white/10">
+              <div className="col-span-1">Time</div>
+              <div className="col-span-1">Level</div>
+              <div className="col-span-2">Provider</div>
+              <div className="col-span-8">Message</div>
             </div>
-            <div ref={unifiedScrollRef} className="max-h-[800px] overflow-y-auto font-mono scrollbar-thin scrollbar-thumb-white/5 hover:scrollbar-thumb-indigo-500/20 transition-all">
+            <div ref={unifiedScrollRef} className="max-h-[800px] overflow-y-auto font-mono text-[11px] scrollbar-thin">
               {filteredLogs.length === 0 ? (
-                <div className="p-32 text-center flex flex-col items-center justify-center space-y-8">
-                  <div className="w-24 h-24 rounded-[2.5rem] bg-white/[0.02] border border-white/5 flex items-center justify-center relative">
-                    <div className="absolute inset-0 bg-indigo-500/5 blur-xl rounded-full animate-pulse" />
-                    <Terminal className="w-10 h-10 text-muted-foreground/10 relative z-10" />
+                <div className="py-32 flex flex-col items-center justify-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.01] border border-white/5 flex items-center justify-center text-white/5">
+                    <Terminal className="w-8 h-8" />
                   </div>
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-black text-foreground/70 uppercase tracking-[0.3em]">Stream_Pipeline_Empty</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] max-w-sm leading-relaxed">
-                      {deployments.length === 0
-                        ? "Zero active deployments mapped. Initialize provisioning engine to bridge telemetry."
-                        : "Handshake established. Waiting for remote telemetry node to broadcast protocols."
-                      }
-                    </p>
+                  <div className="text-center">
+                    <h3 className="text-sm font-bold text-white/20 uppercase tracking-widest">No logs found</h3>
+                    <p className="text-[10px] text-white/10 mt-1">Waiting for incoming telemetry...</p>
                   </div>
                 </div>
               ) : (
@@ -403,10 +365,10 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
           </motion.div>
         ) : (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className={cn(
-            "grid gap-8 pb-12",
+            "grid gap-6 pb-12",
             providerCount <= 1 ? "grid-cols-1" :
             providerCount === 2 ? "grid-cols-2" :
             "grid-cols-2 xl:grid-cols-3"
@@ -422,19 +384,6 @@ export const TelemetrySection = ({ projectSlug }: { projectSlug: string }) => {
                 onToggleExpand={() => setExpandedPane(expandedPane === providerId ? null : providerId)}
               />
             ))}
-            {Object.keys(logsByProvider).length === 0 && (
-              <div className="col-span-full">
-                <div className="py-32 border border-dashed border-white/5 rounded-[2.5rem] text-center flex flex-col items-center justify-center bg-white/[0.01] space-y-6">
-                   <div className="w-16 h-16 rounded-[2rem] bg-white/[0.02] border border-white/5 flex items-center justify-center shadow-2xl">
-                     <Columns className="w-8 h-8 text-muted-foreground/10" />
-                   </div>
-                   <div className="space-y-2">
-                     <h3 className="text-xs font-black text-foreground/40 uppercase tracking-[0.3em]">Parallel_Panes_Locked</h3>
-                     <p className="text-[9px] font-bold text-muted-foreground/20 uppercase tracking-widest max-w-[280px]">Deploy multi-node clusters to unlock parallel matrix telemetry.</p>
-                   </div>
-                </div>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

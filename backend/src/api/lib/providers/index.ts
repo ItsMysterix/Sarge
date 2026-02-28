@@ -59,6 +59,14 @@ import { StrapiProvider } from './strapi'
 import { SanityProvider } from './sanity'
 import { PayPalProvider } from './paypal'
 import { AlchemyProvider } from './alchemy'
+import { SlackProvider } from './slack'
+import { DiscordProvider } from './discord'
+import { NotionProvider } from './notion'
+import { LinearProvider } from './linear'
+import { JiraProvider } from './jira'
+import { AsanaProvider } from './asana'
+import { HubspotProvider } from './hubspot'
+import { SalesforceProvider } from './salesforce'
 
 export * from './types'
 
@@ -77,7 +85,8 @@ export {
   PusherProvider, RabbitMQProvider, ConfluentProvider, SegmentProvider,
   AlgoliaProvider, MeilisearchProvider, ElasticProvider,
   ContentfulProvider, StrapiProvider, SanityProvider,
-  PayPalProvider, AlchemyProvider
+  PayPalProvider, AlchemyProvider,
+  SlackProvider, DiscordProvider, NotionProvider, LinearProvider, JiraProvider, AsanaProvider, HubspotProvider, SalesforceProvider
 }
 
 /**
@@ -146,6 +155,14 @@ export function getProvider(providerId: string): IProvider | null {
     sanity: () => new SanityProvider(),
     paypal: () => new PayPalProvider(),
     alchemy: () => new AlchemyProvider(),
+    slack: () => new SlackProvider(),
+    discord: () => new DiscordProvider(),
+    notion: () => new NotionProvider(),
+    linear: () => new LinearProvider(),
+    jira: () => new JiraProvider(),
+    asana: () => new AsanaProvider(),
+    hubspot: () => new HubspotProvider(),
+    salesforce: () => new SalesforceProvider(),
   }
 
   const factory = map[providerId]

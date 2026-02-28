@@ -1,5 +1,7 @@
 import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry, DiscoverOptions, DiscoveredResource, ProviderMetric, SecurityFinding, DomainInfo, StorageInfo, FirewallInfo, UsageRecord, AnalyticsData } from './types'
 
+import { providerLogger } from '../../../lib/logger'
+
 export class FlyProvider implements IProvider {
     id = 'fly'
     name = 'Fly.io'
@@ -146,10 +148,37 @@ export class FlyProvider implements IProvider {
     }
 
     async discoverResources(opts: DiscoverOptions): Promise<DiscoveredResource[]> {
-        return [
-            { id: 'fly-app-1', name: 'sarge-vols-backend', type: 'fly_machine', status: 'started', region: 'iad', metadata: { app: 'sarge-vols' } },
-            { id: 'fly-vol-1', name: 'pg_data', type: 'fly_volume', status: 'attached', region: 'iad', metadata: { size: '10GB' } },
-        ]
+        const token = this.getToken(opts.credentials);
+        if (!token) return [];
+
+        try {
+            const res = await fetch('https://api.machines.dev/v1/apps', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                providerLogger.error(`[FlyProvider] Discovery failed: ${res.statusText}`);
+                return [];
+            }
+
+            const data = await res.json() as any;
+            const apps = data.apps || [];
+
+            return apps.map((app: any) => ({
+                id: app.id || app.name,
+                name: app.name,
+                type: 'fly_app',
+                status: 'active',
+                region: 'global',
+                metadata: {
+                    org: app.organization?.slug,
+                    status: app.status
+                }
+            }));
+        } catch (err) {
+            providerLogger.error({ err }, '[FlyProvider] Resource discovery error');
+            return [];
+        }
     }
 
     async getAccountLogs(opts: { credentials: Record<string, string>; resourceId?: string; limit?: number }): Promise<LogEntry[]> {

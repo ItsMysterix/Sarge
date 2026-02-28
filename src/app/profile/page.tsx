@@ -121,30 +121,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <AppShell title={
-      <div className="flex items-center gap-6">
-        <div className="w-12 h-12 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center shadow-2xl ring-1 ring-inset ring-white/[0.01]">
-          <Lock className="w-6 h-6 text-indigo-400/60" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-[14px] font-black tracking-[0.5em] uppercase text-foreground/90">Protocol_Identity_Registry</span>
-          <span className="text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] flex items-center gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-            Authenticated_Kernel_Admin // {user?.fullName?.toUpperCase() || 'ROOT_ADMIN'}
-          </span>
-        </div>
-      </div>
-    }>
-      <div className="flex-1 p-10 lg:p-14 max-w-[1400px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-1000">
+    <AppShell title="Profile">
+      <div className="flex-1 p-8 lg:p-12 max-w-[1400px] mx-auto w-full flex flex-col gap-12 animate-in fade-in duration-700">
         <ToastContainer />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-12">
-          <TabsList className="bg-transparent h-auto p-0 gap-10 justify-start rounded-none border-b border-white/5 pb-2">
-            <TabsTrigger value="general" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Identity_Manifest</TabsTrigger>
-            <TabsTrigger value="account" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Security_Protocols</TabsTrigger>
-            <TabsTrigger value="billing" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Credit_Registry</TabsTrigger>
-            <TabsTrigger value="developer" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Uplink_Secrets</TabsTrigger>
-            <TabsTrigger value="notifications" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent shadow-none text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20 data-[state=active]:text-foreground transition-all">Signal_Matrix</TabsTrigger>
+          <TabsList className="bg-transparent h-auto p-0 gap-8 justify-start rounded-none border-b border-white/5 pb-2">
+            <TabsTrigger value="general" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent shadow-none text-xs font-bold uppercase tracking-widest text-white/20 data-[state=active]:text-white transition-all">General</TabsTrigger>
+            <TabsTrigger value="account" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent shadow-none text-xs font-bold uppercase tracking-widest text-white/20 data-[state=active]:text-white transition-all">Account</TabsTrigger>
+            <TabsTrigger value="billing" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent shadow-none text-xs font-bold uppercase tracking-widest text-white/20 data-[state=active]:text-white transition-all">Billing</TabsTrigger>
+            <TabsTrigger value="developer" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent shadow-none text-xs font-bold uppercase tracking-widest text-white/20 data-[state=active]:text-white transition-all">Developer</TabsTrigger>
+            <TabsTrigger value="notifications" className="px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent shadow-none text-xs font-bold uppercase tracking-widest text-white/20 data-[state=active]:text-white transition-all">Notifications</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">

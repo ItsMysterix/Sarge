@@ -1,4 +1,5 @@
 import { IProvider, DeployOptions, DeployResult, StatusOptions, DeploymentStatus, PreviewOptions, CostOptions, CostEstimate, ListEnvOptions, Environment, GetLogsOptions, LogEntry, DiscoverOptions, DiscoveredResource, ProviderMetric, SecurityFinding, DomainInfo, StorageInfo, FirewallInfo, UsageRecord, AnalyticsData } from './types'
+import { providerLogger } from '../../../lib/logger'
 
 export class RenderProvider implements IProvider {
     id = 'render'
@@ -127,12 +128,38 @@ export class RenderProvider implements IProvider {
     }
 
     async discoverResources(opts: DiscoverOptions): Promise<DiscoveredResource[]> {
-        return [
-            { id: 'render-web-1', name: 'sarge-backend', type: 'render_web_service', status: 'available', region: 'oregon', metadata: { tier: 'pro' } },
-            { id: 'render-db-1', name: 'sarge-postgres', type: 'render_postgresql', status: 'available', region: 'oregon', metadata: { version: '15' } },
-            { id: 'render-redis-1', name: 'sarge-cache', type: 'render_redis', status: 'available', region: 'oregon', metadata: { tier: 'starter' } },
-            { id: 'render-static-1', name: 'sarge-docs', type: 'render_static_site', status: 'available', region: 'frankfurt', metadata: {} },
-        ]
+        const token = opts.credentials.render_token || opts.credentials.access_token;
+        if (!token) return [];
+
+        try {
+            const res = await fetch('https://api.render.com/v1/services?limit=50', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                providerLogger.error(`[RenderProvider] Discovery failed: ${res.statusText}`);
+                return [];
+            }
+
+            const data = await res.json() as any[];
+            if (!Array.isArray(data)) return [];
+
+            return data.map((item: any) => ({
+                id: item.service.id,
+                name: item.service.name,
+                type: item.service.type || 'render_service',
+                status: item.service.status === 'available' ? 'success' : 'deploying',
+                region: item.service.region || 'unknown',
+                metadata: {
+                    ownerId: item.service.ownerId,
+                    repoUrl: item.service.repo,
+                    updatedAt: item.service.updatedAt
+                }
+            }));
+        } catch (err) {
+            providerLogger.error({ err }, '[RenderProvider] Resource discovery error');
+            return [];
+        }
     }
 
     async getAccountLogs(opts: { credentials: Record<string, string>; resourceId?: string; limit?: number }): Promise<LogEntry[]> {

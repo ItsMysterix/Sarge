@@ -129,7 +129,7 @@ export function ProjectWizard({ onComplete, onCancel }: ProjectWizardProps) {
 
           <div className="pt-4">
             <p className="text-sm text-gray-400 mb-4">
-              After creating your project, you'll be able to add a workspace, configure one-click deployment, and manage settings.
+              After creating your project, you&apos;ll be able to add a workspace, configure one-click deployment, and manage settings.
             </p>
             
             <Button

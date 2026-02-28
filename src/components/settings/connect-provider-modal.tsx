@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Globe, Loader2, Zap, CheckCircle2, Lock, Github, ArrowRight, ShieldCheck, LogIn } from "lucide-react"
+import { Globe, Loader2, Zap, CheckCircle2, Lock, Github, ArrowRight, ShieldCheck, LogIn, RefreshCw } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
@@ -25,7 +25,7 @@ interface ConnectProviderModalProps {
  * We use a "Marketplace Bridge" that handles OAuth handshakes automatically.
  */
 export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: ConnectProviderModalProps) {
-  const [step, setStep] = useState<'idle' | 'checking' | 'linking' | 'redirecting' | 'success'>('idle')
+  const [step, setStep] = useState<'idle' | 'checking' | 'linking' | 'redirecting' | 'discovery' | 'success'>('idle')
   const [isLinkedOnGithub, setIsLinkedOnGithub] = useState(false)
   
   const utils = trpc.useUtils()
@@ -40,6 +40,9 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
     }
   })
 
+  // Discovery mutation
+  const discoverMutation = trpc.providers.discover.useMutation()
+  
   // Start checking status when modal opens
   useEffect(() => {
     if (isOpen && provider) {
@@ -49,33 +52,53 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
       setStep('idle')
       setIsLinkedOnGithub(false)
     }
-  }, [isOpen, provider])
+  }, [isOpen, provider, githubSync])
+
+  // Fetch Nango session token
+  const nangoToken = trpc.providers.getConnectToken.useQuery(undefined, {
+    enabled: isOpen && provider !== null,
+    staleTime: 1000 * 60 * 5, // 5 mins
+  })
 
   if (!provider) return null
 
   const handleStartOAuth = async () => {
+    if (!nangoToken.data?.token) {
+      console.error("No Nango session token available")
+      return
+    }
+
     setStep('linking')
     
     try {
-      const { getSession } = await import("next-auth/react")
-      const session = await getSession()
-      const userId = session?.user?.id || 'unknown-user'
-      
-      // Initialize Nango Frontend SDK
+      // Initialize Nango Frontend SDK using the modern Session Token approach
       const Nango = (await import('@nangohq/frontend')).default
-      const nango = new Nango({ publicKey: process.env.NEXT_PUBLIC_NANGO_PUBLIC_KEY || 'MISSING_KEY' })
       
-      // Use Nango as the Bridge for all services
-      nango.auth(provider.id, userId)
+      // per nango docs: deprecated publicKey, use connectSessionToken
+      const nango = new Nango({ 
+        connectSessionToken: nangoToken.data.token 
+      })
+      
+      // Trigger the auth flow
+      // With connectSessionToken, we don't need to pass the userId again
+      nango.auth(provider.id)
         .then(async (result) => {
-          setStep('success')
           // Inform our backend that Nango handled the credentials
           await onConnect(provider.id, { _nango_connected: "true" })
+          
+          // Trigger resource discovery to "show" the user their live apps
+          setStep('discovery')
+          discoverMutation.mutate({ providerId: provider.id })
+          
+          // Stay a bit to show results then close
           setTimeout(() => {
-              onClose()
-              setStep('idle')
-              utils.providers.list.invalidate()
-          }, 1500)
+              setStep('success')
+              setTimeout(() => {
+                onClose()
+                setStep('idle')
+                utils.providers.list.invalidate()
+              }, 2000)
+          }, 3000)
         })
         .catch((err) => {
           console.error("Nango Auth failed", err)
@@ -180,6 +203,32 @@ export function ConnectProviderModal({ provider, isOpen, onClose, onConnect }: C
                  <div className="text-center">
                     <h3 className="text-lg font-black uppercase italic tracking-tighter">Establishing Secure Gateway</h3>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2">Bridging GitHub ➔ {provider.name}</p>
+                 </div>
+              </motion.div>
+            ) : step === 'discovery' ? (
+              <motion.div 
+                key="discovery"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-12 flex flex-col items-center justify-center space-y-6"
+              >
+                 <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
+                 <div className="text-center">
+                    <h3 className="text-lg font-black uppercase italic tracking-tighter">Scanning Cluster</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2 font-bold">
+                      {discoverMutation.isLoading ? 'Detecting active nodes...' : 
+                       discoverMutation.data?.resources?.length ? `Discovered ${discoverMutation.data.resources.length} live services` : 
+                       'No active services detected'}
+                    </p>
+                    {discoverMutation.data?.resources && discoverMutation.data.resources.length > 0 && (
+                      <div className="mt-4 flex flex-wrap justify-center gap-2 max-h-24 overflow-y-auto px-4 custom-scrollbar">
+                        {discoverMutation.data.resources.slice(0, 6).map((r: any) => (
+                          <span key={r.id} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-bold uppercase tracking-widest text-white/40">
+                            {r.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                  </div>
               </motion.div>
             ) : step === 'redirecting' ? (
