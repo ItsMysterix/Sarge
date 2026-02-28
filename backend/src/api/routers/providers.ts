@@ -123,18 +123,20 @@ export const providersRouter = router({
 
   getConnectToken: secureProcedure('providers.getConnectToken')
     .query(async ({ ctx }) => {
-      const userId = (ctx as any).userId;
+      const userId = ctx.userId;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User ID missing from session' });
       }
 
-      if (!process.env.NANGO_SECRET_KEY) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'NANGO_SECRET_KEY is not configured' });
+      const secretKey = process.env.NANGO_SECRET_KEY || process.env.NANGO_SECRET_KEY_DEV || process.env.NANGO_SECRET_KEY_PROD;
+
+      if (!secretKey) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Nango Secret Key is not configured (checked NANGO_SECRET_KEY, NANGO_SECRET_KEY_DEV, NANGO_SECRET_KEY_PROD)' });
       }
 
       try {
         const { Nango } = await import('@nangohq/node');
-        const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+        const nango = new Nango({ secretKey });
 
         const session = await nango.createConnectSession({
           end_user: { id: userId }
@@ -223,7 +225,7 @@ export const providersRouter = router({
           })
 
         // Also sync to provider_credentials table (used by getProviderCredentials at deploy time)
-        const userId = (ctx as any).userId || null
+        const userId = ctx.userId || null
         await ctx.db.query(
           `INSERT INTO provider_credentials (provider_id, user_id, credentials_encrypted, created_at, updated_at)
            VALUES ($1, $2, $3, NOW(), NOW())
@@ -245,7 +247,10 @@ export const providersRouter = router({
     }),
 
   discover: secureProcedure('providers.discover')
-    .input(z.object({ providerId: z.string() }))
+    .input(z.object({
+      providerId: z.string(),
+      projectSlug: z.string().optional()
+    }))
     .mutation(async ({ ctx, input }) => {
       try {
         const { getProvider } = await import('../lib/providers')
@@ -256,13 +261,13 @@ export const providersRouter = router({
           throw new TRPCError({ code: 'BAD_REQUEST', message: `Provider ${input.providerId} not supported` })
         }
 
-        const credentials = await getProviderCredentials(input.providerId, ctx.db, (ctx as any).userId)
+        const credentials = await getProviderCredentials(input.providerId, ctx.db, ctx.userId)
 
         // If we found credentials (either via Nango or DB), try to discover real apps
         if (credentials && Object.keys(credentials).length > 0 && provider.discoverResources) {
           const resources = await provider.discoverResources({
             credentials,
-            projectId: (ctx as any).projectId || 'sarge-global'
+            projectId: input.projectSlug || 'sarge-global'
           })
           return { resources, isMocked: false }
         }

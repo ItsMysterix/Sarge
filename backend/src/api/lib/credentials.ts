@@ -95,10 +95,11 @@ export async function getProviderCredentials(
   // 1. Try Nango Integration
   // Nango manages all OAuth flows securely, provides guaranteed fresh tokens,
   // and completely eliminates our need for custom token rotation.
-  if (process.env.NANGO_SECRET_KEY && userId) {
+  const nangoSecret = process.env.NANGO_SECRET_KEY || process.env.NANGO_SECRET_KEY_DEV || process.env.NANGO_SECRET_KEY_PROD;
+  if (nangoSecret && userId) {
     try {
       const { Nango } = await import('@nangohq/node');
-      const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+      const nango = new Nango({ secretKey: nangoSecret });
 
       const connection = await nango.getConnection(providerId, userId);
 
