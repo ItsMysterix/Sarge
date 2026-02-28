@@ -142,7 +142,7 @@ export const providersRouter = router({
           end_user: { id: userId }
         });
 
-        return { token: session.token };
+        return { token: (session as any).data?.token || (session as any).token };
       } catch (e: any) {
         providerLogger.error({ e, userId }, '[providers.getConnectToken] Nango error');
         throw new TRPCError({
