@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
 # Monorepo-aware backend image build
-FROM node:20-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* package-lock.json* ./
 RUN if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm install --frozen-lockfile; \
 	else npm install --legacy-peer-deps; fi
 
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 COPY . .
 COPY --from=deps /app/node_modules ./node_modules
@@ -15,7 +15,7 @@ COPY --from=deps /app/node_modules ./node_modules
 RUN if [ -f pnpm-lock.yaml ]; then npm i -g pnpm@9 && pnpm install && pnpm -r run build; \
 	else npm --prefix backend run build; fi
 
-FROM node:20-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
